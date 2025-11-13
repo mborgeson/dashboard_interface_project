@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-neutral-900 font-sans;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  /* Page Title */
+  .page-title {
+    @apply text-page-title text-neutral-900 font-semibold mb-6;
+  }
+
+  /* Section Title */
+  .section-title {
+    @apply text-section-title text-neutral-800 font-semibold mb-4;
+  }
+
+  /* Card Title */
+  .card-title {
+    @apply text-card-title text-neutral-800 font-semibold;
+  }
+
+  /* Body Text */
+  .body {
+    @apply text-base text-neutral-700;
+  }
+
+  /* Small Text */
+  .text-small {
+    @apply text-sm text-neutral-600;
+  }
+
+  /* Stat Value */
+  .stat-value {
+    @apply text-hero-stat text-neutral-900;
+  }
+}
+
+/* Leaflet CSS overrides */
+@layer utilities {
+  .leaflet-container {
+    @apply w-full h-full;
+  }
+}
