@@ -6,6 +6,9 @@ import { InvestmentsPage } from '@/features/investments';
 import { PropertyDetailPage } from '@/features/property-detail';
 import { TransactionsPage } from '@/features/transactions';
 import { MappingPage } from '@/features/mapping';
+import { DealsPage } from '@/features/deals';
+import { MarketPage } from '@/features/market';
+import { DocumentsPage } from '@/features/documents';
 
 export const router = createBrowserRouter([
   {
@@ -29,12 +32,24 @@ export const router = createBrowserRouter([
         element: <TransactionsPage />,
       },
       {
+        path: 'deals',
+        element: <DealsPage />,
+      },
+      {
         path: 'analytics',
         element: <AnalyticsPage />,
       },
       {
         path: 'mapping',
         element: <MappingPage />,
+      },
+      {
+        path: 'market',
+        element: <MarketPage />,
+      },
+      {
+        path: 'documents',
+        element: <DocumentsPage />,
       },
     ],
   },

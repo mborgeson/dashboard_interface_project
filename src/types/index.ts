@@ -12,3 +12,5 @@ export type {
   PrepaymentPenaltyType,
   AssumptionPreset,
 } from './underwriting';
+export type { Deal, DealStage, DealTimelineEvent } from './deal';
+export type { Document, DocumentType, DocumentFilters, DocumentStats } from './document';

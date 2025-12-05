@@ -4,8 +4,11 @@ import {
   LayoutDashboard,
   Building2,
   Receipt,
+  Briefcase,
   BarChart3,
+  TrendingUp,
   Map,
+  FileText,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -15,7 +18,10 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Investments', href: '/investments', icon: Building2 },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
+  { name: 'Deals', href: '/deals', icon: Briefcase },
+  { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Market', href: '/market', icon: TrendingUp },
   { name: 'Mapping', href: '/mapping', icon: Map },
 ];
 
