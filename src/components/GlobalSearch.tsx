@@ -415,11 +415,17 @@ export function GlobalSearch() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[10vh]">
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[10vh]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="search-dialog-title"
+    >
       <div
         ref={modalRef}
         className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4"
       >
+        <h2 id="search-dialog-title" className="sr-only">Global Search</h2>
         {/* Search Input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-200">
           <Search className="w-5 h-5 text-neutral-400" />
@@ -431,13 +437,18 @@ export function GlobalSearch() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1 outline-none text-neutral-900 placeholder-neutral-400"
+            aria-label="Search properties, deals, documents"
+            aria-autocomplete="list"
+            aria-controls="search-results"
+            aria-expanded={searchResults.length > 0 || recentSearches.length > 0 || !searchQuery}
           />
           {searchQuery && (
             <button
               onClick={() => setQuery('')}
               className="text-neutral-400 hover:text-neutral-600"
+              aria-label="Clear search"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           )}
           <div className="flex items-center gap-1 text-xs text-neutral-400">
@@ -447,7 +458,7 @@ export function GlobalSearch() {
         </div>
 
         {/* Results */}
-        <div className="max-h-[60vh] overflow-y-auto">
+        <div id="search-results" className="max-h-[60vh] overflow-y-auto" role="listbox" aria-label="Search results">
           {searchQuery ? (
             <>
               {searchResults.length > 0 ? (
