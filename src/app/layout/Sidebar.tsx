@@ -14,6 +14,13 @@ import {
   X,
   Percent,
   ClipboardList,
+  ExternalLink,
+  Globe,
+  FolderOpen,
+  Linkedin,
+  Calculator,
+  FileSpreadsheet,
+  Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
@@ -29,6 +36,18 @@ const navigation = [
   { name: 'Interest Rates', href: '/interest-rates', icon: Percent },
   { name: 'Market', href: '/market', icon: TrendingUp },
   { name: 'Mapping', href: '/mapping', icon: Map },
+];
+
+const externalLinks = [
+  { name: 'B&R Capital', href: 'https://www.bandrcapital.com/', icon: Globe },
+  { name: 'SharePoint', href: 'https://bandrcapital.sharepoint.com/sites/BRCapital-Internal/Real%20Estate/Forms/AllItems.aspx', icon: FolderOpen },
+  { name: 'LinkedIn', href: 'https://www.linkedin.com/company/b-r-capital/', icon: Linkedin },
+];
+
+const externalTools = [
+  { name: 'Rent Roll Analyzer', href: 'https://rent-roll-processor.onrender.com/', icon: FileSpreadsheet },
+  { name: 'T12 Analyzer', href: '#', icon: Calculator, disabled: true },
+  { name: 'Rent Scraper', href: '#', icon: Search, disabled: true },
 ];
 
 export function Sidebar(){
@@ -127,6 +146,71 @@ export function Sidebar(){
           );
         })}
       </nav>
+
+      {/* External Links Section */}
+      {(!sidebarCollapsed || mobileMenuOpen) && (
+        <div className="mt-6 px-3">
+          <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider px-3 mb-2">
+            External
+          </div>
+          <div className="space-y-1">
+            {externalLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-400 hover:bg-neutral-700 hover:text-white transition-colors min-h-[40px]"
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                  <span className="text-sm">{link.name}</span>
+                  <ExternalLink className="w-3 h-3 ml-auto opacity-50" aria-hidden="true" />
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* External Tools Section */}
+      {(!sidebarCollapsed || mobileMenuOpen) && (
+        <div className="mt-4 px-3">
+          <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider px-3 mb-2">
+            Tools
+          </div>
+          <div className="space-y-1">
+            {externalTools.map((tool) => {
+              const Icon = tool.icon;
+              const isDisabled = 'disabled' in tool && tool.disabled;
+              return (
+                <a
+                  key={tool.name}
+                  href={isDisabled ? undefined : tool.href}
+                  target={isDisabled ? undefined : '_blank'}
+                  rel={isDisabled ? undefined : 'noopener noreferrer'}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors min-h-[40px]',
+                    isDisabled
+                      ? 'text-neutral-600 cursor-not-allowed'
+                      : 'text-neutral-400 hover:bg-neutral-700 hover:text-white'
+                  )}
+                  title={isDisabled ? 'Coming soon' : undefined}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                  <span className="text-sm">{tool.name}</span>
+                  {isDisabled ? (
+                    <span className="ml-auto text-[10px] text-neutral-600 bg-neutral-700/50 px-1.5 py-0.5 rounded">Soon</span>
+                  ) : (
+                    <ExternalLink className="w-3 h-3 ml-auto opacity-50" aria-hidden="true" />
+                  )}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Footer Section */}
       {(!sidebarCollapsed || mobileMenuOpen) && (
