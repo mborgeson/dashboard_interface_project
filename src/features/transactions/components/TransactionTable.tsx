@@ -10,6 +10,32 @@ interface TransactionTableProps {
   onSort: (key: keyof Transaction) => void;
 }
 
+interface SortHeaderProps {
+  label: string;
+  sortKey: keyof Transaction;
+  sortConfig: SortConfig;
+  onSort: (key: keyof Transaction) => void;
+}
+
+function SortHeader({ label, sortKey, sortConfig, onSort }: SortHeaderProps) {
+  return (
+    <th className="px-6 py-3 text-left">
+      <button
+        onClick={() => onSort(sortKey)}
+        className="flex items-center gap-2 text-xs font-medium text-neutral-500 uppercase tracking-wider hover:text-neutral-700"
+      >
+        {label}
+        <ArrowUpDown
+          className={cn(
+            'w-4 h-4',
+            sortConfig.key === sortKey && 'text-blue-600'
+          )}
+        />
+      </button>
+    </th>
+  );
+}
+
 const TYPE_CONFIG = {
   acquisition: {
     label: 'Acquisition',
@@ -38,29 +64,6 @@ export function TransactionTable({
   sortConfig,
   onSort,
 }: TransactionTableProps) {
-  const SortHeader = ({
-    label,
-    sortKey,
-  }: {
-    label: string;
-    sortKey: keyof Transaction;
-  }) => (
-    <th className="px-6 py-3 text-left">
-      <button
-        onClick={() => onSort(sortKey)}
-        className="flex items-center gap-2 text-xs font-medium text-neutral-500 uppercase tracking-wider hover:text-neutral-700"
-      >
-        {label}
-        <ArrowUpDown
-          className={cn(
-            'w-4 h-4',
-            sortConfig.key === sortKey && 'text-blue-600'
-          )}
-        />
-      </button>
-    </th>
-  );
-
   if (transactions.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-md border border-neutral-200 p-12 text-center">
@@ -75,11 +78,11 @@ export function TransactionTable({
         <table className="min-w-full divide-y divide-neutral-200">
           <thead className="bg-neutral-50">
             <tr>
-              <SortHeader label="Date" sortKey="date" />
-              <SortHeader label="Property" sortKey="propertyName" />
-              <SortHeader label="Type" sortKey="type" />
-              <SortHeader label="Category" sortKey="category" />
-              <SortHeader label="Amount" sortKey="amount" />
+              <SortHeader label="Date" sortKey="date" sortConfig={sortConfig} onSort={onSort} />
+              <SortHeader label="Property" sortKey="propertyName" sortConfig={sortConfig} onSort={onSort} />
+              <SortHeader label="Type" sortKey="type" sortConfig={sortConfig} onSort={onSort} />
+              <SortHeader label="Category" sortKey="category" sortConfig={sortConfig} onSort={onSort} />
+              <SortHeader label="Amount" sortKey="amount" sortConfig={sortConfig} onSort={onSort} />
               <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                 Description
               </th>

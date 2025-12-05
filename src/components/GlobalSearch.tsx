@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Fuse from 'fuse.js';
 import {
@@ -105,7 +105,13 @@ export function GlobalSearch() {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const { info } = useToast();
 
-  // Debounce search query
+  // Handler to update query and reset selection
+  const handleQueryChange = useCallback((value: string) => {
+    setQuery(value);
+    setSelectedIndex(0);
+  }, [setQuery]);
+
+  // Debounce search query for search execution
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
@@ -343,11 +349,6 @@ export function GlobalSearch() {
     }
   };
 
-  // Reset selected index when query changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [searchQuery]);
-
   const handleResultClick = (result: SearchResult) => {
     addRecentSearch(searchQuery);
     setOpen(false);
@@ -434,7 +435,7 @@ export function GlobalSearch() {
             type="text"
             placeholder="Search properties, deals, documents..."
             value={searchQuery}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1 outline-none text-neutral-900 placeholder-neutral-400"
             aria-label="Search properties, deals, documents"
@@ -444,7 +445,7 @@ export function GlobalSearch() {
           />
           {searchQuery && (
             <button
-              onClick={() => setQuery('')}
+              onClick={() => handleQueryChange('')}
               className="text-neutral-400 hover:text-neutral-600"
               aria-label="Clear search"
             >
