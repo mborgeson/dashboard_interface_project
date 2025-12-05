@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { mockProperties } from '@/data/mockProperties';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
 import { Download, Calendar } from 'lucide-react';
 import {
   Table,

@@ -160,7 +160,7 @@ export function AssumptionsPresets({ onLoadPreset, currentInputs }: AssumptionsP
             onLoadPreset(preset.inputs);
             alert('Preset imported successfully!');
           }
-        } catch (error) {
+        } catch {
           alert('Error importing preset. Please check the file format.');
         }
       };

@@ -1,33 +1,5 @@
 import type { Document } from '@/types/document';
 
-// Helper to generate random dates
-const randomDate = (start: Date, end: Date) => {
-  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-};
-
-const propertyNames = [
-  { id: 'prop-001', name: 'Arcadia Heights' },
-  { id: 'prop-002', name: 'Tempe Crossing' },
-  { id: 'prop-003', name: 'Desert Palms' },
-  { id: 'prop-004', name: 'Canyon Vista' },
-  { id: 'prop-005', name: 'Mesa Springs' },
-  { id: 'prop-006', name: 'Chandler Station' },
-  { id: 'prop-007', name: 'Parkside Manor' },
-  { id: 'prop-008', name: 'Valley Vista' },
-  { id: 'prop-009', name: 'Heritage Square' },
-  { id: 'prop-010', name: 'Riverwalk' },
-  { id: 'prop-011', name: 'Mountain View' },
-  { id: 'prop-012', name: 'Central Plaza' },
-];
-
-const uploaders = [
-  'Sarah Johnson',
-  'Michael Chen',
-  'Emily Rodriguez',
-  'David Kim',
-  'Jessica Taylor',
-];
-
 export const mockDocuments: Document[] = [
   // Lease Documents
   {

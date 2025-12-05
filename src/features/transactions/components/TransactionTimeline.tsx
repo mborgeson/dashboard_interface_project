@@ -113,7 +113,7 @@ export function TransactionTimeline({ transactions }: TransactionTimelineProps) 
 
               {/* Timeline */}
               <div className="space-y-4 pl-8 border-l-2 border-neutral-200">
-                {monthTransactions.map((txn, index) => {
+                {monthTransactions.map((txn) => {
                   const config = TYPE_CONFIG[txn.type];
                   const Icon = config.icon;
 

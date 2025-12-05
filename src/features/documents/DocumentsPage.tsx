@@ -8,7 +8,6 @@ import { DocumentList } from './components/DocumentList';
 import { DocumentUploadModal } from './components/DocumentUploadModal';
 import { useDocuments } from './hooks/useDocuments';
 import type { Document, DocumentType } from '@/types/document';
-import { TableSkeleton } from '@/components/skeletons';
 import { EmptyDocuments } from '@/components/ui/empty-state';
 
 type ViewMode = 'grid' | 'list';

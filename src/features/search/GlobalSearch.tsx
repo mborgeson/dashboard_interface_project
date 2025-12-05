@@ -147,7 +147,7 @@ export function GlobalSearch() {
                   <div className="px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-neutral-50">
                     Properties ({propertyResults.length})
                   </div>
-                  {propertyResults.map((result, index) => {
+                  {propertyResults.map((result) => {
                     const globalIndex = results.findIndex((r) => r.id === result.id);
                     return (
                       <button
@@ -186,7 +186,7 @@ export function GlobalSearch() {
                   <div className="px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-neutral-50">
                     Transactions ({transactionResults.length})
                   </div>
-                  {transactionResults.map((result, index) => {
+                  {transactionResults.map((result) => {
                     const globalIndex = results.findIndex((r) => r.id === result.id);
                     return (
                       <button

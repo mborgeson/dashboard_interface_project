@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { Document, DocumentFilters, DocumentStats, DocumentType } from '@/types/document';
+import type { DocumentFilters, DocumentStats, DocumentType } from '@/types/document';
 import { mockDocuments } from '@/data/mockDocuments';
 
 export function useDocuments(filters: DocumentFilters) {

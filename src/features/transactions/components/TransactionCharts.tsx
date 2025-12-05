@@ -14,7 +14,6 @@ import {
   Cell,
   LineChart,
   Line,
-  Legend,
 } from 'recharts';
 
 interface TransactionChartsProps {

@@ -6,12 +6,13 @@ import { generateCashFlowProjections } from './cashflow';
  * Calculate sensitivity analysis for underwriting inputs
  * Tests impact of changing key variables on IRR
  * @param baseInputs - Base case underwriting inputs
- * @param baseIRR - Base case IRR
+ * @param _baseIRR - Base case IRR (reserved for future use)
  * @returns Array of sensitivity variables sorted by impact
  */
 export function calculateSensitivity(
   baseInputs: UnderwritingInputs,
-  baseIRR: number
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _baseIRR: number
 ): SensitivityVariable[] {
   const variables: SensitivityVariable[] = [];
 

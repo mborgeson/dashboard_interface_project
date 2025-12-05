@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { DollarSign, TrendingDown } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { Property } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatPercent, formatNumber } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
 
 interface OperationsTabProps {
   property: Property;

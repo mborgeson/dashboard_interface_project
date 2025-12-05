@@ -1,6 +1,5 @@
 import type { YearlyProjection } from '@/types';
 import {
-  LineChart,
   Line,
   BarChart,
   Bar,

@@ -123,7 +123,7 @@ export function DealTimeline({ deals }: DealTimelineProps) {
                   Timeline
                 </h4>
                 <div className="space-y-3">
-                  {deal.timeline.map((event, eventIndex) => (
+                  {deal.timeline.map((event) => (
                     <div key={event.id} className="flex gap-3">
                       {/* Event dot */}
                       <div className="flex-shrink-0 w-2 h-2 rounded-full bg-accent-500 mt-2" />
