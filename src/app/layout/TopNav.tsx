@@ -1,7 +1,7 @@
-import { Search, Calculator } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { UnderwritingModal } from '@/features/underwriting';
+import { GlobalSearch } from '@/features/search';
 
 export function TopNav(){
   const { sidebarCollapsed } = useAppStore();
@@ -14,27 +14,11 @@ export function TopNav(){
       )}
     >
       {/* Search */}
-      <div className="flex-1 max-w-2xl">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
-          <input
-            type="text"
-            placeholder="Search properties, transactions..."
-            className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
-        </div>
-      </div>
+      <GlobalSearch />
 
       {/* Actions */}
       <div className="flex items-center gap-4 ml-4">
-        <Button
-          variant="default"
-          size="sm"
-          className="bg-accent-500 hover:bg-accent-600"
-        >
-          <Calculator className="w-4 h-4 mr-2" />
-          Underwrite Deal
-        </Button>
+        <UnderwritingModal />
 
         <div className="flex items-center gap-3">
           <div className="text-right">

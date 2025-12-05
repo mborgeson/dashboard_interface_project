@@ -1,6 +1,9 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { DashboardMain } from '@/features/dashboard-main/DashboardMain';
+import { AnalyticsPage } from '@/features/analytics';
+import { InvestmentsPage } from '@/features/investments';
+import { MappingPage } from '@/features/mapping';
 
 export const router = createBrowserRouter([
   {
@@ -13,15 +16,15 @@ export const router = createBrowserRouter([
       },
       {
         path: 'investments',
-        element: <div className="p-6"><h1 className="text-2xl font-semibold">Investments (Coming in Phase 2)</h1></div>,
+        element: <InvestmentsPage />,
       },
       {
         path: 'analytics',
-        element: <div className="p-6"><h1 className="text-2xl font-semibold">Analytics (Coming in Phase 2)</h1></div>,
+        element: <AnalyticsPage />,
       },
       {
         path: 'mapping',
-        element: <div className="p-6"><h1 className="text-2xl font-semibold">Mapping (Coming in Phase 2)</h1></div>,
+        element: <MappingPage />,
       },
     ],
   },

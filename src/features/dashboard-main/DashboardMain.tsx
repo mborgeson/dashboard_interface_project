@@ -3,6 +3,9 @@ import { mockTransactions } from '@/data/mockTransactions';
 import { formatCurrency, formatPercent, formatNumber } from '@/lib/utils/formatters';
 import { Card } from '@/components/ui/card';
 import { TrendingUp, Building2, DollarSign, Percent } from 'lucide-react';
+import { PropertyMap } from './components/PropertyMap';
+import { PortfolioPerformanceChart } from './components/PortfolioPerformanceChart';
+import { PropertyDistributionChart } from './components/PropertyDistributionChart';
 
 export function DashboardMain(){
   // Calculate portfolio metrics
@@ -212,6 +215,41 @@ export function DashboardMain(){
             );
           })}
         </div>
+      </Card>
+
+      {/* Performance and Distribution Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Portfolio Performance Chart */}
+        <Card className="p-6 shadow-card">
+          <h2 className="text-card-title text-neutral-800 font-semibold mb-4">
+            12-Month Performance Trend
+          </h2>
+          <PortfolioPerformanceChart />
+        </Card>
+
+        {/* Property Distribution by Class Chart */}
+        <Card className="p-6 shadow-card">
+          <h2 className="text-card-title text-neutral-800 font-semibold mb-4">
+            Distribution by Property Class
+          </h2>
+          <PropertyDistributionChart type="class" />
+        </Card>
+      </div>
+
+      {/* Property Distribution by Submarket Chart */}
+      <Card className="p-6 shadow-card">
+        <h2 className="text-card-title text-neutral-800 font-semibold mb-4">
+          Distribution by Submarket
+        </h2>
+        <PropertyDistributionChart type="submarket" />
+      </Card>
+
+      {/* Property Map */}
+      <Card className="p-6 shadow-card">
+        <h2 className="text-card-title text-neutral-800 font-semibold mb-4">
+          Property Locations
+        </h2>
+        <PropertyMap properties={mockProperties} />
       </Card>
     </div>
   );
