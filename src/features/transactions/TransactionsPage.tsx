@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { mockTransactions } from '@/data/mockTransactions';
 import { mockProperties } from '@/data/mockProperties';
 import { useTransactionFilters } from './hooks/useTransactionFilters';
@@ -9,11 +9,14 @@ import { TransactionTimeline } from './components/TransactionTimeline';
 import { TransactionCharts } from './components/TransactionCharts';
 import { List, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TableSkeleton } from '@/components/skeletons';
+import { EmptyTransactions } from '@/components/ui/empty-state';
 
 type ViewMode = 'table' | 'timeline';
 
 export function TransactionsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [isLoading, setIsLoading] = useState(true);
 
   const {
     filters,
@@ -27,6 +30,50 @@ export function TransactionsPage() {
   const properties = useMemo(() => {
     return mockProperties.map((p) => ({ id: p.id, name: p.name }));
   }, []);
+
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900">Transactions</h1>
+            <p className="text-neutral-600 mt-1">
+              Complete transaction history across all properties
+            </p>
+          </div>
+        </div>
+
+        {/* Summary Stats Skeleton */}
+        <div className="grid grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border border-neutral-200 shadow-card p-6">
+              <div className="h-4 w-24 bg-neutral-200 animate-pulse rounded mb-3" />
+              <div className="h-8 w-32 bg-neutral-200 animate-pulse rounded mb-2" />
+              <div className="h-3 w-20 bg-neutral-200 animate-pulse rounded" />
+            </div>
+          ))}
+        </div>
+
+        {/* Filters Skeleton */}
+        <div className="bg-white rounded-lg border border-neutral-200 shadow-card p-6">
+          <div className="h-10 w-full bg-neutral-200 animate-pulse rounded" />
+        </div>
+
+        {/* Table Skeleton */}
+        <TableSkeleton columns={7} rows={10} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -87,7 +134,9 @@ export function TransactionsPage() {
       </div>
 
       {/* Transactions View */}
-      {viewMode === 'table' ? (
+      {filteredTransactions.length === 0 ? (
+        <EmptyTransactions />
+      ) : viewMode === 'table' ? (
         <TransactionTable
           transactions={filteredTransactions}
           sortConfig={sortConfig}
@@ -98,10 +147,12 @@ export function TransactionsPage() {
       )}
 
       {/* Charts */}
-      <div className="pt-6">
-        <h2 className="text-2xl font-bold text-neutral-900 mb-6">Analytics</h2>
-        <TransactionCharts transactions={filteredTransactions} />
-      </div>
+      {filteredTransactions.length > 0 && (
+        <div className="pt-6">
+          <h2 className="text-2xl font-bold text-neutral-900 mb-6">Analytics</h2>
+          <TransactionCharts transactions={filteredTransactions} />
+        </div>
+      )}
     </div>
   );
 }

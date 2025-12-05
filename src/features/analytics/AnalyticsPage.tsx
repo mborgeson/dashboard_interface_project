@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { mockProperties } from '@/data/mockProperties';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -15,11 +15,21 @@ import { KPICard } from './components/KPICard';
 import { PerformanceCharts } from './components/PerformanceCharts';
 import { DistributionCharts } from './components/DistributionCharts';
 import { ComparisonCharts } from './components/ComparisonCharts';
+import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
 
 type DateRange = '30' | '90' | '365' | 'all';
 
 export function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<DateRange>('365');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Calculate portfolio-wide KPIs
   const portfolioKPIs = useMemo(() => {
@@ -241,6 +251,46 @@ export function AnalyticsPage() {
     if (value === min) return 'bg-red-50 font-semibold text-red-700';
     return '';
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-page-title text-primary-500">Portfolio Analytics</h1>
+            <p className="text-sm text-neutral-600 mt-1">
+              Comprehensive performance analysis and insights
+            </p>
+          </div>
+        </div>
+
+        {/* KPI Summary Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+
+        {/* Charts Skeleton */}
+        <div className="space-y-6">
+          <div>
+            <div className="h-6 w-48 bg-neutral-200 animate-pulse rounded mb-4" />
+            <ChartSkeleton height={320} />
+          </div>
+          <div>
+            <div className="h-6 w-48 bg-neutral-200 animate-pulse rounded mb-4" />
+            <ChartSkeleton height={320} />
+          </div>
+          <div>
+            <div className="h-6 w-48 bg-neutral-200 animate-pulse rounded mb-4" />
+            <ChartSkeleton height={384} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

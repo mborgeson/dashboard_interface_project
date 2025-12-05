@@ -6,6 +6,12 @@ export interface SearchResult {
   title: string;
   subtitle: string;
   category?: string;
+  metadata?: {
+    value?: string;
+    amount?: string;
+    date?: string;
+    property?: string;
+  };
   item: any;
 }
 

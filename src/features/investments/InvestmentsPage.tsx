@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Grid3x3, List } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,12 +8,17 @@ import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
 import { PropertyFilters } from './components/PropertyFilters';
 import { PropertyCard } from './components/PropertyCard';
 import { PropertyTable } from './components/PropertyTable';
+import { PropertyCardSkeletonGrid } from '@/components/skeletons';
+import { EmptyInvestments } from '@/components/ui/empty-state';
 
 type ViewMode = 'grid' | 'table';
 type SortColumn = 'name' | 'submarket' | 'class' | 'units' | 'occupancy' | 'noi' | 'value' | 'irr';
 
 export function InvestmentsPage() {
   const navigate = useNavigate();
+  
+  // Loading state
+  const [isLoading, setIsLoading] = useState(true);
   
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +33,14 @@ export function InvestmentsPage() {
   // Table sorting state
   const [tableSortColumn, setTableSortColumn] = useState<SortColumn>('value');
   const [tableSortDirection, setTableSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Calculate summary statistics
   const summaryStats = useMemo(() => {
@@ -191,6 +204,48 @@ export function InvestmentsPage() {
     navigate(`/properties/${propertyId}`);
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Investment Portfolio</h1>
+            <p className="text-muted-foreground">
+              Manage and monitor your real estate investments
+            </p>
+          </div>
+        </div>
+
+        {/* Summary Stats Skeleton */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 w-16 bg-muted animate-pulse rounded mb-2" />
+                <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Filters Card Skeleton */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="h-10 w-full bg-muted animate-pulse rounded" />
+          </CardContent>
+        </Card>
+
+        {/* Properties Grid Skeleton */}
+        <PropertyCardSkeletonGrid count={6} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -296,7 +351,9 @@ export function InvestmentsPage() {
 
       {/* Properties Display */}
       <div>
-        {viewMode === 'grid' ? (
+        {filteredAndSortedProperties.length === 0 ? (
+          <EmptyInvestments />
+        ) : viewMode === 'grid' ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredAndSortedProperties.map((property) => (
               <PropertyCard
@@ -314,16 +371,6 @@ export function InvestmentsPage() {
             sortDirection={tableSortDirection}
             onViewDetails={handleViewDetails}
           />
-        )}
-
-        {filteredAndSortedProperties.length === 0 && (
-          <Card>
-            <CardContent className="flex h-32 items-center justify-center">
-              <p className="text-muted-foreground">
-                No properties match your current filters.
-              </p>
-            </CardContent>
-          </Card>
         )}
       </div>
     </div>

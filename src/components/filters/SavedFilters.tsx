@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Star, Trash2, Plus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/useToast';
 
 export interface SavedFilter {
   id: string;
@@ -26,6 +27,7 @@ export function SavedFilters({
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newFilterName, setNewFilterName] = useState('');
   const [appliedFilterId, setAppliedFilterId] = useState<string | null>(null);
+  const { success, info } = useToast();
 
   // Load saved filters from localStorage
   useEffect(() => {
@@ -76,6 +78,8 @@ export function SavedFilters({
     setSavedFilters(updated);
     saveToStorage(updated);
 
+    success('Filter saved', { description: newFilterName.trim() });
+
     setNewFilterName('');
     setIsAddingNew(false);
   };
@@ -85,6 +89,8 @@ export function SavedFilters({
     setSavedFilters(updated);
     saveToStorage(updated);
 
+    info('Filter deleted');
+
     if (appliedFilterId === id) {
       setAppliedFilterId(null);
     }
@@ -93,6 +99,7 @@ export function SavedFilters({
   const handleApplyFilter = (filter: SavedFilter) => {
     onApplyFilter(filter.filters);
     setAppliedFilterId(filter.id);
+    info('Filter applied');
   };
 
   const hasActiveFilters = Object.keys(currentFilters).length > 0;

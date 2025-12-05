@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useMarketData } from './hooks/useMarketData';
 import { MarketOverview } from './components/MarketOverview';
 import { EconomicIndicators } from './components/EconomicIndicators';
@@ -6,8 +7,11 @@ import { SubmarketComparison } from './components/SubmarketComparison';
 import { MarketHeatmap } from './components/MarketHeatmap';
 import { Download, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
 
 export function MarketPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  
   const {
     msaOverview,
     economicIndicators,
@@ -15,6 +19,50 @@ export function MarketPage() {
     submarketMetrics,
     sparklineData,
   } = useMarketData();
+
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-page-title text-primary-500">Market Data</h1>
+            <p className="text-sm text-neutral-600 mt-1">
+              Phoenix MSA real estate market analysis and economic indicators
+            </p>
+          </div>
+        </div>
+
+        {/* Overview Stats Skeleton */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+
+        {/* Economic Indicators Skeleton */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+
+        {/* Charts Skeleton */}
+        <ChartSkeleton height={384} />
+        <ChartSkeleton height={384} />
+        <ChartSkeleton height={500} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

@@ -10,6 +10,10 @@ import {
   X,
   Command,
   ArrowRight,
+  Home,
+  BarChart3,
+  Map,
+  DollarSign,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchStore, type SearchResult } from '@/stores/searchStore';
@@ -17,12 +21,74 @@ import { mockProperties } from '@/data/mockProperties';
 import { mockDeals } from '@/data/mockDeals';
 import { mockDocuments } from '@/data/mockDocuments';
 import { mockTransactions } from '@/data/mockTransactions';
+import { useToast } from '@/hooks/useToast';
+
+// Quick navigation actions
+interface QuickAction {
+  id: string;
+  label: string;
+  path: string;
+  icon: React.ElementType;
+  description: string;
+}
+
+const quickActions: QuickAction[] = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    path: '/',
+    icon: Home,
+    description: 'Overview and key metrics',
+  },
+  {
+    id: 'investments',
+    label: 'Investments',
+    path: '/investments',
+    icon: Building2,
+    description: 'Property portfolio',
+  },
+  {
+    id: 'deals',
+    label: 'Deals',
+    path: '/deals',
+    icon: TrendingUp,
+    description: 'Active deal pipeline',
+  },
+  {
+    id: 'documents',
+    label: 'Documents',
+    path: '/documents',
+    icon: FileText,
+    description: 'Files and contracts',
+  },
+  {
+    id: 'market',
+    label: 'Market Data',
+    path: '/market',
+    icon: Map,
+    description: 'Market insights',
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics',
+    path: '/analytics',
+    icon: BarChart3,
+    description: 'Performance analytics',
+  },
+  {
+    id: 'transactions',
+    label: 'Transactions',
+    path: '/transactions',
+    icon: DollarSign,
+    description: 'Financial transactions',
+  },
+];
 
 export function GlobalSearch() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-  
+
   const {
     searchQuery,
     recentSearches,
@@ -37,6 +103,7 @@ export function GlobalSearch() {
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const { info } = useToast();
 
   // Debounce search query
   useEffect(() => {
@@ -114,6 +181,13 @@ export function GlobalSearch() {
         title: result.item.name,
         subtitle: `${result.item.address.street}, ${result.item.address.city}`,
         category: result.item.propertyDetails.propertyClass,
+        metadata: {
+          value: result.item.acquisition.purchasePrice.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            maximumFractionDigits: 0,
+          }),
+        },
         item: result.item,
       }));
 
@@ -126,6 +200,13 @@ export function GlobalSearch() {
         title: result.item.propertyName,
         subtitle: `${result.item.address.city} • ${result.item.stage}`,
         category: result.item.propertyType,
+        metadata: {
+          value: result.item.value.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            maximumFractionDigits: 0,
+          }),
+        },
         item: result.item,
       }));
 
@@ -138,6 +219,9 @@ export function GlobalSearch() {
         title: result.item.name,
         subtitle: result.item.propertyName || result.item.description || 'Document',
         category: result.item.type,
+        metadata: {
+          property: result.item.propertyName,
+        },
         item: result.item,
       }));
 
@@ -150,6 +234,18 @@ export function GlobalSearch() {
         title: result.item.propertyName,
         subtitle: result.item.description,
         category: result.item.type,
+        metadata: {
+          amount: result.item.amount.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            maximumFractionDigits: 0,
+          }),
+          date: new Date(result.item.date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          }),
+        },
         item: result.item,
       }));
 
@@ -213,7 +309,16 @@ export function GlobalSearch() {
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    const items = searchQuery ? searchResults : recentSearches;
+    // Determine available items based on search query
+    let items: any[];
+    if (searchQuery) {
+      items = searchResults;
+    } else if (recentSearches.length > 0) {
+      items = recentSearches;
+    } else {
+      items = quickActions;
+    }
+
     const maxIndex = items.length - 1;
 
     switch (e.key) {
@@ -229,8 +334,10 @@ export function GlobalSearch() {
         e.preventDefault();
         if (searchQuery && searchResults[selectedIndex]) {
           handleResultClick(searchResults[selectedIndex]);
-        } else if (!searchQuery && recentSearches[selectedIndex]) {
+        } else if (!searchQuery && recentSearches.length > 0 && recentSearches[selectedIndex]) {
           setQuery(recentSearches[selectedIndex]);
+        } else if (!searchQuery && recentSearches.length === 0 && quickActions[selectedIndex]) {
+          handleQuickActionClick(quickActions[selectedIndex]);
         }
         break;
     }
@@ -246,19 +353,19 @@ export function GlobalSearch() {
     setOpen(false);
     setQuery('');
 
-    // Navigate based on result type
+    // Navigate based on result type with highlighted item
     switch (result.type) {
       case 'property':
-        navigate(`/properties/${result.id}`);
+        navigate(`/investments?highlight=${result.id}`);
         break;
       case 'deal':
-        navigate('/deals');
+        navigate(`/deals?highlight=${result.id}`);
         break;
       case 'document':
-        navigate('/documents');
+        navigate(`/documents?highlight=${result.id}`);
         break;
       case 'transaction':
-        navigate('/transactions');
+        navigate(`/transactions?highlight=${result.id}`);
         break;
     }
   };
@@ -266,6 +373,17 @@ export function GlobalSearch() {
   const handleRecentSearchClick = (query: string) => {
     setQuery(query);
     inputRef.current?.focus();
+  };
+
+  const handleClearRecentSearches = () => {
+    clearRecentSearches();
+    info('Recent searches cleared');
+  };
+
+  const handleQuickActionClick = (action: QuickAction) => {
+    setOpen(false);
+    setQuery('');
+    navigate(action.path);
   };
 
   const getResultIcon = (type: SearchResult['type']) => {
@@ -360,6 +478,24 @@ export function GlobalSearch() {
                           <div className="text-sm text-neutral-500 truncate">
                             {result.subtitle}
                           </div>
+                          {/* Metadata display */}
+                          {result.metadata && (
+                            <div className="flex items-center gap-2 mt-1 text-xs text-neutral-400">
+                              {result.metadata.value && (
+                                <span className="font-medium text-neutral-600">
+                                  {result.metadata.value}
+                                </span>
+                              )}
+                              {result.metadata.amount && (
+                                <span className="font-medium text-neutral-600">
+                                  {result.metadata.amount}
+                                </span>
+                              )}
+                              {result.metadata.date && (
+                                <span>{result.metadata.date}</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                         {result.category && (
                           <div className="text-xs text-neutral-400 px-2 py-1 bg-neutral-100 rounded">
@@ -388,7 +524,7 @@ export function GlobalSearch() {
                       Recent Searches
                     </div>
                     <button
-                      onClick={clearRecentSearches}
+                      onClick={handleClearRecentSearches}
                       className="text-xs text-neutral-400 hover:text-neutral-600"
                     >
                       Clear
@@ -410,14 +546,40 @@ export function GlobalSearch() {
                 </div>
               )}
 
-              {/* Empty State */}
+              {/* Quick Actions (when no recent searches) */}
               {recentSearches.length === 0 && (
-                <div className="py-12 text-center text-neutral-400">
-                  <Search className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                  <p>Start typing to search</p>
-                  <p className="text-sm mt-1">
-                    Search across properties, deals, documents, and transactions
-                  </p>
+                <div className="py-2">
+                  <div className="px-4 py-2">
+                    <div className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+                      Quick Navigation
+                    </div>
+                  </div>
+                  {quickActions.map((action, index) => {
+                    const Icon = action.icon;
+                    return (
+                      <button
+                        key={action.id}
+                        onClick={() => handleQuickActionClick(action)}
+                        className={cn(
+                          'w-full px-4 py-3 flex items-center gap-3 hover:bg-neutral-50 transition-colors text-left',
+                          selectedIndex === index && 'bg-neutral-100'
+                        )}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center">
+                          <Icon className="w-5 h-5 text-neutral-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-neutral-900">
+                            {action.label}
+                          </div>
+                          <div className="text-sm text-neutral-500 truncate">
+                            {action.description}
+                          </div>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-neutral-400" />
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </>

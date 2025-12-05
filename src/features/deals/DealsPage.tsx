@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { mockDeals } from '@/data/mockDeals';
 import { useDeals } from './hooks/useDeals';
 import { DealPipeline } from './components/DealPipeline';
@@ -6,11 +6,14 @@ import { DealTimeline } from './components/DealTimeline';
 import { DealFilters } from './components/DealFilters';
 import { Briefcase, LayoutGrid, List, TrendingUp, Calendar, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DealPipelineSkeleton } from '@/components/skeletons';
+import { EmptyState } from '@/components/ui/empty-state';
 
 type ViewMode = 'pipeline' | 'list';
 
 export function DealsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('pipeline');
+  const [isLoading, setIsLoading] = useState(true);
 
   const {
     filters,
@@ -21,6 +24,14 @@ export function DealsPage() {
     metrics,
     filterOptions,
   } = useDeals(mockDeals);
+
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -36,6 +47,42 @@ export function DealsPage() {
   const formatPercent = (value: number) => {
     return (value * 100).toFixed(0) + '%';
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900">Deal Pipeline</h1>
+            <p className="text-neutral-600 mt-1">
+              Track and manage acquisition opportunities
+            </p>
+          </div>
+        </div>
+
+        {/* Summary Stats Skeleton */}
+        <div className="grid grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border border-neutral-200 shadow-card p-6">
+              <div className="h-10 w-10 bg-neutral-200 animate-pulse rounded-lg mb-3" />
+              <div className="h-8 w-16 bg-neutral-200 animate-pulse rounded mb-2" />
+              <div className="h-4 w-24 bg-neutral-200 animate-pulse rounded" />
+            </div>
+          ))}
+        </div>
+
+        {/* Filters Skeleton */}
+        <div className="bg-white rounded-lg border border-neutral-200 shadow-card p-6">
+          <div className="h-10 w-full bg-neutral-200 animate-pulse rounded" />
+        </div>
+
+        {/* Pipeline Skeleton */}
+        <DealPipelineSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -148,7 +195,17 @@ export function DealsPage() {
       </div>
 
       {/* Deals View */}
-      {viewMode === 'pipeline' ? (
+      {filteredDeals.length === 0 ? (
+        <EmptyState
+          icon={Briefcase}
+          title="No deals found"
+          description="No deals match your current filters. Try adjusting your search criteria."
+          action={{
+            label: 'Clear Filters',
+            onClick: clearFilters,
+          }}
+        />
+      ) : viewMode === 'pipeline' ? (
         <DealPipeline dealsByStage={dealsByStage} />
       ) : (
         <DealTimeline deals={filteredDeals} />

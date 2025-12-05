@@ -25,9 +25,10 @@ import { mockProperties } from '@/data/mockProperties';
 interface DocumentUploadModalProps {
   open: boolean;
   onClose: () => void;
+  onUploadComplete?: () => void;
 }
 
-export function DocumentUploadModal({ open, onClose }: DocumentUploadModalProps) {
+export function DocumentUploadModal({ open, onClose, onUploadComplete }: DocumentUploadModalProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [documentType, setDocumentType] = useState<DocumentType>('other');
   const [propertyId, setPropertyId] = useState<string>('');
@@ -73,6 +74,11 @@ export function DocumentUploadModal({ open, onClose }: DocumentUploadModalProps)
       tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
       description,
     });
+
+    // Simulate upload complete
+    if (onUploadComplete) {
+      onUploadComplete();
+    }
 
     // Reset form
     setSelectedFiles([]);

@@ -15,6 +15,7 @@ import { InputsTab } from './InputsTab';
 import { ResultsTab } from './ResultsTab';
 import { ProjectionsTab } from './ProjectionsTab';
 import { SensitivityTab } from './SensitivityTab';
+import { useToast } from '@/hooks/useToast';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 
@@ -24,7 +25,16 @@ interface UnderwritingModalProps {
 
 export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('inputs');
   const { inputs, updateInput, resetInputs, results, sensitivity } = useUnderwriting();
+  const { success } = useToast();
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'results' && results) {
+      success('Analysis complete');
+    }
+  };
 
   const handleExportPDF = () => {
     if (!results) return;
@@ -75,6 +85,7 @@ export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
     doc.text(`Generated: ${new Date().toLocaleDateString()} | B&R Capital Analytics`, 20, 280);
 
     doc.save(`underwriting-${propertyName.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+    success('PDF exported', { description: 'Check your downloads' });
   };
 
   const handleExportExcel = () => {
@@ -169,6 +180,7 @@ export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
     XLSX.utils.book_append_sheet(wb, wsSensitivity, 'Sensitivity');
 
     XLSX.writeFile(wb, `underwriting-${propertyName.replace(/\s+/g, '-').toLowerCase()}.xlsx`);
+    success('Excel exported');
   };
 
   return (
@@ -213,7 +225,7 @@ export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="inputs" className="mt-4">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="inputs">Inputs</TabsTrigger>
             <TabsTrigger value="results" disabled={!results}>

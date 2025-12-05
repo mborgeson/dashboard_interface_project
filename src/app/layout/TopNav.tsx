@@ -3,11 +3,27 @@ import { cn } from '@/lib/utils';
 import { UnderwritingModal } from '@/features/underwriting';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { useSearchStore } from '@/stores/searchStore';
-import { Search, Command } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
+import { Search, Command, Bell } from 'lucide-react';
 
 export function TopNav(){
   const { sidebarCollapsed } = useAppStore();
   const { setOpen } = useSearchStore();
+  const { success, error, warning, info } = useToast();
+
+  const handleToastDemo = () => {
+    // Demo all toast types in sequence
+    success('Success notification', { description: 'This is a success message' });
+    setTimeout(() => {
+      info('Info notification', { description: 'This is an informational message' });
+    }, 500);
+    setTimeout(() => {
+      warning('Warning notification', { description: 'This is a warning message' });
+    }, 1000);
+    setTimeout(() => {
+      error('Error notification', { description: 'This is an error message' });
+    }, 1500);
+  };
 
   return (
     <header
@@ -34,6 +50,15 @@ export function TopNav(){
 
       {/* Actions */}
       <div className="flex items-center gap-4 ml-4">
+        <button
+          onClick={handleToastDemo}
+          className="flex items-center gap-2 px-3 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors text-neutral-600 hover:text-neutral-900"
+          title="Test Toast Notifications"
+        >
+          <Bell className="w-4 h-4" />
+          <span className="text-sm">Toast Demo</span>
+        </button>
+
         <UnderwritingModal />
 
         <div className="flex items-center gap-3">

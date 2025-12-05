@@ -12,6 +12,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/useToast';
 
 interface DealCardProps {
   deal: Deal;
@@ -19,6 +20,7 @@ interface DealCardProps {
 
 export function DealCard({ deal }: DealCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { info } = useToast();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -57,14 +59,15 @@ export function DealCard({ deal }: DealCardProps) {
             </span>
           </div>
         </div>
-        <span
+        <button
+          onClick={() => info(`Deal moved to ${DEAL_STAGE_LABELS[deal.stage]}`)}
           className={cn(
-            'px-2.5 py-1 rounded-md text-xs font-medium border',
+            'px-2.5 py-1 rounded-md text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity',
             DEAL_STAGE_COLORS[deal.stage]
           )}
         >
           {DEAL_STAGE_LABELS[deal.stage]}
-        </span>
+        </button>
       </div>
 
       {/* Key Metrics */}

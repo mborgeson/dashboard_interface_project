@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Grid3x3, List, Upload, HardDrive } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,8 @@ import { DocumentList } from './components/DocumentList';
 import { DocumentUploadModal } from './components/DocumentUploadModal';
 import { useDocuments } from './hooks/useDocuments';
 import type { Document, DocumentType } from '@/types/document';
+import { TableSkeleton } from '@/components/skeletons';
+import { EmptyDocuments } from '@/components/ui/empty-state';
 
 type ViewMode = 'grid' | 'list';
 
@@ -15,6 +17,7 @@ export function DocumentsPage() {
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +32,14 @@ export function DocumentsPage() {
     propertyId,
     dateRange,
   });
+
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Mock handlers
   const handleView = (document: Document) => {
@@ -56,6 +67,58 @@ export function DocumentsPage() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Documents</h1>
+            <p className="text-muted-foreground">
+              Manage property documents, leases, and financial records
+            </p>
+          </div>
+        </div>
+
+        {/* Summary Stats Skeleton */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 w-16 bg-muted animate-pulse rounded mb-2" />
+                <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Filters Skeleton */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="h-10 w-full bg-muted animate-pulse rounded" />
+          </CardContent>
+        </Card>
+
+        {/* Grid Skeleton */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="h-12 w-12 bg-muted animate-pulse rounded-lg mb-4" />
+                <div className="h-4 w-3/4 bg-muted animate-pulse rounded mb-2" />
+                <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -177,7 +240,9 @@ export function DocumentsPage() {
 
       {/* Documents Display */}
       <div>
-        {viewMode === 'grid' ? (
+        {documents.length === 0 ? (
+          <EmptyDocuments />
+        ) : viewMode === 'grid' ? (
           <DocumentGrid
             documents={documents}
             onView={handleView}
