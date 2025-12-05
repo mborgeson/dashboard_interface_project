@@ -1,10 +1,13 @@
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { UnderwritingModal } from '@/features/underwriting';
-import { GlobalSearch } from '@/features/search';
+import { GlobalSearch } from '@/components/GlobalSearch';
+import { useSearchStore } from '@/stores/searchStore';
+import { Search, Command } from 'lucide-react';
 
 export function TopNav(){
   const { sidebarCollapsed } = useAppStore();
+  const { setOpen } = useSearchStore();
 
   return (
     <header
@@ -13,7 +16,20 @@ export function TopNav(){
         sidebarCollapsed ? 'left-[70px]' : 'left-[260px]'
       )}
     >
-      {/* Search */}
+      {/* Search Trigger */}
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors text-neutral-600 hover:text-neutral-900"
+      >
+        <Search className="w-4 h-4" />
+        <span className="text-sm">Search...</span>
+        <div className="ml-4 flex items-center gap-1 text-xs text-neutral-400">
+          <Command className="w-3 h-3" />
+          <span>K</span>
+        </div>
+      </button>
+
+      {/* Global Search Modal */}
       <GlobalSearch />
 
       {/* Actions */}

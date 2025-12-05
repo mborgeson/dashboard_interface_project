@@ -95,3 +95,6 @@ function ChartSkeleton({ className }: { className?: string }) {
 }
 
 export { Skeleton, CardSkeleton, TableSkeleton, ChartSkeleton }
+
+// Re-export specialized skeletons
+export * from '../skeletons'
