@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Grid3x3, List } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,8 @@ type ViewMode = 'grid' | 'table';
 type SortColumn = 'name' | 'submarket' | 'class' | 'units' | 'occupancy' | 'noi' | 'value' | 'irr';
 
 export function InvestmentsPage() {
+  const navigate = useNavigate();
+  
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [propertyClass, setPropertyClass] = useState('all');
@@ -185,8 +188,7 @@ export function InvestmentsPage() {
   };
 
   const handleViewDetails = (propertyId: string) => {
-    // TODO: Navigate to property detail page
-    console.log('View details for property:', propertyId);
+    navigate(`/properties/${propertyId}`);
   };
 
   return (
@@ -310,6 +312,7 @@ export function InvestmentsPage() {
             onSort={handleTableSort}
             sortColumn={tableSortColumn}
             sortDirection={tableSortDirection}
+            onViewDetails={handleViewDetails}
           />
         )}
 

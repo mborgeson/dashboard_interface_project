@@ -1,44 +1,75 @@
 import { useState, useMemo, useCallback } from 'react';
 import type { UnderwritingInputs, UnderwritingResults, SensitivityVariable } from '@/types';
-import { calculateIRR, calculateEquityMultiple, calculateCashOnCash } from '@/lib/calculations/irr';
-import { generateCashFlowProjections, calculateMonthlyPayment, calculateDSCR, calculateLoanBalance } from '@/lib/calculations/cashflow';
+import { calculateIRR, calculateEquityMultiple } from '@/lib/calculations/irr';
+import { generateCashFlowProjections } from '@/lib/calculations/cashflow';
 import { calculateSensitivity } from '@/lib/calculations/sensitivity';
+import {
+  calculateDebtService,
+  calculateDSCR,
+  calculateLTV,
+  calculateYieldOnCost,
+  calculateBreakEvenOccupancy,
+  calculatePricePerUnit,
+  calculatePricePerSF,
+} from '../utils/calculations';
 
 const defaultInputs: UnderwritingInputs = {
   // Property Information
   propertyName: '',
   address: '',
+  propertyClass: 'B',
+  assetType: 'Garden',
   units: 100,
+  averageUnitSize: 850,
   squareFeet: 85000,
   yearBuilt: 2015,
+  market: 'Phoenix',
+  submarket: '',
 
-  // Financial Assumptions
+  // Acquisition Assumptions
   purchasePrice: 15000000,
-  downPaymentPercent: 0.25,
-  interestRate: 0.065,
-  loanTerm: 30,
   closingCostsPercent: 0.02,
+  acquisitionFeePercent: 0.01,
+  dueDiligenceCosts: 25000,
+  immediateCapEx: 100000,
 
-  // Income Projections
-  currentRentPerUnit: 1500,
+  // Financing Assumptions
+  loanType: 'Agency',
+  loanAmount: 11250000,
+  ltvPercent: 0.75,
+  interestRate: 0.065,
+  loanTerm: 10,
+  amortizationPeriod: 30,
+  interestOnlyPeriod: 2,
+  originationFeePercent: 0.01,
+  prepaymentPenaltyType: 'Yield Maintenance',
+
+  // Revenue Assumptions
+  currentRentPerUnit: 1450,
+  marketRentPerUnit: 1550,
   rentGrowthPercent: 0.03,
   otherIncomePerUnit: 50,
-  otherIncomeGrowthPercent: 0.02,
   vacancyPercent: 0.05,
+  concessionsPercent: 0.02,
+  badDebtPercent: 0.01,
 
-  // Operating Expenses (per unit per year)
+  // Operating Expense Assumptions
   propertyTaxPerUnit: 1200,
   insurancePerUnit: 400,
   utilitiesPerUnit: 600,
   managementPercent: 0.04,
-  repairsPercent: 0.05,
+  repairsPerUnit: 500,
   payrollPerUnit: 300,
-  capexReservePercent: 0.03,
+  marketingPerUnit: 100,
+  otherExpensesPerUnit: 200,
+  expenseGrowthPercent: 0.03,
+  capitalReservePerUnit: 300,
 
   // Exit Assumptions
   holdPeriod: 5,
   exitCapRate: 0.055,
-  sellingCostsPercent: 0.02,
+  dispositionFeePercent: 0.02,
+  capRateSpread: 0,
 };
 
 export function useUnderwriting() {
@@ -58,31 +89,85 @@ export function useUnderwriting() {
   const results = useMemo((): UnderwritingResults | null => {
     try {
       // Acquisition Metrics
-      const downPayment = inputs.purchasePrice * inputs.downPaymentPercent;
-      const loanAmount = inputs.purchasePrice - downPayment;
+      const loanAmount = inputs.purchasePrice * inputs.ltvPercent;
+      const downPayment = inputs.purchasePrice - loanAmount;
       const closingCosts = inputs.purchasePrice * inputs.closingCostsPercent;
-      const totalEquityRequired = downPayment + closingCosts;
+      const acquisitionFee = inputs.purchasePrice * inputs.acquisitionFeePercent;
+      const originationFee = loanAmount * inputs.originationFeePercent;
+      
+      const totalEquityRequired = 
+        downPayment + 
+        closingCosts + 
+        acquisitionFee + 
+        inputs.dueDiligenceCosts + 
+        inputs.immediateCapEx +
+        originationFee;
 
-      // Generate projections
-      const projections = generateCashFlowProjections(inputs);
-      const year1 = projections[0];
-
-      // Calculate monthly payment and annual debt service
-      const monthlyPayment = calculateMonthlyPayment(loanAmount, inputs.interestRate, inputs.loanTerm);
+      // Calculate debt service
+      const monthlyPayment = calculateDebtService(
+        loanAmount,
+        inputs.interestRate,
+        inputs.amortizationPeriod
+      );
       const annualDebtService = monthlyPayment * 12;
+
+      // Year 1 Revenue
+      const grossPotentialRent = inputs.currentRentPerUnit * 12 * inputs.units;
+      const otherIncome = inputs.otherIncomePerUnit * 12 * inputs.units;
+      const grossIncome = grossPotentialRent + otherIncome;
+      
+      const vacancy = grossIncome * inputs.vacancyPercent;
+      const concessions = grossIncome * inputs.concessionsPercent;
+      const badDebt = grossIncome * inputs.badDebtPercent;
+      const effectiveGrossIncome = grossIncome - vacancy - concessions - badDebt;
+
+      // Year 1 Expenses
+      const propertyTax = inputs.propertyTaxPerUnit * inputs.units;
+      const insurance = inputs.insurancePerUnit * inputs.units;
+      const utilities = inputs.utilitiesPerUnit * inputs.units;
+      const management = effectiveGrossIncome * inputs.managementPercent;
+      const repairs = inputs.repairsPerUnit * inputs.units;
+      const payroll = inputs.payrollPerUnit * inputs.units;
+      const marketing = inputs.marketingPerUnit * inputs.units;
+      const otherExpenses = inputs.otherExpensesPerUnit * inputs.units;
+      const capitalReserve = inputs.capitalReservePerUnit * inputs.units;
+
+      const operatingExpenses = 
+        propertyTax + 
+        insurance + 
+        utilities + 
+        management + 
+        repairs + 
+        payroll + 
+        marketing + 
+        otherExpenses;
+
+      const noi = effectiveGrossIncome - operatingExpenses - capitalReserve;
+      const cashFlow = noi - annualDebtService;
 
       // Year 1 metrics
       const year1Metrics = {
-        grossIncome: year1.grossIncome,
-        vacancy: year1.vacancy,
-        effectiveGrossIncome: year1.effectiveGrossIncome,
-        operatingExpenses: year1.operatingExpenses,
-        noi: year1.noi,
+        grossIncome,
+        vacancy,
+        concessions,
+        badDebt,
+        effectiveGrossIncome,
+        operatingExpenses,
+        noi,
         debtService: annualDebtService,
-        cashFlow: year1.cashFlow,
-        cashOnCashReturn: calculateCashOnCash(year1.cashFlow, totalEquityRequired),
-        debtServiceCoverageRatio: calculateDSCR(year1.noi, annualDebtService),
+        cashFlow,
+        cashOnCashReturn: cashFlow / totalEquityRequired,
+        debtServiceCoverageRatio: calculateDSCR(noi, annualDebtService),
+        yieldOnCost: calculateYieldOnCost(noi, inputs.purchasePrice + closingCosts + inputs.immediateCapEx),
+        cashBreakEvenOccupancy: calculateBreakEvenOccupancy(
+          operatingExpenses + capitalReserve,
+          annualDebtService,
+          grossIncome
+        ),
       };
+
+      // Generate 10-year projections
+      const projections = generateCashFlowProjections(inputs);
 
       // Build cash flows for IRR calculation
       const cashFlows: number[] = [-totalEquityRequired];
@@ -93,9 +178,10 @@ export function useUnderwriting() {
 
         // Add sale proceeds in exit year
         if (projection.year === inputs.holdPeriod) {
-          const exitValue = projection.noi / inputs.exitCapRate;
-          const sellingCosts = exitValue * inputs.sellingCostsPercent;
-          const saleProceeds = exitValue - sellingCosts - projection.loanBalance;
+          const exitCapRate = inputs.exitCapRate + inputs.capRateSpread;
+          const exitValue = projection.noi / exitCapRate;
+          const dispositionFee = exitValue * inputs.dispositionFeePercent;
+          const saleProceeds = exitValue - dispositionFee - projection.loanBalance;
           yearCashFlow += saleProceeds;
         }
 
@@ -106,15 +192,16 @@ export function useUnderwriting() {
       const leveredIRR = calculateIRR(cashFlows);
 
       // Unlevered cash flows (no debt)
-      const unleveredCashFlows: number[] = [-inputs.purchasePrice - closingCosts];
+      const unleveredCashFlows: number[] = [-(inputs.purchasePrice + closingCosts + inputs.immediateCapEx)];
       for (let i = 0; i < projections.length; i++) {
         const projection = projections[i];
         let yearCashFlow = projection.noi;
 
         if (projection.year === inputs.holdPeriod) {
-          const exitValue = projection.noi / inputs.exitCapRate;
-          const sellingCosts = exitValue * inputs.sellingCostsPercent;
-          yearCashFlow += exitValue - sellingCosts;
+          const exitCapRate = inputs.exitCapRate + inputs.capRateSpread;
+          const exitValue = projection.noi / exitCapRate;
+          const dispositionFee = exitValue * inputs.dispositionFeePercent;
+          yearCashFlow += exitValue - dispositionFee;
         }
 
         unleveredCashFlows.push(yearCashFlow);
@@ -123,10 +210,11 @@ export function useUnderwriting() {
 
       // Exit analysis
       const exitYear = projections[projections.length - 1];
-      const exitValue = exitYear.noi / inputs.exitCapRate;
+      const exitCapRate = inputs.exitCapRate + inputs.capRateSpread;
+      const exitValue = exitYear.noi / exitCapRate;
       const loanPaydown = loanAmount - exitYear.loanBalance;
-      const sellingCosts = exitValue * inputs.sellingCostsPercent;
-      const saleProceeds = exitValue - sellingCosts - exitYear.loanBalance;
+      const dispositionFee = exitValue * inputs.dispositionFeePercent;
+      const saleProceeds = exitValue - dispositionFee - exitYear.loanBalance;
 
       // Total profit and equity multiple
       const totalCashDistributed = projections.reduce((sum, p) => sum + p.cashFlow, 0) + saleProceeds;
@@ -135,19 +223,35 @@ export function useUnderwriting() {
       const averageAnnualReturn = totalProfit / inputs.holdPeriod / totalEquityRequired;
 
       return {
+        // Acquisition Metrics
+        purchasePrice: inputs.purchasePrice,
+        pricePerUnit: calculatePricePerUnit(inputs.purchasePrice, inputs.units),
+        pricePerSF: calculatePricePerSF(inputs.purchasePrice, inputs.squareFeet),
         downPayment,
         loanAmount,
+        ltv: calculateLTV(loanAmount, inputs.purchasePrice),
         closingCosts,
+        acquisitionFee,
         totalEquityRequired,
+
+        // Year 1
         year1: year1Metrics,
+
+        // Projections
         cashFlowProjection: projections,
+
+        // Return Metrics
         leveredIRR,
         unleveredIRR,
         equityMultiple,
         averageAnnualReturn,
         totalProfit,
+
+        // Exit Analysis
         exitValue,
+        exitCapRate,
         loanPaydown,
+        dispositionFee,
         saleProceeds,
       };
     } catch (error) {

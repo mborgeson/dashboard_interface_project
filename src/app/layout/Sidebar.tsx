@@ -3,6 +3,7 @@ import { useAppStore } from '@/store/useAppStore';
 import {
   LayoutDashboard,
   Building2,
+  Receipt,
   BarChart3,
   Map,
   ChevronLeft,
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Investments', href: '/investments', icon: Building2 },
+  { name: 'Transactions', href: '/transactions', icon: Receipt },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Mapping', href: '/mapping', icon: Map },
 ];

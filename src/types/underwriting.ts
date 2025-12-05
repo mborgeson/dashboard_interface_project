@@ -1,51 +1,85 @@
+export type PropertyClass = 'A' | 'B' | 'C';
+export type AssetType = 'Garden' | 'Mid-Rise' | 'High-Rise';
+export type LoanType = 'Agency' | 'CMBS' | 'Bridge' | 'Bank';
+export type PrepaymentPenaltyType = 'Yield Maintenance' | 'Defeasance' | 'Step-Down' | 'None';
+
 export interface UnderwritingInputs {
   // Property Information
   propertyName: string;
   address: string;
+  propertyClass: PropertyClass;
+  assetType: AssetType;
   units: number;
+  averageUnitSize: number;
   squareFeet: number;
   yearBuilt: number;
+  market: string;
+  submarket: string;
 
-  // Financial Assumptions
+  // Acquisition Assumptions
   purchasePrice: number;
-  downPaymentPercent: number;
+  closingCostsPercent: number;
+  acquisitionFeePercent: number;
+  dueDiligenceCosts: number;
+  immediateCapEx: number;
+
+  // Financing Assumptions
+  loanType: LoanType;
+  loanAmount: number;
+  ltvPercent: number; // Loan-to-Value
   interestRate: number;
   loanTerm: number;
-  closingCostsPercent: number;
+  amortizationPeriod: number;
+  interestOnlyPeriod: number;
+  originationFeePercent: number;
+  prepaymentPenaltyType: PrepaymentPenaltyType;
 
-  // Income Projections
+  // Revenue Assumptions
   currentRentPerUnit: number;
+  marketRentPerUnit: number;
   rentGrowthPercent: number;
   otherIncomePerUnit: number;
-  otherIncomeGrowthPercent: number;
   vacancyPercent: number;
+  concessionsPercent: number;
+  badDebtPercent: number;
 
-  // Operating Expenses (per unit per year)
+  // Operating Expense Assumptions (per unit per year)
   propertyTaxPerUnit: number;
   insurancePerUnit: number;
   utilitiesPerUnit: number;
   managementPercent: number;
-  repairsPercent: number;
+  repairsPerUnit: number;
   payrollPerUnit: number;
-  capexReservePercent: number;
+  marketingPerUnit: number;
+  otherExpensesPerUnit: number;
+  expenseGrowthPercent: number;
+  capitalReservePerUnit: number;
 
   // Exit Assumptions
   holdPeriod: number;
   exitCapRate: number;
-  sellingCostsPercent: number;
+  dispositionFeePercent: number;
+  capRateSpread: number; // Spread from entry cap rate
 }
 
 export interface UnderwritingResults {
   // Acquisition Metrics
+  purchasePrice: number;
+  pricePerUnit: number;
+  pricePerSF: number;
   downPayment: number;
   loanAmount: number;
+  ltv: number;
   closingCosts: number;
+  acquisitionFee: number;
   totalEquityRequired: number;
 
   // Year 1 Metrics
   year1: {
     grossIncome: number;
     vacancy: number;
+    concessions: number;
+    badDebt: number;
     effectiveGrossIncome: number;
     operatingExpenses: number;
     noi: number;
@@ -53,6 +87,8 @@ export interface UnderwritingResults {
     cashFlow: number;
     cashOnCashReturn: number;
     debtServiceCoverageRatio: number;
+    yieldOnCost: number;
+    cashBreakEvenOccupancy: number;
   };
 
   // 10-Year Projections
@@ -67,7 +103,9 @@ export interface UnderwritingResults {
 
   // Exit Analysis
   exitValue: number;
+  exitCapRate: number;
   loanPaydown: number;
+  dispositionFee: number;
   saleProceeds: number;
 }
 
@@ -75,6 +113,8 @@ export interface YearlyProjection {
   year: number;
   grossIncome: number;
   vacancy: number;
+  concessions: number;
+  badDebt: number;
   effectiveGrossIncome: number;
   operatingExpenses: number;
   noi: number;
@@ -95,4 +135,10 @@ export interface SensitivityVariable {
   lowIRR: number;
   highIRR: number;
   impact: number;
+}
+
+export interface AssumptionPreset {
+  name: string;
+  description: string;
+  inputs: Partial<UnderwritingInputs>;
 }

@@ -1,5 +1,5 @@
 import type { UnderwritingResults } from '@/types';
-import { TrendingUp, TrendingDown, DollarSign, Percent, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Percent, BarChart3, Home, Calculator } from 'lucide-react';
 
 interface ResultsTabProps {
   results: UnderwritingResults;
@@ -74,9 +74,40 @@ function SectionTitle({ title }: { title: string }) {
 export function ResultsTab({ results }: ResultsTabProps) {
   const irrHighlight = results.leveredIRR > 0.15 ? 'positive' : results.leveredIRR < 0.08 ? 'negative' : 'neutral';
   const dscrHighlight = results.year1.debtServiceCoverageRatio >= 1.25 ? 'positive' : results.year1.debtServiceCoverageRatio < 1.0 ? 'negative' : 'neutral';
+  const cocHighlight = results.year1.cashOnCashReturn >= 0.08 ? 'positive' : results.year1.cashOnCashReturn < 0.05 ? 'negative' : 'neutral';
 
   return (
     <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+      {/* Investment Summary Box */}
+      <div className="bg-gradient-to-br from-primary-50 to-accent-50 border border-primary-200 rounded-lg p-5">
+        <h3 className="text-lg font-semibold text-neutral-900 mb-4">Investment Summary</h3>
+        <div className="grid grid-cols-3 gap-6">
+          <div>
+            <div className="text-xs text-neutral-600 mb-1">Purchase Price</div>
+            <div className="text-xl font-bold text-neutral-900">{formatCurrency(results.purchasePrice)}</div>
+            <div className="text-xs text-neutral-500 mt-1">
+              {formatCurrency(results.pricePerUnit)}/unit | ${results.pricePerSF.toFixed(0)}/SF
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-neutral-600 mb-1">Total Equity Required</div>
+            <div className="text-xl font-bold text-neutral-900">{formatCurrency(results.totalEquityRequired)}</div>
+            <div className="text-xs text-neutral-500 mt-1">
+              {formatPercent(results.totalEquityRequired / results.purchasePrice)} of purchase
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-neutral-600 mb-1">Levered IRR</div>
+            <div className={`text-xl font-bold ${irrHighlight === 'positive' ? 'text-success-600' : irrHighlight === 'negative' ? 'text-error-600' : 'text-neutral-900'}`}>
+              {formatPercent(results.leveredIRR)}
+            </div>
+            <div className="text-xs text-neutral-500 mt-1">
+              {results.equityMultiple.toFixed(2)}x equity multiple
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Key Return Metrics */}
       <div>
         <SectionTitle title="Return Metrics" />
@@ -115,28 +146,61 @@ export function ResultsTab({ results }: ResultsTabProps) {
       {/* Acquisition Metrics */}
       <div>
         <SectionTitle title="Acquisition Metrics" />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">
+          <MetricCard
+            label="Purchase Price"
+            value={formatCurrency(results.purchasePrice)}
+            subtitle={`${formatCurrency(results.pricePerUnit)}/unit`}
+            icon={Home}
+          />
           <MetricCard
             label="Down Payment"
             value={formatCurrency(results.downPayment)}
-            subtitle={formatPercent(results.downPayment / (results.downPayment + results.loanAmount))}
+            subtitle={formatPercent(1 - results.ltv)}
           />
           <MetricCard
             label="Loan Amount"
             value={formatCurrency(results.loanAmount)}
-            subtitle="Total financing"
+            subtitle={`${formatPercent(results.ltv)} LTV`}
           />
           <MetricCard
-            label="Closing Costs"
-            value={formatCurrency(results.closingCosts)}
-            subtitle="Transaction fees"
+            label="Closing & Fees"
+            value={formatCurrency(results.closingCosts + results.acquisitionFee)}
+            subtitle="Transaction costs"
           />
           <MetricCard
-            label="Total Equity Required"
+            label="Total Equity"
             value={formatCurrency(results.totalEquityRequired)}
             subtitle="All-in capital"
             highlight="neutral"
           />
+        </div>
+      </div>
+
+      {/* Loan Summary */}
+      <div>
+        <SectionTitle title="Loan Details" />
+        <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+          <div className="grid grid-cols-4 gap-6">
+            <div>
+              <div className="text-xs text-neutral-600 mb-1">Loan Amount</div>
+              <div className="text-lg font-semibold text-neutral-900">{formatCurrency(results.loanAmount)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-neutral-600 mb-1">LTV Ratio</div>
+              <div className="text-lg font-semibold text-neutral-900">{formatPercent(results.ltv)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-neutral-600 mb-1">Annual Debt Service</div>
+              <div className="text-lg font-semibold text-neutral-900">{formatCurrency(results.year1.debtService)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-neutral-600 mb-1">Year 1 DSCR</div>
+              <div className={`text-lg font-semibold ${dscrHighlight === 'positive' ? 'text-success-600' : dscrHighlight === 'negative' ? 'text-error-600' : 'text-neutral-900'}`}>
+                {results.year1.debtServiceCoverageRatio.toFixed(2)}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -152,33 +216,54 @@ export function ResultsTab({ results }: ResultsTabProps) {
           <MetricCard
             label="Effective Gross Income"
             value={formatCurrency(results.year1.effectiveGrossIncome)}
-            subtitle={`After ${formatCurrency(results.year1.vacancy)} vacancy`}
+            subtitle={`After vacancy & loss to lease`}
           />
           <MetricCard
             label="Net Operating Income"
             value={formatCurrency(results.year1.noi)}
-            subtitle={`Expenses: ${formatCurrency(results.year1.operatingExpenses)}`}
+            subtitle={`OpEx: ${formatCurrency(results.year1.operatingExpenses)}`}
             highlight="positive"
           />
           <MetricCard
             label="Cash Flow"
             value={formatCurrency(results.year1.cashFlow)}
-            subtitle={`After ${formatCurrency(results.year1.debtService)} debt service`}
+            subtitle={`After debt service`}
             highlight={results.year1.cashFlow > 0 ? 'positive' : 'negative'}
           />
         </div>
-        <div className="grid grid-cols-2 gap-4 mt-4">
+      </div>
+
+      {/* Year 1 Performance Ratios */}
+      <div>
+        <SectionTitle title="Year 1 Performance Ratios" />
+        <div className="grid grid-cols-4 gap-4">
           <MetricCard
             label="Cash-on-Cash Return"
             value={formatPercent(results.year1.cashOnCashReturn)}
             subtitle="Year 1 yield on equity"
-            highlight={results.year1.cashOnCashReturn >= 0.08 ? 'positive' : 'neutral'}
+            icon={Percent}
+            highlight={cocHighlight}
           />
           <MetricCard
-            label="Debt Service Coverage Ratio"
+            label="DSCR"
             value={results.year1.debtServiceCoverageRatio.toFixed(2)}
             subtitle="NOI / Debt Service"
+            icon={Calculator}
             highlight={dscrHighlight}
+          />
+          <MetricCard
+            label="Yield on Cost"
+            value={formatPercent(results.year1.yieldOnCost)}
+            subtitle="NOI / Total Basis"
+            icon={BarChart3}
+            highlight="neutral"
+          />
+          <MetricCard
+            label="Break-Even Occupancy"
+            value={formatPercent(results.year1.cashBreakEvenOccupancy)}
+            subtitle="Cash flow break-even"
+            icon={Home}
+            highlight={results.year1.cashBreakEvenOccupancy < 0.85 ? 'positive' : 'negative'}
           />
         </div>
       </div>
@@ -190,7 +275,7 @@ export function ResultsTab({ results }: ResultsTabProps) {
           <MetricCard
             label="Exit Value"
             value={formatCurrency(results.exitValue)}
-            subtitle="Based on exit cap rate"
+            subtitle={`Exit cap: ${formatPercent(results.exitCapRate)}`}
           />
           <MetricCard
             label="Loan Paydown"
@@ -200,7 +285,7 @@ export function ResultsTab({ results }: ResultsTabProps) {
           <MetricCard
             label="Sale Proceeds"
             value={formatCurrency(results.saleProceeds)}
-            subtitle="Net to equity"
+            subtitle={`After ${formatCurrency(results.dispositionFee)} fee`}
             highlight="positive"
           />
           <MetricCard

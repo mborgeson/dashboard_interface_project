@@ -1,4 +1,5 @@
 import type { UnderwritingInputs, YearlyProjection } from '@/types';
+import { calculateLoanBalance } from '@/features/underwriting/utils/calculations';
 
 /**
  * Calculate monthly loan payment using amortization formula
@@ -26,35 +27,6 @@ export function calculateMonthlyPayment(
 }
 
 /**
- * Calculate remaining loan balance after n payments
- * @param principal - Original loan amount
- * @param annualRate - Annual interest rate as decimal
- * @param termYears - Loan term in years
- * @param paymentsMade - Number of payments made
- * @returns Remaining loan balance
- */
-export function calculateLoanBalance(
-  principal: number,
-  annualRate: number,
-  termYears: number,
-  paymentsMade: number
-): number {
-  const monthlyRate = annualRate / 12;
-  const numPayments = termYears * 12;
-  const monthlyPayment = calculateMonthlyPayment(principal, annualRate, termYears);
-
-  if (monthlyRate === 0) {
-    return principal - monthlyPayment * paymentsMade;
-  }
-
-  const balance =
-    principal * Math.pow(1 + monthlyRate, paymentsMade) -
-    (monthlyPayment * (Math.pow(1 + monthlyRate, paymentsMade) - 1)) / monthlyRate;
-
-  return Math.max(0, balance);
-}
-
-/**
  * Generate 10-year cash flow projections for an investment property
  * @param inputs - Underwriting inputs
  * @returns Array of yearly projections
@@ -64,12 +36,12 @@ export function generateCashFlowProjections(
 ): YearlyProjection[] {
   const projections: YearlyProjection[] = [];
 
-  // Calculate initial metrics
-  const loanAmount = inputs.purchasePrice * (1 - inputs.downPaymentPercent);
+  // Calculate loan metrics
+  const loanAmount = inputs.purchasePrice * inputs.ltvPercent;
   const monthlyPayment = calculateMonthlyPayment(
     loanAmount,
     inputs.interestRate,
-    inputs.loanTerm
+    inputs.amortizationPeriod
   );
   const annualDebtService = monthlyPayment * 12;
 
@@ -79,43 +51,66 @@ export function generateCashFlowProjections(
     // Project income growth
     const monthlyRent =
       inputs.currentRentPerUnit * Math.pow(1 + inputs.rentGrowthPercent, year - 1);
-    const monthlyOtherIncome =
-      inputs.otherIncomePerUnit * Math.pow(1 + inputs.otherIncomeGrowthPercent, year - 1);
+    const monthlyOtherIncome = inputs.otherIncomePerUnit;
 
-    const grossIncome = (monthlyRent + monthlyOtherIncome) * inputs.units * 12;
+    const grossPotentialRent = monthlyRent * inputs.units * 12;
+    const otherIncome = monthlyOtherIncome * inputs.units * 12;
+    const grossIncome = grossPotentialRent + otherIncome;
+
+    // Calculate loss to lease
     const vacancy = grossIncome * inputs.vacancyPercent;
-    const effectiveGrossIncome = grossIncome - vacancy;
+    const concessions = grossIncome * inputs.concessionsPercent;
+    const badDebt = grossIncome * inputs.badDebtPercent;
+    const effectiveGrossIncome = grossIncome - vacancy - concessions - badDebt;
 
-    // Calculate operating expenses
-    const propertyTax = inputs.propertyTaxPerUnit * inputs.units;
-    const insurance = inputs.insurancePerUnit * inputs.units;
-    const utilities = inputs.utilitiesPerUnit * inputs.units;
+    // Calculate operating expenses (grown by expense growth rate)
+    const expenseGrowth = Math.pow(1 + inputs.expenseGrowthPercent, year - 1);
+    
+    const propertyTax = inputs.propertyTaxPerUnit * inputs.units * expenseGrowth;
+    const insurance = inputs.insurancePerUnit * inputs.units * expenseGrowth;
+    const utilities = inputs.utilitiesPerUnit * inputs.units * expenseGrowth;
     const management = effectiveGrossIncome * inputs.managementPercent;
-    const repairs = effectiveGrossIncome * inputs.repairsPercent;
-    const payroll = inputs.payrollPerUnit * inputs.units;
-    const capex = effectiveGrossIncome * inputs.capexReservePercent;
+    const repairs = inputs.repairsPerUnit * inputs.units * expenseGrowth;
+    const payroll = inputs.payrollPerUnit * inputs.units * expenseGrowth;
+    const marketing = inputs.marketingPerUnit * inputs.units * expenseGrowth;
+    const otherExpenses = inputs.otherExpensesPerUnit * inputs.units * expenseGrowth;
+    const capitalReserve = inputs.capitalReservePerUnit * inputs.units * expenseGrowth;
 
     const operatingExpenses =
-      propertyTax + insurance + utilities + management + repairs + payroll + capex;
+      propertyTax + 
+      insurance + 
+      utilities + 
+      management + 
+      repairs + 
+      payroll + 
+      marketing + 
+      otherExpenses;
 
-    const noi = effectiveGrossIncome - operatingExpenses;
+    const noi = effectiveGrossIncome - operatingExpenses - capitalReserve;
     const cashFlow = noi - annualDebtService;
     cumulativeCashFlow += cashFlow;
 
-    // Calculate property value and loan balance
+    // Calculate property value using exit cap rate as a proxy for current value
     const propertyValue = noi / inputs.exitCapRate;
+    
+    // Calculate loan balance considering interest-only period
+    const monthsElapsed = year * 12;
     const loanBalance = calculateLoanBalance(
       loanAmount,
       inputs.interestRate,
-      inputs.loanTerm,
-      year * 12
+      inputs.amortizationPeriod,
+      monthsElapsed,
+      inputs.interestOnlyPeriod
     );
+    
     const equity = propertyValue - loanBalance;
 
     projections.push({
       year,
       grossIncome,
       vacancy,
+      concessions,
+      badDebt,
       effectiveGrossIncome,
       operatingExpenses,
       noi,
