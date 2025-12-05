@@ -1,16 +1,12 @@
 import { useState } from 'react';
-import { TrendingUp, LineChart, GitCompare, Database } from 'lucide-react';
+import { TrendingUp, LineChart, GitCompare, Database, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { KeyRatesSnapshot } from './components/KeyRatesSnapshot';
 import { TreasuryYieldCurve } from './components/TreasuryYieldCurve';
 import { RateComparisons } from './components/RateComparisons';
 import { DataSources } from './components/DataSources';
-import {
-  mockKeyRates,
-  mockYieldCurve,
-  mockHistoricalRates,
-  mockDataSources,
-} from '@/data/mockInterestRates';
+import { useInterestRates, getAsOfDate } from './hooks/useInterestRates';
+import { mockDataSources } from '@/data/mockInterestRates';
 
 type TabId = 'snapshot' | 'yield-curve' | 'comparisons' | 'sources';
 
@@ -51,16 +47,30 @@ const tabs: Tab[] = [
 export function InterestRatesPage() {
   const [activeTab, setActiveTab] = useState<TabId>('snapshot');
 
-  const asOfDate = mockKeyRates[0]?.asOfDate || new Date().toISOString().split('T')[0];
+  const {
+    keyRates,
+    yieldCurve,
+    historicalRates,
+    lastUpdated,
+    isLiveData,
+    isLoading,
+    refresh,
+    isApiConfigured,
+  } = useInterestRates({
+    refreshInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+    autoRefresh: true,
+  });
+
+  const asOfDate = getAsOfDate(keyRates);
 
   const renderContent = () => {
     switch (activeTab) {
       case 'snapshot':
-        return <KeyRatesSnapshot rates={mockKeyRates} asOfDate={asOfDate} />;
+        return <KeyRatesSnapshot rates={keyRates} asOfDate={asOfDate} />;
       case 'yield-curve':
-        return <TreasuryYieldCurve data={mockYieldCurve} asOfDate={asOfDate} />;
+        return <TreasuryYieldCurve data={yieldCurve} asOfDate={asOfDate} />;
       case 'comparisons':
-        return <RateComparisons historicalData={mockHistoricalRates} />;
+        return <RateComparisons historicalData={historicalRates} />;
       case 'sources':
         return <DataSources sources={mockDataSources} />;
       default:
@@ -80,18 +90,76 @@ export function InterestRatesPage() {
                 Track key interest rates, Treasury yields, and market benchmarks for real estate financing decisions
               </p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-neutral-500">
-              <span>Last updated:</span>
-              <span className="font-medium text-neutral-700">
-                {new Date(asOfDate).toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </span>
+            <div className="flex items-center gap-4">
+              {/* Data Source Indicator */}
+              <div className={cn(
+                'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium',
+                isLiveData
+                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+              )}>
+                {isLiveData ? (
+                  <>
+                    <Wifi className="w-3 h-3" />
+                    <span>Live Data</span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-3 h-3" />
+                    <span>Mock Data</span>
+                  </>
+                )}
+              </div>
+
+              {/* Refresh Button */}
+              <button
+                onClick={() => refresh()}
+                disabled={isLoading}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                  'bg-neutral-100 text-neutral-700 hover:bg-neutral-200',
+                  isLoading && 'opacity-50 cursor-not-allowed'
+                )}
+              >
+                <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} />
+                <span>Refresh</span>
+              </button>
+
+              {/* Last Updated */}
+              <div className="flex items-center gap-2 text-sm text-neutral-500">
+                <span>Last updated:</span>
+                <span className="font-medium text-neutral-700">
+                  {lastUpdated
+                    ? lastUpdated.toLocaleString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })
+                    : 'Loading...'}
+                </span>
+              </div>
             </div>
           </div>
+
+          {/* API Configuration Notice */}
+          {!isApiConfigured && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Want live data?</strong> Add your free FRED API key to <code className="bg-blue-100 px-1 rounded">.env</code>:
+                <code className="bg-blue-100 px-1 rounded ml-1">VITE_FRED_API_KEY=your_key_here</code>
+                <a
+                  href="https://fred.stlouisfed.org/docs/api/api_key.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 underline hover:text-blue-600"
+                >
+                  Get free API key →
+                </a>
+              </p>
+            </div>
+          )}
 
           {/* Tab Navigation */}
           <div className="mt-6 flex items-center gap-1 border-b border-neutral-200 -mb-px">
@@ -122,15 +190,31 @@ export function InterestRatesPage() {
       {/* Tab Content */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="bg-white rounded-lg border border-neutral-200 p-6">
-          {renderContent()}
+          {isLoading && !keyRates.length ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="w-8 h-8 text-neutral-400 animate-spin" />
+              <span className="ml-3 text-neutral-500">Loading rate data...</span>
+            </div>
+          ) : (
+            renderContent()
+          )}
         </div>
       </div>
 
       {/* Footer Note */}
       <div className="max-w-7xl mx-auto px-6 pb-8">
         <div className="text-xs text-neutral-500 text-center">
-          Rate data is updated daily from official sources. For real-time rates, please consult the data sources directly.
-          This information is provided for educational purposes and should not be considered financial advice.
+          {isLiveData ? (
+            <>
+              Live rate data is fetched from FRED (Federal Reserve Economic Data) and updates automatically every 5 minutes.
+              Data may be delayed by up to one business day from official sources.
+            </>
+          ) : (
+            <>
+              Currently displaying mock data. Configure your FRED API key to see live rates.
+              This information is provided for educational purposes and should not be considered financial advice.
+            </>
+          )}
         </div>
       </div>
     </div>
