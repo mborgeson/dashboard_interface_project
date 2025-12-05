@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Percent,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Deals', href: '/deals', icon: Briefcase },
   { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Interest Rates', href: '/interest-rates', icon: Percent },
   { name: 'Market', href: '/market', icon: TrendingUp },
   { name: 'Mapping', href: '/mapping', icon: Map },
 ];

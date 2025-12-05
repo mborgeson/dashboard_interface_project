@@ -31,6 +31,9 @@ const MarketPage = lazy(() =>
 const DocumentsPage = lazy(() =>
   import('@/features/documents').then(m => ({ default: m.DocumentsPage }))
 );
+const InterestRatesPage = lazy(() =>
+  import('@/features/interest-rates').then(m => ({ default: m.InterestRatesPage }))
+);
 
 // Wrapper for lazy-loaded routes
 function LazyRoute({ children }: { children: React.ReactNode }) {
@@ -111,6 +114,14 @@ export const router = createBrowserRouter([
         element: (
           <LazyRoute>
             <DocumentsPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'interest-rates',
+        element: (
+          <LazyRoute>
+            <InterestRatesPage />
           </LazyRoute>
         ),
       },
