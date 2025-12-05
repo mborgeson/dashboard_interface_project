@@ -316,7 +316,7 @@ export function GlobalSearch() {
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Determine available items based on search query
-    let items: any[];
+    let items: (SearchResult | string | QuickAction)[];
     if (searchQuery) {
       items = searchResults;
     } else if (recentSearches.length > 0) {

@@ -137,7 +137,7 @@ export function FilterExample() {
       <div className="grid grid-cols-4 gap-6">
         <div className="col-span-1">
           <SavedFilters
-            currentFilters={filters}
+            currentFilters={filters as Record<string, unknown>}
             onApplyFilter={(savedFilters) => setFilters(savedFilters as PropertyFilters)}
             storageKey="property-filters" // Unique key for this page
           />
@@ -161,7 +161,8 @@ export function FilterExample() {
 }
 
 // Helper function to apply filters to your data
-function applyFilters(filters: PropertyFilters): any[] {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function applyFilters(filters: PropertyFilters): unknown[] {
   // Implement your filter logic here
   // This is just a placeholder
   return [];

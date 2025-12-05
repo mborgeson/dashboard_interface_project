@@ -1,51 +1,61 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Star, Trash2, Plus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 
-export interface SavedFilter {
+export interface SavedFilter<T extends Record<string, unknown> = Record<string, unknown>> {
   id: string;
   name: string;
-  filters: Record<string, any>;
+  filters: T;
   createdAt: Date;
 }
 
-interface SavedFiltersProps {
-  currentFilters: Record<string, any>;
-  onApplyFilter: (filters: Record<string, any>) => void;
+interface SavedFiltersProps<T extends Record<string, unknown> = Record<string, unknown>> {
+  currentFilters: T;
+  onApplyFilter: (filters: T) => void;
   storageKey?: string;
 }
 
 const DEFAULT_STORAGE_KEY = 'br-capital-saved-filters';
+
+// Helper to load filters from localStorage
+function loadFiltersFromStorage(storageKey: string): SavedFilter[] {
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Convert date strings back to Date objects
+      return parsed.map((f: SavedFilter & { createdAt: string }) => ({
+        ...f,
+        createdAt: new Date(f.createdAt),
+      }));
+    }
+  } catch (error) {
+    console.error('Failed to load saved filters:', error);
+  }
+  return [];
+}
 
 export function SavedFilters({
   currentFilters,
   onApplyFilter,
   storageKey = DEFAULT_STORAGE_KEY,
 }: SavedFiltersProps) {
-  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
+  // Use lazy initializer to load from localStorage on first render
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>(() =>
+    loadFiltersFromStorage(storageKey)
+  );
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newFilterName, setNewFilterName] = useState('');
-  const [appliedFilterId, setAppliedFilterId] = useState<string | null>(null);
   const { success, info } = useToast();
 
-  // Load saved filters from localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Convert date strings back to Date objects
-        const filters = parsed.map((f: any) => ({
-          ...f,
-          createdAt: new Date(f.createdAt),
-        }));
-        setSavedFilters(filters);
-      }
-    } catch (error) {
-      console.error('Failed to load saved filters:', error);
-    }
-  }, [storageKey]);
+  // Derive appliedFilterId from current filters (no useState needed)
+  const appliedFilterId = useMemo(() => {
+    const matchingFilter = savedFilters.find((saved) =>
+      JSON.stringify(saved.filters) === JSON.stringify(currentFilters)
+    );
+    return matchingFilter?.id || null;
+  }, [currentFilters, savedFilters]);
 
   // Save filters to localStorage
   const saveToStorage = (filters: SavedFilter[]) => {
@@ -55,14 +65,6 @@ export function SavedFilters({
       console.error('Failed to save filters:', error);
     }
   };
-
-  // Check if current filters match any saved filter
-  useEffect(() => {
-    const matchingFilter = savedFilters.find((saved) =>
-      JSON.stringify(saved.filters) === JSON.stringify(currentFilters)
-    );
-    setAppliedFilterId(matchingFilter?.id || null);
-  }, [currentFilters, savedFilters]);
 
   const handleSaveFilter = () => {
     if (!newFilterName.trim()) return;
@@ -90,15 +92,10 @@ export function SavedFilters({
     saveToStorage(updated);
 
     info('Filter deleted');
-
-    if (appliedFilterId === id) {
-      setAppliedFilterId(null);
-    }
   };
 
   const handleApplyFilter = (filter: SavedFilter) => {
     onApplyFilter(filter.filters);
-    setAppliedFilterId(filter.id);
     info('Filter applied');
   };
 

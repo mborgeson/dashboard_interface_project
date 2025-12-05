@@ -15,8 +15,7 @@ test.describe('Investments Page', () => {
 
   test('should display property cards', async ({ page }) => {
     // Wait for property cards to appear after loading
-    const propertyCards = page.locator('[class*="PropertyCard"], [data-testid*="property"]').first();
-    // If no data-testid, look for CardTitle in property section
+    // Look for CardTitle in property section
     const cardTitles = page.locator('h3, [class*="CardTitle"]').first();
     await expect(cardTitles).toBeVisible({ timeout: 10000 });
   });

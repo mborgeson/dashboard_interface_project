@@ -7,14 +7,12 @@ interface SuspenseWrapperProps {
   children: ReactNode;
   fallback?: ReactNode;
   errorFallback?: ReactNode;
-  onError?: (error: Error) => void;
 }
 
 export function SuspenseWrapper({
   children,
   fallback,
   errorFallback,
-  onError,
 }: SuspenseWrapperProps) {
   const defaultFallback = (
     <div className="flex items-center justify-center min-h-[400px]">
@@ -36,6 +34,8 @@ interface WithSuspenseOptions {
   errorFallback?: ReactNode;
 }
 
+// HOC pattern - can't be hot-reloaded but valid pattern
+// eslint-disable-next-line react-refresh/only-export-components
 export function withSuspense<P extends object>(
   Component: ComponentType<P>,
   options: WithSuspenseOptions = {}
