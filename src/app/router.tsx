@@ -34,6 +34,9 @@ const DocumentsPage = lazy(() =>
 const InterestRatesPage = lazy(() =>
   import('@/features/interest-rates').then(m => ({ default: m.InterestRatesPage }))
 );
+const ReportingSuitePage = lazy(() =>
+  import('@/features/reporting-suite').then(m => ({ default: m.ReportingSuitePage }))
+);
 
 // Wrapper for lazy-loaded routes
 function LazyRoute({ children }: { children: React.ReactNode }) {
@@ -122,6 +125,14 @@ export const router = createBrowserRouter([
         element: (
           <LazyRoute>
             <InterestRatesPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'reporting',
+        element: (
+          <LazyRoute>
+            <ReportingSuitePage />
           </LazyRoute>
         ),
       },

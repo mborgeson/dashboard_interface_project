@@ -13,6 +13,7 @@ import {
   ChevronRight,
   X,
   Percent,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Transactions', href: '/transactions', icon: Receipt },
   { name: 'Deals', href: '/deals', icon: Briefcase },
   { name: 'Documents', href: '/documents', icon: FileText },
+  { name: 'Reporting', href: '/reporting', icon: ClipboardList },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Interest Rates', href: '/interest-rates', icon: Percent },
   { name: 'Market', href: '/market', icon: TrendingUp },
