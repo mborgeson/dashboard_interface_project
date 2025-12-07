@@ -1,0 +1,154 @@
+# =============================================================================
+# Docker Ignore File - B&R Capital Dashboard Backend
+# =============================================================================
+# Excludes files from Docker build context for faster builds and smaller images
+# =============================================================================
+
+# Version Control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+.venv/
+ENV/
+env/
+.env.local
+.env.development
+.env.test
+
+# IDE and Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+tests/
+test_*.py
+*_test.py
+
+# Documentation
+docs/
+*.md
+!README.md
+LICENSE
+CHANGELOG.md
+CONTRIBUTING.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+azure-pipelines.yml
+
+# Docker (avoid recursive includes)
+Dockerfile*
+docker-compose*.yml
+.docker/
+.dockerignore
+
+# Local Development
+*.log
+*.logs
+logs/
+*.local
+*.bak
+*.backup
+tmp/
+temp/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/
+migrations/versions/*.pyc
+
+# Static Assets (handled separately)
+static/
+media/
+uploads/
+
+# Secrets (never include in images)
+*.pem
+*.key
+*.crt
+*.env
+.env*
+!.env.example
+secrets/
+credentials/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Jupyter Notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Profiling
+*.prof
+*.lprof
+
+# Package managers
+node_modules/
+package-lock.json
+yarn.lock
+
+# Misc
+*.bak
+*.tmp
+*.temp
+*.old
+*.orig

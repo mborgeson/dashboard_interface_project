@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Deal Update: {{ deal_name }} - {{ app_name }}{% endblock %}
+
+{% block header %}Deal Update{% endblock %}
+
+{% block content %}
+<p>A deal has been updated in the pipeline.</p>
+
+<table>
+    <tr>
+        <th>Deal Name</th>
+        <td>{{ deal_name }}</td>
+    </tr>
+    <tr>
+        <th>Action</th>
+        <td>{{ action }}</td>
+    </tr>
+    {% if details.stage %}
+    <tr>
+        <th>Stage</th>
+        <td>{{ details.stage }}</td>
+    </tr>
+    {% endif %}
+    {% if details.assigned_to %}
+    <tr>
+        <th>Assigned To</th>
+        <td>{{ details.assigned_to }}</td>
+    </tr>
+    {% endif %}
+    {% if details.priority %}
+    <tr>
+        <th>Priority</th>
+        <td>{{ details.priority }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+{% if details.notes %}
+<div class="highlight">
+    <strong>Notes:</strong>
+    <p>{{ details.notes }}</p>
+</div>
+{% endif %}
+
+<p style="text-align: center;">
+    <a href="{{ deal_url }}" class="button">View Deal Details</a>
+</p>
+
+<p>Best regards,<br>
+<strong>{{ app_name }}</strong></p>
+{% endblock %}
