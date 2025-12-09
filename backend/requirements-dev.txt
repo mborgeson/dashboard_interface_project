@@ -1,0 +1,23 @@
+# Development dependencies for B&R Capital Backend
+# Install with: pip install -r requirements-dev.txt
+
+# Include main requirements
+-r requirements.txt
+
+# Linting & Formatting
+ruff>=0.1.0
+
+# Security scanning
+bandit>=1.7.0
+safety>=2.3.0
+
+# Type checking (already in main, but ensure latest)
+mypy>=1.8.0
+types-python-dateutil
+types-requests
+
+# Testing tools (already in main, but ensure complete)
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+httpx>=0.24.0

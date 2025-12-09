@@ -10,17 +10,30 @@ from loguru import logger
 
 from app.core.config import settings
 from app.core.security import (
-    verify_password,
-    get_password_hash,
     create_access_token,
     create_refresh_token,
     decode_token,
 )
 from app.db.session import get_db
 from app.schemas.auth import Token, LoginRequest, RefreshTokenRequest
+from app.crud import user as user_crud
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+# Demo users fallback (for development without DB setup)
+DEMO_USERS = {
+    "admin@brcapital.com": {
+        "password": "admin123",
+        "id": 1,
+        "role": "admin",
+    },
+    "analyst@brcapital.com": {
+        "password": "analyst123",
+        "id": 2,
+        "role": "analyst",
+    },
+}
 
 
 @router.post("/login", response_model=Token)
@@ -34,48 +47,61 @@ async def login(
     - **username**: User email address
     - **password**: User password
     """
-    # In production, this would query the database
-    # For now, returning a demo token
-    # TODO: Implement actual user authentication
+    # Try database authentication first
+    db_user = await user_crud.authenticate(
+        db, email=form_data.username, password=form_data.password
+    )
 
-    # Demo user validation (replace with actual database query)
-    demo_users = {
-        "admin@brcapital.com": {
-            "password": "admin123",
-            "id": 1,
-            "role": "admin",
-        },
-        "analyst@brcapital.com": {
-            "password": "analyst123",
-            "id": 2,
-            "role": "analyst",
-        },
-    }
-
-    user = demo_users.get(form_data.username)
-    if not user or not verify_password(form_data.password, get_password_hash(user["password"])):
-        # For demo, also accept plain text comparison
-        if not user or form_data.password != user["password"]:
+    if db_user:
+        # Check if user is active
+        if not db_user.is_active:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
-                headers={"WWW-Authenticate": "Bearer"},
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User account is disabled",
             )
 
-    # Create tokens
-    access_token = create_access_token(
-        subject=str(user["id"]),
-        additional_claims={"role": user["role"]},
-    )
-    refresh_token = create_refresh_token(subject=str(user["id"]))
+        # Update last login (non-critical, handled with transaction safety)
+        await user_crud.update_last_login(db, user=db_user)
 
-    logger.info(f"User logged in: {form_data.username}")
+        # Create tokens
+        access_token = create_access_token(
+            subject=str(db_user.id),
+            additional_claims={"role": db_user.role},
+        )
+        refresh_token = create_refresh_token(subject=str(db_user.id))
 
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        logger.info(f"User logged in: {form_data.username}")
+
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
+
+    # Fallback to demo users for development
+    demo_user = DEMO_USERS.get(form_data.username)
+    if demo_user and form_data.password == demo_user["password"]:
+        access_token = create_access_token(
+            subject=str(demo_user["id"]),
+            additional_claims={"role": demo_user["role"]},
+        )
+        refresh_token = create_refresh_token(subject=str(demo_user["id"]))
+
+        logger.info(f"Demo user logged in: {form_data.username}")
+
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
+
+    # Authentication failed
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect email or password",
+        headers={"WWW-Authenticate": "Bearer"},
     )
 
 
@@ -120,7 +146,10 @@ async def logout():
 
 
 @router.get("/me")
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db),
+):
     """
     Get current authenticated user information.
     """
@@ -131,11 +160,22 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
             detail="Invalid or expired token",
         )
 
-    # In production, fetch user from database
     user_id = payload.get("sub")
 
+    # Fetch actual user from database
+    db_user = await user_crud.get(db, id=int(user_id))
+    if db_user:
+        return {
+            "id": db_user.id,
+            "email": db_user.email,
+            "role": db_user.role,
+            "first_name": db_user.first_name,
+            "last_name": db_user.last_name,
+        }
+
+    # Fallback for demo users (no DB record)
     return {
         "id": int(user_id),
-        "email": "user@brcapital.com",  # Would come from DB
+        "email": payload.get("email", "demo@brcapital.com"),
         "role": payload.get("role", "viewer"),
     }

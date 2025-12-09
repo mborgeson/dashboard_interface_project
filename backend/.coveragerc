@@ -1,0 +1,62 @@
+[run]
+# Source directories to measure
+source = app
+
+# Files/patterns to omit
+omit =
+    */tests/*
+    */__pycache__/*
+    */venv/*
+    */migrations/*
+    */alembic/*
+    app/main.py
+    app/core/config.py
+
+# Enable branch coverage
+branch = True
+
+# Parallel processing
+parallel = True
+
+[report]
+# Minimum coverage threshold (start at 30%, incrementally raise as tests are added)
+fail_under = 30
+
+# Exclude lines from coverage
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+
+    # Debug statements
+    def __repr__
+
+    # Type checking
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+    # Abstract methods
+    @abstractmethod
+
+    # Defensive programming
+    raise NotImplementedError
+    raise AssertionError
+
+    # Imports
+    if __name__ == .__main__.:
+
+# Show missing lines
+show_missing = True
+
+# Precision for percentages
+precision = 2
+
+[html]
+# HTML report directory
+directory = coverage_html
+
+# Title for the HTML report
+title = B&R Capital Backend Coverage Report
+
+[xml]
+# XML output for CI integration
+output = coverage.xml
