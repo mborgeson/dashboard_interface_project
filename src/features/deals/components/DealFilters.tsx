@@ -3,7 +3,7 @@ import type { DealStage } from '@/types/deal';
 import type { DealFilters as DealFiltersType } from '../hooks/useDeals';
 import { DEAL_STAGE_LABELS } from '@/types/deal';
 import { Filter, X, Search } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ToggleButton } from '@/components/ui/ToggleButton';
 
 interface DealFiltersProps {
   filters: DealFiltersType;
@@ -133,18 +133,13 @@ export function DealFilters({
             </h4>
             <div className="flex flex-wrap gap-2">
               {ALL_STAGES.map((stage) => (
-                <button
+                <ToggleButton
                   key={stage}
+                  isActive={filters.stages.includes(stage)}
                   onClick={() => toggleStage(stage)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
-                    filters.stages.includes(stage)
-                      ? 'bg-accent-600 text-white border-accent-600'
-                      : 'bg-white text-neutral-700 border-neutral-300 hover:border-accent-500'
-                  )}
                 >
                   {DEAL_STAGE_LABELS[stage]}
-                </button>
+                </ToggleButton>
               ))}
             </div>
           </div>
@@ -156,18 +151,13 @@ export function DealFilters({
             </h4>
             <div className="flex flex-wrap gap-2">
               {propertyTypes.map((type) => (
-                <button
+                <ToggleButton
                   key={type}
+                  isActive={filters.propertyTypes.includes(type)}
                   onClick={() => togglePropertyType(type)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
-                    filters.propertyTypes.includes(type)
-                      ? 'bg-accent-600 text-white border-accent-600'
-                      : 'bg-white text-neutral-700 border-neutral-300 hover:border-accent-500'
-                  )}
                 >
                   {type}
-                </button>
+                </ToggleButton>
               ))}
             </div>
           </div>
@@ -179,18 +169,13 @@ export function DealFilters({
             </h4>
             <div className="flex flex-wrap gap-2">
               {assignees.map((assignee) => (
-                <button
+                <ToggleButton
                   key={assignee}
+                  isActive={filters.assignees.includes(assignee)}
                   onClick={() => toggleAssignee(assignee)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
-                    filters.assignees.includes(assignee)
-                      ? 'bg-accent-600 text-white border-accent-600'
-                      : 'bg-white text-neutral-700 border-neutral-300 hover:border-accent-500'
-                  )}
                 >
                   {assignee}
-                </button>
+                </ToggleButton>
               ))}
             </div>
           </div>

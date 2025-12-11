@@ -31,6 +31,9 @@ describe('Button', () => {
 
     rerender(<Button variant="ghost">Ghost</Button>);
     expect(screen.getByRole('button')).toHaveClass('hover:bg-accent');
+
+    rerender(<Button variant="accent">Accent</Button>);
+    expect(screen.getByRole('button')).toHaveClass('bg-accent-500');
   });
 
   it('applies size classes correctly', () => {

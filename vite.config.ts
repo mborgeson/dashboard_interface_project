@@ -62,8 +62,9 @@ export default defineConfig({
           'vendor-maps': ['leaflet', 'react-leaflet', 'leaflet.markercluster'],
           // Data/utility libraries
           'vendor-data': ['@tanstack/react-query', '@tanstack/react-table', 'zustand', 'fuse.js'],
-          // Export libraries
-          'vendor-export': ['jspdf', 'xlsx', 'html2canvas'],
+          // Export libraries - split for better lazy loading
+          'vendor-pdf': ['jspdf', 'html2canvas'],
+          'vendor-xlsx': ['xlsx'],
           // Date/form libraries
           'vendor-forms': ['date-fns', 'react-hook-form', '@hookform/resolvers', 'zod'],
         },

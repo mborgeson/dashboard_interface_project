@@ -22,7 +22,9 @@ export default {
   				'100': '#fecaca',
   				'500': '#E74C3C',
   				'600': '#c0392b',
-  				'700': '#a93226'
+  				'700': '#a93226',
+  				'contrast-safe': '#ffffff',
+  				'decorative': '#E74C3C'
   			},
   			neutral: {
   				'50': '#f9fafb',

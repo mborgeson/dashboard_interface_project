@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
+import { mockProperties } from '@/data/mockProperties';
 import {
   LayoutDashboard,
   Building2,
@@ -23,7 +24,7 @@ import {
   Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -52,6 +53,13 @@ const externalTools = [
 
 export function Sidebar(){
   const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, setMobileMenuOpen } = useAppStore();
+
+  // Compute portfolio stats from actual data
+  const portfolioStats = useMemo(() => {
+    const totalProperties = mockProperties.length;
+    const totalUnits = mockProperties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
+    return { totalProperties, totalUnits };
+  }, []);
 
   // Close mobile menu when navigating
   useEffect(() => {
@@ -216,10 +224,8 @@ export function Sidebar(){
       {(!sidebarCollapsed || mobileMenuOpen) && (
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-neutral-700">
           <div className="text-xs text-neutral-400">
-            <div className="font-semibold text-neutral-300 mb-1">
-              Portfolio Dashboard
-            </div>
-            <div>12 Properties • 2,116 Units</div>
+            <div>Portfolio Dashboard</div>
+            <div>{portfolioStats.totalProperties} Properties • {portfolioStats.totalUnits.toLocaleString()} Units</div>
             <div className="mt-2">Phoenix MSA</div>
           </div>
         </div>
