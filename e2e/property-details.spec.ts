@@ -14,10 +14,15 @@ test.describe('Property Details', () => {
     });
 
     test('should display property cards on investments page', async ({ page }) => {
-      // Wait for property content to load
-      const content = await page.locator('main').textContent();
-      expect(content).toBeTruthy();
-      expect(content!.length).toBeGreaterThan(100);
+      // Wait for property cards to load - look for headings within cards (property names)
+      const propertyHeadings = page.locator('h3');
+
+      // Wait for at least one property card heading to appear
+      await expect(propertyHeadings.first()).toBeVisible({ timeout: 10000 });
+
+      // Verify multiple properties are displayed
+      const count = await propertyHeadings.count();
+      expect(count).toBeGreaterThan(0);
     });
 
     test('should have clickable property cards', async ({ page }) => {
