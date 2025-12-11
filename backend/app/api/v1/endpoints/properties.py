@@ -1,6 +1,8 @@
 """
 Property endpoints for CRUD operations and analytics.
 """
+
+from datetime import datetime
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -17,6 +19,10 @@ from app.schemas.property import (
 from app.services import get_redis_service
 
 router = APIRouter()
+
+# Default timestamps for demo data
+_demo_created = datetime(2024, 1, 15, 10, 0, 0)
+_demo_updated = datetime(2024, 12, 1, 14, 30, 0)
 
 # Demo data for initial development
 DEMO_PROPERTIES = [
@@ -35,6 +41,8 @@ DEMO_PROPERTIES = [
         "avg_rent_per_unit": 1450.00,
         "noi": 1250000.00,
         "cap_rate": 5.25,
+        "created_at": _demo_created,
+        "updated_at": _demo_updated,
     },
     {
         "id": 2,
@@ -51,6 +59,8 @@ DEMO_PROPERTIES = [
         "avg_rent_per_sf": 28.50,
         "noi": 2100000.00,
         "cap_rate": 6.0,
+        "created_at": _demo_created,
+        "updated_at": _demo_updated,
     },
     {
         "id": 3,
@@ -67,6 +77,8 @@ DEMO_PROPERTIES = [
         "avg_rent_per_sf": 32.00,
         "noi": 980000.00,
         "cap_rate": 6.5,
+        "created_at": _demo_created,
+        "updated_at": _demo_updated,
     },
 ]
 
@@ -108,11 +120,15 @@ async def list_properties(
     if state:
         filtered = [p for p in filtered if p["state"].upper() == state.upper()]
     if market:
-        filtered = [p for p in filtered if p.get("market", "").lower() == market.lower()]
+        filtered = [
+            p for p in filtered if p.get("market", "").lower() == market.lower()
+        ]
     if min_units:
         filtered = [p for p in filtered if p.get("total_units", 0) >= min_units]
     if max_units:
-        filtered = [p for p in filtered if p.get("total_units", float("inf")) <= max_units]
+        filtered = [
+            p for p in filtered if p.get("total_units", float("inf")) <= max_units
+        ]
 
     # Sort
     reverse = sort_order.lower() == "desc"
@@ -142,10 +158,7 @@ async def get_property(
     Get a specific property by ID.
     """
     # TODO: Implement actual database query
-    property_data = next(
-        (p for p in DEMO_PROPERTIES if p["id"] == property_id),
-        None
-    )
+    property_data = next((p for p in DEMO_PROPERTIES if p["id"] == property_id), None)
 
     if not property_data:
         raise HTTPException(
@@ -166,10 +179,13 @@ async def create_property(
     """
     # TODO: Implement actual database insert
     new_id = max(p["id"] for p in DEMO_PROPERTIES) + 1 if DEMO_PROPERTIES else 1
+    now = datetime.now()
 
     new_property = {
         "id": new_id,
         **property_data.model_dump(),
+        "created_at": now,
+        "updated_at": now,
     }
 
     logger.info(f"Created property: {new_property['name']}")
@@ -187,10 +203,7 @@ async def update_property(
     Update an existing property.
     """
     # TODO: Implement actual database update
-    existing = next(
-        (p for p in DEMO_PROPERTIES if p["id"] == property_id),
-        None
-    )
+    existing = next((p for p in DEMO_PROPERTIES if p["id"] == property_id), None)
 
     if not existing:
         raise HTTPException(
@@ -201,6 +214,7 @@ async def update_property(
     # Update fields
     update_data = property_data.model_dump(exclude_unset=True)
     existing.update(update_data)
+    existing["updated_at"] = datetime.now()
 
     logger.info(f"Updated property: {property_id}")
 
@@ -216,10 +230,7 @@ async def delete_property(
     Delete a property (soft delete).
     """
     # TODO: Implement actual database soft delete
-    existing = next(
-        (p for p in DEMO_PROPERTIES if p["id"] == property_id),
-        None
-    )
+    existing = next((p for p in DEMO_PROPERTIES if p["id"] == property_id), None)
 
     if not existing:
         raise HTTPException(
