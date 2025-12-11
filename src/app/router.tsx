@@ -47,98 +47,105 @@ function LazyRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const router = createBrowserRouter([
+export const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: <AppLayout />,
+      children: [
+        {
+          index: true,
+          element: <DashboardMain />,
+        },
+        {
+          path: 'investments',
+          element: (
+            <LazyRoute>
+              <InvestmentsPage />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'properties/:id',
+          element: (
+            <LazyRoute>
+              <PropertyDetailPage />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'transactions',
+          element: (
+            <LazyRoute>
+              <TransactionsPage />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'deals',
+          element: (
+            <LazyRoute>
+              <DealsRoute />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'analytics',
+          element: (
+            <LazyRoute>
+              <AnalyticsPage />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'mapping',
+          element: (
+            <LazyRoute>
+              <MappingPage />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'market',
+          element: (
+            <LazyRoute>
+              <MarketPage />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'documents',
+          element: (
+            <LazyRoute>
+              <DocumentsPage />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'interest-rates',
+          element: (
+            <LazyRoute>
+              <InterestRatesPage />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'reporting',
+          element: (
+            <LazyRoute>
+              <ReportingSuitePage />
+            </LazyRoute>
+          ),
+        },
+      ],
+    },
+  ],
   {
-    path: '/',
-    element: <AppLayout />,
-    children: [
-      {
-        index: true,
-        element: <DashboardMain />,
-      },
-      {
-        path: 'investments',
-        element: (
-          <LazyRoute>
-            <InvestmentsPage />
-          </LazyRoute>
-        ),
-      },
-      {
-        path: 'properties/:id',
-        element: (
-          <LazyRoute>
-            <PropertyDetailPage />
-          </LazyRoute>
-        ),
-      },
-      {
-        path: 'transactions',
-        element: (
-          <LazyRoute>
-            <TransactionsPage />
-          </LazyRoute>
-        ),
-      },
-      {
-        path: 'deals',
-        element: (
-          <LazyRoute>
-            <DealsRoute />
-          </LazyRoute>
-        ),
-      },
-      {
-        path: 'analytics',
-        element: (
-          <LazyRoute>
-            <AnalyticsPage />
-          </LazyRoute>
-        ),
-      },
-      {
-        path: 'mapping',
-        element: (
-          <LazyRoute>
-            <MappingPage />
-          </LazyRoute>
-        ),
-      },
-      {
-        path: 'market',
-        element: (
-          <LazyRoute>
-            <MarketPage />
-          </LazyRoute>
-        ),
-      },
-      {
-        path: 'documents',
-        element: (
-          <LazyRoute>
-            <DocumentsPage />
-          </LazyRoute>
-        ),
-      },
-      {
-        path: 'interest-rates',
-        element: (
-          <LazyRoute>
-            <InterestRatesPage />
-          </LazyRoute>
-        ),
-      },
-      {
-        path: 'reporting',
-        element: (
-          <LazyRoute>
-            <ReportingSuitePage />
-          </LazyRoute>
-        ),
-      },
-    ],
-  },
-]);
+    future: {
+      v7_relativeSplatPath: true,
+    },
+  }
+);
 
 // Separate component to handle the Deals route with Suspense
 function DealsRoute() {
