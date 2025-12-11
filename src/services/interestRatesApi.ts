@@ -9,9 +9,15 @@ import type { KeyRate, YieldCurvePoint, HistoricalRate } from '@/data/mockIntere
 // Get your free API key at: https://fred.stlouisfed.org/docs/api/api_key.html
 const FRED_API_KEY = import.meta.env.VITE_FRED_API_KEY || '';
 // Use Vite proxy in development to avoid CORS issues
+// Proxy rewrites /api/fred -> https://api.stlouisfed.org (removes /api/fred prefix)
 const FRED_BASE_URL = import.meta.env.DEV
   ? '/api/fred/fred/series/observations'
   : 'https://api.stlouisfed.org/fred/series/observations';
+
+// Debug logging for API configuration
+console.log('[InterestRatesApi] FRED_API_KEY configured:', !!FRED_API_KEY, 'key length:', FRED_API_KEY.length);
+console.log('[InterestRatesApi] FRED_BASE_URL:', FRED_BASE_URL);
+console.log('[InterestRatesApi] DEV mode:', import.meta.env.DEV);
 
 // Treasury.gov API - Free, no API key required
 const TREASURY_BASE_URL = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service';

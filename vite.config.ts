@@ -13,7 +13,26 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Proxy Backend API requests
+      // IMPORTANT: More specific paths must come FIRST
+      // Proxy FRED API requests to avoid CORS issues
+      '/api/fred': {
+        target: 'https://api.stlouisfed.org',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/fred/, ''),
+        secure: false, // Disable SSL verification for proxy
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.log('[FRED Proxy] Error:', err.message);
+          });
+          proxy.on('proxyReq', (_proxyReq, req) => {
+            console.log('[FRED Proxy] Request:', req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req) => {
+            console.log('[FRED Proxy] Response:', proxyRes.statusCode, req.url);
+          });
+        },
+      },
+      // Proxy Backend API requests (generic /api - must come AFTER more specific paths)
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
@@ -26,13 +45,6 @@ export default defineConfig({
         target: 'ws://localhost:8000',
         changeOrigin: true,
         ws: true,
-      },
-      // Proxy FRED API requests to avoid CORS issues
-      '/api/fred': {
-        target: 'https://api.stlouisfed.org',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/fred/, ''),
-        secure: true,
       },
     },
   },
