@@ -2,6 +2,7 @@
 Application configuration using Pydantic Settings.
 Loads from environment variables with sensible defaults.
 """
+
 from functools import lru_cache
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -11,10 +12,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore"
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
     )
 
     # Application Settings
@@ -73,8 +71,6 @@ class Settings(BaseSettings):
     EMAIL_BATCH_SIZE: int = 10
     EMAIL_DEV_MODE: bool = False
 
-
-
     # WebSocket Settings
     WS_HEARTBEAT_INTERVAL: int = 30
     WS_MAX_CONNECTIONS: int = 1000
@@ -87,13 +83,11 @@ class Settings(BaseSettings):
     # External APIs
     FRED_API_KEY: Optional[str] = "d043d26a9a4139438bb2a8d565bc01f7"
 
-    # SharePoint/Azure AD Settings
-    AZURE_CLIENT_ID: Optional[str] = "5a620cea-31fe-40f6-8b48-d55bc5465dc9"
-    AZURE_CLIENT_SECRET: Optional[str] = (
-        "hSA8Q~zHatb4VqDmEtm~Fu1s_vS2RSAzYY.BiaMY"
-    )
-    AZURE_TENANT_ID: Optional[str] = "383e5745-a469-4712-aaa9-f7d79c981e10"
-    SHAREPOINT_SITE_URL: Optional[str] = "bandrcapital.sharepoint.com"
+    # SharePoint/Azure AD Settings (load from .env)
+    AZURE_CLIENT_ID: Optional[str] = None
+    AZURE_CLIENT_SECRET: Optional[str] = None
+    AZURE_TENANT_ID: Optional[str] = None
+    SHAREPOINT_SITE_URL: Optional[str] = None
     SHAREPOINT_SITE: Optional[str] = "BRCapital-Internal"
     DEALS_FOLDER: str = "Real Estate/Deals"
 

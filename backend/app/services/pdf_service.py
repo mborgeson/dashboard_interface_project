@@ -7,6 +7,7 @@ Provides functionality to generate professional PDF reports including:
 - Portfolio analytics reports
 - Executive dashboards
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -37,6 +38,7 @@ try:
     from reportlab.graphics.charts.barcharts import VerticalBarChart
     from reportlab.graphics.charts.linecharts import HorizontalLineChart
     from reportlab.graphics.charts.piecharts import Pie
+
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
@@ -126,15 +128,11 @@ class PDFReportService:
             )
         )
 
-        self._styles.add(
-            ParagraphStyle(
-                name="BodyText",
-                parent=self._styles["Normal"],
-                fontSize=10,
-                textColor=self.COLORS["text"],
-                spaceAfter=6,
-            )
-        )
+        # Modify existing BodyText style (already exists in getSampleStyleSheet)
+        body_style = self._styles["BodyText"]
+        body_style.fontSize = 10
+        body_style.textColor = self.COLORS["text"]
+        body_style.spaceAfter = 6
 
         self._styles.add(
             ParagraphStyle(
@@ -180,7 +178,9 @@ class PDFReportService:
         canvas.drawString(30, letter[1] - 32, "B&R Capital")
 
         canvas.setFont("Helvetica", 10)
-        canvas.drawRightString(letter[0] - 30, letter[1] - 32, datetime.now().strftime("%Y-%m-%d"))
+        canvas.drawRightString(
+            letter[0] - 30, letter[1] - 32, datetime.now().strftime("%Y-%m-%d")
+        )
 
         # Footer
         canvas.setFillColor(self.COLORS["muted"])
@@ -198,26 +198,33 @@ class PDFReportService:
         if header_color is None:
             header_color = self.COLORS["primary"]
 
-        return TableStyle([
-            # Header styling
-            ("BACKGROUND", (0, 0), (-1, 0), header_color),
-            ("TEXTCOLOR", (0, 0), (-1, 0), self.COLORS["white"]),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, 0), 10),
-            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-            ("TOPPADDING", (0, 0), (-1, 0), 8),
-            # Body styling
-            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-            ("FONTSIZE", (0, 1), (-1, -1), 9),
-            ("ALIGN", (0, 1), (-1, -1), "LEFT"),
-            ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
-            ("TOPPADDING", (0, 1), (-1, -1), 6),
-            # Grid
-            ("GRID", (0, 0), (-1, -1), 0.5, self.COLORS["muted"]),
-            # Alternating row colors
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [self.COLORS["white"], self.COLORS["light"]]),
-        ])
+        return TableStyle(
+            [
+                # Header styling
+                ("BACKGROUND", (0, 0), (-1, 0), header_color),
+                ("TEXTCOLOR", (0, 0), (-1, 0), self.COLORS["white"]),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 10),
+                ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                ("TOPPADDING", (0, 0), (-1, 0), 8),
+                # Body styling
+                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 1), (-1, -1), 9),
+                ("ALIGN", (0, 1), (-1, -1), "LEFT"),
+                ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
+                ("TOPPADDING", (0, 1), (-1, -1), 6),
+                # Grid
+                ("GRID", (0, 0), (-1, -1), 0.5, self.COLORS["muted"]),
+                # Alternating row colors
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [self.COLORS["white"], self.COLORS["light"]],
+                ),
+            ]
+        )
 
     def _format_currency(self, value: float) -> str:
         """Format a number as currency."""
@@ -280,25 +287,34 @@ class PDFReportService:
         overview_data = [
             ["Property Type", property_data.get("property_type", "N/A").title()],
             ["Address", property_data.get("address", "N/A")],
-            ["City, State", f"{property_data.get('city', 'N/A')}, {property_data.get('state', 'N/A')}"],
+            [
+                "City, State",
+                f"{property_data.get('city', 'N/A')}, {property_data.get('state', 'N/A')}",
+            ],
             ["Market", property_data.get("market", "N/A")],
             ["Year Built", str(property_data.get("year_built", "N/A"))],
         ]
 
         # Add units or SF based on property type
         if property_data.get("total_units"):
-            overview_data.append(["Total Units", str(property_data.get("total_units", 0))])
+            overview_data.append(
+                ["Total Units", str(property_data.get("total_units", 0))]
+            )
         if property_data.get("total_sf"):
             overview_data.append(["Total SF", f"{property_data.get('total_sf', 0):,}"])
 
         overview_table = Table(overview_data, colWidths=[2 * inch, 4 * inch])
-        overview_table.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 10),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ("LINEBELOW", (0, 0), (-1, -2), 0.5, self.COLORS["light"]),
-        ]))
+        overview_table.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                    ("TOPPADDING", (0, 0), (-1, -1), 8),
+                    ("LINEBELOW", (0, 0), (-1, -2), 0.5, self.COLORS["light"]),
+                ]
+            )
+        )
         elements.append(overview_table)
         elements.append(Spacer(1, 20))
 
@@ -307,21 +323,28 @@ class PDFReportService:
 
         financial_data = [
             ["Metric", "Value"],
-            ["Occupancy Rate", self._format_percent(property_data.get("occupancy_rate", 0))],
+            [
+                "Occupancy Rate",
+                self._format_percent(property_data.get("occupancy_rate", 0)),
+            ],
             ["Cap Rate", self._format_percent(property_data.get("cap_rate", 0))],
             ["NOI", self._format_currency(property_data.get("noi", 0))],
         ]
 
         if property_data.get("avg_rent_per_unit"):
-            financial_data.append([
-                "Avg Rent/Unit",
-                self._format_currency(property_data.get("avg_rent_per_unit", 0)),
-            ])
+            financial_data.append(
+                [
+                    "Avg Rent/Unit",
+                    self._format_currency(property_data.get("avg_rent_per_unit", 0)),
+                ]
+            )
         if property_data.get("avg_rent_per_sf"):
-            financial_data.append([
-                "Avg Rent/SF",
-                f"${property_data.get('avg_rent_per_sf', 0):.2f}",
-            ])
+            financial_data.append(
+                [
+                    "Avg Rent/SF",
+                    f"${property_data.get('avg_rent_per_sf', 0):.2f}",
+                ]
+            )
 
         financial_table = Table(financial_data, colWidths=[3 * inch, 3 * inch])
         financial_table.setStyle(self._create_table_style())
@@ -330,14 +353,25 @@ class PDFReportService:
         # Analytics section if available
         if analytics:
             elements.append(Spacer(1, 30))
-            elements.append(Paragraph("Performance Analytics", self._styles["SectionHeader"]))
+            elements.append(
+                Paragraph("Performance Analytics", self._styles["SectionHeader"])
+            )
 
             metrics = analytics.get("metrics", {})
             analytics_data = [
                 ["Metric", "Value"],
-                ["YTD Rent Growth", self._format_percent(metrics.get("ytd_rent_growth", 0))],
-                ["YTD NOI Growth", self._format_percent(metrics.get("ytd_noi_growth", 0))],
-                ["Avg 12M Occupancy", self._format_percent(metrics.get("avg_occupancy_12m", 0))],
+                [
+                    "YTD Rent Growth",
+                    self._format_percent(metrics.get("ytd_rent_growth", 0)),
+                ],
+                [
+                    "YTD NOI Growth",
+                    self._format_percent(metrics.get("ytd_noi_growth", 0)),
+                ],
+                [
+                    "Avg 12M Occupancy",
+                    self._format_percent(metrics.get("avg_occupancy_12m", 0)),
+                ],
                 ["Rent vs Market", f"{metrics.get('rent_vs_market', 1):.0%}"],
             ]
 
@@ -346,7 +380,11 @@ class PDFReportService:
             elements.append(analytics_table)
 
         # Build PDF
-        doc.build(elements, onFirstPage=self._create_header_footer, onLaterPages=self._create_header_footer)
+        doc.build(
+            elements,
+            onFirstPage=self._create_header_footer,
+            onLaterPages=self._create_header_footer,
+        )
 
         buffer.seek(0)
         logger.info(f"Generated property report for: {property_data.get('name')}")
@@ -420,13 +458,17 @@ class PDFReportService:
         ]
 
         overview_table = Table(overview_data, colWidths=[2 * inch, 4 * inch])
-        overview_table.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 10),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ("LINEBELOW", (0, 0), (-1, -2), 0.5, self.COLORS["light"]),
-        ]))
+        overview_table.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                    ("TOPPADDING", (0, 0), (-1, -1), 8),
+                    ("LINEBELOW", (0, 0), (-1, -2), 0.5, self.COLORS["light"]),
+                ]
+            )
+        )
         elements.append(overview_table)
         elements.append(Spacer(1, 20))
 
@@ -439,16 +481,33 @@ class PDFReportService:
         ]
 
         if deal_data.get("offer_price"):
-            financial_data.append(["Offer Price", self._format_currency(deal_data.get("offer_price", 0))])
+            financial_data.append(
+                ["Offer Price", self._format_currency(deal_data.get("offer_price", 0))]
+            )
 
         if deal_data.get("projected_irr"):
-            financial_data.append(["Projected IRR", self._format_percent(deal_data.get("projected_irr", 0))])
+            financial_data.append(
+                [
+                    "Projected IRR",
+                    self._format_percent(deal_data.get("projected_irr", 0)),
+                ]
+            )
 
         if deal_data.get("projected_coc"):
-            financial_data.append(["Projected Cash-on-Cash", self._format_percent(deal_data.get("projected_coc", 0))])
+            financial_data.append(
+                [
+                    "Projected Cash-on-Cash",
+                    self._format_percent(deal_data.get("projected_coc", 0)),
+                ]
+            )
 
         if deal_data.get("projected_equity_multiple"):
-            financial_data.append(["Equity Multiple", f"{deal_data.get('projected_equity_multiple', 0):.2f}x"])
+            financial_data.append(
+                [
+                    "Equity Multiple",
+                    f"{deal_data.get('projected_equity_multiple', 0):.2f}x",
+                ]
+            )
 
         financial_table = Table(financial_data, colWidths=[3 * inch, 3 * inch])
         financial_table.setStyle(self._create_table_style())
@@ -457,27 +516,43 @@ class PDFReportService:
         # Associated Property if available
         if property_data:
             elements.append(Spacer(1, 30))
-            elements.append(Paragraph("Associated Property", self._styles["SectionHeader"]))
+            elements.append(
+                Paragraph("Associated Property", self._styles["SectionHeader"])
+            )
 
             property_info = [
                 ["Property Name", property_data.get("name", "N/A")],
                 ["Type", property_data.get("property_type", "N/A").title()],
-                ["Location", f"{property_data.get('city', 'N/A')}, {property_data.get('state', 'N/A')}"],
-                ["Occupancy", self._format_percent(property_data.get("occupancy_rate", 0))],
+                [
+                    "Location",
+                    f"{property_data.get('city', 'N/A')}, {property_data.get('state', 'N/A')}",
+                ],
+                [
+                    "Occupancy",
+                    self._format_percent(property_data.get("occupancy_rate", 0)),
+                ],
             ]
 
             property_table = Table(property_info, colWidths=[2 * inch, 4 * inch])
-            property_table.setStyle(TableStyle([
-                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 8),
-                ("LINEBELOW", (0, 0), (-1, -2), 0.5, self.COLORS["light"]),
-            ]))
+            property_table.setStyle(
+                TableStyle(
+                    [
+                        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 10),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                        ("TOPPADDING", (0, 0), (-1, -1), 8),
+                        ("LINEBELOW", (0, 0), (-1, -2), 0.5, self.COLORS["light"]),
+                    ]
+                )
+            )
             elements.append(property_table)
 
         # Build PDF
-        doc.build(elements, onFirstPage=self._create_header_footer, onLaterPages=self._create_header_footer)
+        doc.build(
+            elements,
+            onFirstPage=self._create_header_footer,
+            onLaterPages=self._create_header_footer,
+        )
 
         buffer.seek(0)
         logger.info(f"Generated deal report for: {deal_data.get('name')}")
@@ -561,7 +636,9 @@ class PDFReportService:
         elements.append(Spacer(1, 30))
 
         # KPIs
-        elements.append(Paragraph("Key Performance Indicators", self._styles["SubSectionHeader"]))
+        elements.append(
+            Paragraph("Key Performance Indicators", self._styles["SubSectionHeader"])
+        )
 
         kpis = dashboard_metrics.get("kpis", {})
         kpi_data = [
@@ -570,7 +647,10 @@ class PDFReportService:
             ["YTD Rent Growth", self._format_percent(kpis.get("ytd_rent_growth", 0))],
             ["Deals in Pipeline", str(kpis.get("deals_in_pipeline", 0))],
             ["Deals Closed YTD", str(kpis.get("deals_closed_ytd", 0))],
-            ["Capital Deployed YTD", self._format_currency(kpis.get("capital_deployed_ytd", 0))],
+            [
+                "Capital Deployed YTD",
+                self._format_currency(kpis.get("capital_deployed_ytd", 0)),
+            ],
         ]
 
         kpi_table = Table(kpi_data, colWidths=[3 * inch, 3 * inch])
@@ -579,14 +659,19 @@ class PDFReportService:
         elements.append(PageBreak())
 
         # Portfolio Performance
-        elements.append(Paragraph("Portfolio Performance", self._styles["SectionHeader"]))
+        elements.append(
+            Paragraph("Portfolio Performance", self._styles["SectionHeader"])
+        )
 
         perf = portfolio_analytics.get("performance", {})
         perf_data = [
             ["Metric", "Value"],
             ["Total Return", self._format_percent(perf.get("total_return", 0))],
             ["Income Return", self._format_percent(perf.get("income_return", 0))],
-            ["Appreciation Return", self._format_percent(perf.get("appreciation_return", 0))],
+            [
+                "Appreciation Return",
+                self._format_percent(perf.get("appreciation_return", 0)),
+            ],
             ["Benchmark Return", self._format_percent(perf.get("benchmark_return", 0))],
             ["Alpha", self._format_percent(perf.get("alpha", 0))],
         ]
@@ -604,13 +689,15 @@ class PDFReportService:
             prop_data = [prop_headers]
 
             for prop in properties[:10]:  # Limit to 10 properties
-                prop_data.append([
-                    prop.get("name", "N/A")[:25],
-                    prop.get("property_type", "N/A").title(),
-                    f"{prop.get('city', 'N/A')}, {prop.get('state', 'N/A')}",
-                    self._format_percent(prop.get("occupancy_rate", 0)),
-                    self._format_currency(prop.get("noi", 0)),
-                ])
+                prop_data.append(
+                    [
+                        prop.get("name", "N/A")[:25],
+                        prop.get("property_type", "N/A").title(),
+                        f"{prop.get('city', 'N/A')}, {prop.get('state', 'N/A')}",
+                        self._format_percent(prop.get("occupancy_rate", 0)),
+                        self._format_currency(prop.get("noi", 0)),
+                    ]
+                )
 
             prop_table = Table(
                 prop_data,
@@ -637,13 +724,19 @@ class PDFReportService:
             deal_data = [deal_headers]
 
             for deal in deals[:10]:  # Limit to 10 deals
-                deal_data.append([
-                    deal.get("name", "N/A")[:25],
-                    deal.get("deal_type", "N/A").title(),
-                    deal.get("stage", "N/A").replace("_", " ").title(),
-                    self._format_currency(deal.get("asking_price", 0)),
-                    self._format_percent(deal.get("projected_irr", 0)) if deal.get("projected_irr") else "N/A",
-                ])
+                deal_data.append(
+                    [
+                        deal.get("name", "N/A")[:25],
+                        deal.get("deal_type", "N/A").title(),
+                        deal.get("stage", "N/A").replace("_", " ").title(),
+                        self._format_currency(deal.get("asking_price", 0)),
+                        (
+                            self._format_percent(deal.get("projected_irr", 0))
+                            if deal.get("projected_irr")
+                            else "N/A"
+                        ),
+                    ]
+                )
 
             deal_table = Table(
                 deal_data,
@@ -661,7 +754,11 @@ class PDFReportService:
                 )
 
         # Build PDF
-        doc.build(elements, onFirstPage=self._create_header_footer, onLaterPages=self._create_header_footer)
+        doc.build(
+            elements,
+            onFirstPage=self._create_header_footer,
+            onLaterPages=self._create_header_footer,
+        )
 
         buffer.seek(0)
         logger.info("Generated portfolio report")
