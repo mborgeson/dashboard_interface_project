@@ -139,7 +139,7 @@ export function DealFilters({
                   className={cn(
                     'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
                     filters.stages.includes(stage)
-                      ? 'bg-accent-500 text-white border-accent-500'
+                      ? 'bg-accent-600 text-white border-accent-600'
                       : 'bg-white text-neutral-700 border-neutral-300 hover:border-accent-500'
                   )}
                 >
@@ -162,7 +162,7 @@ export function DealFilters({
                   className={cn(
                     'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
                     filters.propertyTypes.includes(type)
-                      ? 'bg-accent-500 text-white border-accent-500'
+                      ? 'bg-accent-600 text-white border-accent-600'
                       : 'bg-white text-neutral-700 border-neutral-300 hover:border-accent-500'
                   )}
                 >
@@ -185,7 +185,7 @@ export function DealFilters({
                   className={cn(
                     'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
                     filters.assignees.includes(assignee)
-                      ? 'bg-accent-500 text-white border-accent-500'
+                      ? 'bg-accent-600 text-white border-accent-600'
                       : 'bg-white text-neutral-700 border-neutral-300 hover:border-accent-500'
                   )}
                 >

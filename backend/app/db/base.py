@@ -23,7 +23,23 @@ class Base(DeclarativeBase):
 
 
 # Import all models here for Alembic to detect them
-# These will be added as models are created:
-# from app.models.user import User
-# from app.models.property import Property
-# from app.models.deal import Deal
+# noqa comments prevent unused import warnings
+from app.models.user import User  # noqa: F401
+from app.models.property import Property  # noqa: F401
+from app.models.deal import Deal  # noqa: F401
+
+# Underwriting Models
+from app.models.underwriting import (  # noqa: F401
+    UnderwritingModel,
+    GeneralAssumptions,
+    ExitAssumptions,
+    NOIAssumptions,
+    FinancingAssumptions,
+    BudgetAssumptions,
+    PropertyReturns,
+    EquityReturns,
+    UnitMix,
+    RentComp,
+    SalesComp,
+    AnnualCashflow,
+)

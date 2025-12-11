@@ -20,14 +20,40 @@ const DEFAULT_FILTERS: DealFilters = {
 };
 
 export function useDeals(initialDeals: Deal[]) {
+  const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
+
+  // Update deal stage (for Kanban drag-and-drop)
+  const updateDealStage = (dealId: string, newStage: DealStage, oldStage: DealStage) => {
+    setDeals((prevDeals) =>
+      prevDeals.map((deal) =>
+        deal.id === dealId
+          ? {
+              ...deal,
+              stage: newStage,
+              daysInStage: 0, // Reset days in stage when moved
+              timeline: [
+                ...deal.timeline,
+                {
+                  id: `${deal.id}-${Date.now()}`,
+                  date: new Date(),
+                  stage: newStage,
+                  description: `Moved from ${oldStage.replace('_', ' ')} to ${newStage.replace('_', ' ')}`,
+                  user: 'Current User', // Would come from auth context in production
+                },
+              ],
+            }
+          : deal
+      )
+    );
+  };
 
   // Get unique values for filter options
   const filterOptions = useMemo(() => {
     const propertyTypes = new Set<string>();
     const assignees = new Set<string>();
 
-    initialDeals.forEach((deal) => {
+    deals.forEach((deal) => {
       propertyTypes.add(deal.propertyType);
       assignees.add(deal.assignee);
     });
@@ -36,11 +62,11 @@ export function useDeals(initialDeals: Deal[]) {
       propertyTypes: Array.from(propertyTypes).sort(),
       assignees: Array.from(assignees).sort(),
     };
-  }, [initialDeals]);
+  }, [deals]);
 
   // Filter deals
   const filteredDeals = useMemo(() => {
-    return initialDeals.filter((deal) => {
+    return deals.filter((deal) => {
       // Stage filter
       if (filters.stages.length > 0 && !filters.stages.includes(deal.stage)) {
         return false;
@@ -84,7 +110,7 @@ export function useDeals(initialDeals: Deal[]) {
 
       return true;
     });
-  }, [initialDeals, filters]);
+  }, [deals, filters]);
 
   // Group deals by stage
   const dealsByStage = useMemo(() => {
@@ -155,5 +181,7 @@ export function useDeals(initialDeals: Deal[]) {
     dealsByStage,
     metrics,
     filterOptions,
+    updateDealStage,
+    deals,
   };
 }

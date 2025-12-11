@@ -49,3 +49,16 @@ htmlcov/
 .env
 .env.local
 *.env
+
+# Claude-Flow / Swarm (local state)
+.swarm/
+.claude-flow/metrics/
+context.db
+context.db-shm
+context.db-wal
+
+# Keep configuration files tracked
+!.claude-flow/README.md
+!.claude-flow/docs/
+!.claude-flow/templates/
+!.claude-flow/workflows/

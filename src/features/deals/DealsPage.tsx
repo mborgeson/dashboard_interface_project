@@ -2,17 +2,18 @@ import { useState, useEffect } from 'react';
 import { mockDeals } from '@/data/mockDeals';
 import { useDeals } from './hooks/useDeals';
 import { DealPipeline } from './components/DealPipeline';
+import { KanbanBoard } from './components/KanbanBoard';
 import { DealTimeline } from './components/DealTimeline';
 import { DealFilters } from './components/DealFilters';
-import { Briefcase, LayoutGrid, List, TrendingUp, Calendar, Target } from 'lucide-react';
+import { Briefcase, LayoutGrid, List, TrendingUp, Calendar, Target, Kanban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DealPipelineSkeleton } from '@/components/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
 
-type ViewMode = 'pipeline' | 'list';
+type ViewMode = 'kanban' | 'pipeline' | 'list';
 
 export function DealsPage() {
-  const [viewMode, setViewMode] = useState<ViewMode>('pipeline');
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [isLoading, setIsLoading] = useState(true);
 
   const {
@@ -23,6 +24,7 @@ export function DealsPage() {
     dealsByStage,
     metrics,
     filterOptions,
+    updateDealStage,
   } = useDeals(mockDeals);
 
   // Simulate loading
@@ -97,6 +99,18 @@ export function DealsPage() {
 
         {/* View Toggle */}
         <div className="flex items-center gap-2 bg-white rounded-lg shadow-md border border-neutral-200 p-1">
+          <button
+            onClick={() => setViewMode('kanban')}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors',
+              viewMode === 'kanban'
+                ? 'bg-blue-600 text-white'
+                : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+            )}
+          >
+            <Kanban className="w-4 h-4" />
+            Kanban
+          </button>
           <button
             onClick={() => setViewMode('pipeline')}
             className={cn(
@@ -205,6 +219,8 @@ export function DealsPage() {
             onClick: clearFilters,
           }}
         />
+      ) : viewMode === 'kanban' ? (
+        <KanbanBoard dealsByStage={dealsByStage} onDealStageChange={updateDealStage} />
       ) : viewMode === 'pipeline' ? (
         <DealPipeline dealsByStage={dealsByStage} />
       ) : (

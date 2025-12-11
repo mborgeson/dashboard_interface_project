@@ -43,10 +43,9 @@ class Settings(BaseSettings):
     ]
 
     # Database Settings
-    # Note: Simple password without special characters for asyncpg compatibility
+    # Simple password for asyncpg compatibility (no special characters)
     DATABASE_URL: str = (
-        "postgresql://postgres:TestPassword123@localhost:5432/"
-        "dashboard_interface_data"
+        "postgresql://postgres:postgres123@localhost:5432/" "dashboard_interface_data"
     )
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20

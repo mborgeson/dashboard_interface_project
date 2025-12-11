@@ -130,7 +130,7 @@ export function Sidebar(){
                 cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors min-h-[44px]',
                   isActive
-                    ? 'bg-accent-500 text-white'
+                    ? 'bg-accent-600 text-white'
                     : 'text-neutral-300 hover:bg-neutral-700 hover:text-white',
                   sidebarCollapsed && !mobileMenuOpen && 'justify-center'
                 )

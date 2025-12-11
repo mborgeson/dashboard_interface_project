@@ -1,0 +1,79 @@
+{
+  "project": {
+    "name": "dashboard-interface",
+    "description": "Real estate underwriting dashboard with React frontend and FastAPI backend",
+    "type": "fullstack",
+    "languages": ["typescript", "python"],
+    "frameworks": ["react", "fastapi", "tailwindcss"]
+  },
+  "memory": {
+    "retention": "90d",
+    "maxSize": "500MB",
+    "backend": "sqlite",
+    "path": ".swarm/memory.db"
+  },
+  "reasoningBank": {
+    "enabled": true,
+    "storage": ".swarm/memory.db",
+    "maxEntries": 10000,
+    "compressionEnabled": true,
+    "syncInterval": "5m",
+    "embeddingModel": "claude",
+    "retrievalK": 5
+  },
+  "features": {
+    "autoTopologySelection": true,
+    "parallelExecution": true,
+    "neuralTraining": true,
+    "bottleneckAnalysis": true,
+    "smartAutoSpawning": true,
+    "selfHealingWorkflows": true,
+    "crossSessionMemory": true,
+    "githubIntegration": true
+  },
+  "performance": {
+    "maxAgents": 10,
+    "maxConcurrency": 5,
+    "defaultTopology": "adaptive",
+    "executionStrategy": "parallel",
+    "tokenOptimization": true,
+    "cacheEnabled": true,
+    "cacheTTL": 3600,
+    "telemetryLevel": "minimal"
+  },
+  "terminal": {
+    "poolSize": 10,
+    "recycleAfter": 50
+  },
+  "orchestrator": {
+    "maxConcurrentTasks": 10,
+    "taskTimeout": 300000,
+    "retryAttempts": 3
+  },
+  "agents": {
+    "defaults": {
+      "timeout": 30000,
+      "retries": 3
+    },
+    "specialists": {
+      "frontend": {
+        "focus": ["react", "typescript", "tailwindcss", "radix-ui"],
+        "directories": ["src/"]
+      },
+      "backend": {
+        "focus": ["fastapi", "python", "sqlalchemy", "pydantic"],
+        "directories": ["backend/"]
+      },
+      "testing": {
+        "focus": ["vitest", "playwright", "pytest"],
+        "directories": ["e2e/", "backend/tests/"]
+      }
+    }
+  },
+  "paths": {
+    "memory": ".swarm/memory",
+    "metrics": ".swarm/metrics",
+    "logs": ".swarm/logs",
+    "checkpoints": ".swarm/checkpoints"
+  }
+}

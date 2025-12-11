@@ -11,7 +11,22 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5173,
     proxy: {
+      // Proxy Backend API requests
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+        // WebSocket support for real-time updates
+        ws: true,
+      },
+      // Proxy WebSocket connections
+      '/ws': {
+        target: 'ws://localhost:8000',
+        changeOrigin: true,
+        ws: true,
+      },
       // Proxy FRED API requests to avoid CORS issues
       '/api/fred': {
         target: 'https://api.stlouisfed.org',

@@ -1,0 +1,154 @@
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-sequential-thinking"],
+      "env": {
+        "MAX_THINKING_STEPS": "20",
+        "ENABLE_CACHE": "true"
+      }
+    },
+    "memory-keeper": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/home/mattb/mcp-servers/mcp-memory-keeper/dist/index.js"],
+      "cwd": "/home/mattb/mcp-servers/mcp-memory-keeper",
+      "env": {
+        "AUTO_BACKUP": "true",
+        "BACKUP_INTERVAL": "1800",
+        "BACKUP_DIR": "/home/mattb/.memory-keeper/backups",
+        "MAX_BACKUPS": "20",
+        "COMPRESS_BACKUPS": "true",
+        "AUTO_CHECKPOINT": "true",
+        "CHECKPOINT_INTERVAL": "3600",
+        "CHECKPOINT_ON_ERROR": "true",
+        "AUTO_CLEANUP": "true",
+        "RETENTION_DAYS": "90",
+        "PROJECT_MODE": "true",
+        "DEFAULT_CHANNEL": "dashboard-interface",
+        "GIT_INTEGRATION": "true"
+      }
+    },
+    "desktop-commander": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@wonderwhy-er/desktop-commander"],
+      "env": {
+        "DC_ALLOWED_DIRECTORIES": "/home/mattb/projects/dashboard_interface_project",
+        "DC_DEFAULT_SHELL": "bash",
+        "DC_FILE_READ_LINE_LIMIT": "1000",
+        "DC_FILE_WRITE_LINE_LIMIT": "50"
+      }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@executeautomation/playwright-mcp-server"],
+      "env": {
+        "PLAYWRIGHT_BROWSERS_PATH": "/home/mattb/.cache/playwright",
+        "HEADLESS": "false",
+        "SCREENSHOT_DIR": "/home/mattb/projects/dashboard_interface_project/test-results/screenshots"
+      }
+    },
+    "code-context": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "code-context-provider-mcp"],
+      "env": {
+        "ENABLE_TREE_SITTER": "true",
+        "MAX_FILE_SIZE": "1048576",
+        "SUPPORTED_LANGUAGES": "javascript,typescript,python",
+        "CACHE_ENABLED": "true"
+      }
+    },
+    "claude-flow": {
+      "type": "stdio",
+      "command": "/home/mattb/.npm-global/bin/claude-flow",
+      "args": ["mcp", "start"],
+      "env": {
+        "CLAUDE_FLOW_MODE": "full",
+        "SWARM_TOPOLOGY": "adaptive",
+        "MAX_AGENTS": "10",
+        "MAX_CONCURRENCY": "5",
+        "ENABLE_NEURAL": "true",
+        "ENABLE_DAA": "true",
+        "ENABLE_CACHE": "true",
+        "ENABLE_PERFORMANCE_MONITORING": "false",
+        "ENABLE_WASM_OPTIMIZATION": "true",
+        "MEMORY_PERSISTENCE": "true",
+        "MEMORY_PATH": "/home/mattb/projects/dashboard_interface_project/.swarm/memory",
+        "ENABLE_BATCH_PROCESSING": "true",
+        "ENABLE_PARALLEL_EXECUTION": "true",
+        "ENABLE_PIPELINE_OPTIMIZATION": "true",
+        "SPARC_MODE": "enabled",
+        "SPARC_AGENTS": "all",
+        "ENABLE_GITHUB_INTEGRATION": "true",
+        "ENABLE_WORKFLOW_AUTOMATION": "true",
+        "LOG_LEVEL": "error",
+        "METRICS_PATH": "/home/mattb/projects/dashboard_interface_project/.swarm/metrics",
+        "CACHE_TTL": "3600",
+        "ENABLE_AUTO_SCALING": "true",
+        "ENABLE_LOAD_BALANCING": "true",
+        "ENABLE_FAULT_TOLERANCE": "true",
+        "TIMEOUT_MS": "30000",
+        "MAX_RETRIES": "3",
+        "ENABLE_COMPRESSION": "true",
+        "ENABLE_INTELLIGENT_ROUTING": "true",
+        "REASONINGBANK_ENABLED": "true",
+        "CLAUDE_FLOW_DB_PATH": "/home/mattb/projects/dashboard_interface_project/.swarm/memory.db",
+        "REASONINGBANK_DB_PATH": "/home/mattb/projects/dashboard_interface_project/.swarm/memory.db"
+      }
+    },
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-filesystem",
+        "/home/mattb/projects/dashboard_interface_project"
+      ]
+    },
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide-assistant"
+      ],
+      "env": {
+        "DISPLAY": ""
+      }
+    },
+    "docker": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["docker-mcp"],
+      "env": {
+        "DOCKER_MCP_LOCAL": "true",
+        "DOCKER_TIMEOUT": "30",
+        "ENABLE_COMPOSE": "true",
+        "ENABLE_SWARM": "false",
+        "CACHE_IMAGES": "true"
+      }
+    },
+    "firecrawl": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "firecrawl-mcp"],
+      "env": {
+        "FIRECRAWL_API_KEY": "fc-137b8b559e9a46d8a184feb85e3a6355"
+      }
+    },
+    "mcp-obsidian": {
+      "command": "/home/mattb/.local/bin/mcp-obsidian-wsl",
+      "args": [],
+      "env": {
+        "OBSIDIAN_API_KEY": "b92698bf19141bdfc265550d064c7b33f9ddadda0d61a065d9a3d0d725bac3d4"
+      }
+    }
+  }
+}

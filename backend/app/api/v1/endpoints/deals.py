@@ -2,13 +2,14 @@
 Deal endpoints for pipeline management and Kanban board operations.
 """
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
 from app.db.session import get_db
+from app.crud import deal as deal_crud
 from app.schemas.deal import (
     DealCreate,
     DealUpdate,
@@ -21,66 +22,6 @@ from app.services import get_websocket_manager
 from app.models.deal import DealStage
 
 router = APIRouter()
-
-# Demo data for initial development
-DEMO_DEALS = [
-    {
-        "id": 1,
-        "name": "Phoenix Multifamily Portfolio",
-        "deal_type": "acquisition",
-        "stage": "underwriting",
-        "stage_order": 0,
-        "property_id": 1,
-        "asking_price": 25000000,
-        "projected_irr": 0.18,
-        "projected_coc": 0.08,
-        "projected_equity_multiple": 2.1,
-        "hold_period_years": 5,
-        "source": "CBRE",
-        "broker_name": "John Smith",
-        "priority": "high",
-        "created_at": "2024-12-01T10:00:00Z",
-        "updated_at": "2024-12-05T14:30:00Z",
-    },
-    {
-        "id": 2,
-        "name": "Scottsdale Office Acquisition",
-        "deal_type": "acquisition",
-        "stage": "initial_review",
-        "stage_order": 1,
-        "property_id": 2,
-        "asking_price": 18500000,
-        "projected_irr": 0.15,
-        "priority": "medium",
-        "created_at": "2024-12-03T09:00:00Z",
-        "updated_at": "2024-12-04T11:00:00Z",
-    },
-    {
-        "id": 3,
-        "name": "Tempe Retail Development",
-        "deal_type": "development",
-        "stage": "lead",
-        "stage_order": 0,
-        "asking_price": 12000000,
-        "priority": "low",
-        "created_at": "2024-12-04T15:00:00Z",
-        "updated_at": "2024-12-04T15:00:00Z",
-    },
-    {
-        "id": 4,
-        "name": "Mesa Industrial Park",
-        "deal_type": "acquisition",
-        "stage": "due_diligence",
-        "stage_order": 0,
-        "asking_price": 32000000,
-        "offer_price": 30500000,
-        "projected_irr": 0.20,
-        "projected_coc": 0.09,
-        "priority": "urgent",
-        "created_at": "2024-11-15T08:00:00Z",
-        "updated_at": "2024-12-05T16:00:00Z",
-    },
-]
 
 
 @router.get("/", response_model=DealListResponse)
@@ -98,28 +39,30 @@ async def list_deals(
     """
     List all deals with filtering and pagination.
     """
-    # TODO: Implement actual database queries
-    filtered = DEMO_DEALS.copy()
+    skip = (page - 1) * page_size
+    order_desc = sort_order.lower() == "desc"
 
-    if stage:
-        filtered = [d for d in filtered if d["stage"] == stage]
-    if deal_type:
-        filtered = [d for d in filtered if d["deal_type"] == deal_type]
-    if priority:
-        filtered = [d for d in filtered if d["priority"] == priority]
-    if assigned_user_id:
-        filtered = [d for d in filtered if d.get("assigned_user_id") == assigned_user_id]
+    # Get filtered deals from database
+    items = await deal_crud.get_multi_filtered(
+        db,
+        skip=skip,
+        limit=page_size,
+        stage=stage,
+        deal_type=deal_type,
+        priority=priority,
+        assigned_user_id=assigned_user_id,
+        order_by=sort_by or "created_at",
+        order_desc=order_desc,
+    )
 
-    # Sort
-    reverse = sort_order.lower() == "desc"
-    if sort_by:
-        filtered.sort(key=lambda x: x.get(sort_by, ""), reverse=reverse)
-
-    # Paginate
-    total = len(filtered)
-    start = (page - 1) * page_size
-    end = start + page_size
-    items = filtered[start:end]
+    # Get total count for pagination
+    total = await deal_crud.count_filtered(
+        db,
+        stage=stage,
+        deal_type=deal_type,
+        priority=priority,
+        assigned_user_id=assigned_user_id,
+    )
 
     return DealListResponse(
         items=items,
@@ -140,31 +83,16 @@ async def get_kanban_board(
 
     Returns deals grouped by pipeline stage with counts.
     """
-    filtered = DEMO_DEALS.copy()
-
-    if deal_type:
-        filtered = [d for d in filtered if d["deal_type"] == deal_type]
-    if assigned_user_id:
-        filtered = [d for d in filtered if d.get("assigned_user_id") == assigned_user_id]
-
-    # Group by stage
-    stages = {stage.value: [] for stage in DealStage}
-    stage_counts = {stage.value: 0 for stage in DealStage}
-
-    for deal in filtered:
-        stage = deal["stage"]
-        if stage in stages:
-            stages[stage].append(deal)
-            stage_counts[stage] += 1
-
-    # Sort deals within each stage by stage_order
-    for stage in stages:
-        stages[stage].sort(key=lambda x: x.get("stage_order", 0))
+    kanban_data = await deal_crud.get_kanban_data(
+        db,
+        deal_type=deal_type,
+        assigned_user_id=assigned_user_id,
+    )
 
     return KanbanBoardResponse(
-        stages=stages,
-        total_deals=len(filtered),
-        stage_counts=stage_counts,
+        stages=kanban_data["stages"],
+        total_deals=kanban_data["total_deals"],
+        stage_counts=kanban_data["stage_counts"],
     )
 
 
@@ -176,7 +104,7 @@ async def get_deal(
     """
     Get a specific deal by ID.
     """
-    deal = next((d for d in DEMO_DEALS if d["id"] == deal_id), None)
+    deal = await deal_crud.get_with_relations(db, deal_id)
 
     if not deal:
         raise HTTPException(
@@ -195,25 +123,18 @@ async def create_deal(
     """
     Create a new deal in the pipeline.
     """
-    new_id = max(d["id"] for d in DEMO_DEALS) + 1 if DEMO_DEALS else 1
-
-    new_deal = {
-        "id": new_id,
-        **deal_data.model_dump(),
-        "stage_order": 0,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
+    # Create deal in database
+    new_deal = await deal_crud.create(db, obj_in=deal_data)
 
     # Notify via WebSocket
     ws_manager = get_websocket_manager()
     await ws_manager.notify_deal_update(
-        deal_id=new_id,
+        deal_id=new_deal.id,
         action="created",
-        data=new_deal,
+        data={"id": new_deal.id, "name": new_deal.name},
     )
 
-    logger.info(f"Created deal: {new_deal['name']}")
+    logger.info(f"Created deal: {new_deal.name} (ID: {new_deal.id})")
 
     return new_deal
 
@@ -227,7 +148,7 @@ async def update_deal(
     """
     Update an existing deal.
     """
-    existing = next((d for d in DEMO_DEALS if d["id"] == deal_id), None)
+    existing = await deal_crud.get(db, deal_id)
 
     if not existing:
         raise HTTPException(
@@ -235,22 +156,53 @@ async def update_deal(
             detail=f"Deal {deal_id} not found",
         )
 
-    # Update fields
-    update_data = deal_data.model_dump(exclude_unset=True)
-    existing.update(update_data)
-    existing["updated_at"] = datetime.now(timezone.utc).isoformat()
+    # Update deal in database
+    updated_deal = await deal_crud.update(db, db_obj=existing, obj_in=deal_data)
 
     # Notify via WebSocket
     ws_manager = get_websocket_manager()
     await ws_manager.notify_deal_update(
         deal_id=deal_id,
         action="updated",
-        data=existing,
+        data={"id": updated_deal.id, "name": updated_deal.name},
     )
 
     logger.info(f"Updated deal: {deal_id}")
 
-    return existing
+    return updated_deal
+
+
+@router.patch("/{deal_id}", response_model=DealResponse)
+async def patch_deal(
+    deal_id: int,
+    deal_data: DealUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Partially update an existing deal.
+    """
+    existing = await deal_crud.get(db, deal_id)
+
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Deal {deal_id} not found",
+        )
+
+    # Update deal in database
+    updated_deal = await deal_crud.update(db, db_obj=existing, obj_in=deal_data)
+
+    # Notify via WebSocket
+    ws_manager = get_websocket_manager()
+    await ws_manager.notify_deal_update(
+        deal_id=deal_id,
+        action="updated",
+        data={"id": updated_deal.id, "name": updated_deal.name},
+    )
+
+    logger.info(f"Patched deal: {deal_id}")
+
+    return updated_deal
 
 
 @router.patch("/{deal_id}/stage", response_model=DealResponse)
@@ -264,7 +216,7 @@ async def update_deal_stage(
 
     This is optimized for quick stage changes from the Kanban board.
     """
-    existing = next((d for d in DEMO_DEALS if d["id"] == deal_id), None)
+    existing = await deal_crud.get(db, deal_id)
 
     if not existing:
         raise HTTPException(
@@ -272,11 +224,23 @@ async def update_deal_stage(
             detail=f"Deal {deal_id} not found",
         )
 
-    old_stage = existing["stage"]
-    existing["stage"] = stage_data.stage
-    if stage_data.stage_order is not None:
-        existing["stage_order"] = stage_data.stage_order
-    existing["updated_at"] = datetime.now(timezone.utc).isoformat()
+    old_stage = existing.stage
+
+    # Update stage via CRUD
+    try:
+        new_stage_enum = DealStage(stage_data.stage)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid stage: {stage_data.stage}",
+        )
+
+    updated_deal = await deal_crud.update_stage(
+        db,
+        deal_id=deal_id,
+        new_stage=new_stage_enum,
+        stage_order=stage_data.stage_order,
+    )
 
     # Notify via WebSocket
     ws_manager = get_websocket_manager()
@@ -284,15 +248,15 @@ async def update_deal_stage(
         deal_id=deal_id,
         action="stage_changed",
         data={
-            "deal": existing,
-            "old_stage": old_stage,
+            "deal_id": deal_id,
+            "old_stage": old_stage.value if hasattr(old_stage, 'value') else str(old_stage),
             "new_stage": stage_data.stage,
         },
     )
 
     logger.info(f"Deal {deal_id} moved from {old_stage} to {stage_data.stage}")
 
-    return existing
+    return updated_deal
 
 
 @router.delete("/{deal_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -301,15 +265,17 @@ async def delete_deal(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Delete a deal (soft delete).
+    Delete a deal.
     """
-    existing = next((d for d in DEMO_DEALS if d["id"] == deal_id), None)
+    existing = await deal_crud.get(db, deal_id)
 
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Deal {deal_id} not found",
         )
+
+    await deal_crud.remove(db, id=deal_id)
 
     # Notify via WebSocket
     ws_manager = get_websocket_manager()
@@ -332,7 +298,7 @@ async def add_deal_activity(
     """
     Add an activity log entry to a deal.
     """
-    existing = next((d for d in DEMO_DEALS if d["id"] == deal_id), None)
+    existing = await deal_crud.get(db, deal_id)
 
     if not existing:
         raise HTTPException(
@@ -340,10 +306,8 @@ async def add_deal_activity(
             detail=f"Deal {deal_id} not found",
         )
 
-    if "activity_log" not in existing:
-        existing["activity_log"] = []
-
+    # TODO: Implement activity logging in a separate ActivityLog model
     activity["timestamp"] = datetime.now(timezone.utc).isoformat()
-    existing["activity_log"].append(activity)
+    activity["deal_id"] = deal_id
 
     return {"message": "Activity added", "activity": activity}

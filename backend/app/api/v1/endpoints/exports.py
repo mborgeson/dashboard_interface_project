@@ -1,6 +1,7 @@
 """
 Export endpoints for Excel and PDF generation.
 """
+
 from datetime import datetime
 from typing import Optional, List
 
@@ -12,12 +13,11 @@ from loguru import logger
 from app.db.session import get_db
 from app.services.export_service import get_excel_service
 from app.services.pdf_service import get_pdf_service
+from app.crud import deal as deal_crud
+from app.crud import property as property_crud
+from app.models.deal import DealStage
 
 router = APIRouter()
-
-# Demo data imports (same as other endpoints for consistency)
-from app.api.v1.endpoints.properties import DEMO_PROPERTIES
-from app.api.v1.endpoints.deals import DEMO_DEALS
 
 
 @router.get("/properties/excel")
@@ -37,13 +37,37 @@ async def export_properties_excel(
     Returns a downloadable Excel file.
     """
     try:
-        # Filter properties
-        filtered = DEMO_PROPERTIES.copy()
+        # Get properties from database
+        properties = await property_crud.get_multi_filtered(
+            db,
+            property_type=property_type,
+            market=market,
+            limit=1000,
+        )
 
-        if property_type:
-            filtered = [p for p in filtered if p["property_type"] == property_type]
-        if market:
-            filtered = [p for p in filtered if p.get("market", "").lower() == market.lower()]
+        # Convert to dicts for export service
+        filtered = []
+        for prop in properties:
+            filtered.append(
+                {
+                    "id": prop.id,
+                    "name": prop.name,
+                    "property_type": prop.property_type,
+                    "address": prop.address,
+                    "city": prop.city,
+                    "state": prop.state,
+                    "zip_code": prop.zip_code,
+                    "market": prop.market,
+                    "total_units": prop.total_units,
+                    "total_sf": prop.total_sf,
+                    "year_built": prop.year_built,
+                    "occupancy_rate": (
+                        float(prop.occupancy_rate) if prop.occupancy_rate else None
+                    ),
+                    "cap_rate": float(prop.cap_rate) if prop.cap_rate else None,
+                    "noi": float(prop.noi) if prop.noi else None,
+                }
+            )
 
         if not filtered:
             raise HTTPException(
@@ -53,7 +77,9 @@ async def export_properties_excel(
 
         # Generate Excel file
         excel_service = get_excel_service()
-        buffer = excel_service.export_properties(filtered, include_analytics=include_analytics)
+        buffer = excel_service.export_properties(
+            filtered, include_analytics=include_analytics
+        )
 
         # Return as downloadable file
         filename = f"properties_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
@@ -94,18 +120,50 @@ async def export_deals_excel(
     Returns a downloadable Excel file.
     """
     try:
-        # Filter deals
-        filtered = DEMO_DEALS.copy()
+        # Fetch deals from database
+        deals = await deal_crud.get_multi_filtered(
+            db,
+            stage=stage,
+            deal_type=deal_type,
+            limit=1000,  # Export limit
+        )
 
-        if stage:
-            filtered = [d for d in filtered if d["stage"] == stage]
-        if deal_type:
-            filtered = [d for d in filtered if d["deal_type"] == deal_type]
-
-        if not filtered:
+        if not deals:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No deals match the specified criteria",
+            )
+
+        # Convert SQLAlchemy models to dicts for export service
+        filtered = []
+        for deal in deals:
+            filtered.append(
+                {
+                    "id": deal.id,
+                    "name": deal.name,
+                    "deal_type": deal.deal_type,
+                    "stage": (
+                        deal.stage.value
+                        if hasattr(deal.stage, "value")
+                        else str(deal.stage)
+                    ),
+                    "asking_price": (
+                        float(deal.asking_price) if deal.asking_price else None
+                    ),
+                    "offer_price": (
+                        float(deal.offer_price) if deal.offer_price else None
+                    ),
+                    "final_price": (
+                        float(deal.final_price) if deal.final_price else None
+                    ),
+                    "projected_irr": (
+                        float(deal.projected_irr) if deal.projected_irr else None
+                    ),
+                    "priority": deal.priority,
+                    "created_at": (
+                        deal.created_at.isoformat() if deal.created_at else None
+                    ),
+                }
             )
 
         # Generate Excel file
@@ -126,6 +184,8 @@ async def export_deals_excel(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=f"Excel export not available: {str(e)}",
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Excel export failed: {e}")
         raise HTTPException(
@@ -244,17 +304,34 @@ async def export_property_pdf(
     Returns a downloadable PDF file.
     """
     try:
-        # Find property
-        property_data = next(
-            (p for p in DEMO_PROPERTIES if p["id"] == property_id),
-            None,
-        )
+        # Get property from database
+        prop = await property_crud.get(db, property_id)
 
-        if not property_data:
+        if not prop:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Property {property_id} not found",
             )
+
+        # Convert to dict for PDF service
+        property_data = {
+            "id": prop.id,
+            "name": prop.name,
+            "property_type": prop.property_type,
+            "address": prop.address,
+            "city": prop.city,
+            "state": prop.state,
+            "zip_code": prop.zip_code,
+            "market": prop.market,
+            "total_units": prop.total_units,
+            "total_sf": prop.total_sf,
+            "year_built": prop.year_built,
+            "occupancy_rate": (
+                float(prop.occupancy_rate) if prop.occupancy_rate else None
+            ),
+            "cap_rate": float(prop.cap_rate) if prop.cap_rate else None,
+            "noi": float(prop.noi) if prop.noi else None,
+        }
 
         # Get analytics if requested
         analytics = None
@@ -273,7 +350,9 @@ async def export_property_pdf(
         buffer = pdf_service.generate_property_report(property_data, analytics)
 
         # Return as downloadable file
-        filename = f"property_report_{property_id}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = (
+            f"property_report_{property_id}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        )
 
         return StreamingResponse(
             buffer,
@@ -311,25 +390,47 @@ async def export_deal_pdf(
     Returns a downloadable PDF file.
     """
     try:
-        # Find deal
-        deal_data = next(
-            (d for d in DEMO_DEALS if d["id"] == deal_id),
-            None,
-        )
+        # Get deal from database
+        deal = await deal_crud.get(db, deal_id)
 
-        if not deal_data:
+        if not deal:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Deal {deal_id} not found",
             )
 
+        # Convert to dict for PDF service
+        deal_data = {
+            "id": deal.id,
+            "name": deal.name,
+            "deal_type": deal.deal_type,
+            "stage": (
+                deal.stage.value if hasattr(deal.stage, "value") else str(deal.stage)
+            ),
+            "asking_price": float(deal.asking_price) if deal.asking_price else None,
+            "offer_price": float(deal.offer_price) if deal.offer_price else None,
+            "final_price": float(deal.final_price) if deal.final_price else None,
+            "projected_irr": float(deal.projected_irr) if deal.projected_irr else None,
+            "priority": deal.priority,
+            "property_id": deal.property_id,
+            "notes": deal.notes,
+            "investment_thesis": deal.investment_thesis,
+        }
+
         # Get associated property if requested
         property_data = None
-        if include_property and deal_data.get("property_id"):
-            property_data = next(
-                (p for p in DEMO_PROPERTIES if p["id"] == deal_data.get("property_id")),
-                None,
-            )
+        if include_property and deal.property_id:
+            prop = await property_crud.get(db, deal.property_id)
+            if prop:
+                property_data = {
+                    "id": prop.id,
+                    "name": prop.name,
+                    "property_type": prop.property_type,
+                    "address": prop.address,
+                    "city": prop.city,
+                    "state": prop.state,
+                    "market": prop.market,
+                }
 
         # Generate PDF
         pdf_service = get_pdf_service()
@@ -372,20 +473,46 @@ async def export_portfolio_pdf(
     Returns a downloadable PDF file with multiple sections.
     """
     try:
-        # Generate mock analytics data
+        # Get deals from database
+        deals = await deal_crud.get_multi_filtered(db, limit=1000)
+        deals_count = await deal_crud.count_filtered(db)
+
+        # Convert deals to dicts for PDF service
+        deals_data = []
+        for deal in deals:
+            deals_data.append(
+                {
+                    "id": deal.id,
+                    "name": deal.name,
+                    "deal_type": deal.deal_type,
+                    "stage": (
+                        deal.stage.value
+                        if hasattr(deal.stage, "value")
+                        else str(deal.stage)
+                    ),
+                    "asking_price": (
+                        float(deal.asking_price) if deal.asking_price else None
+                    ),
+                    "priority": deal.priority,
+                }
+            )
+
+        # Get analytics from database
+        analytics_summary = await property_crud.get_analytics_summary(db)
+
         dashboard_metrics = {
             "portfolio_summary": {
-                "total_properties": len(DEMO_PROPERTIES),
-                "total_units": sum(p.get("total_units", 0) or 0 for p in DEMO_PROPERTIES),
-                "total_sf": sum(p.get("total_sf", 0) or 0 for p in DEMO_PROPERTIES),
+                "total_properties": analytics_summary["total_properties"],
+                "total_units": analytics_summary["total_units"] or 0,
+                "total_sf": analytics_summary["total_sf"] or 0,
                 "total_value": 425000000,
-                "avg_occupancy": 94.5,
-                "avg_cap_rate": 5.8,
+                "avg_occupancy": analytics_summary["avg_occupancy"] or 94.5,
+                "avg_cap_rate": analytics_summary["avg_cap_rate"] or 5.8,
             },
             "kpis": {
                 "ytd_noi_growth": 4.2,
                 "ytd_rent_growth": 3.8,
-                "deals_in_pipeline": len(DEMO_DEALS),
+                "deals_in_pipeline": deals_count,
                 "deals_closed_ytd": 5,
                 "capital_deployed_ytd": 85000000,
             },
@@ -402,13 +529,29 @@ async def export_portfolio_pdf(
             },
         }
 
+        # Get properties from database for report
+        all_properties = await property_crud.get_multi_filtered(db, limit=1000)
+        properties_data = []
+        for prop in all_properties:
+            properties_data.append(
+                {
+                    "id": prop.id,
+                    "name": prop.name,
+                    "property_type": prop.property_type,
+                    "city": prop.city,
+                    "state": prop.state,
+                    "total_units": prop.total_units,
+                    "total_sf": prop.total_sf,
+                }
+            )
+
         # Generate PDF
         pdf_service = get_pdf_service()
         buffer = pdf_service.generate_portfolio_report(
             dashboard_metrics,
             portfolio_analytics,
-            DEMO_PROPERTIES,
-            DEMO_DEALS,
+            properties_data,
+            deals_data,
         )
 
         # Return as downloadable file

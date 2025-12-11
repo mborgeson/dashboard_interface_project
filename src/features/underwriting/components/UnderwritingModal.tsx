@@ -187,7 +187,7 @@ export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="default" size="sm" className="bg-accent-500 hover:bg-accent-600">
+          <Button variant="default" size="sm" className="bg-accent-600 hover:bg-accent-700">
             <Calculator className="w-4 h-4 mr-2" />
             Underwrite Deal
           </Button>

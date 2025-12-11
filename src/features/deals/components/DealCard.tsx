@@ -16,9 +16,11 @@ import { useToast } from '@/hooks/useToast';
 
 interface DealCardProps {
   deal: Deal;
+  isDragging?: boolean;
+  compact?: boolean;
 }
 
-export function DealCard({ deal }: DealCardProps) {
+export function DealCard({ deal, isDragging = false, compact = false }: DealCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { info } = useToast();
 
@@ -45,7 +47,12 @@ export function DealCard({ deal }: DealCardProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-neutral-200 p-4 shadow-card hover:shadow-card-hover transition-shadow">
+    <div className={cn(
+      "bg-white rounded-lg border border-neutral-200 shadow-card transition-all",
+      compact ? "p-3" : "p-4",
+      isDragging ? "shadow-2xl ring-2 ring-blue-400 cursor-grabbing" : "hover:shadow-card-hover",
+      !isDragging && "cursor-pointer"
+    )}>
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
