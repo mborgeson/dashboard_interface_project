@@ -54,6 +54,7 @@ export function InterestRatesPage() {
     lastUpdated,
     isLiveData,
     isLoading,
+    error,
     refresh,
     isApiConfigured,
   } = useInterestRates({
@@ -190,6 +191,27 @@ export function InterestRatesPage() {
       {/* Tab Content */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="bg-white rounded-lg border border-neutral-200 p-6">
+          {/* Error State */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                  <span className="text-red-600 text-lg">!</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-red-800">Failed to fetch live rate data</p>
+                  <p className="text-xs text-red-600 mt-0.5">{error}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => refresh()}
+                className="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {isLoading && !keyRates.length ? (
             <div className="flex items-center justify-center py-12">
               <RefreshCw className="w-8 h-8 text-neutral-400 animate-spin" />

@@ -62,3 +62,4 @@ context.db-wal
 !.claude-flow/docs/
 !.claude-flow/templates/
 !.claude-flow/workflows/
+!dashboard_interface_project.code-workspace
