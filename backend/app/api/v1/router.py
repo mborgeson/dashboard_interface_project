@@ -1,6 +1,7 @@
 """
 API v1 router aggregating all endpoint routers.
 """
+
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
@@ -11,9 +12,11 @@ from app.api.v1.endpoints import (
     users,
     exports,
     monitoring,
+    extraction,
 )
 
 api_router = APIRouter()
+
 
 # Health check endpoint (legacy - use /monitoring/health/* for detailed checks)
 @api_router.get("/health", tags=["health"])
@@ -30,3 +33,4 @@ api_router.include_router(analytics.router, prefix="/analytics", tags=["analytic
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(exports.router, prefix="/exports", tags=["exports"])
 api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
+api_router.include_router(extraction.router, prefix="/extraction", tags=["extraction"])
