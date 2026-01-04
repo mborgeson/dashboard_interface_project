@@ -25,6 +25,7 @@ Review the dashboard at http://localhost:5173/ and implement all optional improv
 | `b4f0f2c` | test(e2e): add comprehensive Interest Rates page tests |
 | `84db985` | feat(interest-rates): add error state UI with retry functionality |
 | `78c2b88` | feat(interest-rates): add localStorage caching to reduce API calls |
+| `e2038e6` | docs: add conversation saving workflow and session summary |
 
 ### Files Created/Modified
 
@@ -33,6 +34,7 @@ Review the dashboard at http://localhost:5173/ and implement all optional improv
 - `src/components/ui/ToggleButton.test.tsx` - Unit tests for ToggleButton
 - `e2e/interest-rates.spec.ts` - 15 E2E tests for Interest Rates page
 - `.agent/workflows/save-conversation.md` - Conversation saving workflow
+- `docs/conversation-summaries/` - Directory for session summaries
 
 **Modified Files:**
 - `src/features/deals/components/DealFilters.tsx` - Refactored to use ToggleButton
@@ -197,3 +199,80 @@ uvicorn app.main:app --reload --port 8000
 lsof -i :5173
 kill -9 <PID>
 ```
+
+---
+
+# How to Restore This Conversation in a New Session
+
+## Option 1: Quick Context Load (Recommended)
+
+In your new conversation, paste:
+
+```
+Please read the conversation summary at:
+docs/conversation-summaries/2025-12-11_dashboard-review-improvements.md
+
+This contains context from our previous session including all commits,
+files modified, key decisions, and setup instructions.
+
+After reading, let me know you're ready to continue.
+```
+
+---
+
+## Option 2: Specific File Reference
+
+If continuing work on the Interest Rates feature:
+
+```
+Review these files to understand the current state:
+- src/features/interest-rates/InterestRatesPage.tsx
+- src/features/interest-rates/hooks/useInterestRates.ts
+- e2e/interest-rates.spec.ts
+- src/services/interestRatesApi.ts
+
+The FRED API integration is complete with localStorage caching,
+error state UI, and 15 E2E tests.
+```
+
+---
+
+## Option 3: Git History Reference
+
+For code-focused restoration:
+
+```
+Please review the recent git commits:
+git log -10 --oneline
+
+Key commits from this session:
+- e2038e6 - conversation saving workflow
+- 78c2b88 - localStorage caching
+- 84db985 - error state UI
+- b4f0f2c - E2E tests
+- 854674b - FRED API proxy fix
+- 20feaf2 - optional improvements
+```
+
+---
+
+## Files That Preserve Context
+
+| File | What It Contains |
+|------|------------------|
+| `docs/conversation-summaries/2025-12-11_dashboard-review-improvements.md` | This full session summary |
+| `.agent/workflows/save-conversation.md` | Workflow template for future sessions |
+| `git log` | Complete commit history with detailed messages |
+
+---
+
+# Pro Tip: Saving Future Sessions
+
+At the **end of each session**, ask the agent to save the conversation:
+
+```
+Please save a summary of this conversation using the
+.agent/workflows/save-conversation.md workflow
+```
+
+This ensures context is always preserved for future sessions!
