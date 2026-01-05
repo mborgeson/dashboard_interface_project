@@ -1,6 +1,7 @@
 """
 CRUD operations for Deal model.
 """
+
 from typing import Any
 
 from sqlalchemy import func, select
@@ -16,15 +17,11 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
     CRUD operations for Deal model with additional deal-specific methods.
     """
 
-    async def get_with_relations(
-        self, db: AsyncSession, id: int
-    ) -> Deal | None:
+    async def get_with_relations(self, db: AsyncSession, id: int) -> Deal | None:
         """Get deal with related data."""
         # Note: Relationships (assigned_user, property) are not yet enabled in the model
         # When enabled, add: .options(selectinload(Deal.assigned_user), selectinload(Deal.property))
-        result = await db.execute(
-            select(Deal).where(Deal.id == id)
-        )
+        result = await db.execute(select(Deal).where(Deal.id == id))
         return result.scalar_one_or_none()
 
     async def get_by_stage(
@@ -143,7 +140,9 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         stage_counts: dict[str, int] = {stage.value: 0 for stage in DealStage}
 
         for deal in deals:
-            stage_value = deal.stage.value if hasattr(deal.stage, 'value') else str(deal.stage)
+            stage_value = (
+                deal.stage.value if hasattr(deal.stage, "value") else str(deal.stage)
+            )
             if stage_value in stages:
                 stages[stage_value].append(deal)
                 stage_counts[stage_value] += 1

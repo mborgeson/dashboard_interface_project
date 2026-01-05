@@ -39,7 +39,22 @@ REQUEST_LATENCY = Histogram(
     name="http_request_duration_seconds",
     documentation="HTTP request latency in seconds",
     labelnames=["method", "endpoint"],
-    buckets=(0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0),
+    buckets=(
+        0.005,
+        0.01,
+        0.025,
+        0.05,
+        0.075,
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        2.5,
+        5.0,
+        7.5,
+        10.0,
+    ),
 )
 
 REQUEST_IN_PROGRESS = Gauge(
@@ -196,6 +211,7 @@ APP_INFO = Info(
 # Metrics Manager
 # =============================================================================
 
+
 class MetricsManager:
     """
     Centralized metrics management class.
@@ -219,11 +235,13 @@ class MetricsManager:
         if self._initialized:
             return
 
-        APP_INFO.info({
-            "name": self.app_name,
-            "version": self.app_version,
-            "environment": self.environment,
-        })
+        APP_INFO.info(
+            {
+                "name": self.app_name,
+                "version": self.app_version,
+                "environment": self.environment,
+            }
+        )
 
         logger.info(f"Metrics initialized for {self.app_name} v{self.app_version}")
         self._initialized = True
@@ -325,6 +343,7 @@ def get_metrics_manager() -> MetricsManager:
     global _metrics_manager
     if _metrics_manager is None:
         from app.core.config import settings
+
         _metrics_manager = MetricsManager(
             app_name=settings.APP_NAME,
             app_version=settings.APP_VERSION,
@@ -336,6 +355,7 @@ def get_metrics_manager() -> MetricsManager:
 # =============================================================================
 # Utility Functions
 # =============================================================================
+
 
 @contextmanager
 def track_time(metric: Histogram, labels: dict):
@@ -363,6 +383,7 @@ def timed(metric: Histogram, labels_func: Callable | None = None):
         async def predict(model_name: str, data: dict):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         async def async_wrapper(*args, **kwargs) -> Any:
             labels = labels_func(args, kwargs) if labels_func else {}
@@ -383,6 +404,7 @@ def timed(metric: Histogram, labels_func: Callable | None = None):
                 metric.labels(**labels).observe(duration)
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         return sync_wrapper

@@ -47,10 +47,7 @@ class SystemMetricsCollector:
         now = datetime.utcnow()
 
         # Return cached if still valid
-        if (
-            self._last_collection
-            and now - self._last_collection < self._cache_duration
-        ):
+        if self._last_collection and now - self._last_collection < self._cache_duration:
             return self._cached_metrics
 
         metrics = {
@@ -198,10 +195,7 @@ class ApplicationMetricsCollector:
         now = datetime.utcnow()
 
         # Return cached if still valid
-        if (
-            self._last_collection
-            and now - self._last_collection < self._cache_duration
-        ):
+        if self._last_collection and now - self._last_collection < self._cache_duration:
             return self._cached_metrics
 
         metrics = {
@@ -241,9 +235,7 @@ class ApplicationMetricsCollector:
                 # Property counts
                 from app.models.property import Property
 
-                property_count = await session.scalar(
-                    select(func.count(Property.id))
-                )
+                property_count = await session.scalar(select(func.count(Property.id)))
                 metrics["properties"]["total"] = property_count or 0
                 PROPERTIES_COUNT.labels(status="active").set(property_count or 0)
 
@@ -278,6 +270,7 @@ class ApplicationMetricsCollector:
 # Collector Registry
 # =============================================================================
 
+
 class CollectorRegistry:
     """
     Registry for managing all metric collectors.
@@ -302,9 +295,15 @@ class CollectorRegistry:
         )
 
         return {
-            "system": results[0] if not isinstance(results[0], Exception) else {"error": str(results[0])},
-            "database": results[1] if not isinstance(results[1], Exception) else {"error": str(results[1])},
-            "application": results[2] if not isinstance(results[2], Exception) else {"error": str(results[2])},
+            "system": results[0]
+            if not isinstance(results[0], Exception)
+            else {"error": str(results[0])},
+            "database": results[1]
+            if not isinstance(results[1], Exception)
+            else {"error": str(results[1])},
+            "application": results[2]
+            if not isinstance(results[2], Exception)
+            else {"error": str(results[2])},
         }
 
 

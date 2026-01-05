@@ -141,9 +141,7 @@ class ExtractedValue(Base, TimestampMixin):
     value_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Numeric values use Decimal(20, 4) to handle large financial numbers
     # without integer overflow issues
-    value_numeric: Mapped[Decimal | None] = mapped_column(
-        Numeric(20, 4), nullable=True
-    )
+    value_numeric: Mapped[Decimal | None] = mapped_column(Numeric(20, 4), nullable=True)
     value_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
 
     # Error tracking

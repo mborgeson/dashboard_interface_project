@@ -1,6 +1,7 @@
 """
 Base model mixins for common functionality.
 """
+
 from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, DateTime

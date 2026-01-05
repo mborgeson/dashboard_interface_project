@@ -1,4 +1,5 @@
 """SQLAlchemy models for the application."""
+
 from .base import SoftDeleteMixin, TimestampMixin
 from .deal import Deal, DealStage
 from .property import Property

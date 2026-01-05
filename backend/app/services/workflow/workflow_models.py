@@ -13,6 +13,7 @@ from uuid import uuid4
 
 class WorkflowStatus(str, Enum):
     """Workflow instance status."""
+
     DRAFT = "draft"
     PENDING = "pending"
     RUNNING = "running"
@@ -24,6 +25,7 @@ class WorkflowStatus(str, Enum):
 
 class StepStatus(str, Enum):
     """Workflow step status."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -34,13 +36,14 @@ class StepStatus(str, Enum):
 
 class StepType(str, Enum):
     """Types of workflow steps."""
-    ACTION = "action"           # Execute an action
-    CONDITION = "condition"     # Branch based on condition
-    APPROVAL = "approval"       # Wait for approval
-    PARALLEL = "parallel"       # Execute steps in parallel
-    DELAY = "delay"             # Wait for specified duration
+
+    ACTION = "action"  # Execute an action
+    CONDITION = "condition"  # Branch based on condition
+    APPROVAL = "approval"  # Wait for approval
+    PARALLEL = "parallel"  # Execute steps in parallel
+    DELAY = "delay"  # Wait for specified duration
     NOTIFICATION = "notification"  # Send notification
-    SUBPROCESS = "subprocess"   # Run another workflow
+    SUBPROCESS = "subprocess"  # Run another workflow
 
 
 @dataclass
@@ -60,6 +63,7 @@ class StepDefinition:
         retry_count: Number of retries on failure
         on_error: Error handling strategy
     """
+
     id: str
     name: str
     step_type: StepType = StepType.ACTION
@@ -120,6 +124,7 @@ class WorkflowDefinition:
         created_at: Creation timestamp
         updated_at: Last update timestamp
     """
+
     id: str = field(default_factory=lambda: str(uuid4()))
     name: str = ""
     description: str = ""
@@ -165,8 +170,12 @@ class WorkflowDefinition:
             start_step=data.get("start_step", ""),
             variables=data.get("variables", {}),
             metadata=data.get("metadata", {}),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.utcnow(),
-            updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else datetime.utcnow(),
+            created_at=datetime.fromisoformat(data["created_at"])
+            if data.get("created_at")
+            else datetime.utcnow(),
+            updated_at=datetime.fromisoformat(data["updated_at"])
+            if data.get("updated_at")
+            else datetime.utcnow(),
         )
 
 
@@ -184,6 +193,7 @@ class StepExecution:
         error: Error message if failed
         retries: Number of retry attempts made
     """
+
     step_id: str
     status: StepStatus = StepStatus.PENDING
     started_at: datetime | None = None
@@ -198,7 +208,9 @@ class StepExecution:
             "step_id": self.step_id,
             "status": self.status.value,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "result": self.result,
             "error": self.error,
             "retries": self.retries,
@@ -224,6 +236,7 @@ class WorkflowInstance:
         created_by: User who created the instance
         metadata: Additional metadata
     """
+
     id: str = field(default_factory=lambda: str(uuid4()))
     workflow_id: str = ""
     workflow_name: str = ""
@@ -259,10 +272,15 @@ class WorkflowInstance:
         if not self.step_executions:
             return 0.0
         completed = sum(
-            1 for e in self.step_executions.values()
+            1
+            for e in self.step_executions.values()
             if e.status in [StepStatus.COMPLETED, StepStatus.SKIPPED]
         )
-        return (completed / len(self.step_executions)) * 100 if self.step_executions else 0.0
+        return (
+            (completed / len(self.step_executions)) * 100
+            if self.step_executions
+            else 0.0
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -273,10 +291,14 @@ class WorkflowInstance:
             "status": self.status.value,
             "current_step": self.current_step,
             "variables": self.variables,
-            "step_executions": {k: v.to_dict() for k, v in self.step_executions.items()},
+            "step_executions": {
+                k: v.to_dict() for k, v in self.step_executions.items()
+            },
             "created_at": self.created_at.isoformat(),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "created_by": self.created_by,
             "metadata": self.metadata,
             "duration_seconds": self.duration_seconds,
@@ -291,8 +313,12 @@ class WorkflowInstance:
             step_executions[k] = StepExecution(
                 step_id=v["step_id"],
                 status=StepStatus(v.get("status", "pending")),
-                started_at=datetime.fromisoformat(v["started_at"]) if v.get("started_at") else None,
-                completed_at=datetime.fromisoformat(v["completed_at"]) if v.get("completed_at") else None,
+                started_at=datetime.fromisoformat(v["started_at"])
+                if v.get("started_at")
+                else None,
+                completed_at=datetime.fromisoformat(v["completed_at"])
+                if v.get("completed_at")
+                else None,
                 result=v.get("result"),
                 error=v.get("error"),
                 retries=v.get("retries", 0),
@@ -306,9 +332,15 @@ class WorkflowInstance:
             current_step=data.get("current_step"),
             variables=data.get("variables", {}),
             step_executions=step_executions,
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.utcnow(),
-            started_at=datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None,
-            completed_at=datetime.fromisoformat(data["completed_at"]) if data.get("completed_at") else None,
+            created_at=datetime.fromisoformat(data["created_at"])
+            if data.get("created_at")
+            else datetime.utcnow(),
+            started_at=datetime.fromisoformat(data["started_at"])
+            if data.get("started_at")
+            else None,
+            completed_at=datetime.fromisoformat(data["completed_at"])
+            if data.get("completed_at")
+            else None,
             created_by=data.get("created_by"),
             metadata=data.get("metadata", {}),
         )
@@ -331,6 +363,7 @@ class ApprovalRequest:
         comment: Approval comment
         metadata: Additional metadata
     """
+
     id: str = field(default_factory=lambda: str(uuid4()))
     workflow_instance_id: str = ""
     step_id: str = ""

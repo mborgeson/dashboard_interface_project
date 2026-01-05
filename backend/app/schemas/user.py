@@ -1,6 +1,7 @@
 """
 User schemas for API request/response validation.
 """
+
 from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field

@@ -1,6 +1,7 @@
 """
 Property schemas for API request/response validation.
 """
+
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -15,8 +16,7 @@ class PropertyBase(BaseSchema):
 
     name: str = Field(..., min_length=1, max_length=255)
     property_type: str = Field(
-        ...,
-        pattern="^(multifamily|office|retail|industrial|mixed_use|other)$"
+        ..., pattern="^(multifamily|office|retail|industrial|mixed_use|other)$"
     )
 
     # Location
@@ -67,8 +67,7 @@ class PropertyUpdate(BaseSchema):
 
     name: str | None = Field(None, min_length=1, max_length=255)
     property_type: str | None = Field(
-        None,
-        pattern="^(multifamily|office|retail|industrial|mixed_use|other)$"
+        None, pattern="^(multifamily|office|retail|industrial|mixed_use|other)$"
     )
 
     address: str | None = Field(None, max_length=500)

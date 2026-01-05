@@ -1,6 +1,7 @@
 """
 UnderwritingModel - Parent entity linking property/deal to underwriting data.
 """
+
 from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING, Optional
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
 
 class UnderwritingStatus(str, PyEnum):
     """Status of the underwriting model."""
+
     DRAFT = "draft"
     IN_PROGRESS = "in_progress"
     UNDER_REVIEW = "under_review"
@@ -53,18 +55,18 @@ class UnderwritingModel(Base, TimestampMixin, SoftDeleteMixin, SourceTrackingMix
         String(255),
         nullable=False,
         index=True,
-        comment="Underwriting model name/identifier"
+        comment="Underwriting model name/identifier",
     )
     version: Mapped[int] = mapped_column(
         Integer,
         default=1,
         nullable=False,
-        comment="Version number for scenario tracking"
+        comment="Version number for scenario tracking",
     )
     scenario_name: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
-        comment="Scenario label: Base Case, Upside, Downside, etc."
+        comment="Scenario label: Base Case, Upside, Downside, etc.",
     )
 
     # Relationships to core entities
@@ -105,14 +107,10 @@ class UnderwritingModel(Base, TimestampMixin, SoftDeleteMixin, SourceTrackingMix
 
     # Description and notes
     description: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Description of this underwriting scenario"
+        Text, nullable=True, comment="Description of this underwriting scenario"
     )
     notes: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Internal notes and comments"
+        Text, nullable=True, comment="Internal notes and comments"
     )
 
     # Child relationships (one-to-one for assumption tables)

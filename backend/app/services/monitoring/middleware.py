@@ -216,7 +216,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
             # Log response
             logger.info(
-                f"[{request_id}] Response {response.status_code} " f"in {duration:.3f}s"
+                f"[{request_id}] Response {response.status_code} in {duration:.3f}s"
             )
 
             return response

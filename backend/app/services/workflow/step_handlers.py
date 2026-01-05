@@ -509,13 +509,16 @@ async def http_request_action(
     with contextlib.suppress(KeyError, ValueError):
         url = url.format(**variables)
 
-    async with aiohttp.ClientSession() as session, session.request(
-        method,
-        url,
-        headers=headers,
-        json=body if body else None,
-        timeout=aiohttp.ClientTimeout(total=timeout),
-    ) as response:
+    async with (
+        aiohttp.ClientSession() as session,
+        session.request(
+            method,
+            url,
+            headers=headers,
+            json=body if body else None,
+            timeout=aiohttp.ClientTimeout(total=timeout),
+        ) as response,
+    ):
         result = {
             "status": response.status,
             "headers": dict(response.headers),

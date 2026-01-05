@@ -2,7 +2,6 @@
 User management endpoints.
 """
 
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession

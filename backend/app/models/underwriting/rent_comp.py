@@ -7,6 +7,7 @@ Cell Reference Category: "Rent Comps"
 This table is normalized - instead of 270 columns (10 comps × 27 fields),
 each row represents one comparable property.
 """
+
 from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING
@@ -48,9 +49,7 @@ class RentComp(Base, TimestampMixin, SourceTrackingMixin):
 
     # Comp ordering
     comp_number: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Comparable number (1, 2, 3, etc.)"
+        Integer, nullable=True, comment="Comparable number (1, 2, 3, etc.)"
     )
 
     # ==========================================================================
@@ -58,34 +57,22 @@ class RentComp(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     property_name: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="Comparable property name"
+        String(255), nullable=True, comment="Comparable property name"
     )
     property_address: Mapped[str | None] = mapped_column(
-        String(500),
-        nullable=True,
-        comment="Full street address"
+        String(500), nullable=True, comment="Full street address"
     )
     property_city: Mapped[str | None] = mapped_column(
-        String(100),
-        nullable=True,
-        comment="City"
+        String(100), nullable=True, comment="City"
     )
     property_state: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-        comment="State"
+        String(50), nullable=True, comment="State"
     )
     property_zip: Mapped[str | None] = mapped_column(
-        String(20),
-        nullable=True,
-        comment="ZIP code"
+        String(20), nullable=True, comment="ZIP code"
     )
     distance_miles: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 2),
-        nullable=True,
-        comment="Distance from subject property in miles"
+        Numeric(6, 2), nullable=True, comment="Distance from subject property in miles"
     )
 
     # ==========================================================================
@@ -93,39 +80,25 @@ class RentComp(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     year_built: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Year built"
+        Integer, nullable=True, comment="Year built"
     )
     year_renovated: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Year renovated"
+        Integer, nullable=True, comment="Year renovated"
     )
     total_units: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Total number of units"
+        Integer, nullable=True, comment="Total number of units"
     )
     total_sf: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Total square feet"
+        Integer, nullable=True, comment="Total square feet"
     )
     avg_unit_sf: Mapped[Decimal | None] = mapped_column(
-        Numeric(10, 2),
-        nullable=True,
-        comment="Average unit size in SF"
+        Numeric(10, 2), nullable=True, comment="Average unit size in SF"
     )
     stories: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Number of stories"
+        Integer, nullable=True, comment="Number of stories"
     )
     building_type: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-        comment="Garden, Mid-Rise, High-Rise"
+        String(50), nullable=True, comment="Garden, Mid-Rise, High-Rise"
     )
 
     # ==========================================================================
@@ -133,19 +106,13 @@ class RentComp(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     asset_class: Mapped[str | None] = mapped_column(
-        String(10),
-        nullable=True,
-        comment="Class A, B, C, D"
+        String(10), nullable=True, comment="Class A, B, C, D"
     )
     condition: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-        comment="Excellent, Good, Fair, Poor"
+        String(50), nullable=True, comment="Excellent, Good, Fair, Poor"
     )
     amenity_score: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Amenity rating 1-10"
+        Integer, nullable=True, comment="Amenity rating 1-10"
     )
 
     # ==========================================================================
@@ -153,53 +120,35 @@ class RentComp(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     avg_rent: Mapped[Decimal | None] = mapped_column(
-        Numeric(10, 2),
-        nullable=True,
-        comment="Average rent per unit"
+        Numeric(10, 2), nullable=True, comment="Average rent per unit"
     )
     avg_rent_per_sf: Mapped[Decimal | None] = mapped_column(
-        Numeric(8, 2),
-        nullable=True,
-        comment="Average rent per SF"
+        Numeric(8, 2), nullable=True, comment="Average rent per SF"
     )
 
     # By Unit Type
     studio_rent: Mapped[Decimal | None] = mapped_column(
-        Numeric(10, 2),
-        nullable=True,
-        comment="Studio rent"
+        Numeric(10, 2), nullable=True, comment="Studio rent"
     )
     one_br_rent: Mapped[Decimal | None] = mapped_column(
-        Numeric(10, 2),
-        nullable=True,
-        comment="1 BR rent"
+        Numeric(10, 2), nullable=True, comment="1 BR rent"
     )
     two_br_rent: Mapped[Decimal | None] = mapped_column(
-        Numeric(10, 2),
-        nullable=True,
-        comment="2 BR rent"
+        Numeric(10, 2), nullable=True, comment="2 BR rent"
     )
     three_br_rent: Mapped[Decimal | None] = mapped_column(
-        Numeric(10, 2),
-        nullable=True,
-        comment="3 BR rent"
+        Numeric(10, 2), nullable=True, comment="3 BR rent"
     )
 
     # Rent Trends
     rent_growth_yoy: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Year-over-year rent growth"
+        Numeric(6, 4), nullable=True, comment="Year-over-year rent growth"
     )
     concessions: Mapped[str | None] = mapped_column(
-        String(100),
-        nullable=True,
-        comment="Current concession offerings"
+        String(100), nullable=True, comment="Current concession offerings"
     )
     effective_rent: Mapped[Decimal | None] = mapped_column(
-        Numeric(10, 2),
-        nullable=True,
-        comment="Effective rent after concessions"
+        Numeric(10, 2), nullable=True, comment="Effective rent after concessions"
     )
 
     # ==========================================================================
@@ -207,24 +156,16 @@ class RentComp(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     occupancy_pct: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Current occupancy rate"
+        Numeric(6, 4), nullable=True, comment="Current occupancy rate"
     )
     vacancy_pct: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Current vacancy rate"
+        Numeric(6, 4), nullable=True, comment="Current vacancy rate"
     )
     leasing_velocity: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Leases per month"
+        Integer, nullable=True, comment="Leases per month"
     )
     avg_lease_term: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Average lease term in months"
+        Integer, nullable=True, comment="Average lease term in months"
     )
 
     # ==========================================================================
@@ -232,14 +173,10 @@ class RentComp(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     owner_name: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="Property owner"
+        String(255), nullable=True, comment="Property owner"
     )
     management_company: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="Management company"
+        String(255), nullable=True, comment="Management company"
     )
 
     # ==========================================================================
@@ -247,19 +184,13 @@ class RentComp(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     data_date: Mapped[date | None] = mapped_column(
-        Date,
-        nullable=True,
-        comment="Date rent data was collected"
+        Date, nullable=True, comment="Date rent data was collected"
     )
     data_source: Mapped[str | None] = mapped_column(
-        String(100),
-        nullable=True,
-        comment="CoStar, Yardi, etc."
+        String(100), nullable=True, comment="CoStar, Yardi, etc."
     )
     notes: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Additional notes about comparable"
+        Text, nullable=True, comment="Additional notes about comparable"
     )
 
     def __repr__(self) -> str:

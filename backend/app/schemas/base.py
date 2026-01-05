@@ -1,6 +1,7 @@
 """
 Base schema configurations and common fields.
 """
+
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict

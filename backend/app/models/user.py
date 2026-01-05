@@ -1,6 +1,7 @@
 """
 User model for authentication and authorization.
 """
+
 from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, DateTime, String, Text

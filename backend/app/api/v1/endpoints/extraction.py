@@ -229,9 +229,7 @@ async def get_extraction_history(
 
 
 @router.post("/cancel")
-async def cancel_extraction(
-    run_id: UUID | None = None, db: Session = Depends(get_db)
-):
+async def cancel_extraction(run_id: UUID | None = None, db: Session = Depends(get_db)):
     """
     Cancel a running extraction.
 

@@ -4,6 +4,7 @@ CRUD operations for User model.
 Override create/update to handle password hashing - passwords must never
 be stored in plaintext. See CRUDBase for standard CRUD operations.
 """
+
 from typing import Any
 
 from loguru import logger
@@ -65,9 +66,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
         return await super().update(db, db_obj=db_obj, obj_in=update_data)
 
-    async def update_last_login(
-        self, db: AsyncSession, *, user: User
-    ) -> User:
+    async def update_last_login(self, db: AsyncSession, *, user: User) -> User:
         """Update user's last login timestamp with transaction safety."""
         try:
             user.update_last_login()
@@ -81,13 +80,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             # Return user without updated timestamp - non-critical failure
             return user
 
-    async def get_by_email(
-        self, db: AsyncSession, *, email: str
-    ) -> User | None:
+    async def get_by_email(self, db: AsyncSession, *, email: str) -> User | None:
         """Get user by email address."""
-        result = await db.execute(
-            select(User).where(User.email == email)
-        )
+        result = await db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
     async def authenticate(

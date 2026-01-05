@@ -20,6 +20,7 @@ R = TypeVar("R")
 
 class BatchStatus(str, Enum):
     """Batch processing status."""
+
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -31,6 +32,7 @@ class BatchStatus(str, Enum):
 @dataclass
 class BatchProgress:
     """Tracks progress of a batch operation."""
+
     batch_id: str
     total_items: int = 0
     processed_items: int = 0
@@ -75,7 +77,9 @@ class BatchProgress:
             "success_rate": round(self.success_rate, 2),
             "status": self.status.value,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "duration_seconds": self.duration_seconds,
             "errors": self.errors[-10:],  # Last 10 errors
         }
@@ -84,6 +88,7 @@ class BatchProgress:
 @dataclass
 class BatchResult(Generic[R]):
     """Result of a batch operation."""
+
     batch_id: str
     progress: BatchProgress
     results: list[R] = field(default_factory=list)
@@ -168,7 +173,7 @@ class BatchProcessor(Generic[T, R]):
                 # Wait if paused
                 await self._pause_events[batch_id].wait()
 
-                chunk = items[chunk_start:chunk_start + self._chunk_size]
+                chunk = items[chunk_start : chunk_start + self._chunk_size]
                 chunk_results = await self._process_chunk(
                     chunk, processor, progress, batch_id
                 )
@@ -190,11 +195,13 @@ class BatchProcessor(Generic[T, R]):
         except Exception as e:
             logger.exception(f"Batch {batch_id} failed: {e}")
             progress.status = BatchStatus.FAILED
-            progress.errors.append({
-                "type": "batch_error",
-                "message": str(e),
-                "timestamp": datetime.utcnow().isoformat(),
-            })
+            progress.errors.append(
+                {
+                    "type": "batch_error",
+                    "message": str(e),
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+            )
 
         finally:
             progress.completed_at = datetime.utcnow()
@@ -242,11 +249,13 @@ class BatchProcessor(Generic[T, R]):
                 except Exception as e:
                     progress.processed_items += 1
                     progress.failed_items += 1
-                    progress.errors.append({
-                        "item_index": index,
-                        "message": str(e),
-                        "timestamp": datetime.utcnow().isoformat(),
-                    })
+                    progress.errors.append(
+                        {
+                            "item_index": index,
+                            "message": str(e),
+                            "timestamp": datetime.utcnow().isoformat(),
+                        }
+                    )
 
                     if not self._continue_on_error:
                         raise
@@ -404,16 +413,22 @@ class BatchProcessor(Generic[T, R]):
 
             # Set final status
             if progress.status == BatchStatus.PROCESSING:
-                progress.status = BatchStatus.COMPLETED if progress.failed_items == 0 else BatchStatus.COMPLETED
+                progress.status = (
+                    BatchStatus.COMPLETED
+                    if progress.failed_items == 0
+                    else BatchStatus.COMPLETED
+                )
 
         except Exception as e:
             logger.exception(f"Stream batch {batch_id} failed: {e}")
             progress.status = BatchStatus.FAILED
-            progress.errors.append({
-                "type": "stream_error",
-                "message": str(e),
-                "timestamp": datetime.utcnow().isoformat(),
-            })
+            progress.errors.append(
+                {
+                    "type": "stream_error",
+                    "message": str(e),
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+            )
 
         finally:
             progress.completed_at = datetime.utcnow()

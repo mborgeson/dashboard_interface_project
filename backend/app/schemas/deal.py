@@ -1,6 +1,7 @@
 """
 Deal schemas for API request/response validation.
 """
+
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -15,8 +16,7 @@ class DealBase(BaseSchema):
 
     name: str = Field(..., min_length=1, max_length=255)
     deal_type: str = Field(
-        ...,
-        pattern="^(acquisition|disposition|development|refinance)$"
+        ..., pattern="^(acquisition|disposition|development|refinance)$"
     )
     property_id: int | None = None
     assigned_user_id: int | None = None
@@ -28,7 +28,7 @@ class DealCreate(DealBase):
     # Initial stage (defaults to LEAD)
     stage: str = Field(
         default="lead",
-        pattern="^(lead|initial_review|underwriting|due_diligence|loi_submitted|under_contract|closed|dead)$"
+        pattern="^(lead|initial_review|underwriting|due_diligence|loi_submitted|under_contract|closed|dead)$",
     )
 
     # Financial Terms
@@ -49,10 +49,7 @@ class DealCreate(DealBase):
     source: str | None = Field(None, max_length=100)
     broker_name: str | None = Field(None, max_length=255)
     broker_company: str | None = Field(None, max_length=255)
-    competition_level: str | None = Field(
-        None,
-        pattern="^(low|medium|high)$"
-    )
+    competition_level: str | None = Field(None, pattern="^(low|medium|high)$")
 
     # Notes
     notes: str | None = None
@@ -61,10 +58,7 @@ class DealCreate(DealBase):
 
     # Metadata
     tags: list[str] | None = None
-    priority: str = Field(
-        default="medium",
-        pattern="^(low|medium|high|urgent)$"
-    )
+    priority: str = Field(default="medium", pattern="^(low|medium|high|urgent)$")
 
 
 class DealUpdate(BaseSchema):
@@ -72,8 +66,7 @@ class DealUpdate(BaseSchema):
 
     name: str | None = Field(None, min_length=1, max_length=255)
     deal_type: str | None = Field(
-        None,
-        pattern="^(acquisition|disposition|development|refinance)$"
+        None, pattern="^(acquisition|disposition|development|refinance)$"
     )
     property_id: int | None = None
     assigned_user_id: int | None = None
@@ -97,20 +90,14 @@ class DealUpdate(BaseSchema):
     source: str | None = Field(None, max_length=100)
     broker_name: str | None = Field(None, max_length=255)
     broker_company: str | None = Field(None, max_length=255)
-    competition_level: str | None = Field(
-        None,
-        pattern="^(low|medium|high)$"
-    )
+    competition_level: str | None = Field(None, pattern="^(low|medium|high)$")
 
     notes: str | None = None
     investment_thesis: str | None = None
     key_risks: str | None = None
 
     tags: list[str] | None = None
-    priority: str | None = Field(
-        None,
-        pattern="^(low|medium|high|urgent)$"
-    )
+    priority: str | None = Field(None, pattern="^(low|medium|high|urgent)$")
     deal_score: int | None = Field(None, ge=0, le=100)
 
 
@@ -119,7 +106,7 @@ class DealStageUpdate(BaseSchema):
 
     stage: str = Field(
         ...,
-        pattern="^(lead|initial_review|underwriting|due_diligence|loi_submitted|under_contract|closed|dead)$"
+        pattern="^(lead|initial_review|underwriting|due_diligence|loi_submitted|under_contract|closed|dead)$",
     )
     stage_order: int | None = Field(None, ge=0)
 

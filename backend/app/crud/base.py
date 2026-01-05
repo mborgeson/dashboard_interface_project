@@ -1,6 +1,7 @@
 """
 Base CRUD class with common database operations.
 """
+
 from typing import Any, Generic, TypeVar
 
 from fastapi.encoders import jsonable_encoder

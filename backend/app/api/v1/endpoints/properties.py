@@ -2,7 +2,6 @@
 Property endpoints for CRUD operations and analytics.
 """
 
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -1,6 +1,7 @@
 """
 Deal model for tracking investment opportunities through the pipeline.
 """
+
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum as PyEnum
@@ -24,6 +25,7 @@ from app.models.base import SoftDeleteMixin, TimestampMixin
 
 class DealStage(str, PyEnum):
     """Deal pipeline stages for Kanban board."""
+
     LEAD = "lead"
     INITIAL_REVIEW = "initial_review"
     UNDERWRITING = "underwriting"
@@ -154,12 +156,14 @@ class Deal(Base, TimestampMixin, SoftDeleteMixin):
     def update_stage(self, new_stage: DealStage) -> None:
         """Update the deal stage with timestamp."""
         from datetime import datetime
+
         self.stage = new_stage
         self.stage_updated_at = datetime.now(UTC)
 
     def add_activity(self, activity: dict) -> None:
         """Add an activity to the log."""
         from datetime import datetime
+
         if self.activity_log is None:
             self.activity_log = []
         activity["timestamp"] = datetime.now(UTC).isoformat()

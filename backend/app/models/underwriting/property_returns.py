@@ -4,6 +4,7 @@ PropertyReturns - Property-level return metrics (44 fields).
 Maps to: 'Assumptions (Summary)' Returns sections
 Cell Reference Category: "Property-Level Return Metrics"
 """
+
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -49,27 +50,19 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     going_in_cap_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
-        comment="Going-in cap rate (T-12 NOI / Purchase Price)"
+        comment="Going-in cap rate (T-12 NOI / Purchase Price)",
     )
     year_1_cap_rate: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Year 1 cap rate"
+        Numeric(6, 4), nullable=True, comment="Year 1 cap rate"
     )
     stabilized_cap_rate: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Stabilized cap rate"
+        Numeric(6, 4), nullable=True, comment="Stabilized cap rate"
     )
     exit_cap_rate: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Exit cap rate assumption"
+        Numeric(6, 4), nullable=True, comment="Exit cap rate assumption"
     )
     cap_rate_spread: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Spread between going-in and exit cap"
+        Numeric(6, 4), nullable=True, comment="Spread between going-in and exit cap"
     )
 
     # ==========================================================================
@@ -77,44 +70,28 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     t12_noi: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Trailing 12 month NOI"
+        Numeric(15, 2), nullable=True, comment="Trailing 12 month NOI"
     )
     year_1_noi: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Year 1 projected NOI"
+        Numeric(15, 2), nullable=True, comment="Year 1 projected NOI"
     )
     year_2_noi: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Year 2 projected NOI"
+        Numeric(15, 2), nullable=True, comment="Year 2 projected NOI"
     )
     year_3_noi: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Year 3 projected NOI"
+        Numeric(15, 2), nullable=True, comment="Year 3 projected NOI"
     )
     year_4_noi: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Year 4 projected NOI"
+        Numeric(15, 2), nullable=True, comment="Year 4 projected NOI"
     )
     year_5_noi: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Year 5 projected NOI"
+        Numeric(15, 2), nullable=True, comment="Year 5 projected NOI"
     )
     stabilized_noi: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Stabilized NOI"
+        Numeric(15, 2), nullable=True, comment="Stabilized NOI"
     )
     exit_noi: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Exit year NOI"
+        Numeric(15, 2), nullable=True, comment="Exit year NOI"
     )
 
     # ==========================================================================
@@ -122,39 +99,25 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     purchase_price: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Initial purchase price"
+        Numeric(15, 2), nullable=True, comment="Initial purchase price"
     )
     total_cost_basis: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Total cost basis including improvements"
+        Numeric(15, 2), nullable=True, comment="Total cost basis including improvements"
     )
     stabilized_value: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Stabilized property value"
+        Numeric(15, 2), nullable=True, comment="Stabilized property value"
     )
     exit_value: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Projected exit/sale value"
+        Numeric(15, 2), nullable=True, comment="Projected exit/sale value"
     )
     gross_sale_proceeds: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Gross sale proceeds"
+        Numeric(15, 2), nullable=True, comment="Gross sale proceeds"
     )
     net_sale_proceeds: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Net sale proceeds after costs"
+        Numeric(15, 2), nullable=True, comment="Net sale proceeds after costs"
     )
     value_creation: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Total value creation (exit - cost)"
+        Numeric(15, 2), nullable=True, comment="Total value creation (exit - cost)"
     )
 
     # ==========================================================================
@@ -162,24 +125,16 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     unlevered_irr: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Unlevered IRR"
+        Numeric(6, 4), nullable=True, comment="Unlevered IRR"
     )
     unlevered_equity_multiple: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 3),
-        nullable=True,
-        comment="Unlevered equity multiple"
+        Numeric(6, 3), nullable=True, comment="Unlevered equity multiple"
     )
     unlevered_cash_on_cash_year_1: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Year 1 unlevered cash-on-cash"
+        Numeric(6, 4), nullable=True, comment="Year 1 unlevered cash-on-cash"
     )
     unlevered_cash_on_cash_avg: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Average unlevered cash-on-cash"
+        Numeric(6, 4), nullable=True, comment="Average unlevered cash-on-cash"
     )
 
     # ==========================================================================
@@ -187,19 +142,15 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     year_1_yield_on_cost: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Year 1 yield on cost"
+        Numeric(6, 4), nullable=True, comment="Year 1 yield on cost"
     )
     stabilized_yield_on_cost: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 4),
-        nullable=True,
-        comment="Stabilized yield on cost"
+        Numeric(6, 4), nullable=True, comment="Stabilized yield on cost"
     )
     development_spread: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
-        comment="Development spread (stabilized yield - exit cap)"
+        comment="Development spread (stabilized yield - exit cap)",
     )
 
     # ==========================================================================
@@ -207,34 +158,22 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     year_1_cash_flow: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Year 1 property cash flow"
+        Numeric(15, 2), nullable=True, comment="Year 1 property cash flow"
     )
     year_2_cash_flow: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Year 2 property cash flow"
+        Numeric(15, 2), nullable=True, comment="Year 2 property cash flow"
     )
     year_3_cash_flow: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Year 3 property cash flow"
+        Numeric(15, 2), nullable=True, comment="Year 3 property cash flow"
     )
     year_4_cash_flow: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Year 4 property cash flow"
+        Numeric(15, 2), nullable=True, comment="Year 4 property cash flow"
     )
     year_5_cash_flow: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Year 5 property cash flow"
+        Numeric(15, 2), nullable=True, comment="Year 5 property cash flow"
     )
     total_cash_flow: Mapped[Decimal | None] = mapped_column(
-        Numeric(15, 2),
-        nullable=True,
-        comment="Total property cash flow over hold"
+        Numeric(15, 2), nullable=True, comment="Total property cash flow over hold"
     )
 
     # ==========================================================================
@@ -242,24 +181,16 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     noi_per_unit_year_1: Mapped[Decimal | None] = mapped_column(
-        Numeric(10, 2),
-        nullable=True,
-        comment="Year 1 NOI per unit"
+        Numeric(10, 2), nullable=True, comment="Year 1 NOI per unit"
     )
     noi_per_unit_stabilized: Mapped[Decimal | None] = mapped_column(
-        Numeric(10, 2),
-        nullable=True,
-        comment="Stabilized NOI per unit"
+        Numeric(10, 2), nullable=True, comment="Stabilized NOI per unit"
     )
     value_per_unit_purchase: Mapped[Decimal | None] = mapped_column(
-        Numeric(12, 2),
-        nullable=True,
-        comment="Purchase price per unit"
+        Numeric(12, 2), nullable=True, comment="Purchase price per unit"
     )
     value_per_unit_exit: Mapped[Decimal | None] = mapped_column(
-        Numeric(12, 2),
-        nullable=True,
-        comment="Exit value per unit"
+        Numeric(12, 2), nullable=True, comment="Exit value per unit"
     )
 
     def __repr__(self) -> str:

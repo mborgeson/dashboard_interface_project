@@ -2,7 +2,6 @@
 Analytics endpoints for data visualization and ML predictions.
 """
 
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 

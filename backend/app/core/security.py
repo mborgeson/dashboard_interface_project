@@ -1,6 +1,7 @@
 """
 Security utilities for authentication and authorization.
 """
+
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -26,7 +27,7 @@ def get_password_hash(password: str) -> str:
 def create_access_token(
     subject: str | Any,
     expires_delta: timedelta | None = None,
-    additional_claims: dict | None = None
+    additional_claims: dict | None = None,
 ) -> str:
     """
     Create a JWT access token.
@@ -52,24 +53,18 @@ def create_access_token(
         to_encode.update(additional_claims)
 
     encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
     return encoded_jwt
 
 
 def create_refresh_token(subject: str | Any) -> str:
     """Create a JWT refresh token with longer expiration."""
-    expire = datetime.now(UTC) + timedelta(
-        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-    )
+    expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
 
     encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
     return encoded_jwt
 
@@ -86,9 +81,7 @@ def decode_token(token: str) -> dict | None:
     """
     try:
         payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         return payload
     except JWTError:

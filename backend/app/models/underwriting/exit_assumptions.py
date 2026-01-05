@@ -4,6 +4,7 @@ ExitAssumptions - Exit timing and disposition assumptions (3 fields).
 Maps to: 'Assumptions (Summary)'!$D$23, $D$30, $D$31 range
 Cell Reference Category: "Exit Assumptions"
 """
+
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -45,21 +46,21 @@ class ExitAssumptions(Base, TimestampMixin, SourceTrackingMixin):
     exit_period_months: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
-        comment="EXIT_PERIOD_MONTHS - 'Assumptions (Summary)'!$D$23"
+        comment="EXIT_PERIOD_MONTHS - 'Assumptions (Summary)'!$D$23",
     )
 
     # Exit Cap Rate (D30)
     exit_cap_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
-        comment="EXIT_CAP_RATE - 'Assumptions (Summary)'!$D$30"
+        comment="EXIT_CAP_RATE - 'Assumptions (Summary)'!$D$30",
     )
 
     # Transaction Costs (D31)
     sales_transaction_costs: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
-        comment="SALES_TRANSACTION_COSTS - 'Assumptions (Summary)'!$D$31"
+        comment="SALES_TRANSACTION_COSTS - 'Assumptions (Summary)'!$D$31",
     )
 
     def __repr__(self) -> str:

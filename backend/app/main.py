@@ -8,6 +8,7 @@ This is the main application entry point that configures:
 - Startup/shutdown lifecycle events
 - Exception handlers
 """
+
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -105,7 +106,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "detail": "An unexpected error occurred",
             "error_id": str(id(exc)),  # For log correlation
-        }
+        },
     )
 
 

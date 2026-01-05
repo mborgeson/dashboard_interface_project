@@ -1,6 +1,7 @@
 """
 Property model for real estate assets.
 """
+
 from datetime import date
 from decimal import Decimal
 

@@ -1,6 +1,7 @@
 """
 Model Manager for loading, saving, and managing ML models.
 """
+
 import json
 import os
 import pickle
@@ -105,11 +106,7 @@ class ModelManager:
             logger.error(f"Failed to save model {model_name}: {e}")
             raise
 
-    def load_model(
-        self,
-        model_name: str,
-        version: str | None = None
-    ) -> Any | None:
+    def load_model(self, model_name: str, version: str | None = None) -> Any | None:
         """
         Load a model from disk.
 
@@ -178,22 +175,20 @@ class ModelManager:
             try:
                 with open(metadata_file) as f:
                     metadata = json.load(f)
-                    models.append({
-                        "name": metadata_file.stem.replace("_metadata", ""),
-                        "latest_version": metadata.get("latest_version"),
-                        "version_count": len(metadata.get("versions", [])),
-                        "updated_at": metadata.get("updated_at"),
-                    })
+                    models.append(
+                        {
+                            "name": metadata_file.stem.replace("_metadata", ""),
+                            "latest_version": metadata.get("latest_version"),
+                            "version_count": len(metadata.get("versions", [])),
+                            "updated_at": metadata.get("updated_at"),
+                        }
+                    )
             except Exception as e:
                 logger.error(f"Failed to read metadata {metadata_file}: {e}")
 
         return models
 
-    def delete_model(
-        self,
-        model_name: str,
-        version: str | None = None
-    ) -> bool:
+    def delete_model(self, model_name: str, version: str | None = None) -> bool:
         """
         Delete a model or specific version.
 
@@ -212,8 +207,7 @@ class ModelManager:
                 metadata = self._load_metadata(model_name)
                 if "versions" in metadata:
                     metadata["versions"] = [
-                        v for v in metadata["versions"]
-                        if v.get("version") != version
+                        v for v in metadata["versions"] if v.get("version") != version
                     ]
                     if metadata["versions"]:
                         metadata["latest_version"] = metadata["versions"][-1]["version"]

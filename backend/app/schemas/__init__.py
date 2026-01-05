@@ -1,4 +1,5 @@
 """Pydantic schemas for API request/response validation."""
+
 from .auth import LoginRequest, Token, TokenPayload
 from .deal import DealCreate, DealResponse, DealStageUpdate, DealUpdate
 from .property import PropertyCreate, PropertyResponse, PropertyUpdate

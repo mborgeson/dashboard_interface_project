@@ -1,4 +1,5 @@
 """Application services module."""
+
 from .email_service import EmailService, get_email_service
 from .export_service import ExcelExportService, get_excel_service
 from .pdf_service import PDFReportService, get_pdf_service

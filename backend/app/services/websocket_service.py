@@ -93,8 +93,7 @@ class WebSocketManager:
         )
 
         logger.info(
-            f"WebSocket connected: {connection_id} "
-            f"(user: {user_id}, rooms: {rooms})"
+            f"WebSocket connected: {connection_id} (user: {user_id}, rooms: {rooms})"
         )
 
         return connection_id
