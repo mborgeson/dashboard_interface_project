@@ -1,2 +1,23 @@
 """API v1 endpoints module."""
-from . import auth, properties, deals, analytics, users, exports
+
+from . import (
+    analytics,
+    auth,
+    deals,
+    exports,
+    extraction,
+    monitoring,
+    properties,
+    users,
+)
+
+__all__ = [
+    "analytics",
+    "auth",
+    "deals",
+    "exports",
+    "extraction",
+    "monitoring",
+    "properties",
+    "users",
+]

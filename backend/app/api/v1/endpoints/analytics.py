@@ -1,15 +1,15 @@
 """
 Analytics endpoints for data visualization and ML predictions.
 """
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from loguru import logger
+
 
 from app.db.session import get_db
-from app.services import get_redis_service
+
 from app.services.ml import get_rent_growth_predictor
 
 router = APIRouter()
