@@ -1,7 +1,8 @@
 """
 User management endpoints.
 """
-from typing import Optional, List
+
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -136,7 +137,7 @@ async def create_user(
     new_id = max(u["id"] for u in DEMO_USERS) + 1 if DEMO_USERS else 1
 
     # Hash password
-    hashed_password = get_password_hash(user_data.password)
+    _hashed_password = get_password_hash(user_data.password)  # noqa: F841
 
     new_user = {
         "id": new_id,

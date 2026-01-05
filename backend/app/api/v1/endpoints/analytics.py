@@ -1,7 +1,7 @@
 """
 Analytics endpoints for data visualization and ML predictions.
 """
-from datetime import datetime
+
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status

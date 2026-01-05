@@ -9,7 +9,7 @@ Provides endpoints for:
 """
 
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any  # noqa: F401 - used for type hints in collectors
 
 from fastapi import APIRouter, Response, Depends
 from loguru import logger
@@ -27,6 +27,7 @@ router = APIRouter()
 # =============================================================================
 # Prometheus Metrics Endpoint
 # =============================================================================
+
 
 @router.get(
     "/metrics",
@@ -54,6 +55,7 @@ async def prometheus_metrics():
 # =============================================================================
 # Health Check Endpoints
 # =============================================================================
+
 
 @router.get(
     "/health/live",
@@ -185,6 +187,7 @@ async def detailed_health_check(db: AsyncSession = Depends(get_db)):
 # =============================================================================
 # Performance Statistics
 # =============================================================================
+
 
 @router.get(
     "/stats",

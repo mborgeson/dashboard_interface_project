@@ -24,7 +24,6 @@ from app.schemas.extraction import (
     ExtractionStatusResponse,
     ExtractionHistoryResponse,
     ExtractionHistoryItem,
-    ExtractedPropertySummary,
     PropertyListResponse,
 )
 from app.crud.extraction import ExtractionRunCRUD, ExtractedValueCRUD

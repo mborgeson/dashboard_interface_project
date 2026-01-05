@@ -3,7 +3,7 @@ Export endpoints for Excel and PDF generation.
 """
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -15,7 +15,7 @@ from app.services.export_service import get_excel_service
 from app.services.pdf_service import get_pdf_service
 from app.crud import deal as deal_crud
 from app.crud import property as property_crud
-from app.models.deal import DealStage
+
 
 router = APIRouter()
 

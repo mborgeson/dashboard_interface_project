@@ -1,7 +1,6 @@
 """
 Authentication endpoints for login, logout, and token management.
 """
-from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -15,7 +14,7 @@ from app.core.security import (
     decode_token,
 )
 from app.db.session import get_db
-from app.schemas.auth import Token, LoginRequest, RefreshTokenRequest
+from app.schemas.auth import Token, RefreshTokenRequest
 from app.crud import user as user_crud
 
 router = APIRouter()
@@ -38,8 +37,7 @@ DEMO_USERS = {
 
 @router.post("/login", response_model=Token)
 async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db)
+    form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
 ):
     """
     Authenticate user and return access tokens.
