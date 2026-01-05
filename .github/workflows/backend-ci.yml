@@ -19,6 +19,7 @@ jobs:
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: backend
@@ -51,25 +52,14 @@ jobs:
   test:
     name: Test & Coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: lint
     defaults:
       run:
         working-directory: backend
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # NOTE: PostgreSQL service removed - tests use SQLite in-memory for speed
+    # If PostgreSQL-specific tests are needed, re-enable this service
 
     steps:
       - name: Checkout code
@@ -88,8 +78,9 @@ jobs:
           pip install --no-cache-dir -r requirements-ci.txt
 
       - name: Run tests with coverage
+        timeout-minutes: 10
         env:
-          DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/test_db
+          DATABASE_URL: sqlite+aiosqlite:///:memory:
           SECRET_KEY: test-secret-key-for-ci
           ENVIRONMENT: testing
         run: |
@@ -120,6 +111,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: backend
@@ -158,6 +150,7 @@ jobs:
   build:
     name: Build Check
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [test, security]
     defaults:
       run:
