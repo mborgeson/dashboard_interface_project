@@ -106,9 +106,12 @@ class SharePointClient:
         Uses client credentials flow for app-only authentication.
         """
         # Check if we have a valid cached token
-        if self._access_token and self._token_expires:
-            if datetime.utcnow() < self._token_expires - timedelta(minutes=5):
-                return self._access_token
+        if (
+            self._access_token
+            and self._token_expires
+            and datetime.utcnow() < self._token_expires - timedelta(minutes=5)
+        ):
+            return self._access_token
 
         # Acquire new token
         app = self._get_msal_app()

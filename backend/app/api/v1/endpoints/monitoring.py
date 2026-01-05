@@ -9,7 +9,7 @@ Provides endpoints for:
 """
 
 from datetime import datetime
-from typing import Any, Dict  # noqa: F401 - used for type hints in collectors
+from typing import Any  # noqa: F401 - used for type hints in collectors
 
 from fastapi import APIRouter, Depends, Response
 from loguru import logger

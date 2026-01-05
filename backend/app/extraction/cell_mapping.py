@@ -103,7 +103,7 @@ class CellMappingParser:
         field_name_counts: Counter = Counter()
 
         # First pass: count field name occurrences
-        for idx, row in df.iterrows():
+        for _, row in df.iterrows():
             if pd.notna(row[description_col]) and pd.notna(row[cell_col]):
                 base_name = self._clean_field_name(str(row[description_col]))
                 field_name_counts[base_name] += 1
@@ -112,7 +112,7 @@ class CellMappingParser:
         seen_counts: Counter = Counter()
         mapping_count = 0
 
-        for idx, row in df.iterrows():
+        for _, row in df.iterrows():
             if pd.notna(row[description_col]) and pd.notna(row[cell_col]):
                 base_name = self._clean_field_name(str(row[description_col]))
                 sheet_name = (
@@ -155,7 +155,7 @@ class CellMappingParser:
         self.logger.info(
             "mappings_loaded",
             count=mapping_count,
-            unique_categories=len(set(m.category for m in self.mappings.values())),
+            unique_categories=len({m.category for m in self.mappings.values()}),
             duplicates_handled=len(self._duplicate_tracker),
         )
 
@@ -287,8 +287,8 @@ class CellMappingParser:
         return {
             "valid": len(issues) == 0,
             "total_mappings": len(self.mappings),
-            "unique_sheets": len(set(m.sheet_name for m in self.mappings.values())),
-            "unique_categories": len(set(m.category for m in self.mappings.values())),
+            "unique_sheets": len({m.sheet_name for m in self.mappings.values()}),
+            "unique_categories": len({m.category for m in self.mappings.values()}),
             "duplicates_resolved": len(self._duplicate_tracker),
             "issues": issues,
         }

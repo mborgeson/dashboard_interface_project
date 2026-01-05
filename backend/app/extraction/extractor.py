@@ -95,10 +95,7 @@ class ExcelDataExtractor:
             is_xlsb = False
 
         # Get available sheets for error reporting
-        if is_xlsb:
-            available_sheets = list(workbook.sheets)
-        else:
-            available_sheets = workbook.sheetnames
+        available_sheets = list(workbook.sheets) if is_xlsb else workbook.sheetnames
 
         self.logger.debug(
             "workbook_loaded",

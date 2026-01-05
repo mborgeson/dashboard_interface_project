@@ -565,10 +565,10 @@ async def export_portfolio_pdf(
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=f"PDF generation not available: {str(e)}",
-        )
+        ) from e
     except Exception as e:
         logger.error(f"Portfolio PDF generation failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate PDF report",
-        )
+        ) from e
