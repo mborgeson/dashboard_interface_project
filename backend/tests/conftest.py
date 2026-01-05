@@ -70,6 +70,21 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         await conn.run_sync(Base.metadata.drop_all)
 
 
+# Ensure proper cleanup of the test engine after all tests complete
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_engine():
+    """Clean up the async engine after all tests to prevent hanging."""
+    yield
+    # Force synchronous cleanup using a new event loop
+    import asyncio
+    try:
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(engine_test.dispose())
+        loop.close()
+    except Exception:
+        pass  # Best effort cleanup
+
+
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """
