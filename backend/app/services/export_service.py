@@ -15,7 +15,6 @@ from typing import Any
 from loguru import logger
 
 try:
-    import openpyxl
     from openpyxl import Workbook
     from openpyxl.formatting.rule import ColorScaleRule
     from openpyxl.styles import (

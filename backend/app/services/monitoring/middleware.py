@@ -70,7 +70,6 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         # Get request body size
         request_size = 0
         if request.headers.get("content-length"):
-        if request.headers.get("content-length"):
             with contextlib.suppress(ValueError, TypeError):
                 request_size = int(request.headers["content-length"])
 
@@ -217,15 +216,12 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
             # Log response
             logger.info(
-                f"[{request_id}] Response {response.status_code} "
-                f"in {duration:.3f}s"
+                f"[{request_id}] Response {response.status_code} " f"in {duration:.3f}s"
             )
 
             return response
 
         except Exception as exc:
             duration = time.perf_counter() - start_time
-            logger.error(
-                f"[{request_id}] Error after {duration:.3f}s: {exc}"
-            )
+            logger.error(f"[{request_id}] Error after {duration:.3f}s: {exc}")
             raise
