@@ -1,6 +1,7 @@
 """
 Redis caching service for application-wide caching.
 """
+
 import json
 from typing import Any
 
@@ -69,12 +70,7 @@ class RedisService:
             logger.error(f"Redis GET error for key {key}: {e}")
             return None
 
-    async def set(
-        self,
-        key: str,
-        value: Any,
-        ttl: int | None = None
-    ) -> bool:
+    async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """
         Set a value in cache.
 
@@ -116,7 +112,7 @@ class RedisService:
         try:
             values = await self.client.mget(keys)
             result = {}
-            for key, value in zip(keys, values):
+            for key, value in zip(keys, values, strict=False):
                 if value:
                     try:
                         result[key] = json.loads(value)

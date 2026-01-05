@@ -6,6 +6,7 @@ Core execution engine for workflow automation.
 
 import asyncio
 from collections.abc import Callable
+import contextlib
 from datetime import datetime
 from typing import Any
 
@@ -62,6 +63,7 @@ class WorkflowEngine:
         if redis_url:
             try:
                 from app.services.redis_service import get_redis_client
+
                 self._redis_client = await get_redis_client()
                 if self._redis_client:
                     self._use_redis = True
@@ -125,11 +127,17 @@ class WorkflowEngine:
                 f"workflow:inst:{instance.id}",
                 mapping=instance.to_dict(),
             )
-            if instance.status in [WorkflowStatus.PENDING, WorkflowStatus.RUNNING, WorkflowStatus.PAUSED]:
+            if instance.status in [
+                WorkflowStatus.PENDING,
+                WorkflowStatus.RUNNING,
+                WorkflowStatus.PAUSED,
+            ]:
                 await self._redis_client.sadd("workflow:instances:active", instance.id)
             else:
                 await self._redis_client.srem("workflow:instances:active", instance.id)
-                await self._redis_client.sadd("workflow:instances:completed", instance.id)
+                await self._redis_client.sadd(
+                    "workflow:instances:completed", instance.id
+                )
         except Exception as e:
             logger.error(f"Failed to save instance: {e}")
 
@@ -292,10 +300,8 @@ class WorkflowEngine:
         task = self._running_tasks.pop(instance_id, None)
         if task:
             task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await task
-            except asyncio.CancelledError:
-                pass
 
         instance.status = WorkflowStatus.CANCELLED
         instance.completed_at = datetime.utcnow()
@@ -357,7 +363,10 @@ class WorkflowEngine:
                     if step.on_error == "skip":
                         execution = instance.get_step_execution(step.id)
                         execution.status = StepStatus.SKIPPED
-                    elif step.on_error == "retry" and result.get("retries", 0) < step.retry_count:
+                    elif (
+                        step.on_error == "retry"
+                        and result.get("retries", 0) < step.retry_count
+                    ):
                         # Will retry
                         continue
                     else:
@@ -371,7 +380,9 @@ class WorkflowEngine:
                 if result.get("parallel"):
                     # Execute branches in parallel
                     branches = result.get("branches", [])
-                    await self._execute_parallel_branches(instance, definition, branches)
+                    await self._execute_parallel_branches(
+                        instance, definition, branches
+                    )
                     next_step = result.get("next_step")
 
                 instance.current_step = next_step
@@ -463,6 +474,7 @@ class WorkflowEngine:
         branches: list[str],
     ) -> None:
         """Execute parallel branches concurrently."""
+
         async def execute_branch(branch_step_id: str) -> None:
             step = definition.get_step(branch_step_id)
             if step:

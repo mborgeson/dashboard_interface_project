@@ -7,6 +7,7 @@ Provides functionality to export data to formatted Excel files including:
 - Analytics reports with charts
 - Multi-sheet workbooks
 """
+
 from datetime import datetime
 from io import BytesIO
 from typing import Any
@@ -16,18 +17,17 @@ from loguru import logger
 try:
     import openpyxl
     from openpyxl import Workbook
-    from openpyxl.chart import BarChart, LineChart, PieChart, Reference
-    from openpyxl.formatting.rule import ColorScaleRule, FormulaRule
+    from openpyxl.formatting.rule import ColorScaleRule
     from openpyxl.styles import (
         Alignment,
         Border,
-        Fill,
         Font,
         NamedStyle,
         PatternFill,
         Side,
     )
     from openpyxl.utils import get_column_letter
+
     OPENPYXL_AVAILABLE = True
 except ImportError:
     OPENPYXL_AVAILABLE = False
@@ -39,15 +39,15 @@ class ExcelExportService:
 
     # Color palette for B&R Capital branding
     COLORS = {
-        "primary": "1E3A5F",      # Dark blue
-        "secondary": "2E5090",    # Medium blue
-        "accent": "4A90D9",       # Light blue
-        "success": "28A745",      # Green
-        "warning": "FFC107",      # Yellow
-        "danger": "DC3545",       # Red
-        "header_bg": "1E3A5F",    # Header background
-        "header_fg": "FFFFFF",    # Header text
-        "alt_row": "F8F9FA",      # Alternating row background
+        "primary": "1E3A5F",  # Dark blue
+        "secondary": "2E5090",  # Medium blue
+        "accent": "4A90D9",  # Light blue
+        "success": "28A745",  # Green
+        "warning": "FFC107",  # Yellow
+        "danger": "DC3545",  # Red
+        "header_bg": "1E3A5F",  # Header background
+        "header_fg": "FFFFFF",  # Header text
+        "alt_row": "F8F9FA",  # Alternating row background
     }
 
     # Stage colors for deal pipeline
@@ -77,7 +77,9 @@ class ExcelExportService:
 
         # Header style
         self._header_style = NamedStyle(name="header_style")
-        self._header_style.font = Font(bold=True, color=self.COLORS["header_fg"], size=11)
+        self._header_style.font = Font(
+            bold=True, color=self.COLORS["header_fg"], size=11
+        )
         self._header_style.fill = PatternFill(
             start_color=self.COLORS["header_bg"],
             end_color=self.COLORS["header_bg"],
@@ -426,7 +428,9 @@ class ExcelExportService:
             if stage in stage_counts:
                 ws.cell(row=row, column=1, value=stage.replace("_", " ").title())
                 ws.cell(row=row, column=2, value=stage_counts[stage])
-                value_cell = ws.cell(row=row, column=3, value=stage_values.get(stage, 0))
+                value_cell = ws.cell(
+                    row=row, column=3, value=stage_values.get(stage, 0)
+                )
                 value_cell.number_format = '"$"#,##0'
 
                 # Apply stage color
@@ -504,7 +508,11 @@ class ExcelExportService:
         """Write dashboard summary to worksheet."""
         ws.cell(row=1, column=1, value="Dashboard Summary")
         ws.cell(row=1, column=1).font = Font(bold=True, size=16)
-        ws.cell(row=2, column=1, value=f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        ws.cell(
+            row=2,
+            column=1,
+            value=f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        )
 
         # Portfolio Summary Section
         row = 4

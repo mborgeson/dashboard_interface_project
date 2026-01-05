@@ -9,6 +9,7 @@ Provides automatic request/response metrics collection:
 """
 
 import time
+import contextlib
 from collections.abc import Callable
 
 from loguru import logger
@@ -69,10 +70,9 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         # Get request body size
         request_size = 0
         if request.headers.get("content-length"):
-            try:
+        if request.headers.get("content-length"):
+            with contextlib.suppress(ValueError, TypeError):
                 request_size = int(request.headers["content-length"])
-            except (ValueError, TypeError):
-                pass
 
         # Time the request
         start_time = time.perf_counter()
@@ -84,10 +84,8 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             # Get response body size
             response_size = 0
             if hasattr(response, "headers") and response.headers.get("content-length"):
-                try:
+                with contextlib.suppress(ValueError, TypeError):
                     response_size = int(response.headers["content-length"])
-                except (ValueError, TypeError):
-                    pass
 
         except Exception:
             # Track exceptions as 500 errors
@@ -147,7 +145,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         parts = path.split("/")
         normalized = []
 
-        for i, part in enumerate(parts):
+        for _, part in enumerate(parts):
             if not part:
                 normalized.append(part)
                 continue

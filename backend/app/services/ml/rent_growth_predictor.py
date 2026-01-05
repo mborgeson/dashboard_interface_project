@@ -1,6 +1,7 @@
 """
 Rent Growth Prediction Service using ML models.
 """
+
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -14,6 +15,7 @@ from .model_manager import get_model_manager
 @dataclass
 class RentPrediction:
     """Container for rent growth predictions."""
+
     property_id: int
     current_rent: float
     predicted_rent: float
@@ -136,9 +138,7 @@ class RentGrowthPredictor:
         return np.array(features).reshape(1, -1)
 
     def predict(
-        self,
-        property_data: dict,
-        prediction_months: int = 12
+        self, property_data: dict, prediction_months: int = 12
     ) -> RentPrediction | None:
         """
         Predict rent growth for a single property.
@@ -182,19 +182,18 @@ class RentGrowthPredictor:
                 model_version=self._model_version or "unknown",
                 prediction_date=datetime.now(UTC).isoformat(),
                 features_used={
-                    col: features[0][i]
-                    for i, col in enumerate(self.FEATURE_COLUMNS)
+                    col: features[0][i] for i, col in enumerate(self.FEATURE_COLUMNS)
                 },
             )
 
         except Exception as e:
-            logger.error(f"Prediction failed for property {property_data.get('id')}: {e}")
+            logger.error(
+                f"Prediction failed for property {property_data.get('id')}: {e}"
+            )
             return None
 
     def _generate_mock_prediction(
-        self,
-        property_data: dict,
-        prediction_months: int
+        self, property_data: dict, prediction_months: int
     ) -> RentPrediction:
         """Generate a mock prediction when model is not available."""
         # Use simple heuristics for mock prediction
@@ -226,7 +225,10 @@ class RentGrowthPredictor:
             current_rent=current_rent,
             predicted_rent=round(predicted_rent, 2),
             predicted_growth_rate=round(period_growth, 2),
-            confidence_interval=(round(period_growth - 1.5, 2), round(period_growth + 1.5, 2)),
+            confidence_interval=(
+                round(period_growth - 1.5, 2),
+                round(period_growth + 1.5, 2),
+            ),
             prediction_period_months=prediction_months,
             model_version="mock_v1",
             prediction_date=datetime.now(UTC).isoformat(),
@@ -234,9 +236,7 @@ class RentGrowthPredictor:
         )
 
     def predict_batch(
-        self,
-        properties: list[dict],
-        prediction_months: int = 12
+        self, properties: list[dict], prediction_months: int = 12
     ) -> list[RentPrediction]:
         """
         Predict rent growth for multiple properties.
@@ -264,7 +264,7 @@ class RentGrowthPredictor:
             # Works for tree-based models (XGBoost, LightGBM)
             if hasattr(self._model, "feature_importances_"):
                 importances = self._model.feature_importances_
-                return dict(zip(self.FEATURE_COLUMNS, importances))
+                return dict(zip(self.FEATURE_COLUMNS, importances, strict=False))
         except Exception as e:
             logger.error(f"Failed to get feature importance: {e}")
 

@@ -1,6 +1,7 @@
 """
 WebSocket service for real-time updates and collaboration.
 """
+
 import asyncio
 from datetime import UTC, datetime
 from typing import Any
@@ -42,6 +43,7 @@ class WebSocketManager:
     def _generate_connection_id(self, user_id: int | None = None) -> str:
         """Generate unique connection ID."""
         import uuid
+
         base = str(uuid.uuid4())[:8]
         if user_id:
             return f"user_{user_id}_{base}"
@@ -51,7 +53,7 @@ class WebSocketManager:
         self,
         websocket: WebSocket,
         user_id: int | None = None,
-        rooms: list[str] | None = None
+        rooms: list[str] | None = None,
     ) -> str:
         """
         Accept and register a WebSocket connection.
@@ -145,7 +147,7 @@ class WebSocketManager:
                 await asyncio.sleep(settings.WS_HEARTBEAT_INTERVAL)
                 await self.send_to_connection(
                     connection_id,
-                    {"type": "heartbeat", "timestamp": datetime.now(UTC).isoformat()}
+                    {"type": "heartbeat", "timestamp": datetime.now(UTC).isoformat()},
                 )
         except asyncio.CancelledError:
             pass
@@ -183,11 +185,7 @@ class WebSocketManager:
 
     # ==================== Message Sending ====================
 
-    async def send_to_connection(
-        self,
-        connection_id: str,
-        message: Any
-    ) -> bool:
+    async def send_to_connection(self, connection_id: str, message: Any) -> bool:
         """Send message to specific connection."""
         if connection_id not in self._connections:
             return False
@@ -204,11 +202,7 @@ class WebSocketManager:
             await self.disconnect(connection_id)
             return False
 
-    async def send_to_user(
-        self,
-        user_id: int,
-        message: Any
-    ) -> int:
+    async def send_to_user(self, user_id: int, message: Any) -> int:
         """Send message to all connections for a user."""
         sent = 0
         connection_ids = self._user_connections.get(user_id, set()).copy()
@@ -218,42 +212,33 @@ class WebSocketManager:
         return sent
 
     async def send_to_room(
-        self,
-        room_id: str,
-        message: Any,
-        exclude: str | None = None
+        self, room_id: str, message: Any, exclude: str | None = None
     ) -> int:
         """Send message to all connections in a room."""
         sent = 0
         connection_ids = self._rooms.get(room_id, set()).copy()
         for connection_id in connection_ids:
-            if connection_id != exclude:
-                if await self.send_to_connection(connection_id, message):
-                    sent += 1
+            if connection_id != exclude and await self.send_to_connection(
+                connection_id, message
+            ):
+                sent += 1
         return sent
 
-    async def broadcast(
-        self,
-        message: Any,
-        exclude: str | None = None
-    ) -> int:
+    async def broadcast(self, message: Any, exclude: str | None = None) -> int:
         """Broadcast message to all connections."""
         sent = 0
         connection_ids = list(self._connections.keys())
         for connection_id in connection_ids:
-            if connection_id != exclude:
-                if await self.send_to_connection(connection_id, message):
-                    sent += 1
+            if connection_id != exclude and await self.send_to_connection(
+                connection_id, message
+            ):
+                sent += 1
         return sent
 
     # ==================== Event Helpers ====================
 
     async def notify_deal_update(
-        self,
-        deal_id: int,
-        action: str,
-        data: dict,
-        user_id: int | None = None
+        self, deal_id: int, action: str, data: dict, user_id: int | None = None
     ) -> None:
         """Notify about deal updates (for Kanban board)."""
         message = {
@@ -267,10 +252,7 @@ class WebSocketManager:
         await self.send_to_room("deals", message)
 
     async def notify_property_update(
-        self,
-        property_id: int,
-        action: str,
-        data: dict
+        self, property_id: int, action: str, data: dict
     ) -> None:
         """Notify about property updates."""
         message = {
@@ -283,10 +265,7 @@ class WebSocketManager:
         await self.send_to_room("properties", message)
 
     async def notify_analytics_ready(
-        self,
-        report_type: str,
-        user_id: int,
-        report_id: str
+        self, report_type: str, user_id: int, report_id: str
     ) -> None:
         """Notify user that analytics report is ready."""
         message = {

@@ -375,11 +375,11 @@ async def email_notification_handler(job: Job) -> dict[str, Any]:
 
     to = job.payload.get("to")
     template = job.payload.get("template")
-    context = job.payload.get("context", {})
+    # context = job.payload.get("context", {})
 
     logger.info(f"Sending email notification: {template} to {to}")
 
-    email_service = get_email_service()
+    _ = get_email_service()
     # Email sending would be implemented here
 
     return {

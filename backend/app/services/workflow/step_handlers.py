@@ -195,8 +195,13 @@ class ConditionHandler(StepHandler):
         try:
             # Only allow simple comparisons and logical operators
             allowed_names = {
-                "True", "False", "None",
-                "and", "or", "not", "in",
+                "True",
+                "False",
+                "None",
+                "and",
+                "or",
+                "not",
+                "in",
             }
             # Basic safety check
             for name in allowed_names:
@@ -328,7 +333,10 @@ class NotificationHandler(StepHandler):
             logger.warning(f"Notification channel not found: {channel}")
             return {
                 "success": True,  # Don't fail workflow for missing channel
-                "result": {"sent": False, "reason": f"Channel {channel} not configured"},
+                "result": {
+                    "sent": False,
+                    "reason": f"Channel {channel} not configured",
+                },
                 "next_step": step.next_steps[0] if step.next_steps else None,
             }
 
@@ -446,6 +454,7 @@ class StepHandlerRegistry:
 # Built-in Action Handlers
 # =============================================================================
 
+
 async def log_action(
     step_config: dict[str, Any],
     variables: dict[str, Any],
@@ -488,6 +497,7 @@ async def http_request_action(
 ) -> dict[str, Any]:
     """Make an HTTP request."""
     import aiohttp
+    import contextlib
 
     url = step_config.get("url", "")
     method = step_config.get("method", "GET").upper()
@@ -496,10 +506,8 @@ async def http_request_action(
     timeout = step_config.get("timeout", 30)
 
     # Format URL with variables
-    try:
+    with contextlib.suppress(KeyError, ValueError):
         url = url.format(**variables)
-    except (KeyError, ValueError):
-        pass
 
     async with aiohttp.ClientSession() as session, session.request(
         method,

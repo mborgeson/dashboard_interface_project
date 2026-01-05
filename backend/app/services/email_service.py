@@ -1,6 +1,7 @@
 """
 Email service for sending notifications and reports.
 """
+
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -41,11 +42,7 @@ class EmailService:
         else:
             logger.warning(f"Email template directory not found: {template_dir}")
 
-    def _render_template(
-        self,
-        template_name: str,
-        context: dict[str, Any]
-    ) -> str:
+    def _render_template(self, template_name: str, context: dict[str, Any]) -> str:
         """Render an email template with context."""
         if not self._template_env:
             raise RuntimeError("Template environment not initialized")
@@ -114,12 +111,12 @@ class EmailService:
                     encoders.encode_base64(part)
                     part.add_header(
                         "Content-Disposition",
-                        f"attachment; filename={attachment['filename']}"
+                        f"attachment; filename={attachment['filename']}",
                     )
                     msg.attach(part)
 
             # All recipients for SMTP
-            all_recipients = to_email + (cc or []) + (bcc or [])
+            # all_recipients = to_email + (cc or []) + (bcc or [])
 
             # Send via SMTP
             await aiosmtplib.send(
@@ -141,10 +138,7 @@ class EmailService:
     # ==================== Template-Based Emails ====================
 
     async def send_welcome_email(
-        self,
-        to_email: str,
-        user_name: str,
-        login_url: str
+        self, to_email: str, user_name: str, login_url: str
     ) -> bool:
         """Send welcome email to new user."""
         try:
@@ -154,7 +148,7 @@ class EmailService:
                     "user_name": user_name,
                     "login_url": login_url,
                     "app_name": settings.APP_NAME,
-                }
+                },
             )
             return await self.send_email(
                 to_email=to_email,
@@ -166,10 +160,7 @@ class EmailService:
             return await self._send_fallback_welcome(to_email, user_name, login_url)
 
     async def _send_fallback_welcome(
-        self,
-        to_email: str,
-        user_name: str,
-        login_url: str
+        self, to_email: str, user_name: str, login_url: str
     ) -> bool:
         """Send simple welcome email if template fails."""
         html_content = f"""
@@ -190,11 +181,7 @@ class EmailService:
         )
 
     async def send_password_reset_email(
-        self,
-        to_email: str,
-        user_name: str,
-        reset_url: str,
-        expires_in_hours: int = 24
+        self, to_email: str, user_name: str, reset_url: str, expires_in_hours: int = 24
     ) -> bool:
         """Send password reset email."""
         try:
@@ -205,7 +192,7 @@ class EmailService:
                     "reset_url": reset_url,
                     "expires_in_hours": expires_in_hours,
                     "app_name": settings.APP_NAME,
-                }
+                },
             )
             return await self.send_email(
                 to_email=to_email,
@@ -239,7 +226,7 @@ class EmailService:
         summary: str,
         attachment_content: bytes,
         attachment_filename: str,
-        attachment_type: str = "application/pdf"
+        attachment_type: str = "application/pdf",
     ) -> bool:
         """Send analytics report via email."""
         try:
@@ -250,7 +237,7 @@ class EmailService:
                     "report_date": report_date,
                     "summary": summary,
                     "app_name": settings.APP_NAME,
-                }
+                },
             )
         except Exception:
             html_content = f"""
@@ -269,11 +256,13 @@ class EmailService:
             to_email=to_email,
             subject=f"{report_name} - {report_date}",
             html_content=html_content,
-            attachments=[{
-                "filename": attachment_filename,
-                "content": attachment_content,
-                "mime_type": attachment_type,
-            }]
+            attachments=[
+                {
+                    "filename": attachment_filename,
+                    "content": attachment_content,
+                    "mime_type": attachment_type,
+                }
+            ],
         )
 
     async def send_deal_notification(
@@ -282,7 +271,7 @@ class EmailService:
         deal_name: str,
         action: str,
         details: dict[str, Any],
-        deal_url: str
+        deal_url: str,
     ) -> bool:
         """Send notification about deal updates."""
         try:
@@ -294,7 +283,7 @@ class EmailService:
                     "details": details,
                     "deal_url": deal_url,
                     "app_name": settings.APP_NAME,
-                }
+                },
             )
         except Exception:
             html_content = f"""
