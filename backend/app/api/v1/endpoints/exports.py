@@ -92,13 +92,13 @@ async def export_properties_excel(
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=f"Excel export not available: {str(e)}",
-        )
+        ) from e
     except Exception as e:
         logger.error(f"Excel export failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate Excel export",
-        )
+        ) from e
 
 
 @router.get("/deals/excel")
@@ -181,7 +181,7 @@ async def export_deals_excel(
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=f"Excel export not available: {str(e)}",
-        )
+        ) from e
     except HTTPException:
         raise
     except Exception as e:
@@ -189,7 +189,7 @@ async def export_deals_excel(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate Excel export",
-        )
+        ) from e
 
 
 @router.get("/analytics/excel")
@@ -278,13 +278,13 @@ async def export_analytics_excel(
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=f"Excel export not available: {str(e)}",
-        )
+        ) from e
     except Exception as e:
         logger.error(f"Analytics Excel export failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate Excel export",
-        )
+        ) from e
 
 
 @router.get("/properties/{property_id}/pdf")
@@ -362,7 +362,7 @@ async def export_property_pdf(
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=f"PDF generation not available: {str(e)}",
-        )
+        ) from e
     except HTTPException:
         raise
     except Exception as e:
@@ -370,7 +370,7 @@ async def export_property_pdf(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate PDF report",
-        )
+        ) from e
 
 
 @router.get("/deals/{deal_id}/pdf")
@@ -447,7 +447,7 @@ async def export_deal_pdf(
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=f"PDF generation not available: {str(e)}",
-        )
+        ) from e
     except HTTPException:
         raise
     except Exception as e:
@@ -455,7 +455,7 @@ async def export_deal_pdf(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate PDF report",
-        )
+        ) from e
 
 
 @router.get("/portfolio/pdf")

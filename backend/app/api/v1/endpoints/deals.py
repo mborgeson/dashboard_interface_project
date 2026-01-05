@@ -1,6 +1,7 @@
 """
 Deal endpoints for pipeline management and Kanban board operations.
 """
+
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -228,11 +229,11 @@ async def update_deal_stage(
     # Update stage via CRUD
     try:
         new_stage_enum = DealStage(stage_data.stage)
-    except ValueError:
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid stage: {stage_data.stage}",
-        )
+        ) from e
 
     updated_deal = await deal_crud.update_stage(
         db,
@@ -248,7 +249,9 @@ async def update_deal_stage(
         action="stage_changed",
         data={
             "deal_id": deal_id,
-            "old_stage": old_stage.value if hasattr(old_stage, 'value') else str(old_stage),
+            "old_stage": (
+                old_stage.value if hasattr(old_stage, "value") else str(old_stage)
+            ),
             "new_stage": stage_data.stage,
         },
     )
