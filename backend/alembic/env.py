@@ -92,11 +92,24 @@ async def run_async_migrations() -> None:
     In this scenario we need to create an Engine and associate a
     connection with the context.
     """
-    # Create async engine directly with the decoded URL
-    connectable = create_async_engine(
-        db_url,
-        poolclass=pool.NullPool,
-    )
+    # Determine engine configuration based on database type
+    # SQLite doesn't support pool_size, max_overflow, pool_timeout
+    _is_sqlite = db_url.startswith("sqlite")
+
+    if _is_sqlite:
+        # SQLite configuration - use StaticPool for in-memory databases
+        from sqlalchemy.pool import StaticPool
+        connectable = create_async_engine(
+            db_url,
+            poolclass=StaticPool,
+            connect_args={"check_same_thread": False},
+        )
+    else:
+        # PostgreSQL/other configuration - use NullPool for migrations
+        connectable = create_async_engine(
+            db_url,
+            poolclass=pool.NullPool,
+        )
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

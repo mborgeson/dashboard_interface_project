@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
+from app.core.config import settings
 from app.models.user import User
 from app.models.property import Property
 from app.models.deal import Deal, DealStage
@@ -43,8 +44,8 @@ from app.models.underwriting import (
     AnnualCashflow,
 )
 
-# Database URL - using simple password for compatibility
-DATABASE_URL = "postgresql+asyncpg://postgres:TestPassword123@localhost:5432/dashboard_interface_data"
+# Database URL - use settings module (reads from environment variables)
+DATABASE_URL = settings.database_url_async
 
 
 # ============================================================================
