@@ -5,19 +5,32 @@ Database session configuration with async support.
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import NullPool, StaticPool
 
 from app.core.config import settings
 
-# Create async engine with connection pooling
-engine = create_async_engine(
-    settings.database_url_async,
-    echo=settings.DEBUG,
-    pool_size=settings.DATABASE_POOL_SIZE,
-    max_overflow=settings.DATABASE_MAX_OVERFLOW,
-    pool_timeout=settings.DATABASE_POOL_TIMEOUT,
-    pool_pre_ping=True,  # Enable connection health checks
-)
+# Determine engine configuration based on database type
+# SQLite doesn't support pool_size, max_overflow, pool_timeout
+_is_sqlite = settings.database_url_async.startswith("sqlite")
+
+if _is_sqlite:
+    # SQLite configuration - use StaticPool for in-memory databases
+    engine = create_async_engine(
+        settings.database_url_async,
+        echo=settings.DEBUG,
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
+    )
+else:
+    # PostgreSQL/other configuration - use connection pooling
+    engine = create_async_engine(
+        settings.database_url_async,
+        echo=settings.DEBUG,
+        pool_size=settings.DATABASE_POOL_SIZE,
+        max_overflow=settings.DATABASE_MAX_OVERFLOW,
+        pool_timeout=settings.DATABASE_POOL_TIMEOUT,
+        pool_pre_ping=True,  # Enable connection health checks
+    )
 
 # Session factory
 AsyncSessionLocal = async_sessionmaker(
