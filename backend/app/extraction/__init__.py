@@ -14,6 +14,7 @@ Components:
 from .error_handler import ErrorHandler, ErrorCategory, ExtractionError
 from .cell_mapping import CellMapping, CellMappingParser
 from .extractor import ExcelDataExtractor
+from .sharepoint import SharePointClient, SharePointFile, get_sharepoint_client
 
 __all__ = [
     "ErrorHandler",
@@ -22,4 +23,7 @@ __all__ = [
     "CellMapping",
     "CellMappingParser",
     "ExcelDataExtractor",
+    "SharePointClient",
+    "SharePointFile",
+    "get_sharepoint_client",
 ]

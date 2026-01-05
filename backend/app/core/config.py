@@ -88,7 +88,9 @@ class Settings(BaseSettings):
     AZURE_TENANT_ID: Optional[str] = None
     SHAREPOINT_SITE_URL: Optional[str] = None
     SHAREPOINT_SITE: Optional[str] = "BRCapital-Internal"
-    DEALS_FOLDER: str = "Real Estate/Deals"
+    SHAREPOINT_LIBRARY: str = "Real Estate"  # Document library name
+    SHAREPOINT_DEALS_FOLDER: str = "Deals"  # Folder within library
+    DEALS_FOLDER: str = "Real Estate/Deals"  # Legacy alias
 
     # File Criteria
     FILE_PATTERN: str = "UW Model vCurrent"

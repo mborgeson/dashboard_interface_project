@@ -77,8 +77,8 @@ Sample extracted values:
 
 ## Open Items / Next Steps
 
-- [ ] Start PostgreSQL and create `dashboard_interface_data` database
-- [ ] Run Alembic migration: `alembic revision --autogenerate -m "Add extraction tables" && alembic upgrade head`
+- [x] ~~Start PostgreSQL and create `dashboard_interface_data` database~~ ✅ Done (using Windows PostgreSQL 17)
+- [x] ~~Run Alembic migration~~ ✅ Done (commit 4cf12a2)
 - [ ] Port SharePoint authentication from prior project
 - [ ] Add APScheduler for nightly 2 AM extraction
 - [ ] Remove mock data from project
@@ -90,22 +90,21 @@ Sample extracted values:
 ## Prerequisites
 - Python 3.12+ with venv
 - Node.js 24+
-- PostgreSQL 14+
+- PostgreSQL 17 (Windows) - already running on your system
 - WSL2 Ubuntu (for Windows users)
 
 ## Backend Setup
 ```bash
+# Open VS Code in Remote-WSL mode
+# Ctrl+Shift+P -> "Remote-WSL: Open Folder in WSL..."
+# Navigate to /home/mattb/projects/dashboard_interface_project
+
 cd backend
-python -m venv venv
-source venv/bin/activate  # Linux/WSL
-pip install -r requirements.txt
+source venv/bin/activate
+export PYTHONPATH=$PWD
 
-# Create database
-sudo -u postgres psql -c "CREATE DATABASE dashboard_interface_data;"
-
-# Run migrations
-export PYTHONPATH=/home/mattb/projects/dashboard_interface_project/backend
-alembic upgrade head
+# Database already created on Windows PostgreSQL
+# Migrations already applied
 
 # Start server
 uvicorn app.main:app --reload --port 8000
