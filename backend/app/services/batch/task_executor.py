@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 from loguru import logger
+import contextlib
 
 from .job_queue import Job, JobQueue, get_job_queue
 
@@ -106,12 +107,10 @@ class TaskExecutor:
         self._shutdown_event.set()
 
         # Cancel active jobs
-        for job_id, task in list(self._active_jobs.items()):
+        for _, task in list(self._active_jobs.items()):
             task.cancel()
-            try:
+            with contextlib.suppress(TimeoutError, asyncio.CancelledError):
                 await asyncio.wait_for(task, timeout=5.0)
-            except (TimeoutError, asyncio.CancelledError):
-                pass
 
         # Wait for workers to finish
         if self._workers:
@@ -171,7 +170,9 @@ class TaskExecutor:
         handler = self._handlers.get(job.task_type)
         if not handler:
             logger.error(f"No handler for task type: {job.task_type}")
-            await self._job_queue.fail(job.id, f"No handler for task type: {job.task_type}")
+            await self._job_queue.fail(
+                job.id, f"No handler for task type: {job.task_type}"
+            )
             return
 
         logger.info(f"Worker {worker_id} executing job: {job.id} ({job.task_type})")
@@ -272,6 +273,7 @@ def get_task_executor() -> TaskExecutor:
 # Built-in Task Handlers
 # =============================================================================
 
+
 async def report_generation_handler(job: Job) -> dict[str, Any]:
     """
     Handle report generation tasks.
@@ -288,17 +290,17 @@ async def report_generation_handler(job: Job) -> dict[str, Any]:
     report_type = job.payload.get("report_type")
     entity_id = job.payload.get("entity_id")
     output_format = job.payload.get("format", "pdf")
-    options = job.payload.get("options", {})
+    # options = job.payload.get("options", {})
 
     logger.info(f"Generating {report_type} report for entity {entity_id}")
 
     # Generate report based on type and format
     if output_format == "pdf":
-        pdf_service = get_pdf_service()
+        _ = get_pdf_service()
         # Report generation would be implemented here
         result = {"format": "pdf", "status": "generated"}
     else:
-        export_service = get_export_service()
+        _ = get_export_service()
         # Excel export would be implemented here
         result = {"format": "excel", "status": "generated"}
 
@@ -322,7 +324,7 @@ async def data_export_handler(job: Job) -> dict[str, Any]:
         destination: Export destination
     """
     export_type = job.payload.get("export_type")
-    filters = job.payload.get("filters", {})
+    # filters = job.payload.get("filters", {})
     output_format = job.payload.get("format", "csv")
 
     logger.info(f"Exporting {export_type} data in {output_format} format")
@@ -347,7 +349,7 @@ async def data_import_handler(job: Job) -> dict[str, Any]:
     """
     import_type = job.payload.get("import_type")
     source = job.payload.get("source")
-    options = job.payload.get("options", {})
+    # options = job.payload.get("options", {})
 
     logger.info(f"Importing {import_type} data from {source}")
 

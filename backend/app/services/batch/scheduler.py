@@ -11,12 +11,14 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 from uuid import uuid4
+import contextlib
 
 from loguru import logger
 
 
 class ScheduleInterval(str, Enum):
     """Common schedule intervals."""
+
     MINUTE = "minute"
     HOURLY = "hourly"
     DAILY = "daily"
@@ -43,6 +45,7 @@ class ScheduledTask:
         last_error: Last error message
         created_at: Task creation time
     """
+
     id: str = field(default_factory=lambda: str(uuid4()))
     name: str = ""
     task_type: str = ""
@@ -84,13 +87,25 @@ class ScheduledTask:
             task_type=data.get("task_type", ""),
             payload=data.get("payload", {}),
             interval_seconds=data.get("interval_seconds", 3600),
-            last_run=datetime.fromisoformat(data["last_run"]) if data.get("last_run") else None,
-            next_run=datetime.fromisoformat(data["next_run"]) if data.get("next_run") else None,
+            last_run=(
+                datetime.fromisoformat(data["last_run"])
+                if data.get("last_run")
+                else None
+            ),
+            next_run=(
+                datetime.fromisoformat(data["next_run"])
+                if data.get("next_run")
+                else None
+            ),
             enabled=data.get("enabled", True),
             run_count=data.get("run_count", 0),
             error_count=data.get("error_count", 0),
             last_error=data.get("last_error"),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.utcnow(),
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if data.get("created_at")
+                else datetime.utcnow()
+            ),
             metadata=data.get("metadata", {}),
         )
 
@@ -137,6 +152,7 @@ class TaskScheduler:
         if redis_url:
             try:
                 from app.services.redis_service import get_redis_client
+
                 self._redis_client = await get_redis_client()
                 if self._redis_client:
                     self._use_redis = True
@@ -155,7 +171,9 @@ class TaskScheduler:
         try:
             task_ids = await self._redis_client.smembers("scheduler:tasks")
             for task_id in task_ids:
-                task_data = await self._redis_client.hgetall(f"scheduler:task:{task_id}")
+                task_data = await self._redis_client.hgetall(
+                    f"scheduler:task:{task_id}"
+                )
                 if task_data:
                     task = ScheduledTask.from_dict(task_data)
                     self._tasks[task.id] = task
@@ -170,8 +188,7 @@ class TaskScheduler:
 
         try:
             await self._redis_client.hset(
-                f"scheduler:task:{task.id}",
-                mapping=task.to_dict()
+                f"scheduler:task:{task.id}", mapping=task.to_dict()
             )
             await self._redis_client.sadd("scheduler:tasks", task.id)
         except Exception as e:
@@ -340,10 +357,8 @@ class TaskScheduler:
         self._running = False
         if self._scheduler_task:
             self._scheduler_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._scheduler_task
-            except asyncio.CancelledError:
-                pass
         logger.info("Task scheduler stopped")
 
     async def _scheduler_loop(self) -> None:
@@ -354,7 +369,8 @@ class TaskScheduler:
 
                 # Find due tasks
                 due_tasks = [
-                    task for task in self._tasks.values()
+                    task
+                    for task in self._tasks.values()
                     if task.enabled and task.next_run and task.next_run <= now
                 ]
 
@@ -442,6 +458,7 @@ def get_scheduler() -> TaskScheduler:
 # Built-in Scheduled Task Handlers
 # =============================================================================
 
+
 async def cleanup_old_jobs_handler(payload: dict[str, Any]) -> None:
     """Clean up old completed jobs from the queue."""
     from datetime import timedelta
@@ -450,9 +467,7 @@ async def cleanup_old_jobs_handler(payload: dict[str, Any]) -> None:
 
     max_age_hours = payload.get("max_age_hours", 24)
     queue = get_job_queue()
-    cleared = await queue.clear_completed(
-        older_than=timedelta(hours=max_age_hours)
-    )
+    cleared = await queue.clear_completed(older_than=timedelta(hours=max_age_hours))
     logger.info(f"Cleaned up {cleared} old jobs")
 
 

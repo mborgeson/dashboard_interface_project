@@ -146,9 +146,10 @@ class SharePointClient:
 
         url = f"{self.GRAPH_BASE_URL}{endpoint}"
 
-        async with aiohttp.ClientSession() as session, session.request(
-            method, url, headers=headers, **kwargs
-        ) as response:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.request(method, url, headers=headers, **kwargs) as response,
+        ):
             if response.status == 401:
                 # Token may have expired, clear cache and retry once
                 self._access_token = None
@@ -335,10 +336,13 @@ class SharePointClient:
             raise ValueError(f"No download URL available for {file.name}")
 
         # Download using the pre-authenticated URL
-        async with aiohttp.ClientSession() as session:
-            async with session.get(file.download_url) as response:
-                response.raise_for_status()
-                content = await response.read()
+        # Download using the pre-authenticated URL
+        async with (
+            aiohttp.ClientSession() as session,
+            session.get(file.download_url) as response,
+        ):
+            response.raise_for_status()
+            content = await response.read()
 
         self.logger.info("file_downloaded", name=file.name, size=len(content))
         return content

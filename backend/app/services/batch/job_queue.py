@@ -18,6 +18,7 @@ from loguru import logger
 
 class JobStatus(str, Enum):
     """Job execution status."""
+
     PENDING = "pending"
     QUEUED = "queued"
     RUNNING = "running"
@@ -29,6 +30,7 @@ class JobStatus(str, Enum):
 
 class JobPriority(int, Enum):
     """Job priority levels (lower number = higher priority)."""
+
     CRITICAL = 1
     HIGH = 2
     NORMAL = 3
@@ -58,6 +60,7 @@ class Job:
         timeout: Job timeout in seconds
         metadata: Additional job metadata
     """
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str = ""
     task_type: str = ""
@@ -76,7 +79,10 @@ class Job:
 
     def __lt__(self, other: "Job") -> bool:
         """Compare jobs by priority for heap ordering."""
-        return (self.priority.value, self.created_at) < (other.priority.value, other.created_at)
+        return (self.priority.value, self.created_at) < (
+            other.priority.value,
+            other.created_at,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert job to dictionary."""
@@ -89,7 +95,9 @@ class Job:
             "status": self.status.value,
             "created_at": self.created_at.isoformat(),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": (
+                self.completed_at.isoformat() if self.completed_at else None
+            ),
             "result": self.result,
             "error": self.error,
             "retry_count": self.retry_count,
@@ -108,9 +116,21 @@ class Job:
             payload=data.get("payload", {}),
             priority=JobPriority(data.get("priority", JobPriority.NORMAL)),
             status=JobStatus(data.get("status", JobStatus.PENDING)),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.utcnow(),
-            started_at=datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None,
-            completed_at=datetime.fromisoformat(data["completed_at"]) if data.get("completed_at") else None,
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if data.get("created_at")
+                else datetime.utcnow()
+            ),
+            started_at=(
+                datetime.fromisoformat(data["started_at"])
+                if data.get("started_at")
+                else None
+            ),
+            completed_at=(
+                datetime.fromisoformat(data["completed_at"])
+                if data.get("completed_at")
+                else None
+            ),
             result=data.get("result"),
             error=data.get("error"),
             retry_count=data.get("retry_count", 0),
@@ -157,13 +177,16 @@ class JobQueue:
         if redis_url:
             try:
                 from app.services.redis_service import get_redis_client
+
                 self._redis_client = await get_redis_client()
                 if self._redis_client:
                     self._use_redis = True
                     await self._load_from_redis()
                     logger.info("Job queue initialized with Redis backing")
             except Exception as e:
-                logger.warning(f"Failed to connect to Redis, using in-memory queue: {e}")
+                logger.warning(
+                    f"Failed to connect to Redis, using in-memory queue: {e}"
+                )
         else:
             logger.info("Job queue initialized with in-memory storage")
 
@@ -179,7 +202,11 @@ class JobQueue:
                 if job_data:
                     job = Job.from_dict(job_data)
                     self._jobs[job.id] = job
-                    if job.status in [JobStatus.PENDING, JobStatus.QUEUED, JobStatus.RETRY]:
+                    if job.status in [
+                        JobStatus.PENDING,
+                        JobStatus.QUEUED,
+                        JobStatus.RETRY,
+                    ]:
                         heappush(self._queue, job)
         except Exception as e:
             logger.error(f"Failed to load jobs from Redis: {e}")
@@ -262,7 +289,10 @@ class JobQueue:
 
                 # Refresh from storage
                 stored_job = self._jobs.get(job.id)
-                if stored_job and stored_job.status in [JobStatus.QUEUED, JobStatus.RETRY]:
+                if stored_job and stored_job.status in [
+                    JobStatus.QUEUED,
+                    JobStatus.RETRY,
+                ]:
                     stored_job.status = JobStatus.RUNNING
                     stored_job.started_at = datetime.utcnow()
 
@@ -327,7 +357,9 @@ class JobQueue:
                 # Schedule retry
                 job.status = JobStatus.RETRY
                 heappush(self._queue, job)
-                logger.warning(f"Job failed, scheduling retry {job.retry_count}/{job.max_retries}: {job.id}")
+                logger.warning(
+                    f"Job failed, scheduling retry {job.retry_count}/{job.max_retries}: {job.id}"
+                )
             else:
                 # Max retries exceeded
                 job.status = JobStatus.FAILED
@@ -377,7 +409,8 @@ class JobQueue:
     async def get_pending_jobs(self) -> list[Job]:
         """Get all pending/queued jobs."""
         return [
-            j for j in self._jobs.values()
+            j
+            for j in self._jobs.values()
             if j.status in [JobStatus.PENDING, JobStatus.QUEUED, JobStatus.RETRY]
         ]
 
@@ -421,9 +454,14 @@ class JobQueue:
         async with self._lock:
             to_remove = []
             for job_id, job in self._jobs.items():
-                if job.status in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED]:
-                    if cutoff is None or (job.completed_at and job.completed_at < cutoff):
-                        to_remove.append(job_id)
+                if job.status in [
+                    JobStatus.COMPLETED,
+                    JobStatus.FAILED,
+                    JobStatus.CANCELLED,
+                ] and (
+                    cutoff is None or (job.completed_at and job.completed_at < cutoff)
+                ):
+                    to_remove.append(job_id)
 
             for job_id in to_remove:
                 del self._jobs[job_id]
