@@ -14,7 +14,7 @@ import pandas as pd
 import structlog
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Set
+from typing import Dict, Set
 from collections import Counter
 
 

@@ -257,7 +257,7 @@ class ExtractedValueCRUD:
         error_stmt = select(func.count(ExtractedValue.id)).where(
             and_(
                 ExtractedValue.extraction_run_id == extraction_run_id,
-                ExtractedValue.is_error == True,
+                ExtractedValue.is_error.is_(True),
             )
         )
         errors = db.execute(error_stmt).scalar_one()

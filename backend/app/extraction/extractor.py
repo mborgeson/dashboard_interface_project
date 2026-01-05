@@ -281,7 +281,7 @@ class ExcelDataExtractor:
             return self.error_handler.process_cell_value(
                 cell.value, field_name, sheet_name, cell_address
             )
-        except Exception as e:
+        except Exception:
             return self.error_handler.handle_cell_not_found(
                 field_name, sheet_name, cell_address
             )

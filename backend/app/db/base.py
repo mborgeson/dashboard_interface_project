@@ -24,14 +24,14 @@ class Base(DeclarativeBase):
     metadata = metadata
 
 
-# Import all models here for Alembic to detect them
+# Import all models here for Alembic to detect them  # noqa: E402
 # noqa comments prevent unused import warnings
-from app.models.user import User  # noqa: F401
-from app.models.property import Property  # noqa: F401
-from app.models.deal import Deal  # noqa: F401
+from app.models.user import User  # noqa: E402, F401
+from app.models.property import Property  # noqa: E402, F401
+from app.models.deal import Deal  # noqa: E402, F401
 
 # Underwriting Models
-from app.models.underwriting import (  # noqa: F401
+from app.models.underwriting import (  # noqa: E402, F401
     UnderwritingModel,
     GeneralAssumptions,
     ExitAssumptions,
@@ -47,7 +47,7 @@ from app.models.underwriting import (  # noqa: F401
 )
 
 # Extraction Models (SharePoint UW Model Integration)
-from app.models.extraction import (  # noqa: F401
+from app.models.extraction import (  # noqa: E402, F401
     ExtractionRun,
     ExtractedValue,
 )

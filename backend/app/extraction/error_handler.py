@@ -10,7 +10,6 @@ Provides robust error handling for Excel data extraction with:
 
 import numpy as np
 import pandas as pd
-import logging
 from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
 from dataclasses import dataclass, field
@@ -20,6 +19,7 @@ import structlog
 
 class ErrorCategory(Enum):
     """Categories of extraction errors"""
+
     MISSING_SHEET = "missing_sheet"
     INVALID_CELL_ADDRESS = "invalid_cell_address"
     CELL_NOT_FOUND = "cell_not_found"
@@ -34,6 +34,7 @@ class ErrorCategory(Enum):
 @dataclass
 class ExtractionError:
     """Detailed error information for tracking and reporting"""
+
     category: ErrorCategory
     field_name: str
     sheet_name: str
@@ -58,10 +59,7 @@ class ErrorHandler:
         self.logger = structlog.get_logger(__name__)
 
     def handle_missing_sheet(
-        self,
-        field_name: str,
-        sheet_name: str,
-        available_sheets: List[str]
+        self, field_name: str, sheet_name: str, available_sheets: List[str]
     ) -> Any:
         """Handle missing sheet scenarios"""
         similar_sheets = self._find_similar_sheets(sheet_name, available_sheets)
@@ -76,18 +74,14 @@ class ErrorHandler:
             sheet_name=sheet_name,
             cell_address="N/A",
             error_message=f"Sheet '{sheet_name}' not found in workbook",
-            suggested_fix=suggested_fix
+            suggested_fix=suggested_fix,
         )
 
         self._log_error(error)
         return np.nan
 
     def handle_invalid_cell_address(
-        self,
-        field_name: str,
-        sheet_name: str,
-        cell_address: str,
-        error_msg: str
+        self, field_name: str, sheet_name: str, cell_address: str, error_msg: str
     ) -> Any:
         """Handle invalid cell address formats"""
         error = ExtractionError(
@@ -96,7 +90,7 @@ class ErrorHandler:
             sheet_name=sheet_name,
             cell_address=cell_address,
             error_message=f"Invalid cell address format: {error_msg}",
-            suggested_fix="Check cell address format (e.g., 'A1', 'B10', '$C$5')"
+            suggested_fix="Check cell address format (e.g., 'A1', 'B10', '$C$5')",
         )
 
         self._log_error(error)
@@ -107,7 +101,7 @@ class ErrorHandler:
         field_name: str,
         sheet_name: str,
         cell_address: str,
-        sheet_size: Optional[Tuple[int, int]] = None
+        sheet_size: Optional[Tuple[int, int]] = None,
     ) -> Any:
         """Handle cases where cell address is outside sheet bounds"""
         suggested_fix = "Check if cell address is within sheet bounds"
@@ -121,31 +115,27 @@ class ErrorHandler:
             sheet_name=sheet_name,
             cell_address=cell_address,
             error_message=f"Cell {cell_address} not found or outside sheet bounds",
-            suggested_fix=suggested_fix
+            suggested_fix=suggested_fix,
         )
 
         self._log_error(error)
         return np.nan
 
     def handle_formula_error(
-        self,
-        field_name: str,
-        sheet_name: str,
-        cell_address: str,
-        formula_error: str
+        self, field_name: str, sheet_name: str, cell_address: str, formula_error: str
     ) -> Any:
         """Handle Excel formula errors (#REF!, #DIV/0!, etc.)"""
         error_meanings = {
-            '#REF!': 'Invalid cell reference',
-            '#VALUE!': 'Wrong data type for operation',
-            '#DIV/0!': 'Division by zero',
-            '#NAME?': 'Unrecognized function or name',
-            '#N/A': 'Value not available',
-            '#NULL!': 'Incorrect range operator',
-            '#NUM!': 'Invalid numeric value'
+            "#REF!": "Invalid cell reference",
+            "#VALUE!": "Wrong data type for operation",
+            "#DIV/0!": "Division by zero",
+            "#NAME?": "Unrecognized function or name",
+            "#N/A": "Value not available",
+            "#NULL!": "Incorrect range operator",
+            "#NUM!": "Invalid numeric value",
         }
 
-        meaning = error_meanings.get(formula_error, 'Unknown formula error')
+        meaning = error_meanings.get(formula_error, "Unknown formula error")
 
         error = ExtractionError(
             category=ErrorCategory.FORMULA_ERROR,
@@ -154,7 +144,7 @@ class ErrorHandler:
             cell_address=cell_address,
             error_message=f"Formula error {formula_error}: {meaning}",
             original_value=formula_error,
-            suggested_fix=f"Fix formula causing {formula_error} error"
+            suggested_fix=f"Fix formula causing {formula_error} error",
         )
 
         self._log_error(error)
@@ -166,7 +156,7 @@ class ErrorHandler:
         sheet_name: str,
         cell_address: str,
         value: Any,
-        expected_type: str
+        expected_type: str,
     ) -> Any:
         """Handle data type conversion errors"""
         error = ExtractionError(
@@ -176,7 +166,7 @@ class ErrorHandler:
             cell_address=cell_address,
             error_message=f"Cannot convert '{value}' to {expected_type}",
             original_value=value,
-            suggested_fix=f"Ensure cell contains valid {expected_type} data"
+            suggested_fix=f"Ensure cell contains valid {expected_type} data",
         )
 
         self._log_error(error)
@@ -187,7 +177,7 @@ class ErrorHandler:
         field_name: str,
         sheet_name: str,
         cell_address: str,
-        treat_as_error: bool = False
+        treat_as_error: bool = False,
     ) -> Any:
         """Handle empty/null values"""
         if treat_as_error:
@@ -197,18 +187,14 @@ class ErrorHandler:
                 sheet_name=sheet_name,
                 cell_address=cell_address,
                 error_message="Cell is empty or contains null value",
-                suggested_fix="Verify if this field should contain data"
+                suggested_fix="Verify if this field should contain data",
             )
             self._log_error(error)
 
         return np.nan
 
     def handle_parsing_error(
-        self,
-        field_name: str,
-        sheet_name: str,
-        cell_address: str,
-        error_msg: str
+        self, field_name: str, sheet_name: str, cell_address: str, error_msg: str
     ) -> Any:
         """Handle general parsing errors"""
         error = ExtractionError(
@@ -217,7 +203,7 @@ class ErrorHandler:
             sheet_name=sheet_name,
             cell_address=cell_address,
             error_message=f"Parsing error: {error_msg}",
-            suggested_fix="Check cell content format and data validity"
+            suggested_fix="Check cell content format and data validity",
         )
 
         self._log_error(error)
@@ -231,18 +217,14 @@ class ErrorHandler:
             sheet_name="N/A",
             cell_address="N/A",
             error_message=f"File access error: {error_msg}",
-            suggested_fix="Check file path, permissions, and file format"
+            suggested_fix="Check file path, permissions, and file format",
         )
 
         self._log_error(error)
         return np.nan
 
     def handle_unknown_error(
-        self,
-        field_name: str,
-        sheet_name: str,
-        cell_address: str,
-        error_msg: str
+        self, field_name: str, sheet_name: str, cell_address: str, error_msg: str
     ) -> Any:
         """Handle unexpected errors"""
         error = ExtractionError(
@@ -251,7 +233,7 @@ class ErrorHandler:
             sheet_name=sheet_name,
             cell_address=cell_address,
             error_message=f"Unexpected error: {error_msg}",
-            suggested_fix="Contact support with error details"
+            suggested_fix="Contact support with error details",
         )
 
         self._log_error(error)
@@ -262,7 +244,7 @@ class ErrorHandler:
         value: Any,
         field_name: str = "",
         sheet_name: str = "",
-        cell_address: str = ""
+        cell_address: str = "",
     ) -> Any:
         """
         Process and validate cell values with comprehensive error handling.
@@ -277,14 +259,21 @@ class ErrorHandler:
             Processed value or np.nan for errors/missing values
         """
         # Handle None/empty values
-        if value is None or value == '':
+        if value is None or value == "":
             return self.handle_empty_value(field_name, sheet_name, cell_address)
 
         # Handle string values
         if isinstance(value, str):
             # Check for Excel formula errors
-            excel_errors = ['#REF!', '#VALUE!', '#DIV/0!', '#NAME?',
-                          '#N/A', '#NULL!', '#NUM!']
+            excel_errors = [
+                "#REF!",
+                "#VALUE!",
+                "#DIV/0!",
+                "#NAME?",
+                "#N/A",
+                "#NULL!",
+                "#NUM!",
+            ]
 
             for error_code in excel_errors:
                 if error_code in value:
@@ -293,7 +282,7 @@ class ErrorHandler:
                     )
 
             # Handle string representations of missing values
-            missing_indicators = ['n/a', 'na', 'null', 'none', '', '-', 'tbd', 'tba']
+            missing_indicators = ["n/a", "na", "null", "none", "", "-", "tbd", "tba"]
             if value.lower().strip() in missing_indicators:
                 return self.handle_empty_value(field_name, sheet_name, cell_address)
 
@@ -324,10 +313,7 @@ class ErrorHandler:
             )
 
     def _find_similar_sheets(
-        self,
-        target_sheet: str,
-        available_sheets: List[str],
-        threshold: float = 0.6
+        self, target_sheet: str, available_sheets: List[str], threshold: float = 0.6
     ) -> List[str]:
         """Find sheets with similar names using simple string matching"""
         similar_sheets = []
@@ -371,7 +357,7 @@ class ErrorHandler:
             field_name=error.field_name,
             sheet_name=error.sheet_name,
             cell_address=error.cell_address,
-            error_message=error.error_message
+            error_message=error.error_message,
         )
 
     def get_error_summary(self) -> Dict[str, Any]:
@@ -383,7 +369,7 @@ class ErrorHandler:
                 "total_errors": 0,
                 "error_rate": 0.0,
                 "categories": {},
-                "summary": "No errors encountered during extraction"
+                "summary": "No errors encountered during extraction",
             }
 
         # Error breakdown by category
@@ -392,7 +378,7 @@ class ErrorHandler:
             if count > 0:
                 category_breakdown[category.value] = {
                     "count": count,
-                    "percentage": round((count / total_errors) * 100, 1)
+                    "percentage": round((count / total_errors) * 100, 1),
                 }
 
         # Most common errors (top 10)
@@ -405,14 +391,12 @@ class ErrorHandler:
                     "message": error.error_message,
                     "count": 0,
                     "example_field": error.field_name,
-                    "suggested_fix": error.suggested_fix
+                    "suggested_fix": error.suggested_fix,
                 }
             error_messages[key]["count"] += 1
 
         sorted_errors = sorted(
-            error_messages.values(),
-            key=lambda x: x["count"],
-            reverse=True
+            error_messages.values(), key=lambda x: x["count"], reverse=True
         )
 
         # Generate recommendations
@@ -422,7 +406,7 @@ class ErrorHandler:
             "total_errors": total_errors,
             "error_breakdown_by_category": category_breakdown,
             "most_common_errors": sorted_errors[:10],
-            "recommendations": recommendations
+            "recommendations": recommendations,
         }
 
     def _generate_recommendations(self) -> List[str]:
@@ -459,17 +443,17 @@ class ErrorHandler:
     def get_recovery_suggestion(self, error_category: str) -> str:
         """Get recovery suggestion for a specific error category"""
         suggestions = {
-            'missing_sheet': 'Check sheet name spelling or use fuzzy matching',
-            'invalid_cell_address': 'Verify cell address format (e.g., A1, $B$2)',
-            'formula_error': 'Check Excel formula for errors (#REF!, #DIV/0!)',
-            'file_access_error': 'Verify file exists and is accessible',
-            'data_type_error': 'Check data type compatibility',
-            'empty_value': 'Consider providing default values or validation',
-            'parsing_error': 'Verify data format matches expected structure',
-            'cell_not_found': 'Check if cell address is within sheet bounds',
-            'unknown_error': 'Review error details and contact support'
+            "missing_sheet": "Check sheet name spelling or use fuzzy matching",
+            "invalid_cell_address": "Verify cell address format (e.g., A1, $B$2)",
+            "formula_error": "Check Excel formula for errors (#REF!, #DIV/0!)",
+            "file_access_error": "Verify file exists and is accessible",
+            "data_type_error": "Check data type compatibility",
+            "empty_value": "Consider providing default values or validation",
+            "parsing_error": "Verify data format matches expected structure",
+            "cell_not_found": "Check if cell address is within sheet bounds",
+            "unknown_error": "Review error details and contact support",
         }
-        return suggestions.get(error_category, 'No specific suggestion available')
+        return suggestions.get(error_category, "No specific suggestion available")
 
     def reset(self) -> None:
         """Reset error tracking for new extraction"""

@@ -9,7 +9,7 @@ Usage:
 
 import asyncio
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 import random
 from loguru import logger
