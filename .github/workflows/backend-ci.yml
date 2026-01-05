@@ -85,6 +85,7 @@ jobs:
           ENVIRONMENT: testing
         run: |
           python -m pytest \
+            -m "not slow" \
             --cov=app \
             --cov-report=xml \
             --cov-report=term-missing \

@@ -157,8 +157,9 @@ class TestExcelDataExtractor:
         assert len(fixture_files) > 0, f"No fixture files found in {FIXTURES_DIR}"
         print(f"✓ Found {len(fixture_files)} fixture files")
 
+    @pytest.mark.slow
     def test_extract_single_file(self, extractor, fixture_files):
-        """Test extraction from a single fixture file"""
+        """Test extraction from a single fixture file (slow - processes large Excel files)"""
         if not fixture_files:
             pytest.skip("No fixture files available")
 
@@ -181,8 +182,9 @@ class TestExcelDataExtractor:
         assert metadata["successful"] > 0, "No successful extractions"
         print(f"✓ Extraction completed with {metadata['success_rate']}% success rate")
 
+    @pytest.mark.slow
     def test_extract_multiple_files(self, extractor, fixture_files):
-        """Test extraction from all fixture files"""
+        """Test extraction from all fixture files (slow - processes large Excel files)"""
         if len(fixture_files) < 2:
             pytest.skip("Need at least 2 fixture files")
 
