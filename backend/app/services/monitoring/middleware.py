@@ -9,17 +9,17 @@ Provides automatic request/response metrics collection:
 """
 
 import time
-from typing import Callable
+from collections.abc import Callable
 
+from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from loguru import logger
 
 from app.services.monitoring.metrics import (
     REQUEST_COUNT,
-    REQUEST_LATENCY,
     REQUEST_IN_PROGRESS,
+    REQUEST_LATENCY,
     REQUEST_SIZE,
     RESPONSE_SIZE,
 )
@@ -89,7 +89,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                 except (ValueError, TypeError):
                     pass
 
-        except Exception as exc:
+        except Exception:
             # Track exceptions as 500 errors
             status_code = 500
             response_size = 0

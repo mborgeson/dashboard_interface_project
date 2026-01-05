@@ -5,8 +5,9 @@ Maps to: 'Assumptions (Summary)'!$D$23, $D$30, $D$31 range
 Cell Reference Category: "Exit Assumptions"
 """
 from decimal import Decimal
-from typing import Optional, TYPE_CHECKING
-from sqlalchemy import Integer, Numeric, ForeignKey
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey, Integer, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -41,21 +42,21 @@ class ExitAssumptions(Base, TimestampMixin, SourceTrackingMixin):
     )
 
     # Exit Timing (D23)
-    exit_period_months: Mapped[Optional[int]] = mapped_column(
+    exit_period_months: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="EXIT_PERIOD_MONTHS - 'Assumptions (Summary)'!$D$23"
     )
 
     # Exit Cap Rate (D30)
-    exit_cap_rate: Mapped[Optional[Decimal]] = mapped_column(
+    exit_cap_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="EXIT_CAP_RATE - 'Assumptions (Summary)'!$D$30"
     )
 
     # Transaction Costs (D31)
-    sales_transaction_costs: Mapped[Optional[Decimal]] = mapped_column(
+    sales_transaction_costs: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="SALES_TRANSACTION_COSTS - 'Assumptions (Summary)'!$D$31"

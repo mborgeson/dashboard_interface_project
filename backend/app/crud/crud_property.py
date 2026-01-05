@@ -2,9 +2,9 @@
 CRUD operations for Property model.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -23,15 +23,15 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
         *,
         skip: int = 0,
         limit: int = 100,
-        property_type: Optional[str] = None,
-        city: Optional[str] = None,
-        state: Optional[str] = None,
-        market: Optional[str] = None,
-        min_units: Optional[int] = None,
-        max_units: Optional[int] = None,
+        property_type: str | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        market: str | None = None,
+        min_units: int | None = None,
+        max_units: int | None = None,
         order_by: str = "name",
         order_desc: bool = False,
-    ) -> List[Property]:
+    ) -> list[Property]:
         """Get properties with multiple filters."""
         query = select(Property)
 
@@ -67,12 +67,12 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
         self,
         db: AsyncSession,
         *,
-        property_type: Optional[str] = None,
-        city: Optional[str] = None,
-        state: Optional[str] = None,
-        market: Optional[str] = None,
-        min_units: Optional[int] = None,
-        max_units: Optional[int] = None,
+        property_type: str | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        market: str | None = None,
+        min_units: int | None = None,
+        max_units: int | None = None,
     ) -> int:
         """Count properties with filters."""
         query = select(func.count()).select_from(Property)
@@ -105,7 +105,7 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
         market: str,
         skip: int = 0,
         limit: int = 100,
-    ) -> List[Property]:
+    ) -> list[Property]:
         """Get properties filtered by market."""
         result = await db.execute(
             select(Property)
@@ -119,7 +119,7 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
     async def get_analytics_summary(
         self,
         db: AsyncSession,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get aggregate analytics for all properties."""
         # Total count
         count_result = await db.execute(select(func.count()).select_from(Property))
@@ -152,7 +152,7 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
     async def get_markets(
         self,
         db: AsyncSession,
-    ) -> List[str]:
+    ) -> list[str]:
         """Get list of unique markets."""
         result = await db.execute(
             select(Property.market)

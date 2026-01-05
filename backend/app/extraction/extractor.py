@@ -13,20 +13,20 @@ Key features:
 
 import io
 import re
-import numpy as np
-import structlog
 import warnings
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
+import numpy as np
 import openpyxl
 import pyxlsb
+import structlog
 
 from .cell_mapping import CellMapping
 from .error_handler import ErrorHandler
-
 
 # Suppress openpyxl warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
@@ -40,7 +40,7 @@ class ExcelDataExtractor:
     comprehensive error handling that returns np.nan for any failures.
     """
 
-    def __init__(self, cell_mappings: Dict[str, CellMapping]):
+    def __init__(self, cell_mappings: dict[str, CellMapping]):
         self.mappings = cell_mappings
         self.logger = structlog.get_logger().bind(component="ExcelDataExtractor")
         self.error_handler = ErrorHandler()
@@ -48,9 +48,9 @@ class ExcelDataExtractor:
     def extract_from_file(
         self,
         file_path: str,
-        file_content: Optional[bytes] = None,
-        progress_callback: Optional[Callable[[int, int], None]] = None,
-    ) -> Dict[str, Any]:
+        file_content: bytes | None = None,
+        progress_callback: Callable[[int, int], None] | None = None,
+    ) -> dict[str, Any]:
         """
         Extract all mapped values from an Excel file.
 
@@ -72,7 +72,7 @@ class ExcelDataExtractor:
         # Reset error handler for this extraction
         self.error_handler.reset()
 
-        extracted_data: Dict[str, Any] = {
+        extracted_data: dict[str, Any] = {
             "_file_path": file_path,
             "_extraction_timestamp": datetime.now().isoformat(),
             "_extraction_errors": [],
@@ -175,13 +175,13 @@ class ExcelDataExtractor:
 
         return extracted_data
 
-    def _load_xlsb(self, file_path: str, file_content: Optional[bytes] = None):
+    def _load_xlsb(self, file_path: str, file_content: bytes | None = None):
         """Load .xlsb file using pyxlsb"""
         if file_content:
             return pyxlsb.open_workbook(io.BytesIO(file_content))
         return pyxlsb.open_workbook(file_path)
 
-    def _load_xlsx(self, file_path: str, file_content: Optional[bytes] = None):
+    def _load_xlsx(self, file_path: str, file_content: bytes | None = None):
         """Load .xlsx/.xlsm file using openpyxl"""
         if file_content:
             return openpyxl.load_workbook(
@@ -315,9 +315,9 @@ class BatchProcessor:
 
     def process_files(
         self,
-        file_list: List[Dict[str, Any]],
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
-    ) -> Dict[str, Any]:
+        file_list: list[dict[str, Any]],
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> dict[str, Any]:
         """
         Process multiple files with parallel execution.
 
@@ -330,8 +330,8 @@ class BatchProcessor:
             Dict with 'results', 'failed', 'summary'
         """
         total_files = len(file_list)
-        processed_results: List[Dict[str, Any]] = []
-        failed_files: List[Dict[str, Any]] = []
+        processed_results: list[dict[str, Any]] = []
+        failed_files: list[dict[str, Any]] = []
 
         self.logger.info(
             "starting_batch_processing",
@@ -402,7 +402,7 @@ class BatchProcessor:
             "summary": summary,
         }
 
-    def _process_single_file(self, file_info: Dict[str, Any]) -> Dict[str, Any]:
+    def _process_single_file(self, file_info: dict[str, Any]) -> dict[str, Any]:
         """Process a single file and add metadata"""
         file_path = file_info.get("file_path")
         file_content = file_info.get("file_content")

@@ -12,14 +12,18 @@ from __future__ import annotations
 
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any
 
 from loguru import logger
 
 try:
+    from reportlab.graphics.charts.barcharts import VerticalBarChart
+    from reportlab.graphics.charts.linecharts import HorizontalLineChart
+    from reportlab.graphics.charts.piecharts import Pie
+    from reportlab.graphics.shapes import Drawing, Line, Rect
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-    from reportlab.lib.pagesizes import letter, A4
+    from reportlab.lib.pagesizes import A4, letter
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import inch
     from reportlab.platypus import (
@@ -34,10 +38,6 @@ try:
         Table,
         TableStyle,
     )
-    from reportlab.graphics.shapes import Drawing, Line, Rect
-    from reportlab.graphics.charts.barcharts import VerticalBarChart
-    from reportlab.graphics.charts.linecharts import HorizontalLineChart
-    from reportlab.graphics.charts.piecharts import Pie
 
     REPORTLAB_AVAILABLE = True
 except ImportError:
@@ -245,7 +245,7 @@ class PDFReportService:
     def generate_property_report(
         self,
         property_data: dict[str, Any],
-        analytics: Optional[dict[str, Any]] = None,
+        analytics: dict[str, Any] | None = None,
     ) -> BytesIO:
         """
         Generate a detailed property report.
@@ -393,7 +393,7 @@ class PDFReportService:
     def generate_deal_report(
         self,
         deal_data: dict[str, Any],
-        property_data: Optional[dict[str, Any]] = None,
+        property_data: dict[str, Any] | None = None,
     ) -> BytesIO:
         """
         Generate a detailed deal report.
@@ -766,7 +766,7 @@ class PDFReportService:
 
 
 # Service singleton
-_pdf_service: Optional[PDFReportService] = None
+_pdf_service: PDFReportService | None = None
 
 
 def get_pdf_service() -> PDFReportService:

@@ -1,15 +1,13 @@
 """
 Rent Growth Prediction Service using ML models.
 """
-import numpy as np
-import pandas as pd
-from datetime import datetime, timezone
-from typing import Any, Optional, Dict, List, Tuple
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
 
+import numpy as np
 from loguru import logger
 
-from app.core.config import settings
 from .model_manager import get_model_manager
 
 
@@ -20,11 +18,11 @@ class RentPrediction:
     current_rent: float
     predicted_rent: float
     predicted_growth_rate: float  # Percentage
-    confidence_interval: Tuple[float, float]  # (lower, upper)
+    confidence_interval: tuple[float, float]  # (lower, upper)
     prediction_period_months: int
     model_version: str
     prediction_date: str
-    features_used: Dict[str, Any]
+    features_used: dict[str, Any]
 
 
 class RentGrowthPredictor:
@@ -141,7 +139,7 @@ class RentGrowthPredictor:
         self,
         property_data: dict,
         prediction_months: int = 12
-    ) -> Optional[RentPrediction]:
+    ) -> RentPrediction | None:
         """
         Predict rent growth for a single property.
 
@@ -182,7 +180,7 @@ class RentGrowthPredictor:
                 confidence_interval=(round(lower_bound, 2), round(upper_bound, 2)),
                 prediction_period_months=prediction_months,
                 model_version=self._model_version or "unknown",
-                prediction_date=datetime.now(timezone.utc).isoformat(),
+                prediction_date=datetime.now(UTC).isoformat(),
                 features_used={
                     col: features[0][i]
                     for i, col in enumerate(self.FEATURE_COLUMNS)
@@ -231,15 +229,15 @@ class RentGrowthPredictor:
             confidence_interval=(round(period_growth - 1.5, 2), round(period_growth + 1.5, 2)),
             prediction_period_months=prediction_months,
             model_version="mock_v1",
-            prediction_date=datetime.now(timezone.utc).isoformat(),
+            prediction_date=datetime.now(UTC).isoformat(),
             features_used={"mock": True},
         )
 
     def predict_batch(
         self,
-        properties: List[dict],
+        properties: list[dict],
         prediction_months: int = 12
-    ) -> List[RentPrediction]:
+    ) -> list[RentPrediction]:
         """
         Predict rent growth for multiple properties.
 
@@ -257,7 +255,7 @@ class RentGrowthPredictor:
                 predictions.append(prediction)
         return predictions
 
-    def get_feature_importance(self) -> Optional[Dict[str, float]]:
+    def get_feature_importance(self) -> dict[str, float] | None:
         """Get feature importance from the model."""
         if self._model is None:
             return None
@@ -274,7 +272,7 @@ class RentGrowthPredictor:
 
 
 # Singleton instance
-_predictor: Optional[RentGrowthPredictor] = None
+_predictor: RentGrowthPredictor | None = None
 
 
 async def get_rent_growth_predictor() -> RentGrowthPredictor:

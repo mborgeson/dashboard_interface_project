@@ -2,7 +2,7 @@
 Base schema configurations and common fields.
 """
 from datetime import datetime
-from typing import Optional
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -28,7 +28,7 @@ class PaginationParams(BaseModel):
 
     page: int = 1
     page_size: int = 20
-    sort_by: Optional[str] = None
+    sort_by: str | None = None
     sort_order: str = "asc"  # asc or desc
 
 

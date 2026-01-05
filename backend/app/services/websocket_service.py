@@ -1,12 +1,11 @@
 """
 WebSocket service for real-time updates and collaboration.
 """
-import json
 import asyncio
-from typing import Any, Dict, Optional, Set
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket
 from loguru import logger
 
 from app.core.config import settings
@@ -25,22 +24,22 @@ class WebSocketManager:
 
     def __init__(self):
         # Active connections: {connection_id: WebSocket}
-        self._connections: Dict[str, WebSocket] = {}
+        self._connections: dict[str, WebSocket] = {}
         # User connections: {user_id: Set[connection_id]}
-        self._user_connections: Dict[int, Set[str]] = {}
+        self._user_connections: dict[int, set[str]] = {}
         # Room subscriptions: {room_id: Set[connection_id]}
-        self._rooms: Dict[str, Set[str]] = {}
+        self._rooms: dict[str, set[str]] = {}
         # Connection metadata: {connection_id: metadata}
-        self._metadata: Dict[str, dict] = {}
+        self._metadata: dict[str, dict] = {}
         # Heartbeat tasks
-        self._heartbeat_tasks: Dict[str, asyncio.Task] = {}
+        self._heartbeat_tasks: dict[str, asyncio.Task] = {}
 
     @property
     def connection_count(self) -> int:
         """Get total active connections."""
         return len(self._connections)
 
-    def _generate_connection_id(self, user_id: Optional[int] = None) -> str:
+    def _generate_connection_id(self, user_id: int | None = None) -> str:
         """Generate unique connection ID."""
         import uuid
         base = str(uuid.uuid4())[:8]
@@ -51,8 +50,8 @@ class WebSocketManager:
     async def connect(
         self,
         websocket: WebSocket,
-        user_id: Optional[int] = None,
-        rooms: Optional[list[str]] = None
+        user_id: int | None = None,
+        rooms: list[str] | None = None
     ) -> str:
         """
         Accept and register a WebSocket connection.
@@ -71,7 +70,7 @@ class WebSocketManager:
         self._connections[connection_id] = websocket
         self._metadata[connection_id] = {
             "user_id": user_id,
-            "connected_at": datetime.now(timezone.utc).isoformat(),
+            "connected_at": datetime.now(UTC).isoformat(),
             "rooms": rooms or [],
         }
 
@@ -146,7 +145,7 @@ class WebSocketManager:
                 await asyncio.sleep(settings.WS_HEARTBEAT_INTERVAL)
                 await self.send_to_connection(
                     connection_id,
-                    {"type": "heartbeat", "timestamp": datetime.now(timezone.utc).isoformat()}
+                    {"type": "heartbeat", "timestamp": datetime.now(UTC).isoformat()}
                 )
         except asyncio.CancelledError:
             pass
@@ -222,7 +221,7 @@ class WebSocketManager:
         self,
         room_id: str,
         message: Any,
-        exclude: Optional[str] = None
+        exclude: str | None = None
     ) -> int:
         """Send message to all connections in a room."""
         sent = 0
@@ -236,7 +235,7 @@ class WebSocketManager:
     async def broadcast(
         self,
         message: Any,
-        exclude: Optional[str] = None
+        exclude: str | None = None
     ) -> int:
         """Broadcast message to all connections."""
         sent = 0
@@ -254,7 +253,7 @@ class WebSocketManager:
         deal_id: int,
         action: str,
         data: dict,
-        user_id: Optional[int] = None
+        user_id: int | None = None
     ) -> None:
         """Notify about deal updates (for Kanban board)."""
         message = {
@@ -262,10 +261,10 @@ class WebSocketManager:
             "action": action,  # created, updated, deleted, stage_changed
             "deal_id": deal_id,
             "data": data,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "triggered_by": user_id,
         }
-        await self.send_to_room(f"deals", message)
+        await self.send_to_room("deals", message)
 
     async def notify_property_update(
         self,
@@ -279,9 +278,9 @@ class WebSocketManager:
             "action": action,
             "property_id": property_id,
             "data": data,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
-        await self.send_to_room(f"properties", message)
+        await self.send_to_room("properties", message)
 
     async def notify_analytics_ready(
         self,
@@ -294,13 +293,13 @@ class WebSocketManager:
             "type": "analytics_ready",
             "report_type": report_type,
             "report_id": report_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         await self.send_to_user(user_id, message)
 
 
 # Singleton instance
-_ws_manager: Optional[WebSocketManager] = None
+_ws_manager: WebSocketManager | None = None
 
 
 def get_websocket_manager() -> WebSocketManager:

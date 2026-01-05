@@ -10,22 +10,20 @@ Defines all application metrics collected for monitoring and alerting:
 """
 
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
-from functools import lru_cache
-from typing import Optional, Callable, Any
+from typing import Any
 
-from prometheus_client import (
-    Counter,
-    Histogram,
-    Gauge,
-    Info,
-    CollectorRegistry,
-    REGISTRY,
-    generate_latest,
-    CONTENT_TYPE_LATEST,
-)
 from loguru import logger
-
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    REGISTRY,
+    Counter,
+    Gauge,
+    Histogram,
+    Info,
+    generate_latest,
+)
 
 # =============================================================================
 # HTTP Request Metrics
@@ -293,7 +291,7 @@ class MetricsManager:
         self,
         operation: str,
         cache_name: str,
-        hit: Optional[bool] = None,
+        hit: bool | None = None,
         duration: float = 0,
     ) -> None:
         """Record cache operation metrics."""
@@ -319,7 +317,7 @@ class MetricsManager:
 # Singleton Instance
 # =============================================================================
 
-_metrics_manager: Optional[MetricsManager] = None
+_metrics_manager: MetricsManager | None = None
 
 
 def get_metrics_manager() -> MetricsManager:
@@ -356,7 +354,7 @@ def track_time(metric: Histogram, labels: dict):
         metric.labels(**labels).observe(duration)
 
 
-def timed(metric: Histogram, labels_func: Optional[Callable] = None):
+def timed(metric: Histogram, labels_func: Callable | None = None):
     """
     Decorator to track function execution time.
 

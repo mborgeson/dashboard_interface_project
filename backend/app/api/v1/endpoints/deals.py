@@ -1,25 +1,24 @@
 """
 Deal endpoints for pipeline management and Kanban board operations.
 """
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
 from app.crud import deal as deal_crud
+from app.db.session import get_db
+from app.models.deal import DealStage
 from app.schemas.deal import (
     DealCreate,
-    DealUpdate,
-    DealResponse,
     DealListResponse,
+    DealResponse,
     DealStageUpdate,
+    DealUpdate,
     KanbanBoardResponse,
 )
 from app.services import get_websocket_manager
-from app.models.deal import DealStage
 
 router = APIRouter()
 
@@ -28,11 +27,11 @@ router = APIRouter()
 async def list_deals(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    stage: Optional[str] = None,
-    deal_type: Optional[str] = None,
-    priority: Optional[str] = None,
-    assigned_user_id: Optional[int] = None,
-    sort_by: Optional[str] = "created_at",
+    stage: str | None = None,
+    deal_type: str | None = None,
+    priority: str | None = None,
+    assigned_user_id: int | None = None,
+    sort_by: str | None = "created_at",
     sort_order: str = "desc",
     db: AsyncSession = Depends(get_db),
 ):
@@ -74,8 +73,8 @@ async def list_deals(
 
 @router.get("/kanban", response_model=KanbanBoardResponse)
 async def get_kanban_board(
-    deal_type: Optional[str] = None,
-    assigned_user_id: Optional[int] = None,
+    deal_type: str | None = None,
+    assigned_user_id: int | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -307,7 +306,7 @@ async def add_deal_activity(
         )
 
     # TODO: Implement activity logging in a separate ActivityLog model
-    activity["timestamp"] = datetime.now(timezone.utc).isoformat()
+    activity["timestamp"] = datetime.now(UTC).isoformat()
     activity["deal_id"] = deal_id
 
     return {"message": "Activity added", "activity": activity}

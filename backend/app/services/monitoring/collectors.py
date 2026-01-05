@@ -11,14 +11,14 @@ import asyncio
 import os
 import platform
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Any
 
 from loguru import logger
 
 from app.services.monitoring.metrics import (
-    DB_CONNECTION_POOL_SIZE,
-    DB_CONNECTION_POOL_CHECKED_OUT,
     ACTIVE_USERS,
+    DB_CONNECTION_POOL_CHECKED_OUT,
+    DB_CONNECTION_POOL_SIZE,
     DEALS_COUNT,
     PROPERTIES_COUNT,
     UNDERWRITING_MODELS_COUNT,
@@ -38,11 +38,11 @@ class SystemMetricsCollector:
 
     def __init__(self):
         """Initialize system metrics collector."""
-        self._last_collection: Optional[datetime] = None
+        self._last_collection: datetime | None = None
         self._cache_duration = timedelta(seconds=5)
-        self._cached_metrics: Dict[str, Any] = {}
+        self._cached_metrics: dict[str, Any] = {}
 
-    async def collect(self) -> Dict[str, Any]:
+    async def collect(self) -> dict[str, Any]:
         """Collect system metrics."""
         now = datetime.utcnow()
 
@@ -133,7 +133,7 @@ class DatabaseMetricsCollector:
         """Set the SQLAlchemy engine for pool monitoring."""
         self._engine = engine
 
-    async def collect(self) -> Dict[str, Any]:
+    async def collect(self) -> dict[str, Any]:
         """Collect database metrics."""
         metrics = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -185,15 +185,15 @@ class ApplicationMetricsCollector:
     def __init__(self):
         """Initialize application metrics collector."""
         self._db_session_factory = None
-        self._last_collection: Optional[datetime] = None
+        self._last_collection: datetime | None = None
         self._cache_duration = timedelta(seconds=30)
-        self._cached_metrics: Dict[str, Any] = {}
+        self._cached_metrics: dict[str, Any] = {}
 
     def set_session_factory(self, session_factory) -> None:
         """Set the database session factory for queries."""
         self._db_session_factory = session_factory
 
-    async def collect(self) -> Dict[str, Any]:
+    async def collect(self) -> dict[str, Any]:
         """Collect application metrics."""
         now = datetime.utcnow()
 
@@ -216,8 +216,7 @@ class ApplicationMetricsCollector:
             return metrics
 
         try:
-            from sqlalchemy import select, func
-            from sqlalchemy.ext.asyncio import AsyncSession
+            from sqlalchemy import func, select
 
             async with self._db_session_factory() as session:
                 # User counts
@@ -293,7 +292,7 @@ class CollectorRegistry:
         self.database = DatabaseMetricsCollector()
         self.application = ApplicationMetricsCollector()
 
-    async def collect_all(self) -> Dict[str, Any]:
+    async def collect_all(self) -> dict[str, Any]:
         """Collect metrics from all collectors."""
         results = await asyncio.gather(
             self.system.collect(),
@@ -310,7 +309,7 @@ class CollectorRegistry:
 
 
 # Singleton registry instance
-_collector_registry: Optional[CollectorRegistry] = None
+_collector_registry: CollectorRegistry | None = None
 
 
 def get_collector_registry() -> CollectorRegistry:

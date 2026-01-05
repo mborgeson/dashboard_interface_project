@@ -11,8 +11,8 @@ Components:
 - scheduler: APScheduler integration for nightly extraction
 """
 
-from .error_handler import ErrorHandler, ErrorCategory, ExtractionError
 from .cell_mapping import CellMapping, CellMappingParser
+from .error_handler import ErrorCategory, ErrorHandler, ExtractionError
 from .extractor import ExcelDataExtractor
 from .sharepoint import SharePointClient, SharePointFile, get_sharepoint_client
 

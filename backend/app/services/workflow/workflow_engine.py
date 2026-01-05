@@ -5,24 +5,24 @@ Core execution engine for workflow automation.
 """
 
 import asyncio
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from loguru import logger
 
+from .step_handlers import (
+    StepHandlerRegistry,
+    register_default_actions,
+)
 from .workflow_models import (
     ApprovalRequest,
     StepDefinition,
     StepExecution,
     StepStatus,
-    StepType,
     WorkflowDefinition,
     WorkflowInstance,
     WorkflowStatus,
-)
-from .step_handlers import (
-    StepHandlerRegistry,
-    register_default_actions,
 )
 
 
@@ -40,19 +40,19 @@ class WorkflowEngine:
     """
 
     def __init__(self):
-        self._definitions: Dict[str, WorkflowDefinition] = {}
-        self._instances: Dict[str, WorkflowInstance] = {}
-        self._approval_requests: Dict[str, ApprovalRequest] = {}
+        self._definitions: dict[str, WorkflowDefinition] = {}
+        self._instances: dict[str, WorkflowInstance] = {}
+        self._approval_requests: dict[str, ApprovalRequest] = {}
         self._handler_registry = StepHandlerRegistry()
-        self._event_callbacks: Dict[str, List[Callable]] = {}
-        self._running_tasks: Dict[str, asyncio.Task] = {}
+        self._event_callbacks: dict[str, list[Callable]] = {}
+        self._running_tasks: dict[str, asyncio.Task] = {}
         self._redis_client = None
         self._use_redis = False
 
         # Register default actions
         register_default_actions(self._handler_registry.get_action_handler())
 
-    async def initialize(self, redis_url: Optional[str] = None) -> None:
+    async def initialize(self, redis_url: str | None = None) -> None:
         """
         Initialize the workflow engine.
 
@@ -166,11 +166,11 @@ class WorkflowEngine:
             return True
         return False
 
-    def get_workflow(self, workflow_id: str) -> Optional[WorkflowDefinition]:
+    def get_workflow(self, workflow_id: str) -> WorkflowDefinition | None:
         """Get a workflow definition by ID."""
         return self._definitions.get(workflow_id)
 
-    def list_workflows(self) -> List[WorkflowDefinition]:
+    def list_workflows(self) -> list[WorkflowDefinition]:
         """List all registered workflow definitions."""
         return list(self._definitions.values())
 
@@ -181,10 +181,10 @@ class WorkflowEngine:
     async def create_instance(
         self,
         workflow_id: str,
-        variables: Optional[Dict[str, Any]] = None,
-        created_by: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Optional[WorkflowInstance]:
+        variables: dict[str, Any] | None = None,
+        created_by: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> WorkflowInstance | None:
         """
         Create a new workflow instance.
 
@@ -305,15 +305,15 @@ class WorkflowEngine:
         logger.info(f"Cancelled workflow instance: {instance_id}")
         return True
 
-    def get_instance(self, instance_id: str) -> Optional[WorkflowInstance]:
+    def get_instance(self, instance_id: str) -> WorkflowInstance | None:
         """Get a workflow instance by ID."""
         return self._instances.get(instance_id)
 
     def list_instances(
         self,
-        workflow_id: Optional[str] = None,
-        status: Optional[WorkflowStatus] = None,
-    ) -> List[WorkflowInstance]:
+        workflow_id: str | None = None,
+        status: WorkflowStatus | None = None,
+    ) -> list[WorkflowInstance]:
         """List workflow instances with optional filtering."""
         instances = list(self._instances.values())
 
@@ -408,7 +408,7 @@ class WorkflowEngine:
         self,
         instance: WorkflowInstance,
         step: StepDefinition,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute a single workflow step."""
         execution = instance.get_step_execution(step.id)
         execution.status = StepStatus.RUNNING
@@ -441,7 +441,7 @@ class WorkflowEngine:
 
             return result
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             execution.status = StepStatus.FAILED
             execution.error = f"Step timed out after {step.timeout_seconds} seconds"
             execution.completed_at = datetime.utcnow()
@@ -460,7 +460,7 @@ class WorkflowEngine:
         self,
         instance: WorkflowInstance,
         definition: WorkflowDefinition,
-        branches: List[str],
+        branches: list[str],
     ) -> None:
         """Execute parallel branches concurrently."""
         async def execute_branch(branch_step_id: str) -> None:
@@ -479,7 +479,7 @@ class WorkflowEngine:
         instance_id: str,
         step_id: str,
         approved_by: str,
-        comment: Optional[str] = None,
+        comment: str | None = None,
     ) -> bool:
         """
         Approve a waiting step.
@@ -532,7 +532,7 @@ class WorkflowEngine:
         instance_id: str,
         step_id: str,
         rejected_by: str,
-        comment: Optional[str] = None,
+        comment: str | None = None,
     ) -> bool:
         """Reject a waiting step, failing the workflow."""
         instance = self._instances.get(instance_id)
@@ -596,7 +596,7 @@ class WorkflowEngine:
     # Statistics
     # =========================================================================
 
-    async def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         """Get workflow engine statistics."""
         instances = list(self._instances.values())
 
@@ -616,7 +616,7 @@ class WorkflowEngine:
 
 
 # Singleton instance
-_workflow_engine: Optional[WorkflowEngine] = None
+_workflow_engine: WorkflowEngine | None = None
 
 
 def get_workflow_engine() -> WorkflowEngine:

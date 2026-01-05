@@ -3,8 +3,9 @@ Pydantic schemas for extraction API endpoints.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 
@@ -14,7 +15,7 @@ class ExtractionStartRequest(BaseModel):
     source: str = Field(
         default="sharepoint", description="Data source: 'sharepoint' or 'local'"
     )
-    file_paths: Optional[List[str]] = Field(
+    file_paths: list[str] | None = Field(
         default=None, description="Specific file paths to extract (for local source)"
     )
 
@@ -35,13 +36,13 @@ class ExtractionStatusResponse(BaseModel):
     status: str  # running, completed, failed, cancelled
     trigger_type: str
     started_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     files_discovered: int
     files_processed: int
     files_failed: int
-    success_rate: Optional[float] = None
-    duration_seconds: Optional[float] = None
-    error_summary: Optional[Dict[str, Any]] = None
+    success_rate: float | None = None
+    duration_seconds: float | None = None
+    error_summary: dict[str, Any] | None = None
 
 
 class ExtractionHistoryItem(BaseModel):
@@ -51,10 +52,10 @@ class ExtractionHistoryItem(BaseModel):
     status: str
     trigger_type: str
     started_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     files_processed: int
     files_failed: int
-    success_rate: Optional[float] = None
+    success_rate: float | None = None
 
     class Config:
         from_attributes = True
@@ -63,7 +64,7 @@ class ExtractionHistoryItem(BaseModel):
 class ExtractionHistoryResponse(BaseModel):
     """Response for extraction history."""
 
-    runs: List[ExtractionHistoryItem]
+    runs: list[ExtractionHistoryItem]
     total: int
 
 
@@ -75,13 +76,13 @@ class ExtractedPropertySummary(BaseModel):
     total_fields: int
     successful_fields: int
     error_fields: int
-    sample_values: Dict[str, Any]
+    sample_values: dict[str, Any]
 
 
 class PropertyListResponse(BaseModel):
     """List of properties with extracted data."""
 
-    properties: List[str]
+    properties: list[str]
     total: int
 
 
@@ -90,12 +91,12 @@ class SchedulerStatusResponse(BaseModel):
 
     enabled: bool
     cron_expression: str
-    next_run: Optional[datetime] = None
-    last_run: Optional[datetime] = None
+    next_run: datetime | None = None
+    last_run: datetime | None = None
 
 
 class SchedulerUpdateRequest(BaseModel):
     """Request to update scheduler settings."""
 
-    enabled: Optional[bool] = None
-    cron_expression: Optional[str] = None
+    enabled: bool | None = None
+    cron_expression: str | None = None

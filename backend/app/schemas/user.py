@@ -2,7 +2,7 @@
 User schemas for API request/response validation.
 """
 from datetime import datetime
-from typing import Optional
+
 from pydantic import BaseModel, EmailStr, Field
 
 from .base import BaseSchema, TimestampSchema
@@ -14,8 +14,8 @@ class UserBase(BaseSchema):
     email: EmailStr
     full_name: str = Field(..., min_length=1, max_length=255)
     role: str = Field(default="viewer", pattern="^(admin|analyst|viewer)$")
-    department: Optional[str] = Field(None, max_length=100)
-    phone: Optional[str] = Field(None, max_length=20)
+    department: str | None = Field(None, max_length=100)
+    phone: str | None = Field(None, max_length=20)
 
 
 class UserCreate(UserBase):
@@ -27,14 +27,14 @@ class UserCreate(UserBase):
 class UserUpdate(BaseSchema):
     """Schema for updating a user. All fields optional."""
 
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = Field(None, min_length=1, max_length=255)
-    role: Optional[str] = Field(None, pattern="^(admin|analyst|viewer)$")
-    department: Optional[str] = Field(None, max_length=100)
-    phone: Optional[str] = Field(None, max_length=20)
-    avatar_url: Optional[str] = Field(None, max_length=500)
-    is_active: Optional[bool] = None
-    email_notifications: Optional[bool] = None
+    email: EmailStr | None = None
+    full_name: str | None = Field(None, min_length=1, max_length=255)
+    role: str | None = Field(None, pattern="^(admin|analyst|viewer)$")
+    department: str | None = Field(None, max_length=100)
+    phone: str | None = Field(None, max_length=20)
+    avatar_url: str | None = Field(None, max_length=500)
+    is_active: bool | None = None
+    email_notifications: bool | None = None
 
 
 class UserResponse(UserBase, TimestampSchema):
@@ -43,8 +43,8 @@ class UserResponse(UserBase, TimestampSchema):
     id: int
     is_active: bool
     is_verified: bool
-    avatar_url: Optional[str] = None
-    last_login: Optional[datetime] = None
+    avatar_url: str | None = None
+    last_login: datetime | None = None
     email_notifications: bool = True
 
 

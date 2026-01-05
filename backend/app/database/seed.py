@@ -8,19 +8,18 @@ Usage:
 """
 
 import asyncio
+import random
 import sys
 from datetime import date, timedelta
 from decimal import Decimal
-import random
+
 from loguru import logger
+from sqlalchemy import delete, select
 
-from sqlalchemy import select, delete
-
-from app.db.session import AsyncSessionLocal
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.models import User, Property, Deal, DealStage
-
+from app.db.session import AsyncSessionLocal
+from app.models import Deal, DealStage, Property, User
 
 # =============================================================================
 # Sample Data Generators

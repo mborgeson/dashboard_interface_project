@@ -6,8 +6,9 @@ Cell Reference Category: "Debt and Equity Assumptions"
 """
 from datetime import date
 from decimal import Decimal
-from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Integer, Numeric, Date, ForeignKey
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Date, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -47,112 +48,112 @@ class FinancingAssumptions(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     # Loan Amount & LTV
-    senior_loan_amount: Mapped[Optional[Decimal]] = mapped_column(
+    senior_loan_amount: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Senior loan amount"
     )
-    senior_ltv: Mapped[Optional[Decimal]] = mapped_column(
+    senior_ltv: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Senior loan-to-value ratio"
     )
-    senior_ltc: Mapped[Optional[Decimal]] = mapped_column(
+    senior_ltc: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Senior loan-to-cost ratio"
     )
 
     # Interest Rate
-    senior_interest_rate: Mapped[Optional[Decimal]] = mapped_column(
+    senior_interest_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(8, 6),
         nullable=True,
         comment="Senior debt interest rate (annual)"
     )
-    senior_rate_type: Mapped[Optional[str]] = mapped_column(
+    senior_rate_type: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
         comment="Fixed, Floating, Hybrid"
     )
-    senior_index_rate: Mapped[Optional[str]] = mapped_column(
+    senior_index_rate: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
         comment="SOFR, Prime, Treasury, etc."
     )
-    senior_spread: Mapped[Optional[Decimal]] = mapped_column(
+    senior_spread: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Spread over index rate"
     )
-    senior_rate_floor: Mapped[Optional[Decimal]] = mapped_column(
+    senior_rate_floor: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Interest rate floor"
     )
-    senior_rate_cap: Mapped[Optional[Decimal]] = mapped_column(
+    senior_rate_cap: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Interest rate cap"
     )
 
     # Loan Terms
-    senior_term_months: Mapped[Optional[int]] = mapped_column(
+    senior_term_months: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Loan term in months"
     )
-    senior_amortization_months: Mapped[Optional[int]] = mapped_column(
+    senior_amortization_months: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Amortization period in months"
     )
-    senior_io_period_months: Mapped[Optional[int]] = mapped_column(
+    senior_io_period_months: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Interest-only period in months"
     )
-    senior_maturity_date: Mapped[Optional[date]] = mapped_column(
+    senior_maturity_date: Mapped[date | None] = mapped_column(
         Date,
         nullable=True,
         comment="Loan maturity date"
     )
 
     # Loan Costs
-    senior_origination_fee_pct: Mapped[Optional[Decimal]] = mapped_column(
+    senior_origination_fee_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Origination fee percentage"
     )
-    senior_exit_fee_pct: Mapped[Optional[Decimal]] = mapped_column(
+    senior_exit_fee_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Exit/prepayment fee percentage"
     )
-    senior_closing_costs: Mapped[Optional[Decimal]] = mapped_column(
+    senior_closing_costs: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 2),
         nullable=True,
         comment="Total closing costs"
     )
 
     # DSCR Requirements
-    senior_min_dscr: Mapped[Optional[Decimal]] = mapped_column(
+    senior_min_dscr: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Minimum DSCR requirement"
     )
-    senior_dscr_at_close: Mapped[Optional[Decimal]] = mapped_column(
+    senior_dscr_at_close: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="DSCR at loan closing"
     )
 
     # Lender Information
-    senior_lender_name: Mapped[Optional[str]] = mapped_column(
+    senior_lender_name: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="Senior lender name"
     )
-    senior_lender_type: Mapped[Optional[str]] = mapped_column(
+    senior_lender_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="Agency, Bank, Life Co, CMBS, etc."
@@ -162,32 +163,32 @@ class FinancingAssumptions(Base, TimestampMixin, SourceTrackingMixin):
     # MEZZANINE / PREFERRED EQUITY
     # ==========================================================================
 
-    mezz_loan_amount: Mapped[Optional[Decimal]] = mapped_column(
+    mezz_loan_amount: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Mezzanine/preferred equity amount"
     )
-    mezz_interest_rate: Mapped[Optional[Decimal]] = mapped_column(
+    mezz_interest_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(8, 6),
         nullable=True,
         comment="Mezzanine interest/preferred return rate"
     )
-    mezz_term_months: Mapped[Optional[int]] = mapped_column(
+    mezz_term_months: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Mezzanine term in months"
     )
-    mezz_origination_fee_pct: Mapped[Optional[Decimal]] = mapped_column(
+    mezz_origination_fee_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Mezzanine origination fee"
     )
-    mezz_accrual_rate: Mapped[Optional[Decimal]] = mapped_column(
+    mezz_accrual_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(8, 6),
         nullable=True,
         comment="PIK/accrual rate if applicable"
     )
-    mezz_participation_pct: Mapped[Optional[Decimal]] = mapped_column(
+    mezz_participation_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Profit participation percentage"
@@ -198,93 +199,93 @@ class FinancingAssumptions(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     # Total Equity
-    total_equity_required: Mapped[Optional[Decimal]] = mapped_column(
+    total_equity_required: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Total equity required"
     )
-    lp_equity_pct: Mapped[Optional[Decimal]] = mapped_column(
+    lp_equity_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="LP equity percentage"
     )
-    gp_equity_pct: Mapped[Optional[Decimal]] = mapped_column(
+    gp_equity_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="GP equity percentage"
     )
-    lp_equity_amount: Mapped[Optional[Decimal]] = mapped_column(
+    lp_equity_amount: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="LP equity amount"
     )
-    gp_equity_amount: Mapped[Optional[Decimal]] = mapped_column(
+    gp_equity_amount: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="GP equity amount"
     )
 
     # Waterfall Structure
-    preferred_return: Mapped[Optional[Decimal]] = mapped_column(
+    preferred_return: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Preferred return rate (pref)"
     )
-    preferred_return_accrual: Mapped[Optional[str]] = mapped_column(
+    preferred_return_accrual: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
         comment="Simple, Compound, IRR-based"
     )
-    catchup_pct: Mapped[Optional[Decimal]] = mapped_column(
+    catchup_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="GP catch-up percentage"
     )
 
     # Promote Tiers
-    promote_tier_1_hurdle: Mapped[Optional[Decimal]] = mapped_column(
+    promote_tier_1_hurdle: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="First promote tier hurdle (IRR)"
     )
-    promote_tier_1_gp_split: Mapped[Optional[Decimal]] = mapped_column(
+    promote_tier_1_gp_split: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="GP split at tier 1"
     )
-    promote_tier_2_hurdle: Mapped[Optional[Decimal]] = mapped_column(
+    promote_tier_2_hurdle: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Second promote tier hurdle (IRR)"
     )
-    promote_tier_2_gp_split: Mapped[Optional[Decimal]] = mapped_column(
+    promote_tier_2_gp_split: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="GP split at tier 2"
     )
-    promote_tier_3_hurdle: Mapped[Optional[Decimal]] = mapped_column(
+    promote_tier_3_hurdle: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Third promote tier hurdle (IRR)"
     )
-    promote_tier_3_gp_split: Mapped[Optional[Decimal]] = mapped_column(
+    promote_tier_3_gp_split: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="GP split at tier 3"
     )
 
     # Fees
-    acquisition_fee_pct: Mapped[Optional[Decimal]] = mapped_column(
+    acquisition_fee_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Acquisition fee percentage"
     )
-    disposition_fee_pct: Mapped[Optional[Decimal]] = mapped_column(
+    disposition_fee_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Disposition fee percentage"
     )
-    refinance_fee_pct: Mapped[Optional[Decimal]] = mapped_column(
+    refinance_fee_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Refinance fee percentage"

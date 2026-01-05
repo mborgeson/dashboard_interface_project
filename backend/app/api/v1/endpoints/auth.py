@@ -4,8 +4,8 @@ Authentication endpoints for login, logout, and token management.
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import (
@@ -13,9 +13,9 @@ from app.core.security import (
     create_refresh_token,
     decode_token,
 )
-from app.db.session import get_db
-from app.schemas.auth import Token, RefreshTokenRequest
 from app.crud import user as user_crud
+from app.db.session import get_db
+from app.schemas.auth import RefreshTokenRequest, Token
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")

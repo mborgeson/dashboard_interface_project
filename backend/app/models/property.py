@@ -3,12 +3,12 @@ Property model for real estate assets.
 """
 from datetime import date
 from decimal import Decimal
-from typing import Optional, List
-from sqlalchemy import String, Integer, Numeric, Date, Text, JSON
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from sqlalchemy import JSON, Date, Integer, Numeric, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.base import TimestampMixin, SoftDeleteMixin
+from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
 class Property(Base, TimestampMixin, SoftDeleteMixin):
@@ -31,68 +31,68 @@ class Property(Base, TimestampMixin, SoftDeleteMixin):
     city: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     state: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     zip_code: Mapped[str] = mapped_column(String(20), nullable=False)
-    county: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    market: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
-    submarket: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    county: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    market: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    submarket: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # Physical Characteristics
-    year_built: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    year_renovated: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    total_units: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    total_sf: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    lot_size_acres: Mapped[Optional[Decimal]] = mapped_column(
+    year_built: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    year_renovated: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    total_units: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    total_sf: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    lot_size_acres: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
     )
-    stories: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    parking_spaces: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    stories: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    parking_spaces: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Financial Metrics
-    purchase_price: Mapped[Optional[Decimal]] = mapped_column(
+    purchase_price: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
     )
-    current_value: Mapped[Optional[Decimal]] = mapped_column(
+    current_value: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
     )
-    acquisition_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    acquisition_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     # Operating Metrics
-    occupancy_rate: Mapped[Optional[Decimal]] = mapped_column(
+    occupancy_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(5, 2),
         nullable=True,
     )
-    avg_rent_per_unit: Mapped[Optional[Decimal]] = mapped_column(
+    avg_rent_per_unit: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
     )
-    avg_rent_per_sf: Mapped[Optional[Decimal]] = mapped_column(
+    avg_rent_per_sf: Mapped[Decimal | None] = mapped_column(
         Numeric(8, 2),
         nullable=True,
     )
-    noi: Mapped[Optional[Decimal]] = mapped_column(
+    noi: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
     )
-    cap_rate: Mapped[Optional[Decimal]] = mapped_column(
+    cap_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(5, 3),
         nullable=True,
     )
 
     # Additional Data
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    amenities: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    unit_mix: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    images: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    amenities: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    unit_mix: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    images: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     # External IDs
-    external_id: Mapped[Optional[str]] = mapped_column(
+    external_id: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         unique=True,
     )
-    data_source: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    data_source: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # Relationships
     # deals: Mapped[List["Deal"]] = relationship("Deal", back_populates="property")
@@ -101,14 +101,14 @@ class Property(Base, TimestampMixin, SoftDeleteMixin):
         return f"<Property {self.name} ({self.city}, {self.state})>"
 
     @property
-    def price_per_unit(self) -> Optional[Decimal]:
+    def price_per_unit(self) -> Decimal | None:
         """Calculate price per unit."""
         if self.purchase_price and self.total_units:
             return self.purchase_price / self.total_units
         return None
 
     @property
-    def price_per_sf(self) -> Optional[Decimal]:
+    def price_per_sf(self) -> Decimal | None:
         """Calculate price per square foot."""
         if self.purchase_price and self.total_sf:
             return self.purchase_price / self.total_sf

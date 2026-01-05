@@ -5,14 +5,14 @@ API v1 router aggregating all endpoint routers.
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
-    auth,
-    properties,
-    deals,
     analytics,
-    users,
+    auth,
+    deals,
     exports,
-    monitoring,
     extraction,
+    monitoring,
+    properties,
+    users,
 )
 
 api_router = APIRouter()

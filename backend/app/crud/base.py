@@ -1,11 +1,11 @@
 """
 Base CRUD class with common database operations.
 """
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import Base
@@ -28,7 +28,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         - count: Count records with optional filters
     """
 
-    def __init__(self, model: Type[ModelType]):
+    def __init__(self, model: type[ModelType]):
         """
         Initialize CRUD with SQLAlchemy model.
 
@@ -37,7 +37,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
         self.model = model
 
-    async def get(self, db: AsyncSession, id: Any) -> Optional[ModelType]:
+    async def get(self, db: AsyncSession, id: Any) -> ModelType | None:
         """Get a single record by ID."""
         result = await db.execute(select(self.model).where(self.model.id == id))
         return result.scalar_one_or_none()
@@ -48,9 +48,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         *,
         skip: int = 0,
         limit: int = 100,
-        order_by: Optional[str] = None,
+        order_by: str | None = None,
         order_desc: bool = True,
-    ) -> List[ModelType]:
+    ) -> list[ModelType]:
         """Get multiple records with pagination."""
         query = select(self.model)
 
@@ -63,7 +63,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return list(result.scalars().all())
 
     async def create(
-        self, db: AsyncSession, *, obj_in: Union[CreateSchemaType, Dict[str, Any]]
+        self, db: AsyncSession, *, obj_in: CreateSchemaType | dict[str, Any]
     ) -> ModelType:
         """Create a new record."""
         if isinstance(obj_in, dict):
@@ -82,7 +82,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db: AsyncSession,
         *,
         db_obj: ModelType,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
+        obj_in: UpdateSchemaType | dict[str, Any],
     ) -> ModelType:
         """Update an existing record."""
         obj_data = jsonable_encoder(db_obj)
@@ -101,7 +101,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def remove(self, db: AsyncSession, *, id: Any) -> Optional[ModelType]:
+    async def remove(self, db: AsyncSession, *, id: Any) -> ModelType | None:
         """Delete a record by ID."""
         obj = await self.get(db, id)
         if obj:
@@ -110,7 +110,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return obj
 
     async def count(
-        self, db: AsyncSession, *, filters: Optional[Dict[str, Any]] = None
+        self, db: AsyncSession, *, filters: dict[str, Any] | None = None
     ) -> int:
         """Count records with optional filters."""
         query = select(func.count()).select_from(self.model)

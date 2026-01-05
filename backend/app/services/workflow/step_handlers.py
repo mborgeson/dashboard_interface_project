@@ -6,15 +6,13 @@ Built-in handlers for common workflow step types.
 
 import asyncio
 from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Type
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from loguru import logger
 
 from .workflow_models import (
     StepDefinition,
-    StepExecution,
-    StepStatus,
     StepType,
     WorkflowInstance,
 )
@@ -33,8 +31,8 @@ class StepHandler(ABC):
         self,
         step: StepDefinition,
         instance: WorkflowInstance,
-        context: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Execute the step.
 
@@ -63,7 +61,7 @@ class ActionHandler(StepHandler):
     """
 
     def __init__(self):
-        self._actions: Dict[str, Callable] = {}
+        self._actions: dict[str, Callable] = {}
 
     def register_action(
         self,
@@ -86,8 +84,8 @@ class ActionHandler(StepHandler):
         self,
         step: StepDefinition,
         instance: WorkflowInstance,
-        context: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
         """Execute the action."""
         action = self._actions.get(step.handler)
         if not action:
@@ -123,7 +121,7 @@ class ConditionHandler(StepHandler):
     """
 
     def __init__(self):
-        self._evaluators: Dict[str, Callable] = {}
+        self._evaluators: dict[str, Callable] = {}
 
     def register_evaluator(
         self,
@@ -141,8 +139,8 @@ class ConditionHandler(StepHandler):
         self,
         step: StepDefinition,
         instance: WorkflowInstance,
-        context: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
         """Evaluate the condition and determine next step."""
         try:
             # Get evaluator or use default expression evaluation
@@ -181,8 +179,8 @@ class ConditionHandler(StepHandler):
 
     def _evaluate_expression(
         self,
-        expression: Optional[str],
-        variables: Dict[str, Any],
+        expression: str | None,
+        variables: dict[str, Any],
     ) -> bool:
         """Safely evaluate a condition expression."""
         if not expression:
@@ -218,7 +216,7 @@ class ApprovalHandler(StepHandler):
     """
 
     def __init__(self):
-        self._approval_callback: Optional[Callable] = None
+        self._approval_callback: Callable | None = None
 
     def set_approval_callback(
         self,
@@ -235,8 +233,8 @@ class ApprovalHandler(StepHandler):
         self,
         step: StepDefinition,
         instance: WorkflowInstance,
-        context: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
         """Create approval request and return waiting status."""
         approvers = step.config.get("approvers", [])
         message = step.config.get("message", f"Approval required for {step.name}")
@@ -275,8 +273,8 @@ class DelayHandler(StepHandler):
         self,
         step: StepDefinition,
         instance: WorkflowInstance,
-        context: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
         """Wait for specified duration."""
         duration = step.config.get("duration_seconds", 0)
 
@@ -299,7 +297,7 @@ class NotificationHandler(StepHandler):
     """
 
     def __init__(self):
-        self._channels: Dict[str, Callable] = {}
+        self._channels: dict[str, Callable] = {}
 
     def register_channel(
         self,
@@ -317,8 +315,8 @@ class NotificationHandler(StepHandler):
         self,
         step: StepDefinition,
         instance: WorkflowInstance,
-        context: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
         """Send notification via configured channel."""
         channel = step.config.get("channel", "email")
         recipients = step.config.get("recipients", [])
@@ -357,7 +355,7 @@ class NotificationHandler(StepHandler):
                 "error": str(e),
             }
 
-    def _format_message(self, message: str, variables: Dict[str, Any]) -> str:
+    def _format_message(self, message: str, variables: dict[str, Any]) -> str:
         """Format message with variable interpolation."""
         try:
             return message.format(**variables)
@@ -380,8 +378,8 @@ class ParallelHandler(StepHandler):
         self,
         step: StepDefinition,
         instance: WorkflowInstance,
-        context: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Execute parallel steps.
 
@@ -407,7 +405,7 @@ class StepHandlerRegistry:
     """
 
     def __init__(self):
-        self._handlers: Dict[StepType, StepHandler] = {}
+        self._handlers: dict[StepType, StepHandler] = {}
         self._register_defaults()
 
     def _register_defaults(self) -> None:
@@ -423,7 +421,7 @@ class StepHandlerRegistry:
         """Register a custom handler."""
         self._handlers[handler.step_type] = handler
 
-    def get(self, step_type: StepType) -> Optional[StepHandler]:
+    def get(self, step_type: StepType) -> StepHandler | None:
         """Get handler for step type."""
         return self._handlers.get(step_type)
 
@@ -449,10 +447,10 @@ class StepHandlerRegistry:
 # =============================================================================
 
 async def log_action(
-    step_config: Dict[str, Any],
-    variables: Dict[str, Any],
-    context: Dict[str, Any],
-) -> Dict[str, Any]:
+    step_config: dict[str, Any],
+    variables: dict[str, Any],
+    context: dict[str, Any],
+) -> dict[str, Any]:
     """Log a message."""
     message = step_config.get("message", "Log action executed")
     level = step_config.get("level", "info")
@@ -469,10 +467,10 @@ async def log_action(
 
 
 async def set_variable_action(
-    step_config: Dict[str, Any],
-    variables: Dict[str, Any],
-    context: Dict[str, Any],
-) -> Dict[str, Any]:
+    step_config: dict[str, Any],
+    variables: dict[str, Any],
+    context: dict[str, Any],
+) -> dict[str, Any]:
     """Set a workflow variable."""
     name = step_config.get("name")
     value = step_config.get("value")
@@ -484,10 +482,10 @@ async def set_variable_action(
 
 
 async def http_request_action(
-    step_config: Dict[str, Any],
-    variables: Dict[str, Any],
-    context: Dict[str, Any],
-) -> Dict[str, Any]:
+    step_config: dict[str, Any],
+    variables: dict[str, Any],
+    context: dict[str, Any],
+) -> dict[str, Any]:
     """Make an HTTP request."""
     import aiohttp
 
@@ -503,31 +501,30 @@ async def http_request_action(
     except (KeyError, ValueError):
         pass
 
-    async with aiohttp.ClientSession() as session:
-        async with session.request(
-            method,
-            url,
-            headers=headers,
-            json=body if body else None,
-            timeout=aiohttp.ClientTimeout(total=timeout),
-        ) as response:
-            result = {
-                "status": response.status,
-                "headers": dict(response.headers),
-            }
-            try:
-                result["body"] = await response.json()
-            except Exception:
-                result["body"] = await response.text()
+    async with aiohttp.ClientSession() as session, session.request(
+        method,
+        url,
+        headers=headers,
+        json=body if body else None,
+        timeout=aiohttp.ClientTimeout(total=timeout),
+    ) as response:
+        result = {
+            "status": response.status,
+            "headers": dict(response.headers),
+        }
+        try:
+            result["body"] = await response.json()
+        except Exception:
+            result["body"] = await response.text()
 
-            return result
+        return result
 
 
 async def transform_data_action(
-    step_config: Dict[str, Any],
-    variables: Dict[str, Any],
-    context: Dict[str, Any],
-) -> Dict[str, Any]:
+    step_config: dict[str, Any],
+    variables: dict[str, Any],
+    context: dict[str, Any],
+) -> dict[str, Any]:
     """Transform data using a mapping."""
     source = step_config.get("source")
     target = step_config.get("target")

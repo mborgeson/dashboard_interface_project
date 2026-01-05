@@ -3,7 +3,8 @@ Property schemas for API request/response validation.
 """
 from datetime import date
 from decimal import Decimal
-from typing import Optional, Any
+from typing import Any
+
 from pydantic import Field
 
 from .base import BaseSchema, TimestampSchema
@@ -23,83 +24,83 @@ class PropertyBase(BaseSchema):
     city: str = Field(..., max_length=100)
     state: str = Field(..., max_length=50)
     zip_code: str = Field(..., max_length=20)
-    county: Optional[str] = Field(None, max_length=100)
-    market: Optional[str] = Field(None, max_length=100)
-    submarket: Optional[str] = Field(None, max_length=100)
+    county: str | None = Field(None, max_length=100)
+    market: str | None = Field(None, max_length=100)
+    submarket: str | None = Field(None, max_length=100)
 
     # Physical Characteristics
-    year_built: Optional[int] = Field(None, ge=1800, le=2100)
-    year_renovated: Optional[int] = Field(None, ge=1800, le=2100)
-    total_units: Optional[int] = Field(None, ge=0)
-    total_sf: Optional[int] = Field(None, ge=0)
-    lot_size_acres: Optional[Decimal] = Field(None, ge=0)
-    stories: Optional[int] = Field(None, ge=1)
-    parking_spaces: Optional[int] = Field(None, ge=0)
+    year_built: int | None = Field(None, ge=1800, le=2100)
+    year_renovated: int | None = Field(None, ge=1800, le=2100)
+    total_units: int | None = Field(None, ge=0)
+    total_sf: int | None = Field(None, ge=0)
+    lot_size_acres: Decimal | None = Field(None, ge=0)
+    stories: int | None = Field(None, ge=1)
+    parking_spaces: int | None = Field(None, ge=0)
 
 
 class PropertyCreate(PropertyBase):
     """Schema for creating a new property."""
 
     # Financial Metrics (optional on create)
-    purchase_price: Optional[Decimal] = Field(None, ge=0)
-    current_value: Optional[Decimal] = Field(None, ge=0)
-    acquisition_date: Optional[date] = None
+    purchase_price: Decimal | None = Field(None, ge=0)
+    current_value: Decimal | None = Field(None, ge=0)
+    acquisition_date: date | None = None
 
     # Operating Metrics
-    occupancy_rate: Optional[Decimal] = Field(None, ge=0, le=100)
-    avg_rent_per_unit: Optional[Decimal] = Field(None, ge=0)
-    avg_rent_per_sf: Optional[Decimal] = Field(None, ge=0)
-    noi: Optional[Decimal] = None
-    cap_rate: Optional[Decimal] = Field(None, ge=0, le=1)
+    occupancy_rate: Decimal | None = Field(None, ge=0, le=100)
+    avg_rent_per_unit: Decimal | None = Field(None, ge=0)
+    avg_rent_per_sf: Decimal | None = Field(None, ge=0)
+    noi: Decimal | None = None
+    cap_rate: Decimal | None = Field(None, ge=0, le=1)
 
     # Additional Data
-    description: Optional[str] = None
-    amenities: Optional[dict[str, Any]] = None
-    unit_mix: Optional[dict[str, Any]] = None
-    images: Optional[list[str]] = None
-    external_id: Optional[str] = Field(None, max_length=100)
-    data_source: Optional[str] = Field(None, max_length=50)
+    description: str | None = None
+    amenities: dict[str, Any] | None = None
+    unit_mix: dict[str, Any] | None = None
+    images: list[str] | None = None
+    external_id: str | None = Field(None, max_length=100)
+    data_source: str | None = Field(None, max_length=50)
 
 
 class PropertyUpdate(BaseSchema):
     """Schema for updating a property. All fields optional."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    property_type: Optional[str] = Field(
+    name: str | None = Field(None, min_length=1, max_length=255)
+    property_type: str | None = Field(
         None,
         pattern="^(multifamily|office|retail|industrial|mixed_use|other)$"
     )
 
-    address: Optional[str] = Field(None, max_length=500)
-    city: Optional[str] = Field(None, max_length=100)
-    state: Optional[str] = Field(None, max_length=50)
-    zip_code: Optional[str] = Field(None, max_length=20)
-    county: Optional[str] = Field(None, max_length=100)
-    market: Optional[str] = Field(None, max_length=100)
-    submarket: Optional[str] = Field(None, max_length=100)
+    address: str | None = Field(None, max_length=500)
+    city: str | None = Field(None, max_length=100)
+    state: str | None = Field(None, max_length=50)
+    zip_code: str | None = Field(None, max_length=20)
+    county: str | None = Field(None, max_length=100)
+    market: str | None = Field(None, max_length=100)
+    submarket: str | None = Field(None, max_length=100)
 
-    year_built: Optional[int] = Field(None, ge=1800, le=2100)
-    year_renovated: Optional[int] = Field(None, ge=1800, le=2100)
-    total_units: Optional[int] = Field(None, ge=0)
-    total_sf: Optional[int] = Field(None, ge=0)
-    lot_size_acres: Optional[Decimal] = Field(None, ge=0)
-    stories: Optional[int] = Field(None, ge=1)
-    parking_spaces: Optional[int] = Field(None, ge=0)
+    year_built: int | None = Field(None, ge=1800, le=2100)
+    year_renovated: int | None = Field(None, ge=1800, le=2100)
+    total_units: int | None = Field(None, ge=0)
+    total_sf: int | None = Field(None, ge=0)
+    lot_size_acres: Decimal | None = Field(None, ge=0)
+    stories: int | None = Field(None, ge=1)
+    parking_spaces: int | None = Field(None, ge=0)
 
-    purchase_price: Optional[Decimal] = Field(None, ge=0)
-    current_value: Optional[Decimal] = Field(None, ge=0)
-    acquisition_date: Optional[date] = None
+    purchase_price: Decimal | None = Field(None, ge=0)
+    current_value: Decimal | None = Field(None, ge=0)
+    acquisition_date: date | None = None
 
-    occupancy_rate: Optional[Decimal] = Field(None, ge=0, le=100)
-    avg_rent_per_unit: Optional[Decimal] = Field(None, ge=0)
-    avg_rent_per_sf: Optional[Decimal] = Field(None, ge=0)
-    noi: Optional[Decimal] = None
-    cap_rate: Optional[Decimal] = Field(None, ge=0, le=1)
+    occupancy_rate: Decimal | None = Field(None, ge=0, le=100)
+    avg_rent_per_unit: Decimal | None = Field(None, ge=0)
+    avg_rent_per_sf: Decimal | None = Field(None, ge=0)
+    noi: Decimal | None = None
+    cap_rate: Decimal | None = Field(None, ge=0, le=1)
 
-    description: Optional[str] = None
-    amenities: Optional[dict[str, Any]] = None
-    unit_mix: Optional[dict[str, Any]] = None
-    images: Optional[list[str]] = None
+    description: str | None = None
+    amenities: dict[str, Any] | None = None
+    unit_mix: dict[str, Any] | None = None
+    images: list[str] | None = None
 
 
 class PropertyResponse(PropertyBase, TimestampSchema):
@@ -108,28 +109,28 @@ class PropertyResponse(PropertyBase, TimestampSchema):
     id: int
 
     # Financial Metrics
-    purchase_price: Optional[Decimal] = None
-    current_value: Optional[Decimal] = None
-    acquisition_date: Optional[date] = None
+    purchase_price: Decimal | None = None
+    current_value: Decimal | None = None
+    acquisition_date: date | None = None
 
     # Operating Metrics
-    occupancy_rate: Optional[Decimal] = None
-    avg_rent_per_unit: Optional[Decimal] = None
-    avg_rent_per_sf: Optional[Decimal] = None
-    noi: Optional[Decimal] = None
-    cap_rate: Optional[Decimal] = None
+    occupancy_rate: Decimal | None = None
+    avg_rent_per_unit: Decimal | None = None
+    avg_rent_per_sf: Decimal | None = None
+    noi: Decimal | None = None
+    cap_rate: Decimal | None = None
 
     # Additional Data
-    description: Optional[str] = None
-    amenities: Optional[dict[str, Any]] = None
-    unit_mix: Optional[dict[str, Any]] = None
-    images: Optional[list[str]] = None
-    external_id: Optional[str] = None
-    data_source: Optional[str] = None
+    description: str | None = None
+    amenities: dict[str, Any] | None = None
+    unit_mix: dict[str, Any] | None = None
+    images: list[str] | None = None
+    external_id: str | None = None
+    data_source: str | None = None
 
     # Computed fields
-    price_per_unit: Optional[Decimal] = None
-    price_per_sf: Optional[Decimal] = None
+    price_per_unit: Decimal | None = None
+    price_per_sf: Decimal | None = None
 
 
 class PropertyListResponse(BaseSchema):

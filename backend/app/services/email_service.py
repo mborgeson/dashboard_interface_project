@@ -1,13 +1,12 @@
 """
 Email service for sending notifications and reports.
 """
-import asyncio
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
 from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
-from typing import Any, Optional, List
+from typing import Any
 
 import aiosmtplib
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -28,7 +27,7 @@ class EmailService:
     """
 
     def __init__(self):
-        self._template_env: Optional[Environment] = None
+        self._template_env: Environment | None = None
         self._setup_templates()
 
     def _setup_templates(self) -> None:
@@ -58,11 +57,11 @@ class EmailService:
         to_email: str | list[str],
         subject: str,
         html_content: str,
-        text_content: Optional[str] = None,
-        attachments: Optional[list[dict]] = None,
-        cc: Optional[list[str]] = None,
-        bcc: Optional[list[str]] = None,
-        reply_to: Optional[str] = None,
+        text_content: str | None = None,
+        attachments: list[dict] | None = None,
+        cc: list[str] | None = None,
+        bcc: list[str] | None = None,
+        reply_to: str | None = None,
     ) -> bool:
         """
         Send an email via SMTP.
@@ -317,7 +316,7 @@ class EmailService:
 
 
 # Singleton instance
-_email_service: Optional[EmailService] = None
+_email_service: EmailService | None = None
 
 
 def get_email_service() -> EmailService:

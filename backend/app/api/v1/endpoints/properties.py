@@ -2,19 +2,18 @@
 Property endpoints for CRUD operations and analytics.
 """
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
 from app.crud import property as property_crud
+from app.db.session import get_db
 from app.schemas.property import (
     PropertyCreate,
-    PropertyUpdate,
-    PropertyResponse,
     PropertyListResponse,
+    PropertyResponse,
+    PropertyUpdate,
 )
 
 router = APIRouter()
@@ -24,13 +23,13 @@ router = APIRouter()
 async def list_properties(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    property_type: Optional[str] = None,
-    city: Optional[str] = None,
-    state: Optional[str] = None,
-    market: Optional[str] = None,
-    min_units: Optional[int] = None,
-    max_units: Optional[int] = None,
-    sort_by: Optional[str] = "name",
+    property_type: str | None = None,
+    city: str | None = None,
+    state: str | None = None,
+    market: str | None = None,
+    min_units: int | None = None,
+    max_units: int | None = None,
+    sort_by: str | None = "name",
     sort_order: str = "asc",
     db: AsyncSession = Depends(get_db),
 ):

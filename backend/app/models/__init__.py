@@ -1,24 +1,24 @@
 """SQLAlchemy models for the application."""
-from .base import TimestampMixin, SoftDeleteMixin
-from .user import User
-from .property import Property
+from .base import SoftDeleteMixin, TimestampMixin
 from .deal import Deal, DealStage
+from .property import Property
 
 # Underwriting Models
 from .underwriting import (
-    UnderwritingModel,
-    GeneralAssumptions,
-    ExitAssumptions,
-    NOIAssumptions,
-    FinancingAssumptions,
+    AnnualCashflow,
     BudgetAssumptions,
-    PropertyReturns,
     EquityReturns,
-    UnitMix,
+    ExitAssumptions,
+    FinancingAssumptions,
+    GeneralAssumptions,
+    NOIAssumptions,
+    PropertyReturns,
     RentComp,
     SalesComp,
-    AnnualCashflow,
+    UnderwritingModel,
+    UnitMix,
 )
+from .user import User
 
 __all__ = [
     # Base Mixins

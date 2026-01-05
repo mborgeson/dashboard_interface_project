@@ -2,27 +2,28 @@
 UnderwritingModel - Parent entity linking property/deal to underwriting data.
 """
 from datetime import datetime
-from typing import Optional, List, TYPE_CHECKING
-from sqlalchemy import String, Integer, DateTime, Text, ForeignKey, Enum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from enum import Enum as PyEnum
+from typing import TYPE_CHECKING, Optional
+
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.base import TimestampMixin, SoftDeleteMixin
+from app.models.base import SoftDeleteMixin, TimestampMixin
 from app.models.underwriting.source_tracking import SourceTrackingMixin
 
 if TYPE_CHECKING:
-    from app.models.underwriting.general_assumptions import GeneralAssumptions
-    from app.models.underwriting.exit_assumptions import ExitAssumptions
-    from app.models.underwriting.noi_assumptions import NOIAssumptions
-    from app.models.underwriting.financing_assumptions import FinancingAssumptions
+    from app.models.underwriting.annual_cashflow import AnnualCashflow
     from app.models.underwriting.budget_assumptions import BudgetAssumptions
-    from app.models.underwriting.property_returns import PropertyReturns
     from app.models.underwriting.equity_returns import EquityReturns
-    from app.models.underwriting.unit_mix import UnitMix
+    from app.models.underwriting.exit_assumptions import ExitAssumptions
+    from app.models.underwriting.financing_assumptions import FinancingAssumptions
+    from app.models.underwriting.general_assumptions import GeneralAssumptions
+    from app.models.underwriting.noi_assumptions import NOIAssumptions
+    from app.models.underwriting.property_returns import PropertyReturns
     from app.models.underwriting.rent_comp import RentComp
     from app.models.underwriting.sales_comp import SalesComp
-    from app.models.underwriting.annual_cashflow import AnnualCashflow
+    from app.models.underwriting.unit_mix import UnitMix
 
 
 class UnderwritingStatus(str, PyEnum):
@@ -60,26 +61,26 @@ class UnderwritingModel(Base, TimestampMixin, SoftDeleteMixin, SourceTrackingMix
         nullable=False,
         comment="Version number for scenario tracking"
     )
-    scenario_name: Mapped[Optional[str]] = mapped_column(
+    scenario_name: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="Scenario label: Base Case, Upside, Downside, etc."
     )
 
     # Relationships to core entities
-    property_id: Mapped[Optional[int]] = mapped_column(
+    property_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("properties.id"),
         nullable=True,
         index=True,
     )
-    deal_id: Mapped[Optional[int]] = mapped_column(
+    deal_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("deals.id"),
         nullable=True,
         index=True,
     )
-    created_by_user_id: Mapped[Optional[int]] = mapped_column(
+    created_by_user_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("users.id"),
         nullable=True,
@@ -92,23 +93,23 @@ class UnderwritingModel(Base, TimestampMixin, SoftDeleteMixin, SourceTrackingMix
         nullable=False,
         index=True,
     )
-    approved_by_user_id: Mapped[Optional[int]] = mapped_column(
+    approved_by_user_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("users.id"),
         nullable=True,
     )
-    approved_at: Mapped[Optional[datetime]] = mapped_column(
+    approved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
     # Description and notes
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
         comment="Description of this underwriting scenario"
     )
-    notes: Mapped[Optional[str]] = mapped_column(
+    notes: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
         comment="Internal notes and comments"
@@ -159,22 +160,22 @@ class UnderwritingModel(Base, TimestampMixin, SoftDeleteMixin, SourceTrackingMix
     )
 
     # Child relationships (one-to-many for normalized tables)
-    unit_mixes: Mapped[List["UnitMix"]] = relationship(
+    unit_mixes: Mapped[list["UnitMix"]] = relationship(
         "UnitMix",
         back_populates="underwriting_model",
         cascade="all, delete-orphan",
     )
-    rent_comps: Mapped[List["RentComp"]] = relationship(
+    rent_comps: Mapped[list["RentComp"]] = relationship(
         "RentComp",
         back_populates="underwriting_model",
         cascade="all, delete-orphan",
     )
-    sales_comps: Mapped[List["SalesComp"]] = relationship(
+    sales_comps: Mapped[list["SalesComp"]] = relationship(
         "SalesComp",
         back_populates="underwriting_model",
         cascade="all, delete-orphan",
     )
-    annual_cashflows: Mapped[List["AnnualCashflow"]] = relationship(
+    annual_cashflows: Mapped[list["AnnualCashflow"]] = relationship(
         "AnnualCashflow",
         back_populates="underwriting_model",
         cascade="all, delete-orphan",

@@ -1,7 +1,7 @@
 """
 Authentication schemas for login, tokens, and session management.
 """
-from typing import Optional
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -26,7 +26,7 @@ class TokenPayload(BaseModel):
 
     sub: str  # User ID
     exp: int  # Expiration timestamp
-    type: Optional[str] = None  # "access" or "refresh"
+    type: str | None = None  # "access" or "refresh"
 
 
 class RefreshTokenRequest(BaseModel):

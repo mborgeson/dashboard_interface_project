@@ -10,23 +10,22 @@ Endpoints:
 - GET /extraction/properties/{name} - Get property data
 """
 
-from typing import Optional
-from uuid import UUID
 from pathlib import Path
+from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.crud.extraction import ExtractedValueCRUD, ExtractionRunCRUD
 from app.db.session import get_db
 from app.schemas.extraction import (
+    ExtractionHistoryItem,
+    ExtractionHistoryResponse,
     ExtractionStartRequest,
     ExtractionStartResponse,
     ExtractionStatusResponse,
-    ExtractionHistoryResponse,
-    ExtractionHistoryItem,
     PropertyListResponse,
 )
-from app.crud.extraction import ExtractionRunCRUD, ExtractedValueCRUD
 
 router = APIRouter()
 
@@ -37,15 +36,15 @@ REFERENCE_FILE = Path(__file__).parent.parent.parent.parent.parent / (
 
 
 def run_extraction_task(
-    run_id: UUID, db: Session, source: str, file_paths: Optional[list] = None
+    run_id: UUID, db: Session, source: str, file_paths: list | None = None
 ):
     """
     Background task to run extraction.
 
     This is executed in a separate thread by FastAPI BackgroundTasks.
     """
+    from app.crud.extraction import ExtractedValueCRUD, ExtractionRunCRUD
     from app.extraction import CellMappingParser, ExcelDataExtractor
-    from app.crud.extraction import ExtractionRunCRUD, ExtractedValueCRUD
 
     try:
         # Load mappings
@@ -172,7 +171,7 @@ async def start_extraction(
 
 @router.get("/status", response_model=ExtractionStatusResponse)
 async def get_extraction_status(
-    run_id: Optional[UUID] = None, db: Session = Depends(get_db)
+    run_id: UUID | None = None, db: Session = Depends(get_db)
 ):
     """
     Get status of an extraction run.
@@ -231,7 +230,7 @@ async def get_extraction_history(
 
 @router.post("/cancel")
 async def cancel_extraction(
-    run_id: Optional[UUID] = None, db: Session = Depends(get_db)
+    run_id: UUID | None = None, db: Session = Depends(get_db)
 ):
     """
     Cancel a running extraction.
@@ -262,7 +261,7 @@ async def cancel_extraction(
 
 @router.get("/properties", response_model=PropertyListResponse)
 async def list_extracted_properties(
-    run_id: Optional[UUID] = None, db: Session = Depends(get_db)
+    run_id: UUID | None = None, db: Session = Depends(get_db)
 ):
     """
     List all properties with extracted data.
@@ -274,7 +273,7 @@ async def list_extracted_properties(
 
 @router.get("/properties/{property_name}")
 async def get_property_data(
-    property_name: str, run_id: Optional[UUID] = None, db: Session = Depends(get_db)
+    property_name: str, run_id: UUID | None = None, db: Session = Depends(get_db)
 ):
     """
     Get all extracted data for a specific property.

@@ -1,12 +1,12 @@
 """
 Model Manager for loading, saving, and managing ML models.
 """
-import os
 import json
+import os
 import pickle
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
-from typing import Any, Optional, Dict
+from typing import Any
 
 from loguru import logger
 
@@ -24,10 +24,10 @@ class ModelManager:
     - Automatic model selection based on performance
     """
 
-    def __init__(self, model_path: Optional[str] = None):
+    def __init__(self, model_path: str | None = None):
         self.model_path = Path(model_path or settings.ML_MODEL_PATH)
-        self._models: Dict[str, Any] = {}
-        self._metadata: Dict[str, dict] = {}
+        self._models: dict[str, Any] = {}
+        self._metadata: dict[str, dict] = {}
         self._ensure_model_directory()
 
     def _ensure_model_directory(self) -> None:
@@ -35,7 +35,7 @@ class ModelManager:
         self.model_path.mkdir(parents=True, exist_ok=True)
         logger.info(f"Model directory: {self.model_path}")
 
-    def _get_model_file_path(self, model_name: str, version: Optional[str] = None) -> Path:
+    def _get_model_file_path(self, model_name: str, version: str | None = None) -> Path:
         """Get path to model file."""
         if version:
             return self.model_path / f"{model_name}_v{version}.pkl"
@@ -49,9 +49,9 @@ class ModelManager:
         self,
         model: Any,
         model_name: str,
-        metrics: Optional[dict] = None,
-        parameters: Optional[dict] = None,
-        version: Optional[str] = None,
+        metrics: dict | None = None,
+        parameters: dict | None = None,
+        version: str | None = None,
     ) -> str:
         """
         Save a trained model with metadata.
@@ -66,7 +66,7 @@ class ModelManager:
         Returns:
             Path to saved model
         """
-        version = version or datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        version = version or datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         model_path = self._get_model_file_path(model_name, version)
 
         try:
@@ -78,7 +78,7 @@ class ModelManager:
             metadata = {
                 "model_name": model_name,
                 "version": version,
-                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(UTC).isoformat(),
                 "metrics": metrics or {},
                 "parameters": parameters or {},
                 "file_path": str(model_path),
@@ -93,7 +93,7 @@ class ModelManager:
 
             existing_metadata["versions"].append(metadata)
             existing_metadata["latest_version"] = version
-            existing_metadata["updated_at"] = datetime.now(timezone.utc).isoformat()
+            existing_metadata["updated_at"] = datetime.now(UTC).isoformat()
 
             with open(metadata_path, "w") as f:
                 json.dump(existing_metadata, f, indent=2)
@@ -108,8 +108,8 @@ class ModelManager:
     def load_model(
         self,
         model_name: str,
-        version: Optional[str] = None
-    ) -> Optional[Any]:
+        version: str | None = None
+    ) -> Any | None:
         """
         Load a model from disk.
 
@@ -160,14 +160,14 @@ class ModelManager:
 
         if metadata_path.exists():
             try:
-                with open(metadata_path, "r") as f:
+                with open(metadata_path) as f:
                     return json.load(f)
             except Exception as e:
                 logger.error(f"Failed to load metadata for {model_name}: {e}")
 
         return {}
 
-    def get_model_info(self, model_name: str) -> Optional[dict]:
+    def get_model_info(self, model_name: str) -> dict | None:
         """Get information about a model including all versions."""
         return self._load_metadata(model_name) or None
 
@@ -176,7 +176,7 @@ class ModelManager:
         models = []
         for metadata_file in self.model_path.glob("*_metadata.json"):
             try:
-                with open(metadata_file, "r") as f:
+                with open(metadata_file) as f:
                     metadata = json.load(f)
                     models.append({
                         "name": metadata_file.stem.replace("_metadata", ""),
@@ -192,7 +192,7 @@ class ModelManager:
     def delete_model(
         self,
         model_name: str,
-        version: Optional[str] = None
+        version: str | None = None
     ) -> bool:
         """
         Delete a model or specific version.
@@ -252,7 +252,7 @@ class ModelManager:
 
 
 # Singleton instance
-_model_manager: Optional[ModelManager] = None
+_model_manager: ModelManager | None = None
 
 
 def get_model_manager() -> ModelManager:

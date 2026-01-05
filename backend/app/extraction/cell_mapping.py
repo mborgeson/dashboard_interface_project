@@ -10,12 +10,12 @@ Improvements over prior implementation:
 - Better error handling for malformed reference files
 """
 
-import pandas as pd
-import structlog
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Set
-from collections import Counter
+
+import pandas as pd
+import structlog
 
 
 @dataclass
@@ -46,11 +46,11 @@ class CellMappingParser:
 
     def __init__(self, reference_file_path: str):
         self.reference_file_path = Path(reference_file_path)
-        self.mappings: Dict[str, CellMapping] = {}
+        self.mappings: dict[str, CellMapping] = {}
         self.logger = structlog.get_logger().bind(component="CellMappingParser")
-        self._duplicate_tracker: Set[str] = set()
+        self._duplicate_tracker: set[str] = set()
 
-    def load_mappings(self) -> Dict[str, CellMapping]:
+    def load_mappings(self) -> dict[str, CellMapping]:
         """
         Load and parse cell mappings from reference Excel file.
 
@@ -211,18 +211,18 @@ class CellMappingParser:
         abbrev = "".join(w[0].upper() for w in words if w)[:4]
         return abbrev or "UNK"
 
-    def get_mappings_by_category(self) -> Dict[str, list]:
+    def get_mappings_by_category(self) -> dict[str, list]:
         """Group mappings by category"""
-        by_category: Dict[str, list] = {}
+        by_category: dict[str, list] = {}
         for mapping in self.mappings.values():
             if mapping.category not in by_category:
                 by_category[mapping.category] = []
             by_category[mapping.category].append(mapping)
         return by_category
 
-    def get_mappings_by_sheet(self) -> Dict[str, list]:
+    def get_mappings_by_sheet(self) -> dict[str, list]:
         """Group mappings by target sheet name"""
-        by_sheet: Dict[str, list] = {}
+        by_sheet: dict[str, list] = {}
         for mapping in self.mappings.values():
             if mapping.sheet_name not in by_sheet:
                 by_sheet[mapping.sheet_name] = []
@@ -249,7 +249,7 @@ class CellMappingParser:
         df.to_csv(output_path, index=False)
         self.logger.info("mapping_summary_exported", path=output_path)
 
-    def validate_mappings(self) -> Dict[str, any]:
+    def validate_mappings(self) -> dict[str, any]:
         """
         Validate loaded mappings and return quality report.
 

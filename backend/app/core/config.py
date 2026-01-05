@@ -4,7 +4,7 @@ Loads from environment variables with sensible defaults.
 """
 
 from functools import lru_cache
-from typing import List, Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # CORS Settings
-    CORS_ORIGINS: List[str] = [
+    CORS_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
@@ -59,10 +59,10 @@ class Settings(BaseSettings):
     # Email Settings -- General (Gmail SMTP)
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 465
-    SMTP_USER: Optional[str] = "borgesom68@gmail.com"
-    SMTP_PASSWORD: Optional[str] = "dgbrnbtlwrlyljcy"
+    SMTP_USER: str | None = "borgesom68@gmail.com"
+    SMTP_PASSWORD: str | None = "dgbrnbtlwrlyljcy"
     EMAIL_FROM_NAME: str = "Dashboard Interface (B&R Capital)"
-    EMAIL_FROM_ADDRESS: Optional[str] = "borgesom68@gmail.com"
+    EMAIL_FROM_ADDRESS: str | None = "borgesom68@gmail.com"
     # Email Settings -- Advanced Settings (Gmail SMTP)
     EMAIL_RATE_LIMIT: int = 60
     EMAIL_MAX_RETRIES: int = 3
@@ -80,14 +80,14 @@ class Settings(BaseSettings):
     ML_PREDICTION_CACHE_TTL: int = 300  # 5 minutes
 
     # External APIs
-    FRED_API_KEY: Optional[str] = "d043d26a9a4139438bb2a8d565bc01f7"
+    FRED_API_KEY: str | None = "d043d26a9a4139438bb2a8d565bc01f7"
 
     # SharePoint/Azure AD Settings (load from .env)
-    AZURE_CLIENT_ID: Optional[str] = None
-    AZURE_CLIENT_SECRET: Optional[str] = None
-    AZURE_TENANT_ID: Optional[str] = None
-    SHAREPOINT_SITE_URL: Optional[str] = None
-    SHAREPOINT_SITE: Optional[str] = "BRCapital-Internal"
+    AZURE_CLIENT_ID: str | None = None
+    AZURE_CLIENT_SECRET: str | None = None
+    AZURE_TENANT_ID: str | None = None
+    SHAREPOINT_SITE_URL: str | None = None
+    SHAREPOINT_SITE: str | None = "BRCapital-Internal"
     SHAREPOINT_LIBRARY: str = "Real Estate"  # Document library name
     SHAREPOINT_DEALS_FOLDER: str = "Deals"  # Folder within library
     DEALS_FOLDER: str = "Real Estate/Deals"  # Legacy alias
@@ -108,7 +108,7 @@ class Settings(BaseSettings):
         return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()

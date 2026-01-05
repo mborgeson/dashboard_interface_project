@@ -9,8 +9,9 @@ each row represents one comparable transaction.
 """
 from datetime import date
 from decimal import Decimal
-from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Integer, Numeric, Date, Text, ForeignKey
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Date, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -46,7 +47,7 @@ class SalesComp(Base, TimestampMixin, SourceTrackingMixin):
     )
 
     # Comp ordering
-    comp_number: Mapped[Optional[int]] = mapped_column(
+    comp_number: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Comparable number (1, 2, 3, etc.)"
@@ -56,37 +57,37 @@ class SalesComp(Base, TimestampMixin, SourceTrackingMixin):
     # PROPERTY IDENTIFICATION
     # ==========================================================================
 
-    property_name: Mapped[Optional[str]] = mapped_column(
+    property_name: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="Comparable property name"
     )
-    property_address: Mapped[Optional[str]] = mapped_column(
+    property_address: Mapped[str | None] = mapped_column(
         String(500),
         nullable=True,
         comment="Full street address"
     )
-    property_city: Mapped[Optional[str]] = mapped_column(
+    property_city: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="City"
     )
-    property_state: Mapped[Optional[str]] = mapped_column(
+    property_state: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="State"
     )
-    property_zip: Mapped[Optional[str]] = mapped_column(
+    property_zip: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
         comment="ZIP code"
     )
-    submarket: Mapped[Optional[str]] = mapped_column(
+    submarket: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="Submarket name"
     )
-    distance_miles: Mapped[Optional[Decimal]] = mapped_column(
+    distance_miles: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 2),
         nullable=True,
         comment="Distance from subject property in miles"
@@ -96,42 +97,42 @@ class SalesComp(Base, TimestampMixin, SourceTrackingMixin):
     # PHYSICAL CHARACTERISTICS
     # ==========================================================================
 
-    year_built: Mapped[Optional[int]] = mapped_column(
+    year_built: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Year built"
     )
-    year_renovated: Mapped[Optional[int]] = mapped_column(
+    year_renovated: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Year renovated"
     )
-    total_units: Mapped[Optional[int]] = mapped_column(
+    total_units: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Total number of units"
     )
-    total_sf: Mapped[Optional[int]] = mapped_column(
+    total_sf: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Total square feet"
     )
-    avg_unit_sf: Mapped[Optional[Decimal]] = mapped_column(
+    avg_unit_sf: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Average unit size in SF"
     )
-    stories: Mapped[Optional[int]] = mapped_column(
+    stories: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Number of stories"
     )
-    building_type: Mapped[Optional[str]] = mapped_column(
+    building_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="Garden, Mid-Rise, High-Rise"
     )
-    lot_size_acres: Mapped[Optional[Decimal]] = mapped_column(
+    lot_size_acres: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 4),
         nullable=True,
         comment="Lot size in acres"
@@ -141,12 +142,12 @@ class SalesComp(Base, TimestampMixin, SourceTrackingMixin):
     # QUALITY & CLASSIFICATION
     # ==========================================================================
 
-    asset_class: Mapped[Optional[str]] = mapped_column(
+    asset_class: Mapped[str | None] = mapped_column(
         String(10),
         nullable=True,
         comment="Class A, B, C, D"
     )
-    condition_at_sale: Mapped[Optional[str]] = mapped_column(
+    condition_at_sale: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="Condition at time of sale"
@@ -156,34 +157,34 @@ class SalesComp(Base, TimestampMixin, SourceTrackingMixin):
     # TRANSACTION DETAILS
     # ==========================================================================
 
-    sale_date: Mapped[Optional[date]] = mapped_column(
+    sale_date: Mapped[date | None] = mapped_column(
         Date,
         nullable=True,
         comment="Date of sale"
     )
-    sale_price: Mapped[Optional[Decimal]] = mapped_column(
+    sale_price: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Total sale price"
     )
-    price_per_unit: Mapped[Optional[Decimal]] = mapped_column(
+    price_per_unit: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 2),
         nullable=True,
         comment="Sale price per unit"
     )
-    price_per_sf: Mapped[Optional[Decimal]] = mapped_column(
+    price_per_sf: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Sale price per SF"
     )
 
     # Transaction Type
-    transaction_type: Mapped[Optional[str]] = mapped_column(
+    transaction_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="Arm's length, Portfolio, Distressed"
     )
-    sale_conditions: Mapped[Optional[str]] = mapped_column(
+    sale_conditions: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="Special sale conditions if any"
@@ -193,22 +194,22 @@ class SalesComp(Base, TimestampMixin, SourceTrackingMixin):
     # CAP RATES & NOI
     # ==========================================================================
 
-    cap_rate: Mapped[Optional[Decimal]] = mapped_column(
+    cap_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Cap rate at sale"
     )
-    cap_rate_type: Mapped[Optional[str]] = mapped_column(
+    cap_rate_type: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
         comment="Actual, Pro Forma, Broker"
     )
-    noi_at_sale: Mapped[Optional[Decimal]] = mapped_column(
+    noi_at_sale: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="NOI at time of sale"
     )
-    noi_per_unit: Mapped[Optional[Decimal]] = mapped_column(
+    noi_per_unit: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="NOI per unit at sale"
@@ -218,17 +219,17 @@ class SalesComp(Base, TimestampMixin, SourceTrackingMixin):
     # RENT METRICS AT SALE
     # ==========================================================================
 
-    avg_rent_at_sale: Mapped[Optional[Decimal]] = mapped_column(
+    avg_rent_at_sale: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Average rent at time of sale"
     )
-    avg_rent_per_sf: Mapped[Optional[Decimal]] = mapped_column(
+    avg_rent_per_sf: Mapped[Decimal | None] = mapped_column(
         Numeric(8, 2),
         nullable=True,
         comment="Average rent per SF at sale"
     )
-    occupancy_at_sale: Mapped[Optional[Decimal]] = mapped_column(
+    occupancy_at_sale: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Occupancy at time of sale"
@@ -238,27 +239,27 @@ class SalesComp(Base, TimestampMixin, SourceTrackingMixin):
     # BUYER/SELLER INFORMATION
     # ==========================================================================
 
-    buyer_name: Mapped[Optional[str]] = mapped_column(
+    buyer_name: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="Buyer name"
     )
-    buyer_type: Mapped[Optional[str]] = mapped_column(
+    buyer_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="REIT, Private Equity, Family Office, etc."
     )
-    seller_name: Mapped[Optional[str]] = mapped_column(
+    seller_name: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="Seller name"
     )
-    seller_type: Mapped[Optional[str]] = mapped_column(
+    seller_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="Type of seller"
     )
-    broker: Mapped[Optional[str]] = mapped_column(
+    broker: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="Broker/brokerage that handled sale"
@@ -268,17 +269,17 @@ class SalesComp(Base, TimestampMixin, SourceTrackingMixin):
     # FINANCING
     # ==========================================================================
 
-    financing_type: Mapped[Optional[str]] = mapped_column(
+    financing_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="Agency, Bank, Life Co, etc."
     )
-    loan_amount: Mapped[Optional[Decimal]] = mapped_column(
+    loan_amount: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Loan amount if known"
     )
-    ltv: Mapped[Optional[Decimal]] = mapped_column(
+    ltv: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Loan-to-value ratio"
@@ -288,12 +289,12 @@ class SalesComp(Base, TimestampMixin, SourceTrackingMixin):
     # DATA SOURCE
     # ==========================================================================
 
-    data_source: Mapped[Optional[str]] = mapped_column(
+    data_source: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="CoStar, RCA, Public Records, etc."
     )
-    notes: Mapped[Optional[str]] = mapped_column(
+    notes: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
         comment="Additional notes about comparable"

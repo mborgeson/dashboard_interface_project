@@ -2,19 +2,18 @@
 User management endpoints.
 """
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
 from app.core.security import get_password_hash
+from app.db.session import get_db
 from app.schemas.user import (
     UserCreate,
-    UserUpdate,
-    UserResponse,
     UserListResponse,
+    UserResponse,
+    UserUpdate,
 )
 
 router = APIRouter()
@@ -64,9 +63,9 @@ DEMO_USERS = [
 async def list_users(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    role: Optional[str] = None,
-    department: Optional[str] = None,
-    is_active: Optional[bool] = None,
+    role: str | None = None,
+    department: str | None = None,
+    is_active: bool | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """

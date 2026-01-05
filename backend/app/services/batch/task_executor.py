@@ -6,13 +6,13 @@ Supports task registration, timeout handling, and graceful shutdown.
 """
 
 import asyncio
+from collections.abc import Callable, Coroutine
 from datetime import datetime
-from typing import Any, Callable, Coroutine, Dict, Optional
+from typing import Any
 
 from loguru import logger
 
-from .job_queue import Job, JobQueue, JobStatus, get_job_queue
-
+from .job_queue import Job, JobQueue, get_job_queue
 
 # Type alias for async task handlers
 TaskHandler = Callable[[Job], Coroutine[Any, Any, Any]]
@@ -40,12 +40,12 @@ class TaskExecutor:
         """
         self._max_workers = max_workers
         self._poll_interval = poll_interval
-        self._handlers: Dict[str, TaskHandler] = {}
+        self._handlers: dict[str, TaskHandler] = {}
         self._workers: list[asyncio.Task] = []
         self._running = False
         self._shutdown_event = asyncio.Event()
-        self._job_queue: Optional[JobQueue] = None
-        self._active_jobs: Dict[str, asyncio.Task] = {}
+        self._job_queue: JobQueue | None = None
+        self._active_jobs: dict[str, asyncio.Task] = {}
 
     def register_handler(self, task_type: str, handler: TaskHandler) -> None:
         """
@@ -69,7 +69,7 @@ class TaskExecutor:
             del self._handlers[task_type]
             logger.info(f"Unregistered handler for task type: {task_type}")
 
-    async def start(self, job_queue: Optional[JobQueue] = None) -> None:
+    async def start(self, job_queue: JobQueue | None = None) -> None:
         """
         Start the executor with worker pool.
 
@@ -110,7 +110,7 @@ class TaskExecutor:
             task.cancel()
             try:
                 await asyncio.wait_for(task, timeout=5.0)
-            except (asyncio.CancelledError, asyncio.TimeoutError):
+            except (TimeoutError, asyncio.CancelledError):
                 pass
 
         # Wait for workers to finish
@@ -120,7 +120,7 @@ class TaskExecutor:
                     asyncio.gather(*self._workers, return_exceptions=True),
                     timeout=timeout,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning("Timeout waiting for workers, cancelling...")
                 for worker in self._workers:
                     worker.cancel()
@@ -188,7 +188,7 @@ class TaskExecutor:
             await self._job_queue.complete(job.id, result)
             logger.info(f"Worker {worker_id} completed job: {job.id}")
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             error_msg = f"Job timed out after {job.timeout} seconds"
             logger.error(f"Worker {worker_id} timeout on job: {job.id}")
             await self._job_queue.fail(job.id, error_msg)
@@ -209,7 +209,7 @@ class TaskExecutor:
     async def execute_immediate(
         self,
         task_type: str,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         timeout: int = 300,
     ) -> Any:
         """
@@ -244,7 +244,7 @@ class TaskExecutor:
         """Get list of registered task types."""
         return list(self._handlers.keys())
 
-    async def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         """Get executor statistics."""
         return {
             "running": self._running,
@@ -257,7 +257,7 @@ class TaskExecutor:
 
 
 # Singleton instance
-_task_executor: Optional[TaskExecutor] = None
+_task_executor: TaskExecutor | None = None
 
 
 def get_task_executor() -> TaskExecutor:
@@ -272,7 +272,7 @@ def get_task_executor() -> TaskExecutor:
 # Built-in Task Handlers
 # =============================================================================
 
-async def report_generation_handler(job: Job) -> Dict[str, Any]:
+async def report_generation_handler(job: Job) -> dict[str, Any]:
     """
     Handle report generation tasks.
 
@@ -282,8 +282,8 @@ async def report_generation_handler(job: Job) -> Dict[str, Any]:
         format: Output format (pdf, excel)
         options: Additional report options
     """
-    from app.services.pdf_service import get_pdf_service
     from app.services.export_service import get_export_service
+    from app.services.pdf_service import get_pdf_service
 
     report_type = job.payload.get("report_type")
     entity_id = job.payload.get("entity_id")
@@ -311,7 +311,7 @@ async def report_generation_handler(job: Job) -> Dict[str, Any]:
     }
 
 
-async def data_export_handler(job: Job) -> Dict[str, Any]:
+async def data_export_handler(job: Job) -> dict[str, Any]:
     """
     Handle data export tasks.
 
@@ -336,7 +336,7 @@ async def data_export_handler(job: Job) -> Dict[str, Any]:
     }
 
 
-async def data_import_handler(job: Job) -> Dict[str, Any]:
+async def data_import_handler(job: Job) -> dict[str, Any]:
     """
     Handle data import tasks.
 
@@ -360,7 +360,7 @@ async def data_import_handler(job: Job) -> Dict[str, Any]:
     }
 
 
-async def email_notification_handler(job: Job) -> Dict[str, Any]:
+async def email_notification_handler(job: Job) -> dict[str, Any]:
     """
     Handle email notification tasks.
 

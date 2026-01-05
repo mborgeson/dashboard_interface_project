@@ -9,16 +9,15 @@ Provides SharePoint integration for:
 Uses Microsoft Graph API for SharePoint access.
 """
 
-import io
 import re
-import structlog
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-from dataclasses import dataclass
+from typing import Any
 
 import aiohttp
 import msal
+import structlog
 
 from app.core.config import settings
 
@@ -33,7 +32,7 @@ class SharePointFile:
     size: int
     modified_date: datetime
     deal_name: str
-    deal_stage: Optional[str] = None
+    deal_stage: str | None = None
 
 
 class SharePointAuthError(Exception):
@@ -62,12 +61,12 @@ class SharePointClient:
 
     def __init__(
         self,
-        tenant_id: Optional[str] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-        site_url: Optional[str] = None,
-        library_name: Optional[str] = None,
-        deals_folder: Optional[str] = None,
+        tenant_id: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        site_url: str | None = None,
+        library_name: str | None = None,
+        deals_folder: str | None = None,
     ):
         self.tenant_id = tenant_id or settings.AZURE_TENANT_ID
         self.client_id = client_id or settings.AZURE_CLIENT_ID
@@ -81,13 +80,13 @@ class SharePointClient:
         self.logger = structlog.get_logger().bind(component="SharePointClient")
 
         # MSAL app and token cache
-        self._msal_app: Optional[msal.ConfidentialClientApplication] = None
-        self._access_token: Optional[str] = None
-        self._token_expires: Optional[datetime] = None
+        self._msal_app: msal.ConfidentialClientApplication | None = None
+        self._access_token: str | None = None
+        self._token_expires: datetime | None = None
 
         # Site and drive IDs (cached after first lookup)
-        self._site_id: Optional[str] = None
-        self._drive_id: Optional[str] = None
+        self._site_id: str | None = None
+        self._drive_id: str | None = None
 
     def _get_msal_app(self) -> msal.ConfidentialClientApplication:
         """Get or create MSAL confidential client app"""
@@ -133,7 +132,7 @@ class SharePointClient:
 
     async def _make_request(
         self, method: str, endpoint: str, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Make authenticated request to Graph API"""
         token = await self._get_access_token()
 
@@ -144,23 +143,22 @@ class SharePointClient:
 
         url = f"{self.GRAPH_BASE_URL}{endpoint}"
 
-        async with aiohttp.ClientSession() as session:
-            async with session.request(
-                method, url, headers=headers, **kwargs
-            ) as response:
-                if response.status == 401:
-                    # Token may have expired, clear cache and retry once
-                    self._access_token = None
-                    token = await self._get_access_token()
-                    headers["Authorization"] = f"Bearer {token}"
-                    async with session.request(
-                        method, url, headers=headers, **kwargs
-                    ) as retry_response:
-                        retry_response.raise_for_status()
-                        return await retry_response.json()
+        async with aiohttp.ClientSession() as session, session.request(
+            method, url, headers=headers, **kwargs
+        ) as response:
+            if response.status == 401:
+                # Token may have expired, clear cache and retry once
+                self._access_token = None
+                token = await self._get_access_token()
+                headers["Authorization"] = f"Bearer {token}"
+                async with session.request(
+                    method, url, headers=headers, **kwargs
+                ) as retry_response:
+                    retry_response.raise_for_status()
+                    return await retry_response.json()
 
-                response.raise_for_status()
-                return await response.json()
+            response.raise_for_status()
+            return await response.json()
 
     async def _get_site_id(self) -> str:
         """Get SharePoint site ID from site URL"""
@@ -215,7 +213,7 @@ class SharePointClient:
         self.logger.info("drive_id_retrieved", drive_id=self._drive_id)
         return self._drive_id
 
-    async def discover_deal_folders(self) -> List[Dict[str, Any]]:
+    async def discover_deal_folders(self) -> list[dict[str, Any]]:
         """
         Discover all deal folders in the Deals directory.
 
@@ -247,8 +245,8 @@ class SharePointClient:
         return folders
 
     async def find_uw_models(
-        self, deal_folder_path: Optional[str] = None
-    ) -> List[SharePointFile]:
+        self, deal_folder_path: str | None = None
+    ) -> list[SharePointFile]:
         """
         Find UW model files in deal folders.
 
@@ -343,8 +341,8 @@ class SharePointClient:
         return content
 
     async def download_all_uw_models(
-        self, output_dir: Optional[str] = None
-    ) -> List[Tuple[SharePointFile, bytes]]:
+        self, output_dir: str | None = None
+    ) -> list[tuple[SharePointFile, bytes]]:
         """
         Discover and download all UW models.
 
@@ -373,7 +371,7 @@ class SharePointClient:
 
         return results
 
-    def _infer_deal_stage(self, folder_path: str) -> Optional[str]:
+    def _infer_deal_stage(self, folder_path: str) -> str | None:
         """Infer deal stage from folder path structure"""
         path_lower = folder_path.lower()
 

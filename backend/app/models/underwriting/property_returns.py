@@ -5,8 +5,9 @@ Maps to: 'Assumptions (Summary)' Returns sections
 Cell Reference Category: "Property-Level Return Metrics"
 """
 from decimal import Decimal
-from typing import Optional, TYPE_CHECKING
-from sqlalchemy import Integer, Numeric, ForeignKey
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey, Integer, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -45,27 +46,27 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # CAP RATES
     # ==========================================================================
 
-    going_in_cap_rate: Mapped[Optional[Decimal]] = mapped_column(
+    going_in_cap_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Going-in cap rate (T-12 NOI / Purchase Price)"
     )
-    year_1_cap_rate: Mapped[Optional[Decimal]] = mapped_column(
+    year_1_cap_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Year 1 cap rate"
     )
-    stabilized_cap_rate: Mapped[Optional[Decimal]] = mapped_column(
+    stabilized_cap_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Stabilized cap rate"
     )
-    exit_cap_rate: Mapped[Optional[Decimal]] = mapped_column(
+    exit_cap_rate: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Exit cap rate assumption"
     )
-    cap_rate_spread: Mapped[Optional[Decimal]] = mapped_column(
+    cap_rate_spread: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Spread between going-in and exit cap"
@@ -75,42 +76,42 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # NOI PROJECTIONS
     # ==========================================================================
 
-    t12_noi: Mapped[Optional[Decimal]] = mapped_column(
+    t12_noi: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Trailing 12 month NOI"
     )
-    year_1_noi: Mapped[Optional[Decimal]] = mapped_column(
+    year_1_noi: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Year 1 projected NOI"
     )
-    year_2_noi: Mapped[Optional[Decimal]] = mapped_column(
+    year_2_noi: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Year 2 projected NOI"
     )
-    year_3_noi: Mapped[Optional[Decimal]] = mapped_column(
+    year_3_noi: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Year 3 projected NOI"
     )
-    year_4_noi: Mapped[Optional[Decimal]] = mapped_column(
+    year_4_noi: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Year 4 projected NOI"
     )
-    year_5_noi: Mapped[Optional[Decimal]] = mapped_column(
+    year_5_noi: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Year 5 projected NOI"
     )
-    stabilized_noi: Mapped[Optional[Decimal]] = mapped_column(
+    stabilized_noi: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Stabilized NOI"
     )
-    exit_noi: Mapped[Optional[Decimal]] = mapped_column(
+    exit_noi: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Exit year NOI"
@@ -120,37 +121,37 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # PROPERTY VALUE
     # ==========================================================================
 
-    purchase_price: Mapped[Optional[Decimal]] = mapped_column(
+    purchase_price: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Initial purchase price"
     )
-    total_cost_basis: Mapped[Optional[Decimal]] = mapped_column(
+    total_cost_basis: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Total cost basis including improvements"
     )
-    stabilized_value: Mapped[Optional[Decimal]] = mapped_column(
+    stabilized_value: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Stabilized property value"
     )
-    exit_value: Mapped[Optional[Decimal]] = mapped_column(
+    exit_value: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Projected exit/sale value"
     )
-    gross_sale_proceeds: Mapped[Optional[Decimal]] = mapped_column(
+    gross_sale_proceeds: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Gross sale proceeds"
     )
-    net_sale_proceeds: Mapped[Optional[Decimal]] = mapped_column(
+    net_sale_proceeds: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Net sale proceeds after costs"
     )
-    value_creation: Mapped[Optional[Decimal]] = mapped_column(
+    value_creation: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Total value creation (exit - cost)"
@@ -160,22 +161,22 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # UNLEVERED RETURNS
     # ==========================================================================
 
-    unlevered_irr: Mapped[Optional[Decimal]] = mapped_column(
+    unlevered_irr: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Unlevered IRR"
     )
-    unlevered_equity_multiple: Mapped[Optional[Decimal]] = mapped_column(
+    unlevered_equity_multiple: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 3),
         nullable=True,
         comment="Unlevered equity multiple"
     )
-    unlevered_cash_on_cash_year_1: Mapped[Optional[Decimal]] = mapped_column(
+    unlevered_cash_on_cash_year_1: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Year 1 unlevered cash-on-cash"
     )
-    unlevered_cash_on_cash_avg: Mapped[Optional[Decimal]] = mapped_column(
+    unlevered_cash_on_cash_avg: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Average unlevered cash-on-cash"
@@ -185,17 +186,17 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # YIELD METRICS
     # ==========================================================================
 
-    year_1_yield_on_cost: Mapped[Optional[Decimal]] = mapped_column(
+    year_1_yield_on_cost: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Year 1 yield on cost"
     )
-    stabilized_yield_on_cost: Mapped[Optional[Decimal]] = mapped_column(
+    stabilized_yield_on_cost: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Stabilized yield on cost"
     )
-    development_spread: Mapped[Optional[Decimal]] = mapped_column(
+    development_spread: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Development spread (stabilized yield - exit cap)"
@@ -205,32 +206,32 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # CASH FLOW SUMMARY
     # ==========================================================================
 
-    year_1_cash_flow: Mapped[Optional[Decimal]] = mapped_column(
+    year_1_cash_flow: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Year 1 property cash flow"
     )
-    year_2_cash_flow: Mapped[Optional[Decimal]] = mapped_column(
+    year_2_cash_flow: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Year 2 property cash flow"
     )
-    year_3_cash_flow: Mapped[Optional[Decimal]] = mapped_column(
+    year_3_cash_flow: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Year 3 property cash flow"
     )
-    year_4_cash_flow: Mapped[Optional[Decimal]] = mapped_column(
+    year_4_cash_flow: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Year 4 property cash flow"
     )
-    year_5_cash_flow: Mapped[Optional[Decimal]] = mapped_column(
+    year_5_cash_flow: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Year 5 property cash flow"
     )
-    total_cash_flow: Mapped[Optional[Decimal]] = mapped_column(
+    total_cash_flow: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Total property cash flow over hold"
@@ -240,22 +241,22 @@ class PropertyReturns(Base, TimestampMixin, SourceTrackingMixin):
     # PER UNIT METRICS
     # ==========================================================================
 
-    noi_per_unit_year_1: Mapped[Optional[Decimal]] = mapped_column(
+    noi_per_unit_year_1: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Year 1 NOI per unit"
     )
-    noi_per_unit_stabilized: Mapped[Optional[Decimal]] = mapped_column(
+    noi_per_unit_stabilized: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Stabilized NOI per unit"
     )
-    value_per_unit_purchase: Mapped[Optional[Decimal]] = mapped_column(
+    value_per_unit_purchase: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 2),
         nullable=True,
         comment="Purchase price per unit"
     )
-    value_per_unit_exit: Mapped[Optional[Decimal]] = mapped_column(
+    value_per_unit_exit: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 2),
         nullable=True,
         comment="Exit value per unit"

@@ -1,13 +1,13 @@
 """
 User model for authentication and authorization.
 """
-from datetime import datetime, timezone
-from typing import Optional, List
-from sqlalchemy import String, Boolean, DateTime, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, DateTime, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.base import TimestampMixin, SoftDeleteMixin
+from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
 class User(Base, TimestampMixin, SoftDeleteMixin):
@@ -37,20 +37,20 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Profile
-    avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    department: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    department: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     # Session management
-    last_login: Mapped[Optional[datetime]] = mapped_column(
+    last_login: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
-    refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Notification preferences
     email_notifications: Mapped[bool] = mapped_column(Boolean, default=True)
-    report_subscriptions: Mapped[Optional[str]] = mapped_column(
+    report_subscriptions: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )  # JSON string of subscribed report IDs
@@ -63,4 +63,4 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
 
     def update_last_login(self) -> None:
         """Update the last login timestamp."""
-        self.last_login = datetime.now(timezone.utc)
+        self.last_login = datetime.now(UTC)

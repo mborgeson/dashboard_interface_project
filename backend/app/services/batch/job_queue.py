@@ -10,8 +10,8 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
-from heapq import heappush, heappop
+from heapq import heappop, heappush
+from typing import Any
 
 from loguru import logger
 
@@ -61,24 +61,24 @@ class Job:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str = ""
     task_type: str = ""
-    payload: Dict[str, Any] = field(default_factory=dict)
+    payload: dict[str, Any] = field(default_factory=dict)
     priority: JobPriority = JobPriority.NORMAL
     status: JobStatus = JobStatus.PENDING
     created_at: datetime = field(default_factory=datetime.utcnow)
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    result: Optional[Any] = None
-    error: Optional[str] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    result: Any | None = None
+    error: str | None = None
     retry_count: int = 0
     max_retries: int = 3
     timeout: int = 300  # 5 minutes default
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __lt__(self, other: "Job") -> bool:
         """Compare jobs by priority for heap ordering."""
         return (self.priority.value, self.created_at) < (other.priority.value, other.created_at)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert job to dictionary."""
         return {
             "id": self.id,
@@ -99,7 +99,7 @@ class Job:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Job":
+    def from_dict(cls, data: dict[str, Any]) -> "Job":
         """Create job from dictionary."""
         return cls(
             id=data.get("id", str(uuid.uuid4())),
@@ -139,15 +139,15 @@ class JobQueue:
         Args:
             max_history: Maximum number of completed jobs to retain
         """
-        self._queue: List[Job] = []  # Priority heap
-        self._jobs: Dict[str, Job] = {}  # All jobs by ID
-        self._history: List[Job] = []  # Completed jobs
+        self._queue: list[Job] = []  # Priority heap
+        self._jobs: dict[str, Job] = {}  # All jobs by ID
+        self._history: list[Job] = []  # Completed jobs
         self._max_history = max_history
         self._lock = asyncio.Lock()
         self._redis_client = None
         self._use_redis = False
 
-    async def initialize(self, redis_url: Optional[str] = None) -> None:
+    async def initialize(self, redis_url: str | None = None) -> None:
         """
         Initialize queue with optional Redis backing.
 
@@ -202,12 +202,12 @@ class JobQueue:
     async def enqueue(
         self,
         task_type: str,
-        payload: Dict[str, Any],
-        name: Optional[str] = None,
+        payload: dict[str, Any],
+        name: str | None = None,
         priority: JobPriority = JobPriority.NORMAL,
         max_retries: int = 3,
         timeout: int = 300,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Job:
         """
         Add a new job to the queue.
@@ -245,7 +245,7 @@ class JobQueue:
         logger.info(f"Job enqueued: {job.id} ({job.task_type})")
         return job
 
-    async def dequeue(self) -> Optional[Job]:
+    async def dequeue(self) -> Job | None:
         """
         Get the next job from the queue.
 
@@ -273,7 +273,7 @@ class JobQueue:
 
             return None
 
-    async def complete(self, job_id: str, result: Any = None) -> Optional[Job]:
+    async def complete(self, job_id: str, result: Any = None) -> Job | None:
         """
         Mark a job as completed.
 
@@ -304,7 +304,7 @@ class JobQueue:
             logger.info(f"Job completed: {job.id} ({job.task_type})")
             return job
 
-    async def fail(self, job_id: str, error: str) -> Optional[Job]:
+    async def fail(self, job_id: str, error: str) -> Job | None:
         """
         Mark a job as failed.
 
@@ -342,7 +342,7 @@ class JobQueue:
 
             return job
 
-    async def cancel(self, job_id: str) -> Optional[Job]:
+    async def cancel(self, job_id: str) -> Job | None:
         """
         Cancel a pending job.
 
@@ -370,26 +370,26 @@ class JobQueue:
             logger.info(f"Job cancelled: {job.id}")
             return job
 
-    async def get_job(self, job_id: str) -> Optional[Job]:
+    async def get_job(self, job_id: str) -> Job | None:
         """Get a job by ID."""
         return self._jobs.get(job_id)
 
-    async def get_pending_jobs(self) -> List[Job]:
+    async def get_pending_jobs(self) -> list[Job]:
         """Get all pending/queued jobs."""
         return [
             j for j in self._jobs.values()
             if j.status in [JobStatus.PENDING, JobStatus.QUEUED, JobStatus.RETRY]
         ]
 
-    async def get_running_jobs(self) -> List[Job]:
+    async def get_running_jobs(self) -> list[Job]:
         """Get all currently running jobs."""
         return [j for j in self._jobs.values() if j.status == JobStatus.RUNNING]
 
-    async def get_history(self, limit: int = 100) -> List[Job]:
+    async def get_history(self, limit: int = 100) -> list[Job]:
         """Get completed job history."""
         return self._history[-limit:]
 
-    async def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         """Get queue statistics."""
         status_counts = {}
         for status in JobStatus:
@@ -405,7 +405,7 @@ class JobQueue:
             "use_redis": self._use_redis,
         }
 
-    async def clear_completed(self, older_than: Optional[timedelta] = None) -> int:
+    async def clear_completed(self, older_than: timedelta | None = None) -> int:
         """
         Clear completed jobs from memory.
 
@@ -434,7 +434,7 @@ class JobQueue:
 
 
 # Singleton instance
-_job_queue: Optional[JobQueue] = None
+_job_queue: JobQueue | None = None
 
 
 def get_job_queue() -> JobQueue:

@@ -4,16 +4,16 @@ CRUD operations for User model.
 Override create/update to handle password hashing - passwords must never
 be stored in plaintext. See CRUDBase for standard CRUD operations.
 """
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from loguru import logger
 
+from app.core.security import get_password_hash, verify_password
 from app.crud.base import CRUDBase
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
-from app.core.security import get_password_hash, verify_password
 
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
@@ -24,7 +24,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     """
 
     async def create(
-        self, db: AsyncSession, *, obj_in: Union[UserCreate, Dict[str, Any]]
+        self, db: AsyncSession, *, obj_in: UserCreate | dict[str, Any]
     ) -> User:
         """Create new user with hashed password."""
         if isinstance(obj_in, dict):
@@ -49,7 +49,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         db: AsyncSession,
         *,
         db_obj: User,
-        obj_in: Union[UserUpdate, Dict[str, Any]],
+        obj_in: UserUpdate | dict[str, Any],
     ) -> User:
         """Update user with password hashing support."""
         if isinstance(obj_in, dict):
@@ -83,7 +83,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     async def get_by_email(
         self, db: AsyncSession, *, email: str
-    ) -> Optional[User]:
+    ) -> User | None:
         """Get user by email address."""
         result = await db.execute(
             select(User).where(User.email == email)
@@ -92,7 +92,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     async def authenticate(
         self, db: AsyncSession, *, email: str, password: str
-    ) -> Optional[User]:
+    ) -> User | None:
         """
         Authenticate user by email and password.
         Returns user if credentials are valid, None otherwise.

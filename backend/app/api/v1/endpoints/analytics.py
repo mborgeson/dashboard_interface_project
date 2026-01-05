@@ -2,14 +2,11 @@
 Analytics endpoints for data visualization and ML predictions.
 """
 
-from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
 from app.db.session import get_db
-
 from app.services.ml import get_rent_growth_predictor
 
 router = APIRouter()
@@ -74,8 +71,8 @@ async def get_dashboard_metrics(
 @router.get("/portfolio")
 async def get_portfolio_analytics(
     time_period: str = Query("ytd", pattern="^(mtd|qtd|ytd|1y|3y|5y|all)$"),
-    property_type: Optional[str] = None,
-    market: Optional[str] = None,
+    property_type: str | None = None,
+    market: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -129,7 +126,7 @@ async def get_portfolio_analytics(
 @router.get("/market-data")
 async def get_market_data(
     market: str = Query(..., description="Market name"),
-    property_type: Optional[str] = None,
+    property_type: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -202,7 +199,7 @@ async def predict_rent_growth(
 
 @router.post("/rent-prediction/batch")
 async def predict_rent_growth_batch(
-    properties: List[dict],
+    properties: list[dict],
     prediction_months: int = Query(12, ge=1, le=60),
 ):
     """

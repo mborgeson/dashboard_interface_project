@@ -1,9 +1,9 @@
 """
 CRUD operations for Deal model.
 """
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -18,7 +18,7 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
 
     async def get_with_relations(
         self, db: AsyncSession, id: int
-    ) -> Optional[Deal]:
+    ) -> Deal | None:
         """Get deal with related data."""
         # Note: Relationships (assigned_user, property) are not yet enabled in the model
         # When enabled, add: .options(selectinload(Deal.assigned_user), selectinload(Deal.property))
@@ -34,7 +34,7 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         stage: DealStage,
         skip: int = 0,
         limit: int = 100,
-    ) -> List[Deal]:
+    ) -> list[Deal]:
         """Get deals filtered by stage."""
         result = await db.execute(
             select(Deal)
@@ -51,13 +51,13 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         *,
         skip: int = 0,
         limit: int = 100,
-        stage: Optional[str] = None,
-        deal_type: Optional[str] = None,
-        priority: Optional[str] = None,
-        assigned_user_id: Optional[int] = None,
+        stage: str | None = None,
+        deal_type: str | None = None,
+        priority: str | None = None,
+        assigned_user_id: int | None = None,
         order_by: str = "created_at",
         order_desc: bool = True,
-    ) -> List[Deal]:
+    ) -> list[Deal]:
         """Get deals with multiple filters."""
         query = select(Deal)
 
@@ -91,10 +91,10 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         self,
         db: AsyncSession,
         *,
-        stage: Optional[str] = None,
-        deal_type: Optional[str] = None,
-        priority: Optional[str] = None,
-        assigned_user_id: Optional[int] = None,
+        stage: str | None = None,
+        deal_type: str | None = None,
+        priority: str | None = None,
+        assigned_user_id: int | None = None,
     ) -> int:
         """Count deals with filters."""
         query = select(func.count()).select_from(Deal)
@@ -122,9 +122,9 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         self,
         db: AsyncSession,
         *,
-        deal_type: Optional[str] = None,
-        assigned_user_id: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        deal_type: str | None = None,
+        assigned_user_id: int | None = None,
+    ) -> dict[str, Any]:
         """Get deals organized by stage for Kanban board."""
         query = select(Deal)
 
@@ -139,8 +139,8 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         deals = list(result.scalars().all())
 
         # Group by stage
-        stages: Dict[str, List[Deal]] = {stage.value: [] for stage in DealStage}
-        stage_counts: Dict[str, int] = {stage.value: 0 for stage in DealStage}
+        stages: dict[str, list[Deal]] = {stage.value: [] for stage in DealStage}
+        stage_counts: dict[str, int] = {stage.value: 0 for stage in DealStage}
 
         for deal in deals:
             stage_value = deal.stage.value if hasattr(deal.stage, 'value') else str(deal.stage)
@@ -160,8 +160,8 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         *,
         deal_id: int,
         new_stage: DealStage,
-        stage_order: Optional[int] = None,
-    ) -> Optional[Deal]:
+        stage_order: int | None = None,
+    ) -> Deal | None:
         """Update deal stage (for Kanban drag-and-drop)."""
         deal = await self.get(db, deal_id)
         if not deal:

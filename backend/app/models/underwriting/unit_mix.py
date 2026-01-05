@@ -8,8 +8,9 @@ This table is normalized - instead of 91 columns for fixed unit types,
 each row represents one unit type, allowing flexible property configurations.
 """
 from decimal import Decimal
-from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Integer, Numeric, ForeignKey
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -53,17 +54,17 @@ class UnitMix(Base, TimestampMixin, SourceTrackingMixin):
         nullable=False,
         comment="Unit type identifier (e.g., 1BR/1BA, 2BR/2BA)"
     )
-    unit_type_code: Mapped[Optional[str]] = mapped_column(
+    unit_type_code: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
         comment="Short code for unit type (e.g., A1, B2)"
     )
-    bedrooms: Mapped[Optional[int]] = mapped_column(
+    bedrooms: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Number of bedrooms"
     )
-    bathrooms: Mapped[Optional[Decimal]] = mapped_column(
+    bathrooms: Mapped[Decimal | None] = mapped_column(
         Numeric(3, 1),
         nullable=True,
         comment="Number of bathrooms"
@@ -73,12 +74,12 @@ class UnitMix(Base, TimestampMixin, SourceTrackingMixin):
     # UNIT COUNTS
     # ==========================================================================
 
-    unit_count: Mapped[Optional[int]] = mapped_column(
+    unit_count: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Number of units of this type"
     )
-    unit_count_pct: Mapped[Optional[Decimal]] = mapped_column(
+    unit_count_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Percentage of total units"
@@ -88,12 +89,12 @@ class UnitMix(Base, TimestampMixin, SourceTrackingMixin):
     # PHYSICAL CHARACTERISTICS
     # ==========================================================================
 
-    avg_sf: Mapped[Optional[Decimal]] = mapped_column(
+    avg_sf: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Average square feet per unit"
     )
-    total_sf: Mapped[Optional[Decimal]] = mapped_column(
+    total_sf: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 2),
         nullable=True,
         comment="Total square feet for this unit type"
@@ -104,55 +105,55 @@ class UnitMix(Base, TimestampMixin, SourceTrackingMixin):
     # ==========================================================================
 
     # In-Place Rent
-    in_place_rent: Mapped[Optional[Decimal]] = mapped_column(
+    in_place_rent: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Current in-place rent per unit"
     )
-    in_place_rent_per_sf: Mapped[Optional[Decimal]] = mapped_column(
+    in_place_rent_per_sf: Mapped[Decimal | None] = mapped_column(
         Numeric(8, 2),
         nullable=True,
         comment="Current in-place rent per SF"
     )
 
     # Market Rent
-    market_rent: Mapped[Optional[Decimal]] = mapped_column(
+    market_rent: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Market rent per unit"
     )
-    market_rent_per_sf: Mapped[Optional[Decimal]] = mapped_column(
+    market_rent_per_sf: Mapped[Decimal | None] = mapped_column(
         Numeric(8, 2),
         nullable=True,
         comment="Market rent per SF"
     )
 
     # Loss to Lease
-    loss_to_lease: Mapped[Optional[Decimal]] = mapped_column(
+    loss_to_lease: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Loss to lease amount per unit"
     )
-    loss_to_lease_pct: Mapped[Optional[Decimal]] = mapped_column(
+    loss_to_lease_pct: Mapped[Decimal | None] = mapped_column(
         Numeric(6, 4),
         nullable=True,
         comment="Loss to lease percentage"
     )
 
     # Pro Forma Rent
-    proforma_rent: Mapped[Optional[Decimal]] = mapped_column(
+    proforma_rent: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Pro forma rent per unit (post-renovation)"
     )
-    proforma_rent_per_sf: Mapped[Optional[Decimal]] = mapped_column(
+    proforma_rent_per_sf: Mapped[Decimal | None] = mapped_column(
         Numeric(8, 2),
         nullable=True,
         comment="Pro forma rent per SF"
     )
 
     # Rent Growth
-    rent_premium_post_renovation: Mapped[Optional[Decimal]] = mapped_column(
+    rent_premium_post_renovation: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Expected rent premium after renovation"
@@ -162,22 +163,22 @@ class UnitMix(Base, TimestampMixin, SourceTrackingMixin):
     # RENOVATION ASSUMPTIONS
     # ==========================================================================
 
-    units_to_renovate: Mapped[Optional[int]] = mapped_column(
+    units_to_renovate: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Number of units to renovate"
     )
-    renovation_cost_per_unit: Mapped[Optional[Decimal]] = mapped_column(
+    renovation_cost_per_unit: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Renovation cost per unit"
     )
-    total_renovation_cost: Mapped[Optional[Decimal]] = mapped_column(
+    total_renovation_cost: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Total renovation cost for this unit type"
     )
-    renovation_scope: Mapped[Optional[str]] = mapped_column(
+    renovation_scope: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="Light, Medium, Heavy renovation scope"
@@ -187,12 +188,12 @@ class UnitMix(Base, TimestampMixin, SourceTrackingMixin):
     # REVENUE CALCULATIONS
     # ==========================================================================
 
-    monthly_gpr: Mapped[Optional[Decimal]] = mapped_column(
+    monthly_gpr: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 2),
         nullable=True,
         comment="Monthly gross potential rent for this unit type"
     )
-    annual_gpr: Mapped[Optional[Decimal]] = mapped_column(
+    annual_gpr: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="Annual gross potential rent for this unit type"

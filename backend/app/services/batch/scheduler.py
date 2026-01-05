@@ -5,10 +5,11 @@ Provides cron-like scheduling for recurring tasks.
 """
 
 import asyncio
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Coroutine, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 from loguru import logger
@@ -45,18 +46,18 @@ class ScheduledTask:
     id: str = field(default_factory=lambda: str(uuid4()))
     name: str = ""
     task_type: str = ""
-    payload: Dict[str, Any] = field(default_factory=dict)
+    payload: dict[str, Any] = field(default_factory=dict)
     interval_seconds: int = 3600  # Default 1 hour
-    last_run: Optional[datetime] = None
-    next_run: Optional[datetime] = None
+    last_run: datetime | None = None
+    next_run: datetime | None = None
     enabled: bool = True
     run_count: int = 0
     error_count: int = 0
-    last_error: Optional[str] = None
+    last_error: str | None = None
     created_at: datetime = field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
@@ -75,7 +76,7 @@ class ScheduledTask:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ScheduledTask":
+    def from_dict(cls, data: dict[str, Any]) -> "ScheduledTask":
         """Create from dictionary."""
         return cls(
             id=data.get("id", str(uuid4())),
@@ -119,14 +120,14 @@ class TaskScheduler:
             check_interval: How often to check for due tasks (seconds)
         """
         self._check_interval = check_interval
-        self._tasks: Dict[str, ScheduledTask] = {}
-        self._handlers: Dict[str, Callable] = {}
+        self._tasks: dict[str, ScheduledTask] = {}
+        self._handlers: dict[str, Callable] = {}
         self._running = False
-        self._scheduler_task: Optional[asyncio.Task] = None
+        self._scheduler_task: asyncio.Task | None = None
         self._redis_client = None
         self._use_redis = False
 
-    async def initialize(self, redis_url: Optional[str] = None) -> None:
+    async def initialize(self, redis_url: str | None = None) -> None:
         """
         Initialize scheduler with optional Redis persistence.
 
@@ -207,10 +208,10 @@ class TaskScheduler:
         name: str,
         task_type: str,
         interval: ScheduleInterval | int,
-        payload: Optional[Dict[str, Any]] = None,
+        payload: dict[str, Any] | None = None,
         enabled: bool = True,
         run_immediately: bool = False,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> ScheduledTask:
         """
         Add a new scheduled task.
@@ -283,7 +284,7 @@ class TaskScheduler:
         logger.info(f"Scheduled task removed: {task_id}")
         return True
 
-    async def enable_task(self, task_id: str) -> Optional[ScheduledTask]:
+    async def enable_task(self, task_id: str) -> ScheduledTask | None:
         """Enable a scheduled task."""
         task = self._tasks.get(task_id)
         if task:
@@ -294,7 +295,7 @@ class TaskScheduler:
             logger.info(f"Task enabled: {task_id}")
         return task
 
-    async def disable_task(self, task_id: str) -> Optional[ScheduledTask]:
+    async def disable_task(self, task_id: str) -> ScheduledTask | None:
         """Disable a scheduled task."""
         task = self._tasks.get(task_id)
         if task:
@@ -398,19 +399,19 @@ class TaskScheduler:
         if self._use_redis:
             await self._save_to_redis(task)
 
-    def get_task(self, task_id: str) -> Optional[ScheduledTask]:
+    def get_task(self, task_id: str) -> ScheduledTask | None:
         """Get a scheduled task by ID."""
         return self._tasks.get(task_id)
 
-    def get_all_tasks(self) -> List[ScheduledTask]:
+    def get_all_tasks(self) -> list[ScheduledTask]:
         """Get all scheduled tasks."""
         return list(self._tasks.values())
 
-    def get_enabled_tasks(self) -> List[ScheduledTask]:
+    def get_enabled_tasks(self) -> list[ScheduledTask]:
         """Get all enabled tasks."""
         return [t for t in self._tasks.values() if t.enabled]
 
-    async def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         """Get scheduler statistics."""
         tasks = list(self._tasks.values())
         return {
@@ -426,7 +427,7 @@ class TaskScheduler:
 
 
 # Singleton instance
-_scheduler: Optional[TaskScheduler] = None
+_scheduler: TaskScheduler | None = None
 
 
 def get_scheduler() -> TaskScheduler:
@@ -441,10 +442,11 @@ def get_scheduler() -> TaskScheduler:
 # Built-in Scheduled Task Handlers
 # =============================================================================
 
-async def cleanup_old_jobs_handler(payload: Dict[str, Any]) -> None:
+async def cleanup_old_jobs_handler(payload: dict[str, Any]) -> None:
     """Clean up old completed jobs from the queue."""
-    from .job_queue import get_job_queue
     from datetime import timedelta
+
+    from .job_queue import get_job_queue
 
     max_age_hours = payload.get("max_age_hours", 24)
     queue = get_job_queue()
@@ -454,7 +456,7 @@ async def cleanup_old_jobs_handler(payload: Dict[str, Any]) -> None:
     logger.info(f"Cleaned up {cleared} old jobs")
 
 
-async def system_health_check_handler(payload: Dict[str, Any]) -> None:
+async def system_health_check_handler(payload: dict[str, Any]) -> None:
     """Perform periodic system health checks."""
     from app.services.monitoring.collectors import get_collector_registry
 
@@ -469,7 +471,7 @@ async def system_health_check_handler(payload: Dict[str, Any]) -> None:
         logger.warning(f"High disk usage: {system['disk']['percent']}%")
 
 
-async def database_maintenance_handler(payload: Dict[str, Any]) -> None:
+async def database_maintenance_handler(payload: dict[str, Any]) -> None:
     """Perform database maintenance tasks."""
     # This would include things like:
     # - Vacuum analyze

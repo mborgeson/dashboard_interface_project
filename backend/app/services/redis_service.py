@@ -2,8 +2,7 @@
 Redis caching service for application-wide caching.
 """
 import json
-from typing import Any, Optional
-from functools import lru_cache
+from typing import Any
 
 import redis.asyncio as redis
 from loguru import logger
@@ -23,8 +22,8 @@ class RedisService:
     """
 
     def __init__(self):
-        self._pool: Optional[redis.ConnectionPool] = None
-        self._client: Optional[redis.Redis] = None
+        self._pool: redis.ConnectionPool | None = None
+        self._client: redis.Redis | None = None
 
     async def connect(self) -> None:
         """Initialize Redis connection pool."""
@@ -57,7 +56,7 @@ class RedisService:
 
     # ==================== Basic Operations ====================
 
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         """Get a value from cache."""
         try:
             value = await self.client.get(key)
@@ -74,7 +73,7 @@ class RedisService:
         self,
         key: str,
         value: Any,
-        ttl: Optional[int] = None
+        ttl: int | None = None
     ) -> bool:
         """
         Set a value in cache.
@@ -196,7 +195,7 @@ class RedisService:
 
 
 # Singleton instance
-_redis_service: Optional[RedisService] = None
+_redis_service: RedisService | None = None
 
 
 async def get_redis_service() -> RedisService:

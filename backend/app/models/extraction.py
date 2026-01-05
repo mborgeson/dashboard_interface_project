@@ -11,23 +11,23 @@ rather than 1,179 columns, which:
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
-from uuid import uuid4, UUID
+from uuid import UUID, uuid4
+
 from sqlalchemy import (
-    String,
-    Integer,
-    Text,
+    JSON,
     Boolean,
-    ForeignKey,
-    Numeric,
     Date,
     DateTime,
-    JSON,
+    ForeignKey,
     Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.base import TimestampMixin
@@ -51,7 +51,7 @@ class ExtractionRun(Base, TimestampMixin):
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
-    completed_at: Mapped[Optional[datetime]] = mapped_column(
+    completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
@@ -71,7 +71,7 @@ class ExtractionRun(Base, TimestampMixin):
     files_failed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Error summary (JSON for flexibility)
-    error_summary: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    error_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Relationships
     extracted_values: Mapped[list["ExtractedValue"]] = relationship(
@@ -82,14 +82,14 @@ class ExtractionRun(Base, TimestampMixin):
         return f"<ExtractionRun {self.id} ({self.status})>"
 
     @property
-    def duration_seconds(self) -> Optional[float]:
+    def duration_seconds(self) -> float | None:
         """Calculate extraction duration."""
         if self.started_at and self.completed_at:
             return (self.completed_at - self.started_at).total_seconds()
         return None
 
     @property
-    def success_rate(self) -> Optional[float]:
+    def success_rate(self) -> float | None:
         """Calculate file processing success rate."""
         total = self.files_processed + self.files_failed
         if total > 0:
@@ -120,7 +120,7 @@ class ExtractedValue(Base, TimestampMixin):
     )
 
     # Property identifier (links to main properties table or standalone)
-    property_id: Mapped[Optional[int]] = mapped_column(
+    property_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("properties.id", ondelete="SET NULL"),
         nullable=True,
@@ -132,26 +132,26 @@ class ExtractedValue(Base, TimestampMixin):
 
     # Field metadata
     field_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    field_category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    sheet_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    cell_address: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    field_category: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    sheet_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    cell_address: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     # Value storage (multiple columns for different types)
     # All values also stored as text for universal access
-    value_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    value_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Numeric values use Decimal(20, 4) to handle large financial numbers
     # without integer overflow issues
-    value_numeric: Mapped[Optional[Decimal]] = mapped_column(
+    value_numeric: Mapped[Decimal | None] = mapped_column(
         Numeric(20, 4), nullable=True
     )
-    value_date: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
+    value_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
 
     # Error tracking
     is_error: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    error_category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    error_category: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # Source file path
-    source_file: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    source_file: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # Relationships
     extraction_run: Mapped["ExtractionRun"] = relationship(

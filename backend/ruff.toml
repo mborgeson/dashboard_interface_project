@@ -1,0 +1,56 @@
+# Ruff configuration for B&R Capital Dashboard
+# This config matches the CI pipeline settings
+
+# Target Python version
+target-version = "py311"
+
+# Fix issues automatically when running `ruff check --fix`
+fix = true
+
+# Show fixes in the output
+show-fixes = true
+
+# Set the line length (match Black)
+line-length = 88
+
+# Exclude directories
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "alembic/versions",
+    "*.pyc",
+    ".mypy_cache",
+]
+
+[lint]
+# Enable rules
+select = [
+    "E",    # pycodestyle errors
+    "F",    # Pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+]
+
+# Rules to ignore (be conservative with ignores)
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+    "B008",  # Function call in default argument (common in FastAPI Depends())
+]
+
+# Per-file ignores
+[lint.per-file-ignores]
+# Test files can have assertions and unused imports
+"tests/**/*.py" = ["S101", "F401"]
+# Migration files have specific patterns
+"alembic/versions/*.py" = ["E402", "F401"]
+# Base model imports are for Alembic discovery (must import after class definition)
+"app/db/base.py" = ["E402", "F401"]
+
+[lint.isort]
+# Match isort settings
+known-first-party = ["app"]

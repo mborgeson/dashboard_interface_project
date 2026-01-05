@@ -9,13 +9,15 @@ Provides functionality to export data to formatted Excel files including:
 """
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any
 
 from loguru import logger
 
 try:
     import openpyxl
     from openpyxl import Workbook
+    from openpyxl.chart import BarChart, LineChart, PieChart, Reference
+    from openpyxl.formatting.rule import ColorScaleRule, FormulaRule
     from openpyxl.styles import (
         Alignment,
         Border,
@@ -26,8 +28,6 @@ try:
         Side,
     )
     from openpyxl.utils import get_column_letter
-    from openpyxl.chart import BarChart, LineChart, PieChart, Reference
-    from openpyxl.formatting.rule import ColorScaleRule, FormulaRule
     OPENPYXL_AVAILABLE = True
 except ImportError:
     OPENPYXL_AVAILABLE = False
@@ -65,10 +65,10 @@ class ExcelExportService:
     def __init__(self):
         """Initialize the Excel export service."""
         self._styles_created = False
-        self._header_style: Optional[NamedStyle] = None
-        self._currency_style: Optional[NamedStyle] = None
-        self._percent_style: Optional[NamedStyle] = None
-        self._date_style: Optional[NamedStyle] = None
+        self._header_style: NamedStyle | None = None
+        self._currency_style: NamedStyle | None = None
+        self._percent_style: NamedStyle | None = None
+        self._date_style: NamedStyle | None = None
 
     def _create_styles(self, workbook: "Workbook") -> None:
         """Create reusable styles for the workbook."""
@@ -640,7 +640,7 @@ class ExcelExportService:
 
 
 # Service singleton
-_excel_service: Optional[ExcelExportService] = None
+_excel_service: ExcelExportService | None = None
 
 
 def get_excel_service() -> ExcelExportService:

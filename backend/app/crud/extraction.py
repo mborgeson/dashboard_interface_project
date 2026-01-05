@@ -8,15 +8,15 @@ Provides database operations for:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
+
 import numpy as np
-
-from sqlalchemy import select, func, and_
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, func, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import Session
 
-from app.models.extraction import ExtractionRun, ExtractedValue
+from app.models.extraction import ExtractedValue, ExtractionRun
 
 
 class ExtractionRunCRUD:
@@ -38,18 +38,18 @@ class ExtractionRunCRUD:
         return run
 
     @staticmethod
-    def get(db: Session, run_id: UUID) -> Optional[ExtractionRun]:
+    def get(db: Session, run_id: UUID) -> ExtractionRun | None:
         """Get extraction run by ID."""
         return db.get(ExtractionRun, run_id)
 
     @staticmethod
-    def get_latest(db: Session) -> Optional[ExtractionRun]:
+    def get_latest(db: Session) -> ExtractionRun | None:
         """Get most recent extraction run."""
         stmt = select(ExtractionRun).order_by(ExtractionRun.started_at.desc()).limit(1)
         return db.execute(stmt).scalar_one_or_none()
 
     @staticmethod
-    def get_running(db: Session) -> Optional[ExtractionRun]:
+    def get_running(db: Session) -> ExtractionRun | None:
         """Get currently running extraction (if any)."""
         stmt = (
             select(ExtractionRun)
@@ -62,7 +62,7 @@ class ExtractionRunCRUD:
     @staticmethod
     def list_recent(
         db: Session, limit: int = 10, offset: int = 0
-    ) -> List[ExtractionRun]:
+    ) -> list[ExtractionRun]:
         """List recent extraction runs."""
         stmt = (
             select(ExtractionRun)
@@ -75,7 +75,7 @@ class ExtractionRunCRUD:
     @staticmethod
     def update_progress(
         db: Session, run_id: UUID, files_processed: int = 0, files_failed: int = 0
-    ) -> Optional[ExtractionRun]:
+    ) -> ExtractionRun | None:
         """Update extraction run progress."""
         run = db.get(ExtractionRun, run_id)
         if run:
@@ -91,8 +91,8 @@ class ExtractionRunCRUD:
         run_id: UUID,
         files_processed: int,
         files_failed: int,
-        error_summary: Optional[dict] = None,
-    ) -> Optional[ExtractionRun]:
+        error_summary: dict | None = None,
+    ) -> ExtractionRun | None:
         """Mark extraction run as completed."""
         run = db.get(ExtractionRun, run_id)
         if run:
@@ -107,8 +107,8 @@ class ExtractionRunCRUD:
 
     @staticmethod
     def fail(
-        db: Session, run_id: UUID, error_summary: Optional[dict] = None
-    ) -> Optional[ExtractionRun]:
+        db: Session, run_id: UUID, error_summary: dict | None = None
+    ) -> ExtractionRun | None:
         """Mark extraction run as failed."""
         run = db.get(ExtractionRun, run_id)
         if run:
@@ -120,7 +120,7 @@ class ExtractionRunCRUD:
         return run
 
     @staticmethod
-    def cancel(db: Session, run_id: UUID) -> Optional[ExtractionRun]:
+    def cancel(db: Session, run_id: UUID) -> ExtractionRun | None:
         """Cancel a running extraction."""
         run = db.get(ExtractionRun, run_id)
         if run and run.status == "running":
@@ -138,10 +138,10 @@ class ExtractedValueCRUD:
     def bulk_insert(
         db: Session,
         extraction_run_id: UUID,
-        extracted_data: Dict[str, Any],
-        mappings: Dict[str, Any],
+        extracted_data: dict[str, Any],
+        mappings: dict[str, Any],
         property_name: str,
-        source_file: Optional[str] = None,
+        source_file: str | None = None,
     ) -> int:
         """
         Bulk insert extracted values from a single file extraction.
@@ -223,8 +223,8 @@ class ExtractedValueCRUD:
 
     @staticmethod
     def get_by_property(
-        db: Session, property_name: str, extraction_run_id: Optional[UUID] = None
-    ) -> List[ExtractedValue]:
+        db: Session, property_name: str, extraction_run_id: UUID | None = None
+    ) -> list[ExtractedValue]:
         """Get all extracted values for a property."""
         stmt = select(ExtractedValue).where(
             ExtractedValue.property_name == property_name
@@ -236,8 +236,8 @@ class ExtractedValueCRUD:
 
     @staticmethod
     def get_property_summary(
-        db: Session, property_name: str, extraction_run_id: Optional[UUID] = None
-    ) -> Dict[str, Any]:
+        db: Session, property_name: str, extraction_run_id: UUID | None = None
+    ) -> dict[str, Any]:
         """Get summary of extracted data for a property as dict."""
         values = ExtractedValueCRUD.get_by_property(
             db, property_name, extraction_run_id
@@ -245,7 +245,7 @@ class ExtractedValueCRUD:
         return {v.field_name: v.value for v in values}
 
     @staticmethod
-    def get_extraction_stats(db: Session, extraction_run_id: UUID) -> Dict[str, Any]:
+    def get_extraction_stats(db: Session, extraction_run_id: UUID) -> dict[str, Any]:
         """Get statistics for an extraction run."""
         # Total values
         total_stmt = select(func.count(ExtractedValue.id)).where(
@@ -280,8 +280,8 @@ class ExtractedValueCRUD:
 
     @staticmethod
     def list_properties(
-        db: Session, extraction_run_id: Optional[UUID] = None
-    ) -> List[str]:
+        db: Session, extraction_run_id: UUID | None = None
+    ) -> list[str]:
         """List all property names with extracted values."""
         stmt = select(func.distinct(ExtractedValue.property_name))
         if extraction_run_id:

@@ -6,8 +6,9 @@ Cell Reference Category: "General Assumptions"
 """
 from datetime import date
 from decimal import Decimal
-from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Integer, Numeric, Date, Text, ForeignKey
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Date, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -43,171 +44,171 @@ class GeneralAssumptions(Base, TimestampMixin, SourceTrackingMixin):
     )
 
     # Property Identification (D6-D11)
-    property_name: Mapped[Optional[str]] = mapped_column(
+    property_name: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="PROPERTY_NAME - 'Assumptions (Summary)'!$D$6"
     )
-    property_city: Mapped[Optional[str]] = mapped_column(
+    property_city: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="PROPERTY_CITY - 'Assumptions (Summary)'!$D$8"
     )
-    property_state: Mapped[Optional[str]] = mapped_column(
+    property_state: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="PROPERTY_STATE - 'Assumptions (Summary)'!$D$9"
     )
-    year_built: Mapped[Optional[int]] = mapped_column(
+    year_built: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="YEAR_BUILT - 'Assumptions (Summary)'!$D$10"
     )
-    year_renovated: Mapped[Optional[int]] = mapped_column(
+    year_renovated: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="YEAR_RENOVATED - 'Assumptions (Summary)'!$D$11"
     )
 
     # Quality Ratings (D13-D14)
-    location_quality: Mapped[Optional[str]] = mapped_column(
+    location_quality: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="LOCATION_QUALITY - 'Assumptions (Summary)'!$D$13"
     )
-    building_quality: Mapped[Optional[str]] = mapped_column(
+    building_quality: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="BUILDING_QUALITY - 'Assumptions (Summary)'!$D$14"
     )
 
     # Physical Characteristics (G6-G13)
-    units: Mapped[Optional[int]] = mapped_column(
+    units: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="UNITS - 'Assumptions (Summary)'!$G$6"
     )
-    avg_square_feet: Mapped[Optional[Decimal]] = mapped_column(
+    avg_square_feet: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="AVG_SQUARE_FEET - 'Assumptions (Summary)'!$G$7"
     )
-    parking_spaces_covered: Mapped[Optional[int]] = mapped_column(
+    parking_spaces_covered: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="NUMBER_OF_PARKING_SPACES_COVERED - 'Assumptions (Summary)'!$G$9"
     )
-    parking_spaces_uncovered: Mapped[Optional[int]] = mapped_column(
+    parking_spaces_uncovered: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="NUMBER_OF_PARKING_SPACES_UNCOVERED - 'Assumptions (Summary)'!$G$10"
     )
-    individually_metered: Mapped[Optional[str]] = mapped_column(
+    individually_metered: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
         comment="INDIVIDUALLY_METERED - 'Assumptions (Summary)'!$G$13"
     )
 
     # Ownership Information (I6-I15)
-    current_owner: Mapped[Optional[str]] = mapped_column(
+    current_owner: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="CURRENT_OWNER - 'Assumptions (Summary)'!$I$6"
     )
-    last_sale_date: Mapped[Optional[date]] = mapped_column(
+    last_sale_date: Mapped[date | None] = mapped_column(
         Date,
         nullable=True,
         comment="LAST_SALE_DATE - 'Assumptions (Summary)'!$I$7"
     )
-    last_sale_price: Mapped[Optional[Decimal]] = mapped_column(
+    last_sale_price: Mapped[Decimal | None] = mapped_column(
         Numeric(15, 2),
         nullable=True,
         comment="LAST_SALE_PRICE - 'Assumptions (Summary)'!$I$8"
     )
 
     # Address Details (additional fields from General Assumptions)
-    property_street_address: Mapped[Optional[str]] = mapped_column(
+    property_street_address: Mapped[str | None] = mapped_column(
         String(500),
         nullable=True,
         comment="Full street address"
     )
-    property_zip_code: Mapped[Optional[str]] = mapped_column(
+    property_zip_code: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
         comment="ZIP code"
     )
-    property_county: Mapped[Optional[str]] = mapped_column(
+    property_county: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="County name"
     )
-    property_latitude: Mapped[Optional[Decimal]] = mapped_column(
+    property_latitude: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 7),
         nullable=True,
         comment="GPS latitude"
     )
-    property_longitude: Mapped[Optional[Decimal]] = mapped_column(
+    property_longitude: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 7),
         nullable=True,
         comment="GPS longitude"
     )
 
     # Additional Physical Details
-    total_sf: Mapped[Optional[int]] = mapped_column(
+    total_sf: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Total rentable square feet"
     )
-    stories: Mapped[Optional[int]] = mapped_column(
+    stories: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Number of stories"
     )
-    buildings: Mapped[Optional[int]] = mapped_column(
+    buildings: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
         comment="Number of buildings"
     )
-    lot_size_acres: Mapped[Optional[Decimal]] = mapped_column(
+    lot_size_acres: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 4),
         nullable=True,
         comment="Lot size in acres"
     )
-    building_type: Mapped[Optional[str]] = mapped_column(
+    building_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="Garden, Mid-Rise, High-Rise, etc."
     )
 
     # Analysis Dates
-    analysis_date: Mapped[Optional[date]] = mapped_column(
+    analysis_date: Mapped[date | None] = mapped_column(
         Date,
         nullable=True,
         comment="Date of underwriting analysis"
     )
-    t12_end_date: Mapped[Optional[date]] = mapped_column(
+    t12_end_date: Mapped[date | None] = mapped_column(
         Date,
         nullable=True,
         comment="Trailing 12 month end date"
     )
-    acquisition_date: Mapped[Optional[date]] = mapped_column(
+    acquisition_date: Mapped[date | None] = mapped_column(
         Date,
         nullable=True,
         comment="Projected/actual acquisition date"
     )
 
     # Property Classification
-    asset_class: Mapped[Optional[str]] = mapped_column(
+    asset_class: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
         comment="Class A, B, C, D rating"
     )
-    submarket: Mapped[Optional[str]] = mapped_column(
+    submarket: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="Submarket name"
     )
-    msa: Mapped[Optional[str]] = mapped_column(
+    msa: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="Metropolitan Statistical Area"

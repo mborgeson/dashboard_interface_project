@@ -5,14 +5,14 @@ Handles bulk data operations with progress tracking and chunking.
 """
 
 import asyncio
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncIterator, Callable, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 from uuid import uuid4
 
 from loguru import logger
-
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -37,9 +37,9 @@ class BatchProgress:
     successful_items: int = 0
     failed_items: int = 0
     status: BatchStatus = BatchStatus.PENDING
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    errors: List[Dict[str, Any]] = field(default_factory=list)
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    errors: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def progress_percent(self) -> float:
@@ -56,14 +56,14 @@ class BatchProgress:
         return (self.successful_items / self.processed_items) * 100
 
     @property
-    def duration_seconds(self) -> Optional[float]:
+    def duration_seconds(self) -> float | None:
         """Get processing duration in seconds."""
         if not self.started_at:
             return None
         end_time = self.completed_at or datetime.utcnow()
         return (end_time - self.started_at).total_seconds()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "batch_id": self.batch_id,
@@ -86,8 +86,8 @@ class BatchResult(Generic[R]):
     """Result of a batch operation."""
     batch_id: str
     progress: BatchProgress
-    results: List[R] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    results: list[R] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class BatchProcessor(Generic[T, R]):
@@ -119,16 +119,16 @@ class BatchProcessor(Generic[T, R]):
         self._chunk_size = chunk_size
         self._max_concurrency = max_concurrency
         self._continue_on_error = continue_on_error
-        self._active_batches: Dict[str, BatchProgress] = {}
-        self._pause_events: Dict[str, asyncio.Event] = {}
-        self._cancel_events: Dict[str, asyncio.Event] = {}
+        self._active_batches: dict[str, BatchProgress] = {}
+        self._pause_events: dict[str, asyncio.Event] = {}
+        self._cancel_events: dict[str, asyncio.Event] = {}
 
     async def process_batch(
         self,
-        items: List[T],
+        items: list[T],
         processor: Callable[[T], Any],
-        on_progress: Optional[Callable[[BatchProgress], None]] = None,
-        batch_id: Optional[str] = None,
+        on_progress: Callable[[BatchProgress], None] | None = None,
+        batch_id: str | None = None,
     ) -> BatchResult:
         """
         Process a list of items in batches.
@@ -155,7 +155,7 @@ class BatchProcessor(Generic[T, R]):
         self._pause_events[batch_id].set()  # Not paused initially
         self._cancel_events[batch_id] = asyncio.Event()
 
-        results: List[R] = []
+        results: list[R] = []
 
         try:
             # Process in chunks
@@ -213,16 +213,16 @@ class BatchProcessor(Generic[T, R]):
 
     async def _process_chunk(
         self,
-        chunk: List[T],
+        chunk: list[T],
         processor: Callable[[T], Any],
         progress: BatchProgress,
         batch_id: str,
-    ) -> List[R]:
+    ) -> list[R]:
         """Process a single chunk of items."""
         semaphore = asyncio.Semaphore(self._max_concurrency)
-        results: List[R] = []
+        results: list[R] = []
 
-        async def process_item(item: T, index: int) -> Optional[R]:
+        async def process_item(item: T, index: int) -> R | None:
             async with semaphore:
                 # Check for cancellation
                 if self._cancel_events[batch_id].is_set():
@@ -324,11 +324,11 @@ class BatchProcessor(Generic[T, R]):
             return True
         return False
 
-    def get_batch_progress(self, batch_id: str) -> Optional[BatchProgress]:
+    def get_batch_progress(self, batch_id: str) -> BatchProgress | None:
         """Get progress for a batch."""
         return self._active_batches.get(batch_id)
 
-    def get_all_active_batches(self) -> Dict[str, BatchProgress]:
+    def get_all_active_batches(self) -> dict[str, BatchProgress]:
         """Get all active batch progresses."""
         return dict(self._active_batches)
 
@@ -336,8 +336,8 @@ class BatchProcessor(Generic[T, R]):
         self,
         items: AsyncIterator[T],
         processor: Callable[[T], Any],
-        on_progress: Optional[Callable[[BatchProgress], None]] = None,
-        batch_id: Optional[str] = None,
+        on_progress: Callable[[BatchProgress], None] | None = None,
+        batch_id: str | None = None,
         estimated_total: int = 0,
     ) -> BatchResult:
         """
@@ -366,8 +366,8 @@ class BatchProcessor(Generic[T, R]):
         self._pause_events[batch_id].set()
         self._cancel_events[batch_id] = asyncio.Event()
 
-        results: List[R] = []
-        buffer: List[T] = []
+        results: list[R] = []
+        buffer: list[T] = []
 
         try:
             async for item in items:
@@ -427,7 +427,7 @@ class BatchProcessor(Generic[T, R]):
 
 
 # Singleton instance
-_batch_processor: Optional[BatchProcessor] = None
+_batch_processor: BatchProcessor | None = None
 
 
 def get_batch_processor() -> BatchProcessor:

@@ -8,12 +8,13 @@ Provides robust error handling for Excel data extraction with:
 - Detailed error statistics and recovery suggestions
 """
 
-import numpy as np
-import pandas as pd
-from typing import Any, Dict, List, Optional, Tuple
-from enum import Enum
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
+from typing import Any
+
+import numpy as np
+import pandas as pd
 import structlog
 
 
@@ -41,7 +42,7 @@ class ExtractionError:
     cell_address: str
     error_message: str
     original_value: Any = None
-    suggested_fix: Optional[str] = None
+    suggested_fix: str | None = None
     timestamp: datetime = field(default_factory=datetime.now)
 
 
@@ -54,12 +55,12 @@ class ErrorHandler:
     """
 
     def __init__(self):
-        self.errors: List[ExtractionError] = []
-        self.error_counts: Dict[ErrorCategory, int] = {cat: 0 for cat in ErrorCategory}
+        self.errors: list[ExtractionError] = []
+        self.error_counts: dict[ErrorCategory, int] = dict.fromkeys(ErrorCategory, 0)
         self.logger = structlog.get_logger(__name__)
 
     def handle_missing_sheet(
-        self, field_name: str, sheet_name: str, available_sheets: List[str]
+        self, field_name: str, sheet_name: str, available_sheets: list[str]
     ) -> Any:
         """Handle missing sheet scenarios"""
         similar_sheets = self._find_similar_sheets(sheet_name, available_sheets)
@@ -101,7 +102,7 @@ class ErrorHandler:
         field_name: str,
         sheet_name: str,
         cell_address: str,
-        sheet_size: Optional[Tuple[int, int]] = None,
+        sheet_size: tuple[int, int] | None = None,
     ) -> Any:
         """Handle cases where cell address is outside sheet bounds"""
         suggested_fix = "Check if cell address is within sheet bounds"
@@ -313,8 +314,8 @@ class ErrorHandler:
             )
 
     def _find_similar_sheets(
-        self, target_sheet: str, available_sheets: List[str], threshold: float = 0.6
-    ) -> List[str]:
+        self, target_sheet: str, available_sheets: list[str], threshold: float = 0.6
+    ) -> list[str]:
         """Find sheets with similar names using simple string matching"""
         similar_sheets = []
         target_lower = target_sheet.lower()
@@ -360,7 +361,7 @@ class ErrorHandler:
             error_message=error.error_message,
         )
 
-    def get_error_summary(self) -> Dict[str, Any]:
+    def get_error_summary(self) -> dict[str, Any]:
         """Generate comprehensive error summary"""
         total_errors = len(self.errors)
 
@@ -382,7 +383,7 @@ class ErrorHandler:
                 }
 
         # Most common errors (top 10)
-        error_messages: Dict[str, Dict[str, Any]] = {}
+        error_messages: dict[str, dict[str, Any]] = {}
         for error in self.errors:
             key = f"{error.category.value}_{error.error_message}"
             if key not in error_messages:
@@ -409,7 +410,7 @@ class ErrorHandler:
             "recommendations": recommendations,
         }
 
-    def _generate_recommendations(self) -> List[str]:
+    def _generate_recommendations(self) -> list[str]:
         """Generate actionable recommendations based on error patterns"""
         recommendations = []
 
@@ -458,4 +459,4 @@ class ErrorHandler:
     def reset(self) -> None:
         """Reset error tracking for new extraction"""
         self.errors.clear()
-        self.error_counts = {cat: 0 for cat in ErrorCategory}
+        self.error_counts = dict.fromkeys(ErrorCategory, 0)

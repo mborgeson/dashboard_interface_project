@@ -3,27 +3,25 @@ Export endpoints for Excel and PDF generation.
 """
 
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.crud import deal as deal_crud
+from app.crud import property as property_crud
 from app.db.session import get_db
 from app.services.export_service import get_excel_service
 from app.services.pdf_service import get_pdf_service
-from app.crud import deal as deal_crud
-from app.crud import property as property_crud
-
 
 router = APIRouter()
 
 
 @router.get("/properties/excel")
 async def export_properties_excel(
-    property_type: Optional[str] = None,
-    market: Optional[str] = None,
+    property_type: str | None = None,
+    market: str | None = None,
     include_analytics: bool = True,
     db: AsyncSession = Depends(get_db),
 ):
@@ -105,8 +103,8 @@ async def export_properties_excel(
 
 @router.get("/deals/excel")
 async def export_deals_excel(
-    stage: Optional[str] = None,
-    deal_type: Optional[str] = None,
+    stage: str | None = None,
+    deal_type: str | None = None,
     include_pipeline: bool = True,
     db: AsyncSession = Depends(get_db),
 ):

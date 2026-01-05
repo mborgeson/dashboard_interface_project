@@ -8,17 +8,17 @@ This is the main application entry point that configures:
 - Startup/shutdown lifecycle events
 - Exception handlers
 """
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 
+from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.v1.router import api_router
 from app.services.monitoring import MetricsMiddleware, get_metrics_manager
 
 
@@ -76,7 +76,7 @@ app = FastAPI(
     - Real-time collaboration via WebSockets
     - Report generation and distribution
     """,
-    openapi_url=f"/api/v1/openapi.json" if settings.DEBUG else None,
+    openapi_url="/api/v1/openapi.json" if settings.DEBUG else None,
     docs_url="/api/docs" if settings.DEBUG else None,
     redoc_url="/api/redoc" if settings.DEBUG else None,
     lifespan=lifespan,

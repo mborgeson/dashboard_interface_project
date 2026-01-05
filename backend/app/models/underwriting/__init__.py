@@ -19,18 +19,21 @@ Categories (based on B&R Capital underwriting model):
 - AnnualCashflow: Time-series cashflow projections (per-year rows)
 """
 
-from app.models.underwriting.underwriting_model import UnderwritingModel, UnderwritingStatus
-from app.models.underwriting.general_assumptions import GeneralAssumptions
-from app.models.underwriting.exit_assumptions import ExitAssumptions
-from app.models.underwriting.noi_assumptions import NOIAssumptions
-from app.models.underwriting.financing_assumptions import FinancingAssumptions
+from app.models.underwriting.annual_cashflow import AnnualCashflow
 from app.models.underwriting.budget_assumptions import BudgetAssumptions
-from app.models.underwriting.property_returns import PropertyReturns
 from app.models.underwriting.equity_returns import EquityReturns
-from app.models.underwriting.unit_mix import UnitMix
+from app.models.underwriting.exit_assumptions import ExitAssumptions
+from app.models.underwriting.financing_assumptions import FinancingAssumptions
+from app.models.underwriting.general_assumptions import GeneralAssumptions
+from app.models.underwriting.noi_assumptions import NOIAssumptions
+from app.models.underwriting.property_returns import PropertyReturns
 from app.models.underwriting.rent_comp import RentComp
 from app.models.underwriting.sales_comp import SalesComp
-from app.models.underwriting.annual_cashflow import AnnualCashflow
+from app.models.underwriting.underwriting_model import (
+    UnderwritingModel,
+    UnderwritingStatus,
+)
+from app.models.underwriting.unit_mix import UnitMix
 
 __all__ = [
     "UnderwritingModel",

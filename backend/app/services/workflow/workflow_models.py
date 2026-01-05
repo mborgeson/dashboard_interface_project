@@ -7,7 +7,7 @@ Defines the data structures for workflow definitions and instances.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 
@@ -64,14 +64,14 @@ class StepDefinition:
     name: str
     step_type: StepType = StepType.ACTION
     handler: str = ""
-    config: Dict[str, Any] = field(default_factory=dict)
-    next_steps: List[str] = field(default_factory=list)
-    condition: Optional[str] = None
+    config: dict[str, Any] = field(default_factory=dict)
+    next_steps: list[str] = field(default_factory=list)
+    condition: str | None = None
     timeout_seconds: int = 300
     retry_count: int = 0
     on_error: str = "fail"  # fail, skip, retry
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
@@ -87,7 +87,7 @@ class StepDefinition:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "StepDefinition":
+    def from_dict(cls, data: dict[str, Any]) -> "StepDefinition":
         """Create from dictionary."""
         return cls(
             id=data["id"],
@@ -124,21 +124,21 @@ class WorkflowDefinition:
     name: str = ""
     description: str = ""
     version: str = "1.0.0"
-    steps: List[StepDefinition] = field(default_factory=list)
+    steps: list[StepDefinition] = field(default_factory=list)
     start_step: str = ""
-    variables: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    variables: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
 
-    def get_step(self, step_id: str) -> Optional[StepDefinition]:
+    def get_step(self, step_id: str) -> StepDefinition | None:
         """Get step by ID."""
         for step in self.steps:
             if step.id == step_id:
                 return step
         return None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
@@ -154,7 +154,7 @@ class WorkflowDefinition:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "WorkflowDefinition":
+    def from_dict(cls, data: dict[str, Any]) -> "WorkflowDefinition":
         """Create from dictionary."""
         return cls(
             id=data.get("id", str(uuid4())),
@@ -186,13 +186,13 @@ class StepExecution:
     """
     step_id: str
     status: StepStatus = StepStatus.PENDING
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    result: Optional[Any] = None
-    error: Optional[str] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    result: Any | None = None
+    error: str | None = None
     retries: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "step_id": self.step_id,
@@ -228,16 +228,16 @@ class WorkflowInstance:
     workflow_id: str = ""
     workflow_name: str = ""
     status: WorkflowStatus = WorkflowStatus.PENDING
-    current_step: Optional[str] = None
-    variables: Dict[str, Any] = field(default_factory=dict)
-    step_executions: Dict[str, StepExecution] = field(default_factory=dict)
+    current_step: str | None = None
+    variables: dict[str, Any] = field(default_factory=dict)
+    step_executions: dict[str, StepExecution] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.utcnow)
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    created_by: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    created_by: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def get_step_execution(self, step_id: str) -> Optional[StepExecution]:
+    def get_step_execution(self, step_id: str) -> StepExecution | None:
         """Get execution record for a step."""
         return self.step_executions.get(step_id)
 
@@ -246,7 +246,7 @@ class WorkflowInstance:
         self.step_executions[step_id] = execution
 
     @property
-    def duration_seconds(self) -> Optional[float]:
+    def duration_seconds(self) -> float | None:
         """Get execution duration in seconds."""
         if not self.started_at:
             return None
@@ -264,7 +264,7 @@ class WorkflowInstance:
         )
         return (completed / len(self.step_executions)) * 100 if self.step_executions else 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
@@ -284,7 +284,7 @@ class WorkflowInstance:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "WorkflowInstance":
+    def from_dict(cls, data: dict[str, Any]) -> "WorkflowInstance":
         """Create from dictionary."""
         step_executions = {}
         for k, v in data.get("step_executions", {}).items():
@@ -334,15 +334,15 @@ class ApprovalRequest:
     id: str = field(default_factory=lambda: str(uuid4()))
     workflow_instance_id: str = ""
     step_id: str = ""
-    approvers: List[str] = field(default_factory=list)
+    approvers: list[str] = field(default_factory=list)
     requested_at: datetime = field(default_factory=datetime.utcnow)
-    approved_at: Optional[datetime] = None
-    approved_by: Optional[str] = None
+    approved_at: datetime | None = None
+    approved_by: str | None = None
     status: str = "pending"  # pending, approved, rejected
-    comment: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    comment: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,

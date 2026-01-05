@@ -9,17 +9,17 @@ Provides endpoints for:
 """
 
 from datetime import datetime
-from typing import Dict, Any  # noqa: F401 - used for type hints in collectors
+from typing import Any, Dict  # noqa: F401 - used for type hints in collectors
 
-from fastapi import APIRouter, Response, Depends
+from fastapi import APIRouter, Depends, Response
 from loguru import logger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.session import get_db
-from app.services.monitoring.metrics import get_metrics_manager
 from app.services.monitoring.collectors import get_collector_registry
+from app.services.monitoring.metrics import get_metrics_manager
 
 router = APIRouter()
 
