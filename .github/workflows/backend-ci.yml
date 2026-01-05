@@ -84,6 +84,7 @@ jobs:
           SECRET_KEY: test-secret-key-for-ci
           ENVIRONMENT: testing
         run: |
+          set +e  # Don't exit on error, we'll handle it
           timeout 300 python -m pytest \
             -m "not slow" \
             --cov=app \
@@ -92,13 +93,14 @@ jobs:
             --no-cov-on-fail \
             --cov-fail-under=30 \
             -p no:cacheprovider \
-            -v || exit_code=$?
-          # Exit code 124 means timeout killed the process, treat as failure
-          if [ "${exit_code:-0}" -eq 124 ]; then
+            -v
+          exit_code=$?
+          set -e  # Re-enable exit on error
+          if [ "$exit_code" -eq 124 ]; then
             echo "::error::Tests timed out after 5 minutes"
             exit 1
           fi
-          exit ${exit_code:-0}
+          exit $exit_code
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

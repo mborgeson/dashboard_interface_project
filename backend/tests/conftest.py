@@ -76,13 +76,26 @@ def cleanup_engine():
     """Clean up the async engine after all tests to prevent hanging."""
     yield
     # Force synchronous cleanup using a new event loop
-    import asyncio
+    loop = asyncio.new_event_loop()
     try:
-        loop = asyncio.new_event_loop()
-        loop.run_until_complete(engine_test.dispose())
+        # Set timeout for cleanup to prevent indefinite hanging
+        loop.run_until_complete(
+            asyncio.wait_for(engine_test.dispose(), timeout=10.0)
+        )
+    except asyncio.TimeoutError:
+        import logging
+        logging.warning("Engine disposal timed out after 10s, forcing close")
+    except Exception as e:
+        import logging
+        logging.warning(f"Error during engine disposal: {e}")
+    finally:
+        # Clean up any remaining tasks
+        pending = asyncio.all_tasks(loop)
+        for task in pending:
+            task.cancel()
+        if pending:
+            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
         loop.close()
-    except Exception:
-        pass  # Best effort cleanup
 
 
 @pytest_asyncio.fixture(scope="function")
