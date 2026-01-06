@@ -5,8 +5,8 @@ Core execution engine for workflow automation.
 """
 
 import asyncio
-from collections.abc import Callable
 import contextlib
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 

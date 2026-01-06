@@ -1,24 +1,24 @@
 """Tests for monitoring metrics service."""
-import pytest
 import time
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from app.services.monitoring.metrics import (
-    MetricsManager,
-    get_metrics_manager,
-    track_time,
-    timed,
-    REQUEST_COUNT,
-    REQUEST_LATENCY,
+    CACHE_HITS,
+    CACHE_LATENCY,
+    CACHE_MISSES,
+    CACHE_OPERATIONS,
     DB_QUERY_COUNT,
     DB_QUERY_LATENCY,
-    CACHE_OPERATIONS,
-    CACHE_HITS,
-    CACHE_MISSES,
-    CACHE_LATENCY,
     ML_PREDICTION_LATENCY,
+    REQUEST_COUNT,
+    REQUEST_LATENCY,
+    MetricsManager,
+    get_metrics_manager,
+    timed,
+    track_time,
 )
-
 
 # =============================================================================
 # MetricsManager Initialization Tests

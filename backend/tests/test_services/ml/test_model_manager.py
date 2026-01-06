@@ -1,14 +1,14 @@
 """Tests for ML model manager service."""
 import json
 import pickle
-import pytest
-from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
-import tempfile
 import shutil
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
+
+import pytest
 
 from app.services.ml.model_manager import ModelManager, get_model_manager
-
 
 # =============================================================================
 # Fixtures

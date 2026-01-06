@@ -1,6 +1,7 @@
 """Tests for the Property model."""
-import pytest
 from decimal import Decimal
+
+import pytest
 
 from app.models import Property
 

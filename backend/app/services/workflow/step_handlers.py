@@ -496,8 +496,9 @@ async def http_request_action(
     context: dict[str, Any],
 ) -> dict[str, Any]:
     """Make an HTTP request."""
-    import aiohttp
     import contextlib
+
+    import aiohttp
 
     url = step_config.get("url", "")
     method = step_config.get("method", "GET").upper()

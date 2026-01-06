@@ -6,16 +6,18 @@ Tests the CRUD base class and model-specific CRUD classes:
 - CRUDDeal: Deal-specific operations with stage management
 """
 
-import pytest
-from decimal import Decimal
 from datetime import date
+from decimal import Decimal
 
-from app.crud.base import CRUDBase
-from app.crud.crud_user import CRUDUser, user as user_crud
-from app.crud.crud_deal import CRUDDeal, deal as deal_crud
-from app.models import User, Deal, DealStage
+import pytest
+
 from app.core.security import verify_password
-
+from app.crud.base import CRUDBase
+from app.crud.crud_deal import CRUDDeal
+from app.crud.crud_deal import deal as deal_crud
+from app.crud.crud_user import CRUDUser
+from app.crud.crud_user import user as user_crud
+from app.models import Deal, DealStage, User
 
 # =============================================================================
 # CRUDUser Tests

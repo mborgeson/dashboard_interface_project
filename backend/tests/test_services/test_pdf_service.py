@@ -7,10 +7,11 @@ Tests PDFReportService functionality including:
 - Portfolio reports
 - Style and formatting
 """
-import pytest
-from io import BytesIO
-from unittest.mock import MagicMock, patch, PropertyMock
 from datetime import datetime
+from io import BytesIO
+from unittest.mock import MagicMock, PropertyMock, patch
+
+import pytest
 
 # Test with or without reportlab
 try:
@@ -508,7 +509,7 @@ class TestPDFServiceSingleton:
 
     def test_get_pdf_service_returns_instance(self):
         """Test get_pdf_service returns PDFReportService instance."""
-        from app.services.pdf_service import get_pdf_service, PDFReportService
+        from app.services.pdf_service import PDFReportService, get_pdf_service
 
         service = get_pdf_service()
         assert isinstance(service, PDFReportService)

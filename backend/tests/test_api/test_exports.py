@@ -7,7 +7,6 @@ Tests the Exports API endpoints including:
 
 import pytest
 
-
 # =============================================================================
 # Properties Excel Export Tests
 # =============================================================================

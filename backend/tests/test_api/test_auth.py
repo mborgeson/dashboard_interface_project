@@ -2,9 +2,12 @@
 import pytest
 import pytest_asyncio
 
-from app.core.security import get_password_hash, create_access_token, create_refresh_token
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    get_password_hash,
+)
 from app.models import User
-
 
 # =============================================================================
 # Fixtures for Auth Tests

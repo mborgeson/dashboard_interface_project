@@ -1,15 +1,15 @@
 """Tests for ML rent growth prediction service."""
-import pytest
 from datetime import datetime
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import numpy as np
+import pytest
 
 from app.services.ml.rent_growth_predictor import (
-    RentPrediction,
     RentGrowthPredictor,
+    RentPrediction,
     get_rent_growth_predictor,
 )
-
 
 # =============================================================================
 # Fixtures

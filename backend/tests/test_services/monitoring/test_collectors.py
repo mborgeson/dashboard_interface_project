@@ -1,16 +1,16 @@
 """Tests for monitoring collectors."""
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.services.monitoring.collectors import (
-    SystemMetricsCollector,
-    DatabaseMetricsCollector,
     ApplicationMetricsCollector,
     CollectorRegistry,
+    DatabaseMetricsCollector,
+    SystemMetricsCollector,
     get_collector_registry,
 )
-
 
 # =============================================================================
 # SystemMetricsCollector Tests

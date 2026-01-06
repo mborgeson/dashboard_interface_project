@@ -1,17 +1,17 @@
 """Tests for job queue service."""
-import pytest
 import asyncio
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.services.batch.job_queue import (
-    JobStatus,
-    JobPriority,
     Job,
+    JobPriority,
     JobQueue,
+    JobStatus,
     get_job_queue,
 )
-
 
 # =============================================================================
 # JobStatus Tests

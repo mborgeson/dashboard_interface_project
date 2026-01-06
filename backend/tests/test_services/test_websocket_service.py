@@ -8,11 +8,12 @@ Tests WebSocketManager functionality including:
 - Event notifications
 - Heartbeat management
 """
-import pytest
 import asyncio
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 from typing import Dict, Set
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+
+import pytest
 
 
 class TestWebSocketManager:
@@ -325,7 +326,7 @@ class TestWebSocketManager:
         user_id = 123
         conn_ids = ["conn1", "conn2"]
         manager._user_connections[user_id] = set(conn_ids)
-        manager._connections = {cid: mock_websocket for cid in conn_ids}
+        manager._connections = dict.fromkeys(conn_ids, mock_websocket)
 
         result = await manager.send_to_user(user_id, {"event": "test"})
 
@@ -344,7 +345,7 @@ class TestWebSocketManager:
         room_id = "test_room"
         conn_ids = ["conn1", "conn2", "conn3"]
         manager._rooms[room_id] = set(conn_ids)
-        manager._connections = {cid: mock_websocket for cid in conn_ids}
+        manager._connections = dict.fromkeys(conn_ids, mock_websocket)
 
         result = await manager.send_to_room(room_id, {"event": "test"})
 
@@ -356,7 +357,7 @@ class TestWebSocketManager:
         room_id = "test_room"
         conn_ids = ["conn1", "conn2", "conn3"]
         manager._rooms[room_id] = set(conn_ids)
-        manager._connections = {cid: mock_websocket for cid in conn_ids}
+        manager._connections = dict.fromkeys(conn_ids, mock_websocket)
 
         result = await manager.send_to_room(room_id, {"event": "test"}, exclude="conn1")
 
@@ -372,7 +373,7 @@ class TestWebSocketManager:
     async def test_broadcast(self, manager, mock_websocket):
         """Test broadcast sends to all connections."""
         conn_ids = ["conn1", "conn2", "conn3", "conn4"]
-        manager._connections = {cid: mock_websocket for cid in conn_ids}
+        manager._connections = dict.fromkeys(conn_ids, mock_websocket)
 
         result = await manager.broadcast({"event": "global"})
 
@@ -382,7 +383,7 @@ class TestWebSocketManager:
     async def test_broadcast_with_exclude(self, manager, mock_websocket):
         """Test broadcast excludes specified connection."""
         conn_ids = ["conn1", "conn2", "conn3"]
-        manager._connections = {cid: mock_websocket for cid in conn_ids}
+        manager._connections = dict.fromkeys(conn_ids, mock_websocket)
 
         result = await manager.broadcast({"event": "global"}, exclude="conn2")
 
@@ -547,7 +548,10 @@ class TestWebSocketManagerSingleton:
 
     def test_get_websocket_manager_returns_instance(self):
         """Test get_websocket_manager returns WebSocketManager instance."""
-        from app.services.websocket_service import get_websocket_manager, WebSocketManager
+        from app.services.websocket_service import (
+            WebSocketManager,
+            get_websocket_manager,
+        )
 
         manager = get_websocket_manager()
         assert isinstance(manager, WebSocketManager)

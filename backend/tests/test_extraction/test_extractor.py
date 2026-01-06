@@ -16,10 +16,10 @@ backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
 import pytest
-from app.extraction.cell_mapping import CellMapping, CellMappingParser
-from app.extraction.error_handler import ErrorHandler, ErrorCategory
-from app.extraction.extractor import ExcelDataExtractor
 
+from app.extraction.cell_mapping import CellMapping, CellMappingParser
+from app.extraction.error_handler import ErrorCategory, ErrorHandler
+from app.extraction.extractor import ExcelDataExtractor
 
 # Paths
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "uw_models"
@@ -95,7 +95,7 @@ class TestErrorHandler:
         for i, result in enumerate(results):
             assert np.isnan(result), f"Error handler {i} did not return np.nan"
 
-        print(f"✓ All 9 error categories return np.nan")
+        print("✓ All 9 error categories return np.nan")
 
     def test_process_cell_value_formula_errors(self):
         """Test formula error detection"""
@@ -117,7 +117,7 @@ class TestErrorHandler:
             result = handler.process_cell_value(error, "field", "Sheet", "A1")
             assert np.isnan(result), f"Formula error {error} not detected"
 
-        print(f"✓ All 7 formula error types detected")
+        print("✓ All 7 formula error types detected")
 
     def test_process_cell_value_valid(self):
         """Test valid value processing"""
@@ -134,7 +134,7 @@ class TestErrorHandler:
             == "trimmed"
         )
 
-        print(f"✓ Valid values processed correctly")
+        print("✓ Valid values processed correctly")
 
 
 class TestExcelDataExtractor:

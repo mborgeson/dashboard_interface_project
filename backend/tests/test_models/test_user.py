@@ -2,8 +2,8 @@
 import pytest
 from sqlalchemy import select
 
-from app.models import User
 from app.core.security import get_password_hash, verify_password
+from app.models import User
 
 
 @pytest.mark.asyncio

@@ -1,13 +1,14 @@
 """Tests for User CRUD operations."""
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 import pytest_asyncio
-from unittest.mock import MagicMock, AsyncMock, patch
 
-from app.crud.crud_user import CRUDUser, user as user_crud
+from app.core.security import get_password_hash
+from app.crud.crud_user import CRUDUser
+from app.crud.crud_user import user as user_crud
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
-from app.core.security import get_password_hash
-
 
 # =============================================================================
 # Fixtures

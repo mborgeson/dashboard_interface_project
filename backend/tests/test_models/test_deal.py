@@ -1,7 +1,8 @@
 """Tests for the Deal model."""
-import pytest
 from datetime import date
 from decimal import Decimal
+
+import pytest
 from sqlalchemy import select
 
 from app.models import Deal, DealStage

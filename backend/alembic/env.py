@@ -15,27 +15,10 @@ from alembic import context
 from app.core.config import settings
 from app.db.base import Base
 
+# Underwriting models
+
 # Import all models to ensure they're registered with Base.metadata
 # Core models
-from app.models.user import User
-from app.models.property import Property
-from app.models.deal import Deal
-
-# Underwriting models
-from app.models.underwriting import (
-    UnderwritingModel,
-    GeneralAssumptions,
-    ExitAssumptions,
-    NOIAssumptions,
-    FinancingAssumptions,
-    BudgetAssumptions,
-    PropertyReturns,
-    EquityReturns,
-    UnitMix,
-    RentComp,
-    SalesComp,
-    AnnualCashflow,
-)
 
 # Alembic Config object
 config = context.config

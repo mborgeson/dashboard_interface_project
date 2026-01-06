@@ -1,6 +1,7 @@
 """Tests for workflow step handlers."""
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock
 
 from app.services.workflow.step_handlers import (
     ActionHandler,
@@ -14,7 +15,6 @@ from app.services.workflow.workflow_models import (
     WorkflowInstance,
     WorkflowStatus,
 )
-
 
 # =============================================================================
 # ActionHandler Tests

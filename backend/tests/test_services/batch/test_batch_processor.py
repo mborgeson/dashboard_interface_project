@@ -1,17 +1,17 @@
 """Tests for batch processor service."""
-import pytest
 import asyncio
 from datetime import datetime
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.services.batch.batch_processor import (
-    BatchStatus,
+    BatchProcessor,
     BatchProgress,
     BatchResult,
-    BatchProcessor,
+    BatchStatus,
     get_batch_processor,
 )
-
 
 # =============================================================================
 # BatchStatus Tests

@@ -9,12 +9,10 @@ Creates realistic mock data for development and testing:
 """
 import asyncio
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 from random import choice, randint, uniform
-from typing import List
-from uuid import uuid4
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -23,26 +21,25 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.db.base import Base
 from app.core.config import settings
-from app.models.user import User
-from app.models.property import Property
 from app.models.deal import Deal, DealStage
+from app.models.property import Property
 from app.models.underwriting import (
-    UnderwritingModel,
-    UnderwritingStatus,
-    GeneralAssumptions,
-    ExitAssumptions,
-    NOIAssumptions,
-    FinancingAssumptions,
+    AnnualCashflow,
     BudgetAssumptions,
-    PropertyReturns,
     EquityReturns,
-    UnitMix,
+    ExitAssumptions,
+    FinancingAssumptions,
+    GeneralAssumptions,
+    NOIAssumptions,
+    PropertyReturns,
     RentComp,
     SalesComp,
-    AnnualCashflow,
+    UnderwritingModel,
+    UnderwritingStatus,
+    UnitMix,
 )
+from app.models.user import User
 
 # Database URL - use settings module (reads from environment variables)
 DATABASE_URL = settings.database_url_async
@@ -92,7 +89,7 @@ def random_date(days_back: int = 365) -> date:
 # USER SEEDING
 # ============================================================================
 
-async def seed_users(session: AsyncSession) -> List[User]:
+async def seed_users(session: AsyncSession) -> list[User]:
     """Create sample users."""
     users_data = [
         {
@@ -139,7 +136,7 @@ async def seed_users(session: AsyncSession) -> List[User]:
 # PROPERTY SEEDING
 # ============================================================================
 
-async def seed_properties(session: AsyncSession) -> List[Property]:
+async def seed_properties(session: AsyncSession) -> list[Property]:
     """Create sample properties."""
     properties = []
 
@@ -175,9 +172,9 @@ async def seed_properties(session: AsyncSession) -> List[Property]:
 
 async def seed_deals(
     session: AsyncSession,
-    properties: List[Property],
-    users: List[User]
-) -> List[Deal]:
+    properties: list[Property],
+    users: list[User]
+) -> list[Deal]:
     """Create sample deals."""
     deals = []
     stages = list(DealStage)
@@ -211,9 +208,9 @@ async def seed_deals(
 
 async def seed_underwriting_models(
     session: AsyncSession,
-    deals: List[Deal],
-    properties: List[Property]
-) -> List[UnderwritingModel]:
+    deals: list[Deal],
+    properties: list[Property]
+) -> list[UnderwritingModel]:
     """Create underwriting models with all child tables."""
     models = []
 

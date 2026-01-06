@@ -15,8 +15,6 @@ os.environ["RATE_LIMIT_AUTH_WINDOW"] = "60"
 
 # Force pydantic-settings to reload settings when app imports
 # by clearing any cached settings
-from functools import lru_cache
-import importlib
 
 # Clear the settings cache if it exists
 try:

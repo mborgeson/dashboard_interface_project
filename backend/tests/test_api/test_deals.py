@@ -1,9 +1,9 @@
 """Tests for deal API endpoints."""
-import pytest
 from decimal import Decimal
 
-from app.models import DealStage
+import pytest
 
+from app.models import DealStage
 
 # =============================================================================
 # List Deals Tests

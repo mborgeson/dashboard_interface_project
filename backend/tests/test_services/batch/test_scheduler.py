@@ -1,16 +1,16 @@
 """Tests for task scheduler service."""
-import pytest
 import asyncio
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.services.batch.scheduler import (
-    ScheduleInterval,
     ScheduledTask,
+    ScheduleInterval,
     TaskScheduler,
     get_scheduler,
 )
-
 
 # =============================================================================
 # ScheduleInterval Tests

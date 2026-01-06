@@ -1,19 +1,19 @@
 """Tests for task executor service."""
-import pytest
 import asyncio
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from app.services.batch.job_queue import Job, JobQueue
 from app.services.batch.task_executor import (
     TaskExecutor,
-    get_task_executor,
-    register_default_handlers,
-    report_generation_handler,
     data_export_handler,
     data_import_handler,
     email_notification_handler,
+    get_task_executor,
+    register_default_handlers,
+    report_generation_handler,
 )
-from app.services.batch.job_queue import Job, JobQueue
-
 
 # =============================================================================
 # TaskExecutor Initialization Tests

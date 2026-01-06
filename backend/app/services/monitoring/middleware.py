@@ -8,8 +8,8 @@ Provides automatic request/response metrics collection:
 - Error rate tracking
 """
 
-import time
 import contextlib
+import time
 from collections.abc import Callable
 
 from loguru import logger

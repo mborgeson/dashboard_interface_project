@@ -3,30 +3,28 @@ Pytest fixtures and configuration for the test suite.
 Provides async database sessions, test client, and sample data fixtures.
 """
 import asyncio
-from typing import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator
 from datetime import date
 from decimal import Decimal
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-
-from app.main import app
-from app.db.base import Base
-from app.db.session import get_db
-from app.core.config import settings
-from app.core.security import get_password_hash
-from app.models import User, Property, Deal, DealStage
-
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 # =============================================================================
 # Test Database Configuration
 # =============================================================================
-
 # Use SQLite for fast in-memory testing
 # StaticPool ensures all connections share the same in-memory database
 from sqlalchemy.pool import StaticPool
+
+from app.core.config import settings
+from app.core.security import get_password_hash
+from app.db.base import Base
+from app.db.session import get_db
+from app.main import app
+from app.models import Deal, DealStage, Property, User
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -82,7 +80,7 @@ def cleanup_engine():
         loop.run_until_complete(
             asyncio.wait_for(engine_test.dispose(), timeout=10.0)
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         import logging
         logging.warning("Engine disposal timed out after 10s, forcing close")
     except Exception as e:

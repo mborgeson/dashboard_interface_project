@@ -8,10 +8,11 @@ Tests RedisService functionality including:
 - Key builders
 - Pub/Sub functionality
 """
-import pytest
 import json
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+
+import pytest
 
 
 class TestRedisService:
@@ -367,7 +368,7 @@ class TestRedisService:
                 import asyncio
 
                 mock_client = AsyncMock()
-                mock_client.ping = AsyncMock(side_effect=asyncio.TimeoutError("Connection timed out"))
+                mock_client.ping = AsyncMock(side_effect=TimeoutError("Connection timed out"))
                 mock_redis.return_value = mock_client
 
                 with pytest.raises(asyncio.TimeoutError):
@@ -500,8 +501,8 @@ class TestRedisServiceSingleton:
     @pytest.mark.asyncio
     async def test_get_redis_service_returns_existing(self):
         """Test get_redis_service returns existing instance."""
-        from app.services.redis_service import RedisService
         import app.services.redis_service as redis_module
+        from app.services.redis_service import RedisService
 
         # Set up existing instance
         existing = RedisService()

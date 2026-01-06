@@ -6,14 +6,15 @@ Provides factories for generating test data:
 - PropertyFactory: Create test properties
 """
 
-import factory
-from factory import fuzzy
+import random
 from datetime import datetime, timedelta
 from decimal import Decimal
-import random
 
-from app.models import User, Deal, DealStage, Property
+import factory
+from factory import fuzzy
+
 from app.core.security import get_password_hash
+from app.models import Deal, DealStage, Property, User
 
 
 class UserFactory(factory.Factory):

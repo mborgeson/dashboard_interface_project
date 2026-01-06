@@ -1,17 +1,17 @@
 """Tests for core security module."""
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import timedelta, datetime, UTC
 from jose import jwt
 
+from app.core.config import settings
 from app.core.security import (
-    verify_password,
-    get_password_hash,
     create_access_token,
     create_refresh_token,
     decode_token,
+    get_password_hash,
+    verify_password,
 )
-from app.core.config import settings
-
 
 # =============================================================================
 # Password Hashing Tests

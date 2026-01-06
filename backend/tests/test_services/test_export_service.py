@@ -7,9 +7,10 @@ Tests ExcelExportService functionality including:
 - Analytics reports with charts
 - Style creation and application
 """
-import pytest
 from io import BytesIO
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Test with or without openpyxl
 try:
@@ -524,7 +525,7 @@ class TestExcelServiceSingleton:
 
     def test_get_excel_service_returns_instance(self):
         """Test get_excel_service returns ExcelExportService instance."""
-        from app.services.export_service import get_excel_service, ExcelExportService
+        from app.services.export_service import ExcelExportService, get_excel_service
 
         service = get_excel_service()
         assert isinstance(service, ExcelExportService)

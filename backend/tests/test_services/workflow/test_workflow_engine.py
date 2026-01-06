@@ -1,23 +1,23 @@
 """Tests for workflow engine service."""
-import pytest
 import asyncio
 from datetime import datetime
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.services.workflow.workflow_engine import (
     WorkflowEngine,
     get_workflow_engine,
 )
 from app.services.workflow.workflow_models import (
+    StepDefinition,
+    StepExecution,
+    StepStatus,
+    StepType,
     WorkflowDefinition,
     WorkflowInstance,
     WorkflowStatus,
-    StepDefinition,
-    StepType,
-    StepStatus,
-    StepExecution,
 )
-
 
 # =============================================================================
 # Fixtures

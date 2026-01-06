@@ -1,10 +1,10 @@
 """Tests for email service."""
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 from email.mime.multipart import MIMEMultipart
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+
+import pytest
 
 from app.services.email_service import EmailService, get_email_service
-
 
 # =============================================================================
 # Fixtures
