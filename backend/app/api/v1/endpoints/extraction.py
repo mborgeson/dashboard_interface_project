@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.crud.extraction import ExtractedValueCRUD, ExtractionRunCRUD
-from app.db.session import get_db
+from app.db.session import get_db, get_sync_db
 from app.extraction.file_filter import get_file_filter
 from app.extraction.sharepoint import (
     SharePointAuthError,
@@ -52,8 +52,8 @@ logger = structlog.get_logger().bind(component="extraction_api")
 
 router = APIRouter()
 
-# Path to reference file
-REFERENCE_FILE = Path(__file__).parent.parent.parent.parent.parent / (
+# Path to reference file (project root / filename)
+REFERENCE_FILE = Path(__file__).parent.parent.parent.parent.parent.parent / (
     "Underwriting_Dashboard_Cell_References.xlsx"
 )
 
@@ -76,10 +76,10 @@ async def _discover_sharepoint_files() -> list[SharePointFile]:
     client = SharePointClient()
     logger.info("sharepoint_discovery_started", site_url=settings.SHAREPOINT_SITE_URL)
 
-    files = await client.find_uw_models()
-    logger.info("sharepoint_files_discovered", count=len(files))
+    result = await client.find_uw_models()
+    logger.info("sharepoint_files_discovered", count=len(result.files))
 
-    return files
+    return result.files
 
 
 async def _download_sharepoint_file(
@@ -346,7 +346,7 @@ def _process_files(
 async def start_extraction(
     request: ExtractionStartRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_sync_db),
 ):
     """
     Start a new extraction run.
@@ -434,7 +434,7 @@ async def start_extraction(
 
 @router.get("/status", response_model=ExtractionStatusResponse)
 async def get_extraction_status(
-    run_id: UUID | None = None, db: Session = Depends(get_db)
+    run_id: UUID | None = None, db: Session = Depends(get_sync_db)
 ):
     """
     Get status of an extraction run.
@@ -466,7 +466,7 @@ async def get_extraction_status(
 
 @router.get("/history", response_model=ExtractionHistoryResponse)
 async def get_extraction_history(
-    limit: int = 10, offset: int = 0, db: Session = Depends(get_db)
+    limit: int = 10, offset: int = 0, db: Session = Depends(get_sync_db)
 ):
     """
     Get history of extraction runs.
@@ -492,7 +492,7 @@ async def get_extraction_history(
 
 
 @router.post("/cancel")
-async def cancel_extraction(run_id: UUID | None = None, db: Session = Depends(get_db)):
+async def cancel_extraction(run_id: UUID | None = None, db: Session = Depends(get_sync_db)):
     """
     Cancel a running extraction.
 
@@ -522,7 +522,7 @@ async def cancel_extraction(run_id: UUID | None = None, db: Session = Depends(ge
 
 @router.get("/properties", response_model=PropertyListResponse)
 async def list_extracted_properties(
-    run_id: UUID | None = None, db: Session = Depends(get_db)
+    run_id: UUID | None = None, db: Session = Depends(get_sync_db)
 ):
     """
     List all properties with extracted data.
@@ -534,7 +534,7 @@ async def list_extracted_properties(
 
 @router.get("/properties/{property_name}")
 async def get_property_data(
-    property_name: str, run_id: UUID | None = None, db: Session = Depends(get_db)
+    property_name: str, run_id: UUID | None = None, db: Session = Depends(get_sync_db)
 ):
     """
     Get all extracted data for a specific property.
