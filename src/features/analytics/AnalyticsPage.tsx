@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { mockProperties } from '@/data/mockProperties';
+import { useState, useMemo } from 'react';
+import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { Button } from '@/components/ui/button';
 import { Download, Calendar } from 'lucide-react';
 import {
@@ -20,42 +20,41 @@ type DateRange = '30' | '90' | '365' | 'all';
 
 export function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<DateRange>('365');
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
+  // Fetch properties from API
+  const { data, isLoading, error } = useProperties();
+  const properties = selectProperties(data);
 
   // Calculate portfolio-wide KPIs
   const portfolioKPIs = useMemo(() => {
-    const totalEquity = mockProperties.reduce(
+    if (properties.length === 0) {
+      return { irr: 0, cashOnCash: 0, equityMultiple: 0, avgDSCR: 0 };
+    }
+
+    const totalEquity = properties.reduce(
       (sum, p) => sum + (p.acquisition.totalInvested - p.financing.loanAmount),
       0
     );
-    const weightedIRR = mockProperties.reduce(
+    const weightedIRR = properties.reduce(
       (sum, p) => sum + p.performance.irr * (p.acquisition.totalInvested - p.financing.loanAmount),
       0
     ) / totalEquity;
-    const weightedCashOnCash = mockProperties.reduce(
+    const weightedCashOnCash = properties.reduce(
       (sum, p) => sum + p.performance.cashOnCashReturn * (p.acquisition.totalInvested - p.financing.loanAmount),
       0
     ) / totalEquity;
-    const weightedEquityMultiple = mockProperties.reduce(
+    const weightedEquityMultiple = properties.reduce(
       (sum, p) => sum + p.performance.equityMultiple * (p.acquisition.totalInvested - p.financing.loanAmount),
       0
     ) / totalEquity;
-    
+
     // Calculate average DSCR (Debt Service Coverage Ratio)
-    const avgDSCR = mockProperties.reduce((sum, p) => {
+    const avgDSCR = properties.reduce((sum, p) => {
       const annualNOI = p.operations.noi;
       const annualDebtService = p.financing.monthlyPayment * 12;
       const dscr = annualNOI / annualDebtService;
       return sum + dscr;
-    }, 0) / mockProperties.length;
+    }, 0) / properties.length;
 
     return {
       irr: weightedIRR,
@@ -63,50 +62,52 @@ export function AnalyticsPage() {
       equityMultiple: weightedEquityMultiple,
       avgDSCR,
     };
-  }, []);
+  }, [properties]);
 
   // Generate NOI trend data (last 12 months)
   const noiTrendData = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentMonth = new Date().getMonth();
-    
+
     return months.map((month, idx) => {
       // Calculate month offset from current
       const monthOffset = idx - currentMonth;
-      const portfolioNOI = mockProperties.reduce((sum, p) => sum + p.operations.noi, 0);
-      
-      // Add some realistic variation (±5%)
+      const portfolioNOI = properties.reduce((sum, p) => sum + p.operations.noi, 0);
+
+      // Add some realistic variation (+/-5%)
       const variation = 1 + (Math.sin(monthOffset * 0.5) * 0.05);
       const monthlyNOI = (portfolioNOI / 12) * variation;
-      
+
       return {
         month,
         noi: Math.round(monthlyNOI),
       };
     });
-  }, []);
+  }, [properties]);
 
   // Generate occupancy trend data (last 12 months)
   const occupancyTrendData = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentMonth = new Date().getMonth();
-    const avgOccupancy = mockProperties.reduce((sum, p) => sum + p.operations.occupancy, 0) / mockProperties.length;
-    
+    const avgOccupancy = properties.length > 0
+      ? properties.reduce((sum, p) => sum + p.operations.occupancy, 0) / properties.length
+      : 0;
+
     return months.map((month, idx) => {
       const monthOffset = idx - currentMonth;
       // Slight seasonal variation
       const variation = Math.sin(monthOffset * 0.3) * 0.02;
-      
+
       return {
         month,
         occupancy: Math.min(0.99, Math.max(0.88, avgOccupancy + variation)),
       };
     });
-  }, []);
+  }, [properties]);
 
   // Value by property class
   const valueByClass = useMemo(() => {
-    const classMap = mockProperties.reduce((acc, p) => {
+    const classMap = properties.reduce((acc, p) => {
       const cls = `Class ${p.propertyDetails.propertyClass}`;
       acc[cls] = (acc[cls] || 0) + p.valuation.currentValue;
       return acc;
@@ -115,11 +116,11 @@ export function AnalyticsPage() {
     return Object.entries(classMap)
       .map(([cls, value]) => ({ class: cls, value }))
       .sort((a, b) => a.class.localeCompare(b.class));
-  }, []);
+  }, [properties]);
 
   // NOI by submarket
   const noiBySubmarket = useMemo(() => {
-    const submarketMap = mockProperties.reduce((acc, p) => {
+    const submarketMap = properties.reduce((acc, p) => {
       const submarket = p.address.submarket;
       acc[submarket] = (acc[submarket] || 0) + p.operations.noi;
       return acc;
@@ -128,21 +129,21 @@ export function AnalyticsPage() {
     return Object.entries(submarketMap)
       .map(([submarket, noi]) => ({ submarket, noi }))
       .sort((a, b) => b.noi - a.noi);
-  }, []);
+  }, [properties]);
 
   // Property performance comparison
   const propertyPerformance = useMemo(() => {
-    return mockProperties.map(p => ({
+    return properties.map(p => ({
       name: p.name,
       irr: p.performance.irr,
       cashOnCash: p.performance.cashOnCashReturn,
       capRate: p.valuation.capRate,
     }));
-  }, []);
+  }, [properties]);
 
   // Risk vs Return scatter data
   const riskReturnData = useMemo(() => {
-    return mockProperties.map((p, index) => {
+    return properties.map((p, index) => {
       // Calculate risk score based on occupancy variance from optimal (96%)
       const occupancyVariance = Math.abs(p.operations.occupancy - 0.96);
       // Include property class as risk factor (C=higher risk)
@@ -159,13 +160,13 @@ export function AnalyticsPage() {
         size: p.valuation.currentValue,
       };
     });
-  }, []);
+  }, [properties]);
 
   // Table data with sorting
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
   const sortedProperties = useMemo(() => {
-    const sorted = [...mockProperties];
+    const sorted = [...properties];
     if (sortConfig) {
       sorted.sort((a, b) => {
         let aVal: string | number;
@@ -199,14 +200,14 @@ export function AnalyticsPage() {
           default:
             return 0;
         }
-        
+
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
     return sorted;
-  }, [sortConfig]);
+  }, [properties, sortConfig]);
 
   const handleSort = (key: string) => {
     setSortConfig(current => {
@@ -234,7 +235,7 @@ export function AnalyticsPage() {
   };
 
   const getBestWorst = (key: string) => {
-    const values = mockProperties.map(p => {
+    const values = properties.map(p => {
       switch (key) {
         case 'irr': return p.performance.irr;
         case 'cashOnCash': return p.performance.cashOnCashReturn;
@@ -248,6 +249,7 @@ export function AnalyticsPage() {
   };
 
   const highlightCell = (value: number, key: string) => {
+    if (properties.length === 0) return '';
     const { max, min } = getBestWorst(key);
     if (value === max) return 'bg-green-50 font-semibold text-green-700';
     if (value === min) return 'bg-red-50 font-semibold text-red-700';
@@ -289,6 +291,26 @@ export function AnalyticsPage() {
             <div className="h-6 w-48 bg-neutral-200 animate-pulse rounded mb-4" />
             <ChartSkeleton height={384} />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <h2 className="text-lg font-semibold text-red-800 mb-2">Error Loading Data</h2>
+          <p className="text-red-600">
+            {error instanceof Error ? error.message : 'Failed to load portfolio data'}
+          </p>
+          <Button
+            className="mt-4"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -382,7 +404,7 @@ export function AnalyticsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead 
+                  <TableHead
                     className="cursor-pointer hover:bg-neutral-50"
                     onClick={() => handleSort('name')}
                   >
@@ -390,31 +412,31 @@ export function AnalyticsPage() {
                   </TableHead>
                   <TableHead>Class</TableHead>
                   <TableHead>Submarket</TableHead>
-                  <TableHead 
+                  <TableHead
                     className="text-right cursor-pointer hover:bg-neutral-50"
                     onClick={() => handleSort('irr')}
                   >
                     IRR {getSortIcon('irr')}
                   </TableHead>
-                  <TableHead 
+                  <TableHead
                     className="text-right cursor-pointer hover:bg-neutral-50"
                     onClick={() => handleSort('cashOnCash')}
                   >
                     Cash-on-Cash {getSortIcon('cashOnCash')}
                   </TableHead>
-                  <TableHead 
+                  <TableHead
                     className="text-right cursor-pointer hover:bg-neutral-50"
                     onClick={() => handleSort('capRate')}
                   >
                     Cap Rate {getSortIcon('capRate')}
                   </TableHead>
-                  <TableHead 
+                  <TableHead
                     className="text-right cursor-pointer hover:bg-neutral-50"
                     onClick={() => handleSort('occupancy')}
                   >
                     Occupancy {getSortIcon('occupancy')}
                   </TableHead>
-                  <TableHead 
+                  <TableHead
                     className="text-right cursor-pointer hover:bg-neutral-50"
                     onClick={() => handleSort('noi')}
                   >
@@ -455,7 +477,7 @@ export function AnalyticsPage() {
         </div>
         <p className="text-xs text-neutral-500 mt-3">
           <span className="inline-block w-3 h-3 bg-green-50 border border-green-200 mr-1"></span>
-          Best performer | 
+          Best performer |
           <span className="inline-block w-3 h-3 bg-red-50 border border-red-200 mx-1"></span>
           Worst performer
         </p>

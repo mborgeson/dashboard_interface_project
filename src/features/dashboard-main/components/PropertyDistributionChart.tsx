@@ -7,13 +7,14 @@ import {
   Legend,
   Tooltip,
 } from 'recharts';
-import { mockProperties } from '@/data/mockProperties';
 import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
+import type { Property } from '@/types';
 
 type DistributionType = 'class' | 'submarket';
 
 interface PropertyDistributionChartProps {
   type?: DistributionType;
+  properties: Property[];
 }
 
 interface ChartDataItem {
@@ -138,13 +139,17 @@ const SUBMARKET_COLORS = {
   'Phoenix Central': '#ec4899',
 };
 
-export function PropertyDistributionChart({ type = 'class' }: PropertyDistributionChartProps) {
+export function PropertyDistributionChart({ type = 'class', properties }: PropertyDistributionChartProps) {
   const chartData = useMemo<ChartDataItem[]>(() => {
+    if (properties.length === 0) {
+      return [];
+    }
+
     if (type === 'class') {
       // Distribution by property class
       const classCounts: Record<string, { value: number; count: number }> = {};
 
-      mockProperties.forEach((property) => {
+      properties.forEach((property) => {
         const className = `Class ${property.propertyDetails.propertyClass}`;
         if (!classCounts[className]) {
           classCounts[className] = { value: 0, count: 0 };
@@ -163,7 +168,7 @@ export function PropertyDistributionChart({ type = 'class' }: PropertyDistributi
       // Distribution by submarket
       const submarketCounts: Record<string, { value: number; count: number }> = {};
 
-      mockProperties.forEach((property) => {
+      properties.forEach((property) => {
         const submarket = property.address.submarket;
         if (!submarketCounts[submarket]) {
           submarketCounts[submarket] = { value: 0, count: 0 };
@@ -181,12 +186,20 @@ export function PropertyDistributionChart({ type = 'class' }: PropertyDistributi
         }))
         .sort((a, b) => b.value - a.value);
     }
-  }, [type]);
+  }, [type, properties]);
 
   const totalValue = useMemo(
     () => chartData.reduce((sum, item) => sum + item.value, 0),
     [chartData]
   );
+
+  if (chartData.length === 0) {
+    return (
+      <div className="w-full h-[400px] flex items-center justify-center text-neutral-500">
+        No data available
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-[400px]">

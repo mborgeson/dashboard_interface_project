@@ -1,4 +1,4 @@
-import { mockProperties } from '@/data/mockProperties';
+import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { mockTransactions } from '@/data/mockTransactions';
 import { formatCurrency, formatPercent, formatNumber } from '@/lib/utils/formatters';
 import { Card } from '@/components/ui/card';
@@ -6,21 +6,83 @@ import { TrendingUp, Building2, DollarSign, Percent } from 'lucide-react';
 import { PropertyMap } from './components/PropertyMap';
 import { PortfolioPerformanceChart } from './components/PortfolioPerformanceChart';
 import { PropertyDistributionChart } from './components/PropertyDistributionChart';
+import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
 
-export function DashboardMain(){
+export function DashboardMain() {
+  // Fetch properties from API
+  const { data, isLoading, error } = useProperties();
+  const properties = selectProperties(data);
+
   // Calculate portfolio metrics
-  const totalProperties = mockProperties.length;
-  const totalUnits = mockProperties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
-  const totalValue = mockProperties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
-  const totalNOI = mockProperties.reduce((sum, p) => sum + p.operations.noi, 0);
-  const avgOccupancy =
-    mockProperties.reduce((sum, p) => sum + p.operations.occupancy, 0) / totalProperties;
-  const avgCapRate =
-    mockProperties.reduce((sum, p) => sum + p.valuation.capRate, 0) / totalProperties;
+  const totalProperties = properties.length;
+  const totalUnits = properties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
+  const totalValue = properties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
+  const totalNOI = properties.reduce((sum, p) => sum + p.operations.noi, 0);
+  const avgOccupancy = totalProperties > 0
+    ? properties.reduce((sum, p) => sum + p.operations.occupancy, 0) / totalProperties
+    : 0;
+  const avgCapRate = totalProperties > 0
+    ? properties.reduce((sum, p) => sum + p.valuation.capRate, 0) / totalProperties
+    : 0;
 
   const recentTransactions = mockTransactions
     .sort((a, b) => b.date.getTime() - a.date.getTime())
     .slice(0, 10);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div>
+          <h1 className="text-page-title text-neutral-900 font-semibold">
+            Portfolio Dashboard
+          </h1>
+          <p className="text-neutral-600 mt-1">
+            Loading real-time performance data...
+          </p>
+        </div>
+
+        {/* Hero Stats Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartSkeleton height={300} />
+          <ChartSkeleton height={300} />
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-page-title text-neutral-900 font-semibold">
+            Portfolio Dashboard
+          </h1>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <h2 className="text-lg font-semibold text-red-800 mb-2">Error Loading Data</h2>
+          <p className="text-red-600">
+            {error instanceof Error ? error.message : 'Failed to load portfolio data'}
+          </p>
+          <button
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -30,7 +92,7 @@ export function DashboardMain(){
           Portfolio Dashboard
         </h1>
         <p className="text-neutral-600 mt-1">
-          Real-time performance across 12 Phoenix MSA properties
+          Real-time performance across {totalProperties} Phoenix MSA properties
         </p>
       </div>
 
@@ -62,7 +124,7 @@ export function DashboardMain(){
             {formatNumber(totalUnits)}
           </div>
           <div className="text-sm text-neutral-600 mt-1">
-            Total Units • {formatPercent(avgOccupancy)} Occupied
+            Total Units {avgOccupancy > 0 && `• ${formatPercent(avgOccupancy)} Occupied`}
           </div>
         </Card>
 
@@ -89,7 +151,7 @@ export function DashboardMain(){
             </div>
           </div>
           <div className="text-hero-stat text-neutral-900">
-            {formatPercent(avgCapRate)}
+            {avgCapRate > 0 ? formatPercent(avgCapRate) : '--'}
           </div>
           <div className="text-sm text-neutral-600 mt-1">Average Cap Rate</div>
         </Card>
@@ -103,7 +165,7 @@ export function DashboardMain(){
             Top Performing Properties
           </h2>
           <div className="space-y-3">
-            {mockProperties
+            {properties
               .sort((a, b) => b.performance.irr - a.performance.irr)
               .slice(0, 5)
               .map((property) => (
@@ -175,7 +237,7 @@ export function DashboardMain(){
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {['A', 'B', 'C'].map((propertyClass) => {
-            const propertiesInClass = mockProperties.filter(
+            const propertiesInClass = properties.filter(
               (p) => p.propertyDetails.propertyClass === propertyClass
             );
             const count = propertiesInClass.length;
@@ -224,7 +286,7 @@ export function DashboardMain(){
           <h2 className="text-card-title text-neutral-800 font-semibold mb-4">
             12-Month Performance Trend
           </h2>
-          <PortfolioPerformanceChart />
+          <PortfolioPerformanceChart properties={properties} />
         </Card>
 
         {/* Property Distribution by Class Chart */}
@@ -232,7 +294,7 @@ export function DashboardMain(){
           <h2 className="text-card-title text-neutral-800 font-semibold mb-4">
             Distribution by Property Class
           </h2>
-          <PropertyDistributionChart type="class" />
+          <PropertyDistributionChart type="class" properties={properties} />
         </Card>
       </div>
 
@@ -241,7 +303,7 @@ export function DashboardMain(){
         <h2 className="text-card-title text-neutral-800 font-semibold mb-4">
           Distribution by Submarket
         </h2>
-        <PropertyDistributionChart type="submarket" />
+        <PropertyDistributionChart type="submarket" properties={properties} />
       </Card>
 
       {/* Property Map */}
@@ -249,7 +311,7 @@ export function DashboardMain(){
         <h2 className="text-card-title text-neutral-800 font-semibold mb-4">
           Property Locations
         </h2>
-        <PropertyMap properties={mockProperties} />
+        <PropertyMap properties={properties} />
       </Card>
     </div>
   );

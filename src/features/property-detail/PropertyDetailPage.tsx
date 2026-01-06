@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { mockProperties } from '@/data/mockProperties';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { useProperty } from '@/hooks/api/useProperties';
 import { PropertyHero } from './components/PropertyHero';
 import { OverviewTab } from './components/OverviewTab';
 import { FinancialsTab } from './components/FinancialsTab';
@@ -16,8 +16,61 @@ export function PropertyDetailPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
-  const property = mockProperties.find((p) => p.id === id);
+  // Fetch property from API
+  const { data: property, isLoading, error } = useProperty(id);
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Back Navigation */}
+        <button
+          onClick={() => navigate('/investments')}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Investments
+        </button>
+
+        {/* Loading Skeleton */}
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <Loader2 className="w-12 h-12 text-primary-500 animate-spin mb-4" />
+          <p className="text-gray-600">Loading property details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        {/* Back Navigation */}
+        <button
+          onClick={() => navigate('/investments')}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Investments
+        </button>
+
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <h2 className="text-2xl font-semibold text-red-800 mb-2">Error Loading Property</h2>
+          <p className="text-red-600 mb-4">
+            {error instanceof Error ? error.message : 'Failed to load property details'}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Property not found
   if (!property) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">

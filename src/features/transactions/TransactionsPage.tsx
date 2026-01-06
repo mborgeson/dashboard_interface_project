@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { mockTransactions } from '@/data/mockTransactions';
-import { mockProperties } from '@/data/mockProperties';
+import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { useTransactionFilters } from './hooks/useTransactionFilters';
 import { TransactionSummary } from './components/TransactionSummary';
 import { TransactionFilters } from './components/TransactionFilters';
@@ -18,6 +18,10 @@ export function TransactionsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch properties from API for property filter dropdown
+  const { data } = useProperties();
+  const apiProperties = selectProperties(data);
+
   const {
     filters,
     updateFilters,
@@ -27,9 +31,10 @@ export function TransactionsPage() {
     filteredTransactions,
   } = useTransactionFilters(mockTransactions);
 
+  // Map properties for the filter dropdown
   const properties = useMemo(() => {
-    return mockProperties.map((p) => ({ id: p.id, name: p.name }));
-  }, []);
+    return apiProperties.map((p) => ({ id: p.id, name: p.name }));
+  }, [apiProperties]);
 
   // Simulate loading
   useEffect(() => {

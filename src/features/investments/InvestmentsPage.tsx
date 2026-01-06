@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Grid3x3, List } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { mockProperties } from '@/data/mockProperties';
+import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
 import { PropertyFilters } from './components/PropertyFilters';
 import { PropertyCard } from './components/PropertyCard';
@@ -16,38 +16,40 @@ type SortColumn = 'name' | 'submarket' | 'class' | 'units' | 'occupancy' | 'noi'
 
 export function InvestmentsPage() {
   const navigate = useNavigate();
-  
-  // Loading state
-  const [isLoading, setIsLoading] = useState(true);
-  
+
+  // Fetch properties from API
+  const { data, isLoading, error } = useProperties();
+  const properties = selectProperties(data);
+
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [propertyClass, setPropertyClass] = useState('all');
   const [submarket, setSubmarket] = useState('all');
   const [occupancyRange, setOccupancyRange] = useState('all');
   const [sortBy, setSortBy] = useState('value-desc');
-  
+
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  
+
   // Table sorting state
   const [tableSortColumn, setTableSortColumn] = useState<SortColumn>('value');
   const [tableSortDirection, setTableSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
-
   // Calculate summary statistics
   const summaryStats = useMemo(() => {
-    const totalProperties = mockProperties.length;
-    const totalUnits = mockProperties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
-    const totalValue = mockProperties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
-    const avgOccupancy = mockProperties.reduce((sum, p) => sum + p.operations.occupancy, 0) / totalProperties;
+    if (properties.length === 0) {
+      return {
+        totalProperties: 0,
+        totalUnits: 0,
+        totalValue: 0,
+        avgOccupancy: 0,
+      };
+    }
+
+    const totalProperties = properties.length;
+    const totalUnits = properties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
+    const totalValue = properties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
+    const avgOccupancy = properties.reduce((sum, p) => sum + p.operations.occupancy, 0) / totalProperties;
 
     return {
       totalProperties,
@@ -55,11 +57,11 @@ export function InvestmentsPage() {
       totalValue,
       avgOccupancy,
     };
-  }, []);
+  }, [properties]);
 
   // Filter and sort properties
   const filteredAndSortedProperties = useMemo(() => {
-    let filtered = mockProperties;
+    let filtered = properties;
 
     // Apply search filter
     if (searchTerm) {
@@ -132,7 +134,7 @@ export function InvestmentsPage() {
     });
 
     return sorted;
-  }, [searchTerm, propertyClass, submarket, occupancyRange, sortBy]);
+  }, [properties, searchTerm, propertyClass, submarket, occupancyRange, sortBy]);
 
   // Table-specific sorting
   const tableSortedProperties = useMemo(() => {
@@ -180,12 +182,12 @@ export function InvestmentsPage() {
       }
 
       if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return tableSortDirection === 'asc' 
+        return tableSortDirection === 'asc'
           ? aVal.localeCompare(bVal)
           : bVal.localeCompare(aVal);
       }
 
-      return tableSortDirection === 'asc' 
+      return tableSortDirection === 'asc'
         ? (aVal as number) - (bVal as number)
         : (bVal as number) - (aVal as number);
     });
@@ -242,6 +244,31 @@ export function InvestmentsPage() {
 
         {/* Properties Grid Skeleton */}
         <PropertyCardSkeletonGrid count={6} />
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Investment Portfolio</h1>
+            <p className="text-muted-foreground">
+              Manage and monitor your real estate investments
+            </p>
+          </div>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <h2 className="text-lg font-semibold text-red-800 mb-2">Error Loading Properties</h2>
+          <p className="text-red-600 mb-4">
+            {error instanceof Error ? error.message : 'Failed to load property data'}
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }

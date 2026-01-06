@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchStore, type SearchResult } from '@/stores/searchStore';
-import { mockProperties } from '@/data/mockProperties';
+import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { mockDeals } from '@/data/mockDeals';
 import { mockDocuments } from '@/data/mockDocuments';
 import { mockTransactions } from '@/data/mockTransactions';
@@ -101,6 +101,10 @@ export function GlobalSearch() {
     setOpen,
   } = useSearchStore();
 
+  // Fetch properties from API
+  const { data } = useProperties();
+  const properties = selectProperties(data);
+
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const { info } = useToast();
@@ -128,8 +132,8 @@ export function GlobalSearch() {
 
     const query = debouncedQuery.trim();
 
-    // Configure Fuse.js for properties
-    const propertyFuse = new Fuse(mockProperties, {
+    // Configure Fuse.js for properties (using API data)
+    const propertyFuse = new Fuse(properties, {
       keys: [
         { name: 'name', weight: 2 },
         { name: 'address.street', weight: 1.5 },
@@ -261,7 +265,7 @@ export function GlobalSearch() {
       ...documentResults,
       ...transactionResults,
     ];
-  }, [debouncedQuery]);
+  }, [debouncedQuery, properties]);
 
   // Update results in store
   useEffect(() => {
@@ -603,16 +607,16 @@ export function GlobalSearch() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-600">
-                ↑
+                ^
               </kbd>
               <kbd className="px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-600">
-                ↓
+                v
               </kbd>
               <span>Navigate</span>
             </div>
             <div className="flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-600">
-                ↵
+                Enter
               </kbd>
               <span>Select</span>
             </div>

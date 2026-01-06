@@ -5,21 +5,25 @@ Provides SharePoint integration for:
 - Azure AD authentication via MSAL
 - Deal folder discovery
 - UW model file download
+- Configurable file filtering
 
 Uses Microsoft Graph API for SharePoint access.
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 import msal
 import structlog
 
 from app.core.config import settings
+
+if TYPE_CHECKING:
+    from .file_filter import FileFilter
 
 
 @dataclass
@@ -35,6 +39,28 @@ class SharePointFile:
     deal_stage: str | None = None
 
 
+@dataclass
+class SkippedFile:
+    """Represents a file that was skipped during discovery"""
+
+    name: str
+    path: str
+    size: int
+    modified_date: datetime
+    skip_reason: str
+    deal_name: str
+
+
+@dataclass
+class DiscoveryResult:
+    """Result of UW model discovery with filtering applied"""
+
+    files: list[SharePointFile] = field(default_factory=list)
+    skipped: list[SkippedFile] = field(default_factory=list)
+    total_scanned: int = 0
+    folders_scanned: int = 0
+
+
 class SharePointAuthError(Exception):
     """Authentication failed"""
 
@@ -46,13 +72,13 @@ class SharePointClient:
     SharePoint client for accessing deal folders and UW models.
 
     Uses MSAL for Azure AD authentication and Microsoft Graph API
-    for SharePoint operations.
+    for SharePoint operations. Supports configurable file filtering.
     """
 
     # Graph API endpoints
     GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0"
 
-    # File patterns to look for
+    # Legacy file patterns (used as fallback if no FileFilter provided)
     UW_MODEL_PATTERNS = [
         r".*UW Model.*\.xlsb$",
         r".*UW Model.*\.xlsx$",
@@ -67,6 +93,7 @@ class SharePointClient:
         site_url: str | None = None,
         library_name: str | None = None,
         deals_folder: str | None = None,
+        file_filter: "FileFilter | None" = None,
     ):
         self.tenant_id = tenant_id or settings.AZURE_TENANT_ID
         self.client_id = client_id or settings.AZURE_CLIENT_ID
@@ -76,6 +103,9 @@ class SharePointClient:
             settings, "SHAREPOINT_LIBRARY", "Real Estate"
         )
         self.deals_folder = deals_folder or settings.SHAREPOINT_DEALS_FOLDER
+
+        # File filter for configurable filtering
+        self._file_filter = file_filter
 
         self.logger = structlog.get_logger().bind(component="SharePointClient")
 
@@ -87,6 +117,19 @@ class SharePointClient:
         # Site and drive IDs (cached after first lookup)
         self._site_id: str | None = None
         self._drive_id: str | None = None
+
+    @property
+    def file_filter(self) -> "FileFilter":
+        """Get or create file filter instance."""
+        if self._file_filter is None:
+            from .file_filter import get_file_filter
+
+            self._file_filter = get_file_filter()
+        return self._file_filter
+
+    def set_file_filter(self, file_filter: "FileFilter") -> None:
+        """Set custom file filter instance."""
+        self._file_filter = file_filter
 
     def _get_msal_app(self) -> msal.ConfidentialClientApplication:
         """Get or create MSAL confidential client app"""
@@ -249,10 +292,255 @@ class SharePointClient:
         return folders
 
     async def find_uw_models(
+        self,
+        deal_folder_path: str | None = None,
+        use_filter: bool = True,
+    ) -> DiscoveryResult:
+        """
+        Find UW model files in deal folders with configurable filtering.
+
+        Recursively scans the folder structure:
+        - Deals/{Stage}/{Deal Name}/UW Model/*.xlsb
+
+        Args:
+            deal_folder_path: Specific folder to search, or None for all deals
+            use_filter: Whether to apply FileFilter rules (default True)
+
+        Returns:
+            DiscoveryResult containing accepted files, skipped files, and stats
+        """
+        drive_id = await self._get_drive_id()
+
+        if deal_folder_path:
+            # Search specific folder - treat as a deal folder directly
+            result = DiscoveryResult()
+            result.folders_scanned = 1
+            await self._scan_deal_folder(
+                drive_id=drive_id,
+                deal_path=deal_folder_path,
+                deal_name=Path(deal_folder_path).name,
+                deal_stage=self._infer_deal_stage(deal_folder_path),
+                result=result,
+                use_filter=use_filter,
+            )
+            return result
+
+        # Get stage folders (e.g., "1) Initial UW and Review", "4) Closed Deals")
+        stage_folders = await self.discover_deal_folders()
+
+        result = DiscoveryResult()
+        result.folders_scanned = len(stage_folders)
+
+        for stage_folder in stage_folders:
+            stage_path = stage_folder["path"]
+            stage_name = stage_folder["name"]
+            deal_stage = self._infer_deal_stage(stage_path)
+
+            self.logger.debug(
+                "scanning_stage_folder",
+                stage=stage_name,
+                path=stage_path,
+            )
+
+            try:
+                # Get deal folders within this stage
+                endpoint = f"/drives/{drive_id}/root:/{stage_path}:/children"
+                stage_result = await self._make_request("GET", endpoint)
+
+                for item in stage_result.get("value", []):
+                    # Only process folders (deal folders)
+                    if "folder" not in item:
+                        continue
+
+                    deal_name = item["name"]
+                    deal_path = f"{stage_path}/{deal_name}"
+
+                    # Scan the deal folder for UW models
+                    await self._scan_deal_folder(
+                        drive_id=drive_id,
+                        deal_path=deal_path,
+                        deal_name=deal_name,
+                        deal_stage=deal_stage,
+                        result=result,
+                        use_filter=use_filter,
+                    )
+
+            except Exception as e:
+                self.logger.warning(
+                    "stage_folder_scan_failed", folder=stage_path, error=str(e)
+                )
+
+        self.logger.info(
+            "uw_models_discovery_complete",
+            accepted=len(result.files),
+            skipped=len(result.skipped),
+            total_scanned=result.total_scanned,
+            folders_scanned=result.folders_scanned,
+        )
+
+        return result
+
+    async def _scan_deal_folder(
+        self,
+        drive_id: str,
+        deal_path: str,
+        deal_name: str,
+        deal_stage: str | None,
+        result: DiscoveryResult,
+        use_filter: bool,
+    ) -> None:
+        """
+        Scan a single deal folder for UW model files.
+
+        Looks for files in:
+        1. Direct children of the deal folder
+        2. "UW Model" subfolder within the deal folder
+        3. Any subfolder containing "UW" or "Model" in the name
+        """
+        try:
+            # Get children of deal folder
+            endpoint = f"/drives/{drive_id}/root:/{deal_path}:/children"
+            deal_result = await self._make_request("GET", endpoint)
+
+            uw_model_subfolders = []
+
+            for item in deal_result.get("value", []):
+                item_name = item["name"]
+
+                # Check if this is a subfolder that might contain UW models
+                if "folder" in item:
+                    # Look for "UW Model", "UW", "Model" subfolders
+                    name_lower = item_name.lower()
+                    if "uw" in name_lower or "model" in name_lower:
+                        uw_model_subfolders.append(f"{deal_path}/{item_name}")
+                    continue
+
+                # Process file if it's in the deal folder directly
+                if "file" in item:
+                    self._process_file_item(
+                        item=item,
+                        folder_path=deal_path,
+                        deal_name=deal_name,
+                        deal_stage=deal_stage,
+                        result=result,
+                        use_filter=use_filter,
+                    )
+
+            # Scan UW Model subfolders
+            for subfolder_path in uw_model_subfolders:
+                result.folders_scanned += 1
+                try:
+                    subfolder_endpoint = f"/drives/{drive_id}/root:/{subfolder_path}:/children"
+                    subfolder_result = await self._make_request("GET", subfolder_endpoint)
+
+                    self.logger.debug(
+                        "scanning_uw_model_subfolder",
+                        path=subfolder_path,
+                        items=len(subfolder_result.get("value", [])),
+                    )
+
+                    for item in subfolder_result.get("value", []):
+                        if "file" in item:
+                            self._process_file_item(
+                                item=item,
+                                folder_path=subfolder_path,
+                                deal_name=deal_name,
+                                deal_stage=deal_stage,
+                                result=result,
+                                use_filter=use_filter,
+                            )
+
+                except Exception as e:
+                    self.logger.warning(
+                        "uw_subfolder_scan_failed",
+                        subfolder=subfolder_path,
+                        error=str(e),
+                    )
+
+        except Exception as e:
+            self.logger.warning(
+                "deal_folder_scan_failed", folder=deal_path, error=str(e)
+            )
+
+    def _process_file_item(
+        self,
+        item: dict[str, Any],
+        folder_path: str,
+        deal_name: str,
+        deal_stage: str | None,
+        result: DiscoveryResult,
+        use_filter: bool,
+    ) -> None:
+        """Process a single file item from the Graph API response."""
+        filename = item["name"]
+        file_size = item.get("size", 0)
+        modified_date = datetime.fromisoformat(
+            item["lastModifiedDateTime"].replace("Z", "+00:00")
+        )
+
+        result.total_scanned += 1
+
+        if use_filter:
+            # Apply configurable file filter
+            filter_result = self.file_filter.should_process(
+                filename=filename,
+                size_bytes=file_size,
+                modified_date=modified_date,
+            )
+
+            if not filter_result.should_process:
+                result.skipped.append(
+                    SkippedFile(
+                        name=filename,
+                        path=f"{folder_path}/{filename}",
+                        size=file_size,
+                        modified_date=modified_date,
+                        skip_reason=filter_result.reason_message or "unknown",
+                        deal_name=deal_name,
+                    )
+                )
+                self.logger.debug(
+                    "file_skipped",
+                    filename=filename,
+                    deal=deal_name,
+                    reason=filter_result.reason_message,
+                )
+                return
+        else:
+            # Legacy pattern matching (fallback)
+            matched = False
+            for pattern in self.UW_MODEL_PATTERNS:
+                if re.match(pattern, filename, re.IGNORECASE):
+                    matched = True
+                    break
+            if not matched:
+                return
+
+        # File passed filtering - add to results
+        result.files.append(
+            SharePointFile(
+                name=filename,
+                path=f"{folder_path}/{filename}",
+                download_url=item.get("@microsoft.graph.downloadUrl", ""),
+                size=file_size,
+                modified_date=modified_date,
+                deal_name=deal_name,
+                deal_stage=deal_stage,
+            )
+        )
+
+        self.logger.debug(
+            "file_accepted",
+            filename=filename,
+            deal=deal_name,
+            size_mb=round(file_size / 1024 / 1024, 1),
+        )
+
+    async def find_uw_models_simple(
         self, deal_folder_path: str | None = None
     ) -> list[SharePointFile]:
         """
-        Find UW model files in deal folders.
+        Find UW model files (returns list only for backwards compatibility).
 
         Args:
             deal_folder_path: Specific folder to search, or None for all deals
@@ -260,59 +548,8 @@ class SharePointClient:
         Returns:
             List of SharePointFile objects for discovered UW models
         """
-        drive_id = await self._get_drive_id()
-
-        if deal_folder_path:
-            # Search specific folder
-            folders = [{"path": deal_folder_path, "name": Path(deal_folder_path).name}]
-        else:
-            # Search all deal folders
-            folders = await self.discover_deal_folders()
-
-        uw_models = []
-
-        for folder in folders:
-            folder_path = folder["path"]
-            deal_name = folder["name"]
-
-            try:
-                # Get all files in this folder (recursive)
-                endpoint = f"/drives/{drive_id}/root:/{folder_path}:/children"
-                result = await self._make_request("GET", endpoint)
-
-                for item in result.get("value", []):
-                    if "file" in item:
-                        filename = item["name"]
-
-                        # Check if it matches UW model patterns
-                        for pattern in self.UW_MODEL_PATTERNS:
-                            if re.match(pattern, filename, re.IGNORECASE):
-                                uw_models.append(
-                                    SharePointFile(
-                                        name=filename,
-                                        path=f"{folder_path}/{filename}",
-                                        download_url=item.get(
-                                            "@microsoft.graph.downloadUrl", ""
-                                        ),
-                                        size=item.get("size", 0),
-                                        modified_date=datetime.fromisoformat(
-                                            item["lastModifiedDateTime"].replace(
-                                                "Z", "+00:00"
-                                            )
-                                        ),
-                                        deal_name=deal_name,
-                                        deal_stage=self._infer_deal_stage(folder_path),
-                                    )
-                                )
-                                break
-
-            except Exception as e:
-                self.logger.warning(
-                    "folder_scan_failed", folder=folder_path, error=str(e)
-                )
-
-        self.logger.info("uw_models_found", count=len(uw_models))
-        return uw_models
+        result = await self.find_uw_models(deal_folder_path, use_filter=True)
+        return result.files
 
     async def download_file(self, file: SharePointFile) -> bytes:
         """
@@ -349,7 +586,7 @@ class SharePointClient:
 
     async def download_all_uw_models(
         self, output_dir: str | None = None
-    ) -> list[tuple[SharePointFile, bytes]]:
+    ) -> tuple[list[tuple[SharePointFile, bytes]], DiscoveryResult]:
         """
         Discover and download all UW models.
 
@@ -357,15 +594,15 @@ class SharePointClient:
             output_dir: Optional directory to save files locally
 
         Returns:
-            List of (SharePointFile, content) tuples
+            Tuple of (downloaded files list, discovery result with skip info)
         """
-        files = await self.find_uw_models()
-        results = []
+        discovery_result = await self.find_uw_models()
+        downloaded = []
 
-        for file in files:
+        for file in discovery_result.files:
             try:
                 content = await self.download_file(file)
-                results.append((file, content))
+                downloaded.append((file, content))
 
                 # Optionally save to disk
                 if output_dir:
@@ -376,7 +613,7 @@ class SharePointClient:
             except Exception as e:
                 self.logger.error("download_failed", file=file.name, error=str(e))
 
-        return results
+        return downloaded, discovery_result
 
     def _infer_deal_stage(self, folder_path: str) -> str | None:
         """Infer deal stage from folder path structure"""

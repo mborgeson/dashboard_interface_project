@@ -21,6 +21,9 @@ from .underwriting import (
 )
 from .user import User
 
+# File Monitoring Models - imported after underwriting to avoid circular imports
+from .file_monitor import FileChangeLog, MonitoredFile
+
 __all__ = [
     # Base Mixins
     "TimestampMixin",
@@ -30,6 +33,9 @@ __all__ = [
     "Property",
     "Deal",
     "DealStage",
+    # File Monitoring Models
+    "MonitoredFile",
+    "FileChangeLog",
     # Underwriting Models
     "UnderwritingModel",
     "GeneralAssumptions",

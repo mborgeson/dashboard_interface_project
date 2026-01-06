@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Upload, X } from 'lucide-react';
 import type { DocumentType } from '@/types/document';
-import { mockProperties } from '@/data/mockProperties';
+import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 
 interface DocumentUploadModalProps {
   open: boolean;
@@ -35,6 +35,10 @@ export function DocumentUploadModal({ open, onClose, onUploadComplete }: Documen
   const [tags, setTags] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
+
+  // Fetch properties from API
+  const { data } = useProperties();
+  const properties = selectProperties(data);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -193,7 +197,7 @@ export function DocumentUploadModal({ open, onClose, onUploadComplete }: Documen
                 <SelectValue placeholder="Select a property" />
               </SelectTrigger>
               <SelectContent>
-                {mockProperties.map((property) => (
+                {properties.map((property) => (
                   <SelectItem key={property.id} value={property.id}>
                     {property.name}
                   </SelectItem>

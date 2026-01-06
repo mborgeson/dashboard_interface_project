@@ -92,11 +92,17 @@ class Settings(BaseSettings):
     SHAREPOINT_DEALS_FOLDER: str = "Deals"  # Folder within library
     DEALS_FOLDER: str = "Real Estate/Deals"  # Legacy alias
 
-    # File Criteria
-    FILE_PATTERN: str = "UW Model vCurrent"
-    EXCLUDE_PATTERNS: str = "Speedboat,vOld"
-    FILE_EXTENSIONS: str = ".xlsb,.xlsm"
+    # File Filtering Settings
+    # Regex pattern for matching UW model filenames (supports regex or simple substring)
+    FILE_PATTERN: str = r".*UW\s*Model.*vCurrent.*"
+    # Comma-separated list of substrings to exclude from processing
+    EXCLUDE_PATTERNS: str = "~$,.tmp,backup,old,archive,Speedboat,vOld"
+    # Comma-separated list of valid file extensions
+    FILE_EXTENSIONS: str = ".xlsb,.xlsm,.xlsx"
+    # Skip files older than this date (YYYY-MM-DD format, empty to disable)
     CUTOFF_DATE: str = "2024-07-15"
+    # Skip files larger than this size in MB
+    MAX_FILE_SIZE_MB: int = 100
 
     # Rate Limiting Settings
     RATE_LIMIT_ENABLED: bool = True
@@ -110,10 +116,44 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
+    # Extraction Scheduler Settings
+    EXTRACTION_SCHEDULE_ENABLED: bool = False
+    EXTRACTION_SCHEDULE_CRON: str = "0 2 * * *"  # Daily at 2 AM
+    EXTRACTION_SCHEDULE_TIMEZONE: str = "America/Phoenix"
+
+    # File Monitoring Settings
+    FILE_MONITOR_ENABLED: bool = False
+    FILE_MONITOR_INTERVAL_MINUTES: int = 30
+    AUTO_EXTRACT_ON_CHANGE: bool = True
+    MONITOR_CHECK_CRON: str = "*/30 * * * *"  # Every 30 minutes
+
     @property
     def database_url_async(self) -> str:
         """Convert sync database URL to async."""
         return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+
+    @property
+    def sharepoint_configured(self) -> bool:
+        """Check if SharePoint/Azure AD credentials are configured."""
+        return all([
+            self.AZURE_TENANT_ID,
+            self.AZURE_CLIENT_ID,
+            self.AZURE_CLIENT_SECRET,
+            self.SHAREPOINT_SITE_URL,
+        ])
+
+    def get_sharepoint_config_errors(self) -> list[str]:
+        """Get list of missing SharePoint configuration items."""
+        errors = []
+        if not self.AZURE_TENANT_ID:
+            errors.append("AZURE_TENANT_ID")
+        if not self.AZURE_CLIENT_ID:
+            errors.append("AZURE_CLIENT_ID")
+        if not self.AZURE_CLIENT_SECRET:
+            errors.append("AZURE_CLIENT_SECRET")
+        if not self.SHAREPOINT_SITE_URL:
+            errors.append("SHAREPOINT_SITE_URL")
+        return errors
 
 
 @lru_cache

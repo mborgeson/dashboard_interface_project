@@ -1,0 +1,51 @@
+{
+  "recommendations": [
+    // === Essential: Language Support ===
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "charliermarsh.ruff",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+
+    // === TypeScript/React Development ===
+    "bradlc.vscode-tailwindcss",
+    "dsznajder.es7-react-js-snippets",
+    "formulahendry.auto-rename-tag",
+    "naumovs.color-highlight",
+
+    // === Testing ===
+    "ms-playwright.playwright",
+    "vitest.explorer",
+
+    // === Python Development ===
+    "ms-python.black-formatter",
+    "ms-python.debugpy",
+
+    // === Database & API ===
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg",
+    "humao.rest-client",
+
+    // === Git Integration ===
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // === Productivity ===
+    "usernamehw.errorlens",
+    "christian-kohler.path-intellisense",
+    "mikestead.dotenv",
+    "gruntfuggly.todo-tree",
+    "streetsidesoftware.code-spell-checker",
+
+    // === File Icons & Theme ===
+    "vscode-icons-team.vscode-icons",
+    "pkief.material-icon-theme",
+
+    // === Docker (if used) ===
+    "ms-azuretools.vscode-docker",
+
+    // === YAML Support ===
+    "redhat.vscode-yaml"
+  ],
+  "unwantedRecommendations": []
+}

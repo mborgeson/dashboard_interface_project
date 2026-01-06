@@ -33,6 +33,12 @@ from app.models.extraction import (  # noqa: E402, F401
     ExtractedValue,
     ExtractionRun,
 )
+
+# File Monitoring Models
+from app.models.file_monitor import (  # noqa: E402, F401
+    FileChangeLog,
+    MonitoredFile,
+)
 from app.models.property import Property  # noqa: E402, F401
 
 # Underwriting Models

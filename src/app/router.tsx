@@ -12,6 +12,7 @@ import {
   DocumentsPage,
   InterestRatesPage,
   ReportingSuitePage,
+  ExtractionDashboard,
   routerOptions,
 } from './routes';
 
@@ -120,6 +121,22 @@ const router = createBrowserRouter(
           element: (
             <LazyRoute>
               <ReportingSuitePage />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'extraction',
+          element: (
+            <LazyRoute>
+              <ExtractionDashboard />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'extraction/:propertyName',
+          element: (
+            <LazyRoute>
+              <ExtractionDashboard />
             </LazyRoute>
           ),
         },

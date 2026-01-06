@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import Fuse from 'fuse.js';
-import { mockProperties } from '@/data/mockProperties';
+import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { mockTransactions } from '@/data/mockTransactions';
 
 import type { Property } from '@/types/property';
@@ -18,6 +18,10 @@ export interface SearchResult {
 export function useGlobalSearch(query: string) {
   const [debouncedQuery, setDebouncedQuery] = useState(query);
 
+  // Fetch properties from API
+  const { data } = useProperties();
+  const properties = selectProperties(data);
+
   // Debounce the search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -28,12 +32,12 @@ export function useGlobalSearch(query: string) {
   }, [query]);
 
   const results = useMemo(() => {
-    if (!debouncedQuery.trim()) {
+    if (!debouncedQuery.trim() || properties.length === 0) {
       return [];
     }
 
     // Configure Fuse.js for properties
-    const propertyFuse = new Fuse(mockProperties, {
+    const propertyFuse = new Fuse(properties, {
       keys: [
         { name: 'name', weight: 2 },
         { name: 'address.street', weight: 1.5 },
@@ -88,7 +92,7 @@ export function useGlobalSearch(query: string) {
 
     // Limit to top 10 results
     return combined.slice(0, 10);
-  }, [debouncedQuery]);
+  }, [debouncedQuery, properties]);
 
   return {
     results,

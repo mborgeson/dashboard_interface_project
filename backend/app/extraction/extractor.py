@@ -9,6 +9,7 @@ Key features:
 - Proper 0-based indexing conversion for pyxlsb
 - Comprehensive error handling with graceful NaN degradation
 - Progress callbacks for API integration
+- Pre-extraction file validation using FileFilter
 """
 
 import io
@@ -18,7 +19,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import openpyxl
@@ -27,6 +28,9 @@ import structlog
 
 from .cell_mapping import CellMapping
 from .error_handler import ErrorHandler
+
+if TYPE_CHECKING:
+    from .file_filter import FileFilter
 
 # Suppress openpyxl warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
@@ -38,18 +42,87 @@ class ExcelDataExtractor:
 
     Uses cell mappings to extract specific values from sheets, with
     comprehensive error handling that returns np.nan for any failures.
+    Supports pre-extraction validation using FileFilter.
     """
 
-    def __init__(self, cell_mappings: dict[str, CellMapping]):
+    def __init__(
+        self,
+        cell_mappings: dict[str, CellMapping],
+        file_filter: "FileFilter | None" = None,
+    ):
         self.mappings = cell_mappings
         self.logger = structlog.get_logger().bind(component="ExcelDataExtractor")
         self.error_handler = ErrorHandler()
+        self._file_filter = file_filter
+
+    @property
+    def file_filter(self) -> "FileFilter":
+        """Get or create file filter instance."""
+        if self._file_filter is None:
+            from .file_filter import get_file_filter
+
+            self._file_filter = get_file_filter()
+        return self._file_filter
+
+    def set_file_filter(self, file_filter: "FileFilter") -> None:
+        """Set custom file filter instance."""
+        self._file_filter = file_filter
+
+    def validate_file(
+        self,
+        file_path: str,
+        file_content: bytes | None = None,
+        modified_date: datetime | None = None,
+    ) -> tuple[bool, str | None]:
+        """
+        Validate file before extraction using FileFilter rules.
+
+        Args:
+            file_path: Path to file or filename
+            file_content: Optional file content (for size check)
+            modified_date: Optional modification date
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        filename = Path(file_path).name
+
+        # Determine file size
+        if file_content is not None:
+            size_bytes = len(file_content)
+        elif Path(file_path).exists():
+            size_bytes = Path(file_path).stat().st_size
+        else:
+            size_bytes = 0
+
+        # Determine modification date if not provided
+        if modified_date is None and Path(file_path).exists():
+            modified_date = datetime.fromtimestamp(Path(file_path).stat().st_mtime)
+
+        # Apply filter
+        filter_result = self.file_filter.should_process(
+            filename=filename,
+            size_bytes=size_bytes,
+            modified_date=modified_date,
+        )
+
+        if not filter_result.should_process:
+            self.logger.warning(
+                "file_validation_failed",
+                file_path=file_path,
+                reason=filter_result.reason_message,
+            )
+            return False, filter_result.reason_message
+
+        return True, None
 
     def extract_from_file(
         self,
         file_path: str,
         file_content: bytes | None = None,
         progress_callback: Callable[[int, int], None] | None = None,
+        modified_date: datetime | None = None,
+        validate: bool = True,
     ) -> dict[str, Any]:
         """
         Extract all mapped values from an Excel file.
@@ -58,6 +131,8 @@ class ExcelDataExtractor:
             file_path: Path to Excel file (or filename if using file_content)
             file_content: Optional bytes content (e.g., from SharePoint download)
             progress_callback: Optional callback(current, total) for progress updates
+            modified_date: Optional modification date for validation
+            validate: Whether to run pre-extraction validation (default True)
 
         Returns:
             Dictionary with:
@@ -66,6 +141,11 @@ class ExcelDataExtractor:
             - _extraction_timestamp: ISO timestamp
             - _extraction_errors: List of error details
             - _extraction_metadata: Processing statistics
+            - _validation_skipped: True if file was skipped by validation
+
+        Raises:
+            FileNotFoundError: If file doesn't exist and no content provided
+            ValueError: If file fails validation (when validate=True)
         """
         start_time = datetime.now()
 
@@ -77,6 +157,32 @@ class ExcelDataExtractor:
             "_extraction_timestamp": datetime.now().isoformat(),
             "_extraction_errors": [],
         }
+
+        # Pre-extraction validation
+        if validate:
+            is_valid, error_message = self.validate_file(
+                file_path=file_path,
+                file_content=file_content,
+                modified_date=modified_date,
+            )
+            if not is_valid:
+                extracted_data["_validation_skipped"] = True
+                extracted_data["_validation_error"] = error_message
+                extracted_data["_extraction_metadata"] = {
+                    "total_fields": 0,
+                    "successful": 0,
+                    "failed": 0,
+                    "success_rate": 0,
+                    "duration_seconds": 0,
+                    "skipped": True,
+                    "skip_reason": error_message,
+                }
+                self.logger.info(
+                    "extraction_skipped",
+                    file_path=file_path,
+                    reason=error_message,
+                )
+                return extracted_data
 
         # Validate file exists when using file path
         if file_content is None:

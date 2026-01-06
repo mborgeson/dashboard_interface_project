@@ -9,8 +9,12 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { mockProperties } from '@/data/mockProperties';
 import { formatCurrency } from '@/lib/utils/formatters';
+import type { Property } from '@/types';
+
+interface PortfolioPerformanceChartProps {
+  properties: Property[];
+}
 
 interface MonthlyData {
   month: string;
@@ -53,16 +57,20 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   return null;
 }
 
-export function PortfolioPerformanceChart() {
+export function PortfolioPerformanceChart({ properties }: PortfolioPerformanceChartProps) {
   // Generate 12 months of mock historical data based on current values
   const chartData = useMemo<MonthlyData[]>(() => {
+    if (properties.length === 0) {
+      return [];
+    }
+
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
 
-    const currentValue = mockProperties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
-    const currentNOI = mockProperties.reduce((sum, p) => sum + p.operations.noi, 0);
+    const currentValue = properties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
+    const currentNOI = properties.reduce((sum, p) => sum + p.operations.noi, 0);
 
     // Generate data for last 12 months with realistic growth trend
     return months.map((month, index) => {
@@ -87,7 +95,15 @@ export function PortfolioPerformanceChart() {
         noi: Math.round(noi),
       };
     });
-  }, []);
+  }, [properties]);
+
+  if (chartData.length === 0) {
+    return (
+      <div className="w-full h-[400px] flex items-center justify-center text-neutral-500">
+        No data available
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-[400px]">

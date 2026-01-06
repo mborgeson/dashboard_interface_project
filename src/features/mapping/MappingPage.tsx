@@ -4,9 +4,9 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import { MapPin, Maximize2, Layers } from 'lucide-react';
+import { MapPin, Maximize2, Layers, Loader2 } from 'lucide-react';
 import type { Property } from '@/types';
-import { mockProperties } from '@/data/mockProperties';
+import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { useMapFilters } from './hooks/useMapFilters';
 import { MapFilterPanel } from './components/MapFilterPanel';
 import { PropertyDetailPanel } from './components/PropertyDetailPanel';
@@ -61,6 +61,10 @@ export function MappingPage() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [tileLayer, setTileLayer] = useState<'street' | 'satellite'>('street');
 
+  // Fetch properties from API
+  const { data, isLoading, error } = useProperties();
+  const properties = selectProperties(data);
+
   const {
     filters,
     filteredProperties,
@@ -72,7 +76,7 @@ export function MappingPage() {
     setOccupancyRange,
     resetFilters,
     toggleClustering,
-  } = useMapFilters(mockProperties);
+  } = useMapFilters(properties);
 
   // Initialize map
   useEffect(() => {
@@ -256,6 +260,38 @@ export function MappingPage() {
     mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="relative h-[calc(100vh-64px)] flex items-center justify-center bg-neutral-100">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-primary-500 animate-spin" />
+          <p className="text-neutral-600">Loading property locations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="relative h-[calc(100vh-64px)] flex items-center justify-center bg-neutral-100">
+        <div className="bg-white rounded-lg shadow-lg p-8 text-center max-w-md">
+          <h2 className="text-xl font-semibold text-red-800 mb-2">Error Loading Map Data</h2>
+          <p className="text-red-600 mb-4">
+            {error instanceof Error ? error.message : 'Failed to load property locations'}
+          </p>
+          <button
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative h-[calc(100vh-64px)]">
       {/* Map Container */}
@@ -265,7 +301,7 @@ export function MappingPage() {
       <MapFilterPanel
         filters={filters}
         filteredCount={filteredProperties.length}
-        totalCount={mockProperties.length}
+        totalCount={properties.length}
         valueRange={valueRange}
         onTogglePropertyClass={togglePropertyClass}
         onToggleSubmarket={toggleSubmarket}

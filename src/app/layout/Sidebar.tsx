@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
-import { mockProperties } from '@/data/mockProperties';
+import { useProperties, selectProperties } from '@/hooks/api';
 import {
   LayoutDashboard,
   Building2,
@@ -22,6 +22,7 @@ import {
   Calculator,
   FileSpreadsheet,
   Search,
+  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo } from 'react';
@@ -32,6 +33,7 @@ const navigation = [
   { name: 'Transactions', href: '/transactions', icon: Receipt },
   { name: 'Deals', href: '/deals', icon: Briefcase },
   { name: 'Documents', href: '/documents', icon: FileText },
+  { name: 'UW Extraction', href: '/extraction', icon: Database },
   { name: 'Reporting', href: '/reporting', icon: ClipboardList },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Interest Rates', href: '/interest-rates', icon: Percent },
@@ -54,12 +56,16 @@ const externalTools = [
 export function Sidebar(){
   const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, setMobileMenuOpen } = useAppStore();
 
-  // Compute portfolio stats from actual data
+  // Fetch properties from API
+  const { data } = useProperties();
+  const properties = selectProperties(data);
+
+  // Compute portfolio stats from API data
   const portfolioStats = useMemo(() => {
-    const totalProperties = mockProperties.length;
-    const totalUnits = mockProperties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
+    const totalProperties = properties.length;
+    const totalUnits = properties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
     return { totalProperties, totalUnits };
-  }, []);
+  }, [properties]);
 
   // Close mobile menu when navigating
   useEffect(() => {

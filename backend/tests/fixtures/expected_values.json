@@ -1,0 +1,109 @@
+{
+  "_description": "Expected extraction values for test fixtures",
+  "_note": "These values should match the actual content of the test fixture files",
+  "_numeric_tolerance": "0.01% relative difference",
+  "_date_format": "ISO 8601 (YYYY-MM-DD)",
+
+  "Cantala UW Model vCurrent.xlsb": {
+    "property_name": "Cantala",
+    "fields": {
+      "PROPERTY_NAME": "Cantala",
+      "_example_numeric_field": 1000000.00,
+      "_example_date_field": "2024-01-15"
+    },
+    "_status": "template - update with actual values"
+  },
+
+  "North Country Club UW Model vCurrent.xlsb": {
+    "property_name": "North Country Club",
+    "fields": {
+      "PROPERTY_NAME": "North Country Club",
+      "_example_numeric_field": 2500000.00,
+      "_example_date_field": "2024-02-20"
+    },
+    "_status": "template - update with actual values"
+  },
+
+  "Urban 148 UW Model vCurrent.xlsb": {
+    "property_name": "Urban 148",
+    "fields": {
+      "PROPERTY_NAME": "Urban 148",
+      "_example_numeric_field": 3200000.00,
+      "_example_date_field": "2024-03-10"
+    },
+    "_status": "template - update with actual values"
+  },
+
+  "Emparrado UW Model vCurrent.xlsb": {
+    "property_name": "Emparrado",
+    "fields": {
+      "PROPERTY_NAME": "Emparrado",
+      "_example_numeric_field": 1800000.00,
+      "_example_date_field": "2024-04-05"
+    },
+    "_status": "template - update with actual values"
+  },
+
+  "Haven at P83 UW Model vCurrent.xlsb": {
+    "property_name": "Haven at P83",
+    "fields": {
+      "PROPERTY_NAME": "Haven at P83",
+      "_example_numeric_field": 4500000.00,
+      "_example_date_field": "2024-05-15"
+    },
+    "_status": "template - update with actual values"
+  },
+
+  "Jade Ridge UW Model vCurrent.xlsb": {
+    "property_name": "Jade Ridge",
+    "fields": {
+      "PROPERTY_NAME": "Jade Ridge",
+      "_example_numeric_field": 2100000.00,
+      "_example_date_field": "2024-06-01"
+    },
+    "_status": "template - update with actual values"
+  },
+
+  "Hayden Park UW Model vCurrent.xlsb": {
+    "property_name": "Hayden Park",
+    "fields": {
+      "PROPERTY_NAME": "Hayden Park",
+      "_example_numeric_field": 3800000.00,
+      "_example_date_field": "2024-07-10"
+    },
+    "_status": "template - update with actual values"
+  },
+
+  "Tresa at Arrowhead UW Model vCurrent.xlsb": {
+    "property_name": "Tresa at Arrowhead",
+    "fields": {
+      "PROPERTY_NAME": "Tresa at Arrowhead",
+      "_example_numeric_field": 5200000.00,
+      "_example_date_field": "2024-08-20"
+    },
+    "_status": "template - update with actual values"
+  },
+
+  "_test_edge_cases": {
+    "empty_cells": {
+      "expected_behavior": "Should return np.nan",
+      "test_values": [null, "", "   ", "\t", "\n"]
+    },
+    "formula_errors": {
+      "expected_behavior": "Should return np.nan and flag as error",
+      "test_values": ["#REF!", "#VALUE!", "#DIV/0!", "#NAME?", "#N/A", "#NULL!", "#NUM!"]
+    },
+    "large_numbers": {
+      "expected_behavior": "Should preserve precision",
+      "test_values": [1000000000000, 9999999999.99, 12345678901234.5678]
+    },
+    "negative_numbers": {
+      "expected_behavior": "Should preserve sign",
+      "test_values": [-100, -0.5, -1000000]
+    },
+    "decimal_precision": {
+      "expected_behavior": "Should maintain precision to 4 decimal places",
+      "test_values": [0.1, 0.01, 0.001, 0.0001, 3.14159265359]
+    }
+  }
+}

@@ -21,6 +21,10 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.middleware.rate_limiter import RateLimitMiddleware
+from app.services.extraction.scheduler import (
+    get_extraction_scheduler,
+    run_scheduled_extraction,
+)
 from app.services.monitoring import MetricsMiddleware, get_metrics_manager
 
 
@@ -51,12 +55,31 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     # await init_websocket_manager()
     # await load_ml_models()
 
+    # Initialize extraction scheduler
+    extraction_scheduler = get_extraction_scheduler()
+    await extraction_scheduler.initialize(
+        enabled=settings.EXTRACTION_SCHEDULE_ENABLED,
+        cron_expression=settings.EXTRACTION_SCHEDULE_CRON,
+        timezone=settings.EXTRACTION_SCHEDULE_TIMEZONE,
+    )
+    extraction_scheduler.set_extraction_callback(run_scheduled_extraction)
+    logger.info(
+        "Extraction scheduler initialized",
+        enabled=settings.EXTRACTION_SCHEDULE_ENABLED,
+        cron=settings.EXTRACTION_SCHEDULE_CRON,
+        timezone=settings.EXTRACTION_SCHEDULE_TIMEZONE,
+    )
+
     logger.info("Application startup complete")
 
     yield
 
     # Shutdown
     logger.info("Shutting down application...")
+
+    # Shutdown extraction scheduler
+    await extraction_scheduler.shutdown()
+    logger.info("Extraction scheduler shutdown complete")
 
     # Cleanup services
     # await close_redis()

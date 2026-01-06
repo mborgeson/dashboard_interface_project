@@ -34,6 +34,9 @@ export const InterestRatesPage = lazy(() =>
 export const ReportingSuitePage = lazy(() =>
   import('@/features/reporting-suite').then(m => ({ default: m.ReportingSuitePage }))
 );
+export const ExtractionDashboard = lazy(() =>
+  import('@/features/extraction').then(m => ({ default: m.ExtractionDashboard }))
+);
 
 // Router configuration options
 export const routerOptions = {
@@ -55,6 +58,8 @@ export const ROUTES = {
   DOCUMENTS: '/documents',
   INTEREST_RATES: '/interest-rates',
   REPORTING: '/reporting',
+  EXTRACTION: '/extraction',
+  EXTRACTION_PROPERTY: '/extraction/:propertyName',
 } as const;
 
 export type RoutePath = typeof ROUTES[keyof typeof ROUTES];

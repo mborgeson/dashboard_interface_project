@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select';
 import { Search } from 'lucide-react';
 import type { DocumentType } from '@/types/document';
-import { mockProperties } from '@/data/mockProperties';
+import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 
 interface DocumentFiltersProps {
   searchTerm: string;
@@ -32,6 +32,10 @@ export function DocumentFilters({
   dateRange,
   onDateRangeChange,
 }: DocumentFiltersProps) {
+  // Fetch properties from API
+  const { data } = useProperties();
+  const properties = selectProperties(data);
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {/* Search */}
@@ -78,7 +82,7 @@ export function DocumentFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Properties</SelectItem>
-            {mockProperties.map((property) => (
+            {properties.map((property) => (
               <SelectItem key={property.id} value={property.id}>
                 {property.name}
               </SelectItem>
