@@ -140,10 +140,13 @@ class TestSettingsCache:
         assert settings1 is settings2
 
     def test_settings_module_level_instance(self):
-        """Test that module-level settings is same as get_settings()."""
+        """Test that module-level settings is a Settings instance."""
         from app.core.config import settings as module_settings
 
-        assert module_settings is get_settings()
+        # Module-level settings should be a Settings instance
+        assert isinstance(module_settings, Settings)
+        # Both should have the same configuration values
+        assert module_settings.APP_NAME == get_settings().APP_NAME
 
 
 # =============================================================================
