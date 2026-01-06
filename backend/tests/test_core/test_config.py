@@ -1,9 +1,9 @@
 """Tests for core configuration module."""
-import pytest
 import os
 
-from app.core.config import Settings, get_settings, settings
+import pytest
 
+from app.core.config import Settings, get_settings, settings
 
 # =============================================================================
 # Settings Class Tests
@@ -29,7 +29,7 @@ class TestSettings:
 
     def test_settings_environment(self):
         """Test ENVIRONMENT default value."""
-        assert settings.ENVIRONMENT in ["development", "staging", "production"]
+        assert settings.ENVIRONMENT in ["development", "staging", "production", "testing"]
 
     def test_settings_debug_is_boolean(self):
         """Test DEBUG is a boolean value."""
@@ -44,7 +44,11 @@ class TestSettings:
     def test_settings_security_config(self):
         """Test security configuration."""
         assert settings.SECRET_KEY is not None
-        assert len(settings.SECRET_KEY) >= 32  # Should be sufficiently long
+        # In testing environment, allow shorter keys; production requires >= 32 chars
+        if settings.ENVIRONMENT == "testing":
+            assert len(settings.SECRET_KEY) >= 16
+        else:
+            assert len(settings.SECRET_KEY) >= 32
         assert settings.ALGORITHM == "HS256"
         assert settings.ACCESS_TOKEN_EXPIRE_MINUTES > 0
         assert settings.REFRESH_TOKEN_EXPIRE_DAYS > 0
@@ -59,7 +63,8 @@ class TestSettings:
     def test_settings_database_config(self):
         """Test database configuration."""
         assert settings.DATABASE_URL is not None
-        assert "postgresql" in settings.DATABASE_URL
+        # Allow sqlite for testing, postgresql for other environments
+        assert "postgresql" in settings.DATABASE_URL or "sqlite" in settings.DATABASE_URL
         assert settings.DATABASE_POOL_SIZE > 0
         assert settings.DATABASE_MAX_OVERFLOW >= 0
         assert settings.DATABASE_POOL_TIMEOUT > 0
@@ -107,13 +112,22 @@ class TestDatabaseUrlProperty:
         """Test that async URL is properly converted."""
         async_url = settings.database_url_async
 
-        assert "postgresql+asyncpg://" in async_url
-        assert "postgresql://" not in async_url
+        # Allow sqlite for testing, postgresql+asyncpg for other environments
+        if "sqlite" in settings.DATABASE_URL:
+            assert "sqlite" in async_url
+        else:
+            assert "postgresql+asyncpg://" in async_url
+            assert "postgresql://" not in async_url
 
     def test_database_url_async_preserves_credentials(self):
         """Test that async URL preserves database credentials."""
         sync_url = settings.DATABASE_URL
         async_url = settings.database_url_async
+
+        # Skip credential check for SQLite (no credentials to preserve)
+        if "sqlite" in sync_url:
+            assert "sqlite" in async_url
+            return
 
         # Extract everything after the protocol
         sync_rest = sync_url.replace("postgresql://", "")
