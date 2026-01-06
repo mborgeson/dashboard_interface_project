@@ -1,0 +1,17 @@
+# Dashboard Review and Fixes
+
+## Priority Items
+- [x] Priority 1: Fix DragEndEvent import in Deals Page
+  - Already correctly implemented as `import type { DragEndEvent }` in [KanbanBoard.tsx](file://wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/features/deals/components/KanbanBoard.tsx)
+- [x] Priority 2: Verify FRED API Configuration
+  - `VITE_FRED_API_KEY` is set in [.env](file://wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/.env)
+  - API endpoint URL is correctly formatted in [interestRatesApi.ts](file://wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/services/interestRatesApi.ts)
+  - Proxy configured in [vite.config.ts](file://wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/vite.config.ts) for CORS
+
+## Optional Improvements
+
+- [x] Extract reusable [ToggleButton](file://wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/components/ui/ToggleButton.tsx#20-59) component from [DealFilters.tsx](file://wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/features/deals/components/DealFilters.tsx)
+- [x] Add `accent` variant to [Button](file://wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/components/ui/button.tsx#38-43) component
+- [x] Create semantic color tokens in Tailwind config
+- [/] Address bundle size optimization (vendor-export at 873KB)
+- [ ] Fix sidebar data discrepancy (hardcoded "12 Properties • 2,116 Units")

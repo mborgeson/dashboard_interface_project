@@ -1,0 +1,18 @@
+# Walkthrough - Antigravity Backup Workflow
+
+I have set up a workflow to backup your Antigravity conversations and artifacts to your project directory.
+
+## What has been done
+1.  Created a new workflow file: [.agent/workflows/backup-chats.md](file://wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/.agent/workflows/backup-chats.md).
+2.  Verified the backup process by running the `robocopy` commands to seed the destination directory.
+
+## How to use
+You can run the backup manually at any time by triggering the workflow (if available in your interface) or by running the commands documented in the workflow file.
+
+The backup copies:
+-   `conversations`: Your chat history.
+-   `brain`: Your artifacts (like this one).
+
+## Verification Results
+-   Destination directory created: `\\wsl.localhost\Ubuntu\home\mattb\projects\dashboard_interface_project\antigravity`.
+-   Files copied successfully using `robocopy` mirror mode.

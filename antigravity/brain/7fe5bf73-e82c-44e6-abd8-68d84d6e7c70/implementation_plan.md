@@ -1,0 +1,27 @@
+# Implementation Plan - Antigravity Backup Workflow
+
+The goal is to create a workflow that automatically copies specific Antigravity conversation and artifact data to the WSL project directory.
+
+## User Review Required
+- [ ] **Limitation**: Automatic filtering by project is not possible due to binary file format opacity.
+- [ ] **Solution**: Use a configuration file (`backup_list.txt`) in the project directory to explicitly list Conversation IDs to backup.
+
+## Proposed Changes
+
+### Configuration
+#### [NEW] .agent/backup_list.txt
+- A text file containing a list of Conversation IDs (one per line) to be backed up.
+- Initially populated with the current conversation ID: `7fe5bf73-e82c-44e6-abd8-68d84d6e7c70`.
+
+### Workflow
+#### [MODIFY] .agent/workflows/backup-chats.md
+- **Logic**:
+    1.  Read `.agent/backup_list.txt`.
+    2.  Loop through each ID.
+    3.  Copy `conversations/<ID>.pb` to destination.
+    4.  Copy `brain/<ID>/` directory to destination.
+
+## Verification Plan
+1.  Create `backup_list.txt` with current ID.
+2.  Run modified workflow.
+3.  Verify only the specified ID is copied.

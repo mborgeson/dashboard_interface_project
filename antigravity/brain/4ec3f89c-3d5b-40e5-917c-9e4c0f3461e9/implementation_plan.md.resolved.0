@@ -1,0 +1,131 @@
+# Dashboard Review and Fixes Implementation Plan
+
+## Summary
+
+This plan addresses 2 priority items and 5 optional improvements identified from a code review of the B&R Capital Dashboard.
+
+### Priority Items Status
+
+> [!NOTE]
+> **Both priority items are already correctly implemented** - no changes needed.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Priority 1: DragEndEvent import | ✅ Complete | [KanbanBoard.tsx](file:///wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/features/deals/components/KanbanBoard.tsx#L15-19) already uses `import type { DragEndEvent }` |
+| Priority 2: FRED API config | ✅ Complete | API key set in [.env](file:///wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/.env#L20), proper proxy in [vite.config.ts](file:///wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/vite.config.ts#L31-36) |
+
+---
+
+## Proposed Changes (Optional Improvements)
+
+### 1. Extract ToggleButton Component
+
+Reduces ~39 lines of duplication in [DealFilters.tsx](file://wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/features/deals/components/DealFilters.tsx) by extracting a reusable toggle button.
+
+#### [NEW] [ToggleButton.tsx](file:///wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/components/ui/ToggleButton.tsx)
+
+New reusable component with:
+- `isActive` prop for selected state
+- `onClick` callback
+- `children` for label
+- Consistent styling using existing accent colors
+
+#### [MODIFY] [DealFilters.tsx](file:///wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/features/deals/components/DealFilters.tsx)
+
+Replace 3 duplicate button implementations (Deal Stage, Property Type, Assignee) with `ToggleButton`.
+
+---
+
+### 2. Add Accent Variant to Button Component
+
+#### [MODIFY] [button.tsx](file:///wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/components/ui/button.tsx)
+
+Add new `accent` variant:
+```diff
+variant: {
+  default: "bg-primary text-primary-foreground hover:bg-primary/90",
++ accent: "bg-accent-500 text-white hover:bg-accent-600",
+  destructive: ...
+```
+
+#### [MODIFY] [button.test.tsx](file:///wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/components/ui/button.test.tsx)
+
+Add test for new accent variant.
+
+---
+
+### 3. Create Semantic Color Tokens
+
+#### [MODIFY] [tailwind.config.js](file:///wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/tailwind.config.js)
+
+Add semantic tokens under accent:
+```javascript
+accent: {
+  // existing...
+  'contrast-safe': '#ffffff',
+  'decorative': '#E74C3C',
+}
+```
+
+---
+
+### 4. Bundle Size Optimization
+
+#### [MODIFY] [vite.config.ts](file:///wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/vite.config.ts)
+
+Split the large `vendor-export` chunk (873KB):
+```javascript
+'vendor-pdf': ['jspdf', 'html2canvas'],
+'vendor-xlsx': ['xlsx'],
+```
+
+---
+
+### 5. Fix Sidebar Data Discrepancy
+
+The sidebar shows hardcoded "12 Properties • 2,116 Units" that doesn't match actual data.
+
+#### [MODIFY] [Sidebar.tsx](file:///wsl.localhost/Ubuntu/home/mattb/projects/dashboard_interface_project/src/app/layout/Sidebar.tsx)
+
+Replace hardcoded values with computed values from `mockProperties`:
+```typescript
+import { mockProperties } from '@/data/mockProperties';
+
+// Compute actual values
+const totalProperties = mockProperties.length;
+const totalUnits = mockProperties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
+```
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+1. **Button component tests**:
+   ```bash
+   cd /home/mattb/projects/dashboard_interface_project
+   npm run test -- src/components/ui/button.test.tsx
+   ```
+
+2. **All unit tests**:
+   ```bash
+   npm run test
+   ```
+
+3. **Build verification** (checks for TypeScript/bundling errors):
+   ```bash
+   npm run build
+   ```
+
+### Manual Verification
+
+1. **Browser testing** at http://localhost:5173/:
+   - Navigate to Deals page → verify Kanban drag-and-drop works
+   - Navigate to Interest Rates page → verify data loads (or graceful fallback)
+   - Check sidebar footer → verify property/unit counts are dynamic
+   - Expand filters on Deals page → verify ToggleButton styling
+
+2. **Bundle size check** after build:
+   - Look at console output during `npm run build`
+   - Verify no chunk exceeds 600KB warning limit

@@ -1,0 +1,6 @@
+{
+  "artifactType":  "ARTIFACT_TYPE_IMPLEMENTATION_PLAN",
+  "summary":  "Updated plan to use a configuration file for filtering project conversations.",
+  "updatedAt":  "2026-01-05T16:26:31.521460100Z",
+  "version":  "2"
+}

@@ -1,0 +1,21 @@
+# Implementation Plan - Antigravity Backup Workflow
+
+The goal is to create a workflow that automatically (via user trigger or potential future automation) copies Antigravity conversation and artifact data from the Windows user profile to the WSL project directory.
+
+## User Review Required
+- [ ] Confirmed source paths: `conversations` and `brain` directories in `C:\Users\MattBorgeson\.gemini\antigravity`.
+- [ ] Confirmed destination path: `\\wsl.localhost\Ubuntu\home\mattb\projects\dashboard_interface_project\antigravity`.
+
+## Proposed Changes
+
+### New Workflow
+#### [MODIFY] .agent/workflows/backup-chats.md
+- **Integration**: Add filtering logic using PowerShell `Select-String` to identify project-specific conversations.
+- **Filtering**: Only copy `.pb` files (and corresponding `brain` folders) where the project path is found.
+
+## Verification Plan
+
+### Manual Verification
+1.  Run the workflow command `/backup-chats` (once created).
+2.  Verify that files appear in `\\wsl.localhost\Ubuntu\home\mattb\projects\dashboard_interface_project\antigravity`.
+3.  Check content of a simplified file to ensure integrity.

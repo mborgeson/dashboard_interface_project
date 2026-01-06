@@ -1,0 +1,107 @@
+# SharePoint UW Model Extraction Integration - Walkthrough
+
+## Summary
+
+Implemented a complete SharePoint underwriting model data extraction pipeline in `dashboard_interface_project`. The extraction module can load 1,169 cell mappings from the reference file and extract data from real `.xlsb` UW model files with **83.4% success rate**.
+
+---
+
+## Components Created
+
+### 1. Extraction Module (`backend/app/extraction/`)
+
+| File | Purpose |
+|------|---------|
+| `__init__.py` | Module exports |
+| `error_handler.py` | 9-category error handling, np.nan graceful degradation |
+| `cell_mapping.py` | Parses 1,169 mappings, **fixes duplicate field names** |
+| `extractor.py` | Excel extraction with pyxlsb 0-based indexing |
+
+### 2. Database Models (`backend/app/models/extraction.py`)
+
+- `ExtractionRun` - Tracks extraction batches (status, timing, file counts)
+- `ExtractedValue` - EAV pattern for field values (avoids 1,179 columns)
+
+### 3. CRUD Layer (`backend/app/crud/extraction.py`)
+
+- `ExtractionRunCRUD` - Create, status, complete, cancel operations
+- `ExtractedValueCRUD` - Bulk insert with PostgreSQL UPSERT
+
+### 4. API Endpoints (`backend/app/api/v1/endpoints/extraction.py`)
+
+```
+POST /api/v1/extraction/start      - Start extraction
+GET  /api/v1/extraction/status     - Current status
+GET  /api/v1/extraction/history    - Past runs
+POST /api/v1/extraction/cancel     - Cancel running
+GET  /api/v1/extraction/properties - List properties
+GET  /api/v1/extraction/properties/{name} - Property data
+```
+
+---
+
+## Test Results
+
+### Extraction Test (8 fixture files)
+```
+File: Hayden Park UW Model vCurrent.xlsb
+✓ Loaded 1,169 mappings
+✓ Extracted 975/1,169 fields (83.4%)
+✓ Duration: 26.37s
+
+Sample values:
+- PROPERTY_NAME: Hayden Park
+- PROPERTY_CITY: Scottsdale
+- PROPERTY_STATE: AZ
+- YEAR_BUILT: 1985
+- YEAR_RENOVATED: 2022
+```
+
+### API Validation
+```
+✓ Extraction router imports successfully
+✓ Endpoints registered at /api/v1/extraction/*
+```
+
+---
+
+## Files Modified/Created
+
+### New Files
+- `backend/app/extraction/__init__.py`
+- `backend/app/extraction/error_handler.py`
+- `backend/app/extraction/cell_mapping.py`
+- `backend/app/extraction/extractor.py`
+- `backend/app/models/extraction.py`
+- `backend/app/crud/extraction.py`
+- `backend/app/schemas/extraction.py`
+- `backend/app/api/v1/endpoints/extraction.py`
+- `backend/tests/test_extraction/__init__.py`
+- `backend/tests/test_extraction/test_extractor.py`
+
+### Modified Files
+- `backend/requirements.txt` - Added pyxlsb, openpyxl, structlog, apscheduler
+- `backend/app/db/base.py` - Added extraction model imports
+- `backend/app/api/v1/router.py` - Added extraction router
+
+---
+
+## Next Steps
+
+1. **Run Alembic Migration** - Create extraction tables in PostgreSQL
+   ```bash
+   cd backend
+   alembic revision --autogenerate -m "Add extraction tables"
+   alembic upgrade head
+   ```
+
+2. **Test API Endpoints** - Start server and test extraction
+   ```bash
+   uvicorn app.main:app --reload
+   # Open http://localhost:8000/docs
+   # POST /api/v1/extraction/start
+   ```
+
+3. **Port SharePoint Authentication** - Copy Azure AD credentials from prior project
+
+4. **Add Scheduler** - APScheduler for nightly 2 AM extraction
