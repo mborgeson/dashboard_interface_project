@@ -135,12 +135,14 @@ class Settings(BaseSettings):
     @property
     def sharepoint_configured(self) -> bool:
         """Check if SharePoint/Azure AD credentials are configured."""
-        return all([
-            self.AZURE_TENANT_ID,
-            self.AZURE_CLIENT_ID,
-            self.AZURE_CLIENT_SECRET,
-            self.SHAREPOINT_SITE_URL,
-        ])
+        return all(
+            [
+                self.AZURE_TENANT_ID,
+                self.AZURE_CLIENT_ID,
+                self.AZURE_CLIENT_SECRET,
+                self.SHAREPOINT_SITE_URL,
+            ]
+        )
 
     def get_sharepoint_config_errors(self) -> list[str]:
         """Get list of missing SharePoint configuration items."""

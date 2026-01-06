@@ -223,7 +223,7 @@ class ExtractionValidator:
         extracted_lookup = {ev.field_name: ev for ev in extracted}
         report.attempted_fields = len(extracted_lookup)
 
-        for field_name, mapping in mappings.items():
+        for field_name in mappings:
             if field_name not in extracted_lookup:
                 report.missing_fields += 1
                 report.missing_field_names.append(field_name)
@@ -461,9 +461,7 @@ class ExtractionValidator:
             return True
         if isinstance(value, str) and not value.strip():
             return True
-        if isinstance(value, float) and np.isnan(value):
-            return True
-        return False
+        return isinstance(value, float) and np.isnan(value)
 
     def _load_source_values(
         self,

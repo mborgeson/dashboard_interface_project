@@ -8,6 +8,7 @@ Tracks the state of monitored files to detect changes:
 """
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
@@ -23,6 +24,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.base import TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.extraction import ExtractionRun
 
 
 class MonitoredFile(Base, TimestampMixin):

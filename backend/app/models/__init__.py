@@ -2,6 +2,9 @@
 
 from .base import SoftDeleteMixin, TimestampMixin
 from .deal import Deal, DealStage
+
+# File Monitoring Models - imported after underwriting to avoid circular imports
+from .file_monitor import FileChangeLog, MonitoredFile
 from .property import Property
 
 # Underwriting Models
@@ -20,9 +23,6 @@ from .underwriting import (
     UnitMix,
 )
 from .user import User
-
-# File Monitoring Models - imported after underwriting to avoid circular imports
-from .file_monitor import FileChangeLog, MonitoredFile
 
 __all__ = [
     # Base Mixins

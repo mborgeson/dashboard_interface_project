@@ -398,7 +398,9 @@ def get_extraction_scheduler() -> ExtractionScheduler:
     return _extraction_scheduler
 
 
-async def run_scheduled_extraction(db: Any, trigger_type: str = "scheduled") -> str | None:
+async def run_scheduled_extraction(
+    db: Any, trigger_type: str = "scheduled"
+) -> str | None:
     """
     Run an extraction as a scheduled task.
 

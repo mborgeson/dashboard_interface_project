@@ -27,9 +27,7 @@ class FileChangeInfo(BaseModel):
     old_size_bytes: int | None = Field(
         default=None, description="Previous file size (for modified files)"
     )
-    new_size_bytes: int | None = Field(
-        default=None, description="New file size"
-    )
+    new_size_bytes: int | None = Field(default=None, description="New file size")
     detected_at: datetime = Field(description="When the change was detected")
 
 
@@ -68,9 +66,7 @@ class MonitorStatusResponse(BaseModel):
         default=None, description="When the next check is scheduled"
     )
     total_monitored_files: int = Field(description="Total files being monitored")
-    files_pending_extraction: int = Field(
-        description="Files with pending extraction"
-    )
+    files_pending_extraction: int = Field(description="Files with pending extraction")
     is_checking: bool = Field(
         default=False, description="Whether a check is currently in progress"
     )
@@ -83,18 +79,14 @@ class MonitorCheckResponse(BaseModel):
     files_added: int = Field(description="Number of new files detected")
     files_modified: int = Field(description="Number of modified files")
     files_deleted: int = Field(description="Number of deleted files")
-    extraction_triggered: bool = Field(
-        description="Whether extraction was triggered"
-    )
+    extraction_triggered: bool = Field(description="Whether extraction was triggered")
     extraction_run_id: UUID | None = Field(
         default=None, description="ID of triggered extraction run"
     )
     changes: list[FileChangeInfo] = Field(
         default_factory=list, description="Details of detected changes"
     )
-    check_duration_seconds: float = Field(
-        description="How long the check took"
-    )
+    check_duration_seconds: float = Field(description="How long the check took")
 
 
 class RecentChangesResponse(BaseModel):
@@ -122,10 +114,7 @@ class MonitorConfigRequest(BaseModel):
         default=None, description="Enable or disable monitoring"
     )
     interval_minutes: int | None = Field(
-        default=None,
-        ge=5,
-        le=1440,
-        description="Check interval in minutes (5-1440)"
+        default=None, ge=5, le=1440, description="Check interval in minutes (5-1440)"
     )
     auto_extract: bool | None = Field(
         default=None, description="Auto-trigger extraction on changes"
@@ -137,9 +126,8 @@ class TriggerExtractionRequest(BaseModel):
 
     file_paths: list[str] | None = Field(
         default=None,
-        description="Specific file paths to extract. If None, extracts all pending."
+        description="Specific file paths to extract. If None, extracts all pending.",
     )
     force: bool = Field(
-        default=False,
-        description="Force extraction even if files haven't changed"
+        default=False, description="Force extraction even if files haven't changed"
     )

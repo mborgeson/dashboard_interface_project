@@ -406,9 +406,7 @@ class SharePointFileMonitor:
             Extraction run ID if triggered, None otherwise
         """
         # Filter to added/modified files only
-        extractable = [
-            c for c in changes if c.change_type in ("added", "modified")
-        ]
+        extractable = [c for c in changes if c.change_type in ("added", "modified")]
 
         if not extractable:
             return None
@@ -420,14 +418,8 @@ class SharePointFileMonitor:
 
         try:
             # Import here to avoid circular imports
-            from app.crud.extraction import ExtractionRunCRUD
+            from app.crud.extraction import ExtractionRunCRUD  # noqa: F401
 
-            # Check if extraction is already running
-            running = await self.db.execute(
-                select(MonitoredFile).where(
-                    MonitoredFile.extraction_pending.is_(True)
-                ).limit(1)
-            )
             # Note: Actual extraction triggering would integrate with
             # the extraction API/scheduler here
 

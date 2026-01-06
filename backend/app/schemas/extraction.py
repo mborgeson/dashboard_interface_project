@@ -95,9 +95,7 @@ class SchedulerStatusResponse(BaseModel):
     next_run: datetime | None = Field(
         default=None, description="Next scheduled run time"
     )
-    last_run: datetime | None = Field(
-        default=None, description="Last run timestamp"
-    )
+    last_run: datetime | None = Field(default=None, description="Last run timestamp")
     last_run_id: str | None = Field(
         default=None, description="UUID of the last extraction run"
     )

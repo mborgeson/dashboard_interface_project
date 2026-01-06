@@ -226,9 +226,9 @@ class MonitoredFileCRUD:
         pending = (await db.execute(pending_stmt)).scalar_one()
 
         # Unique deals
-        deals_stmt = select(
-            func.count(func.distinct(MonitoredFile.deal_name))
-        ).where(MonitoredFile.is_active.is_(True))
+        deals_stmt = select(func.count(func.distinct(MonitoredFile.deal_name))).where(
+            MonitoredFile.is_active.is_(True)
+        )
         deals = (await db.execute(deals_stmt)).scalar_one()
 
         # Files by deal stage
@@ -302,9 +302,7 @@ class FileChangeLogCRUD:
             stmt = stmt.where(FileChangeLog.deal_name == deal_name)
 
         stmt = (
-            stmt.order_by(FileChangeLog.detected_at.desc())
-            .offset(offset)
-            .limit(limit)
+            stmt.order_by(FileChangeLog.detected_at.desc()).offset(offset).limit(limit)
         )
         result = await db.execute(stmt)
         return list(result.scalars().all())

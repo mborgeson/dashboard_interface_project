@@ -430,8 +430,12 @@ class SharePointClient:
             for subfolder_path in uw_model_subfolders:
                 result.folders_scanned += 1
                 try:
-                    subfolder_endpoint = f"/drives/{drive_id}/root:/{subfolder_path}:/children"
-                    subfolder_result = await self._make_request("GET", subfolder_endpoint)
+                    subfolder_endpoint = (
+                        f"/drives/{drive_id}/root:/{subfolder_path}:/children"
+                    )
+                    subfolder_result = await self._make_request(
+                        "GET", subfolder_endpoint
+                    )
 
                     self.logger.debug(
                         "scanning_uw_model_subfolder",
