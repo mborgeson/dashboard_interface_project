@@ -9,8 +9,9 @@ import asyncio
 import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Optional
 
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
@@ -211,7 +212,7 @@ class RateLimiter:
         Args:
             backend: "memory", "redis", or "auto" (uses Redis if available)
         """
-        self._backend: Optional[RateLimitBackend] = None
+        self._backend: RateLimitBackend | None = None
         self._backend_type = backend
         self._rules: list[tuple[str, RateLimitConfig]] = []
         self._default_config = RateLimitConfig(
@@ -315,7 +316,9 @@ class RateLimiter:
         """
         Reset the rate limiter state. Used for testing.
         """
-        if self._backend is not None and isinstance(self._backend, MemoryRateLimitBackend):
+        if self._backend is not None and isinstance(
+            self._backend, MemoryRateLimitBackend
+        ):
             self._backend._requests.clear()
 
     @classmethod
@@ -334,12 +337,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app,
-        limiter: Optional[RateLimiter] = None,
-        exclude_paths: Optional[list[str]] = None,
+        limiter: RateLimiter | None = None,
+        exclude_paths: list[str] | None = None,
     ):
         super().__init__(app)
         self.limiter = limiter or self._create_default_limiter()
-        self.exclude_paths = exclude_paths or ["/health", "/metrics", "/api/docs", "/api/redoc"]
+        self.exclude_paths = exclude_paths or [
+            "/health",
+            "/metrics",
+            "/api/docs",
+            "/api/redoc",
+        ]
 
     def _create_default_limiter(self) -> RateLimiter:
         """Create default rate limiter with standard rules."""
@@ -348,14 +356,31 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Auth endpoints - stricter limits to prevent brute force
         auth_requests = getattr(settings, "RATE_LIMIT_AUTH_REQUESTS", 5)
         auth_window = getattr(settings, "RATE_LIMIT_AUTH_WINDOW", 60)
-        limiter.add_rule("/api/v1/auth/login", requests=auth_requests, window=auth_window, key_prefix="rl:auth")
-        limiter.add_rule("/api/v1/auth/register", requests=auth_requests, window=auth_window, key_prefix="rl:auth")
-        limiter.add_rule("/api/v1/auth/refresh", requests=10, window=auth_window, key_prefix="rl:auth")
+        limiter.add_rule(
+            "/api/v1/auth/login",
+            requests=auth_requests,
+            window=auth_window,
+            key_prefix="rl:auth",
+        )
+        limiter.add_rule(
+            "/api/v1/auth/register",
+            requests=auth_requests,
+            window=auth_window,
+            key_prefix="rl:auth",
+        )
+        limiter.add_rule(
+            "/api/v1/auth/refresh",
+            requests=10,
+            window=auth_window,
+            key_prefix="rl:auth",
+        )
 
         # API endpoints - standard limits
         api_requests = getattr(settings, "RATE_LIMIT_REQUESTS", 100)
         api_window = getattr(settings, "RATE_LIMIT_WINDOW", 60)
-        limiter.add_rule("/api/", requests=api_requests, window=api_window, key_prefix="rl:api")
+        limiter.add_rule(
+            "/api/", requests=api_requests, window=api_window, key_prefix="rl:api"
+        )
 
         return limiter
 
@@ -370,7 +395,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         try:
-            is_limited, remaining, retry_after, config = await self.limiter.check_rate_limit(request)
+            (
+                is_limited,
+                remaining,
+                retry_after,
+                config,
+            ) = await self.limiter.check_rate_limit(request)
 
             if is_limited:
                 logger.warning(
