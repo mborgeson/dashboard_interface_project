@@ -60,7 +60,9 @@ class TestSharePointAuthentication:
             )
 
     @pytest.mark.asyncio
-    async def test_authentication_error_handling(self, client: SharePointClient) -> None:
+    async def test_authentication_error_handling(
+        self, client: SharePointClient
+    ) -> None:
         """Verify SharePointAuthError is raised on auth failure."""
         mock_app = MagicMock()
         mock_app.acquire_token_for_client.return_value = {
@@ -135,8 +137,8 @@ class TestSharePointFileDiscovery:
         self, client: SharePointClient
     ) -> None:
         """Verify file discovery finds UW model files."""
-        # Use dates after the mock filter's cutoff date (2024-07-15)
-        mock_files = [
+        # Mock files with dates after the cutoff
+        mock_uw_files = [
             {
                 "name": "Property A UW Model vCurrent.xlsb",
                 "file": {},
@@ -153,14 +155,29 @@ class TestSharePointFileDiscovery:
             },
         ]
 
+        # Mock folder structure: Stage -> Deal -> UW Model subfolder
+        mock_stage_folders = [{"path": "Deals/1) Initial UW", "name": "1) Initial UW"}]
+        mock_deal_folders = {"value": [{"name": "Property A", "folder": {}}]}
+        mock_deal_children = {"value": [{"name": "UW Model", "folder": {}}]}
+        mock_uw_model_files = {"value": mock_uw_files}
+
+        def mock_request(method: str, endpoint: str) -> dict:
+            if "1) Initial UW:/children" in endpoint:
+                return mock_deal_folders
+            elif "Property A:/children" in endpoint:
+                return mock_deal_children
+            elif "UW Model:/children" in endpoint:
+                return mock_uw_model_files
+            return {"value": []}
+
         with (
             patch.object(client, "_get_drive_id", return_value="test-drive-id"),
-            patch.object(client, "discover_deal_folders", return_value=[
-                {"path": "Deals/Property A", "name": "Property A"},
-            ]),
-            patch.object(client, "_make_request", return_value={"value": mock_files}),
+            patch.object(
+                client, "discover_deal_folders", return_value=mock_stage_folders
+            ),
+            patch.object(client, "_make_request", side_effect=mock_request),
         ):
-            result = await client.find_uw_models()
+            result = await client.find_uw_models(use_filter=False)
 
             assert isinstance(result, DiscoveryResult)
             assert len(result.files) == 2
@@ -194,12 +211,27 @@ class TestSharePointFileDiscovery:
             },
         ]
 
+        # Mock folder structure: Stage -> Deal -> UW Model subfolder
+        mock_stage_folders = [{"path": "Deals/Test", "name": "Test"}]
+        mock_deal_folders = {"value": [{"name": "Test Deal", "folder": {}}]}
+        mock_deal_children = {"value": [{"name": "UW Model", "folder": {}}]}
+        mock_uw_model_files = {"value": mock_files}
+
+        def mock_request(method: str, endpoint: str) -> dict:
+            if "Deals/Test:/children" in endpoint:
+                return mock_deal_folders
+            elif "Test Deal:/children" in endpoint:
+                return mock_deal_children
+            elif "UW Model:/children" in endpoint:
+                return mock_uw_model_files
+            return {"value": []}
+
         with (
             patch.object(client, "_get_drive_id", return_value="test-drive-id"),
-            patch.object(client, "discover_deal_folders", return_value=[
-                {"path": "Deals/Test", "name": "Test"},
-            ]),
-            patch.object(client, "_make_request", return_value={"value": mock_files}),
+            patch.object(
+                client, "discover_deal_folders", return_value=mock_stage_folders
+            ),
+            patch.object(client, "_make_request", side_effect=mock_request),
         ):
             result = await client.find_uw_models(use_filter=True)
 
@@ -232,12 +264,27 @@ class TestSharePointFileDiscovery:
             },
         ]
 
+        # Mock folder structure: Stage -> Deal -> UW Model subfolder
+        mock_stage_folders = [{"path": "Deals/Test", "name": "Test"}]
+        mock_deal_folders = {"value": [{"name": "Test Deal", "folder": {}}]}
+        mock_deal_children = {"value": [{"name": "UW Model", "folder": {}}]}
+        mock_uw_model_files = {"value": mock_files}
+
+        def mock_request(method: str, endpoint: str) -> dict:
+            if "Deals/Test:/children" in endpoint:
+                return mock_deal_folders
+            elif "Test Deal:/children" in endpoint:
+                return mock_deal_children
+            elif "UW Model:/children" in endpoint:
+                return mock_uw_model_files
+            return {"value": []}
+
         with (
             patch.object(client, "_get_drive_id", return_value="test-drive-id"),
-            patch.object(client, "discover_deal_folders", return_value=[
-                {"path": "Deals/Test", "name": "Test"},
-            ]),
-            patch.object(client, "_make_request", return_value={"value": mock_files}),
+            patch.object(
+                client, "discover_deal_folders", return_value=mock_stage_folders
+            ),
+            patch.object(client, "_make_request", side_effect=mock_request),
         ):
             result = await client.find_uw_models(use_filter=True)
 
@@ -267,12 +314,27 @@ class TestSharePointFileDiscovery:
             },
         ]
 
+        # Mock folder structure: Stage -> Deal -> UW Model subfolder
+        mock_stage_folders = [{"path": "Deals/Test", "name": "Test"}]
+        mock_deal_folders = {"value": [{"name": "Test Deal", "folder": {}}]}
+        mock_deal_children = {"value": [{"name": "UW Model", "folder": {}}]}
+        mock_uw_model_files = {"value": mock_files}
+
+        def mock_request(method: str, endpoint: str) -> dict:
+            if "Deals/Test:/children" in endpoint:
+                return mock_deal_folders
+            elif "Test Deal:/children" in endpoint:
+                return mock_deal_children
+            elif "UW Model:/children" in endpoint:
+                return mock_uw_model_files
+            return {"value": []}
+
         with (
             patch.object(client, "_get_drive_id", return_value="test-drive-id"),
-            patch.object(client, "discover_deal_folders", return_value=[
-                {"path": "Deals/Test", "name": "Test"},
-            ]),
-            patch.object(client, "_make_request", return_value={"value": mock_files}),
+            patch.object(
+                client, "discover_deal_folders", return_value=mock_stage_folders
+            ),
+            patch.object(client, "_make_request", side_effect=mock_request),
         ):
             result = await client.find_uw_models(use_filter=True)
 
@@ -397,15 +459,20 @@ class TestSharePointFileDownload:
         mock_response.read = AsyncMock(return_value=b"test file content")
 
         mock_session = AsyncMock()
-        mock_session.get = MagicMock(return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_response),
-            __aexit__=AsyncMock(return_value=None),
-        ))
+        mock_session.get = MagicMock(
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_response),
+                __aexit__=AsyncMock(return_value=None),
+            )
+        )
 
-        with patch("aiohttp.ClientSession", return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_session),
-            __aexit__=AsyncMock(return_value=None),
-        )):
+        with patch(
+            "aiohttp.ClientSession",
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_session),
+                __aexit__=AsyncMock(return_value=None),
+            ),
+        ):
             content = await client.download_file(test_file)
 
             assert content == b"test file content"
@@ -424,13 +491,17 @@ class TestSharePointFileDownload:
 
         with (
             patch.object(client, "_get_drive_id", return_value="test-drive-id"),
-            patch.object(client, "_make_request", return_value={
-                "@microsoft.graph.downloadUrl": "https://new-url.com/download",
-            }),
+            patch.object(
+                client,
+                "_make_request",
+                return_value={
+                    "@microsoft.graph.downloadUrl": "https://new-url.com/download",
+                },
+            ),
         ):
             # This should fetch the download URL first
             # Then fail because we haven't mocked the actual download
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: B017
                 await client.download_file(test_file)
 
             # URL should have been updated
@@ -520,7 +591,10 @@ class TestDealStageInference:
 
     def test_due_diligence_deal_inference(self, client: SharePointClient) -> None:
         """Verify due diligence deals are identified."""
-        assert client._infer_deal_stage("Deals/Due Diligence/Property A") == "due_diligence"
+        assert (
+            client._infer_deal_stage("Deals/Due Diligence/Property A")
+            == "due_diligence"
+        )
         assert client._infer_deal_stage("Deals/DD/Property B") == "due_diligence"
 
     def test_unknown_stage_inference(self, client: SharePointClient) -> None:
