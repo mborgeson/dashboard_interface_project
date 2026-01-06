@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Building2, DollarSign, X } from 'lucide-react';
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
@@ -17,6 +17,19 @@ export function GlobalSearch() {
   // Group results by type
   const propertyResults = results.filter((r) => r.type === 'property');
   const transactionResults = results.filter((r) => r.type === 'transaction');
+
+  // Handler for selecting a search result - defined before effects that use it
+  const handleSelectResult = useCallback((result: typeof results[0]) => {
+    if (result.type === 'property') {
+      navigate(`/properties/${result.id}`);
+    } else if (result.type === 'transaction') {
+      // Navigate to transactions page (or property page with transaction highlighted)
+      navigate(`/properties/${result.item.propertyId}`);
+    }
+    setIsOpen(false);
+    setQuery('');
+    inputRef.current?.blur();
+  }, [navigate]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -65,28 +78,15 @@ export function GlobalSearch() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, results, selectedIndex]);
+  }, [isOpen, results, selectedIndex, handleSelectResult]);
 
-  // Reset selected index when results change
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [results]);
-
-  const handleSelectResult = (result: typeof results[0]) => {
-    if (result.type === 'property') {
-      navigate(`/properties/${result.id}`);
-    } else if (result.type === 'transaction') {
-      // Navigate to transactions page (or property page with transaction highlighted)
-      navigate(`/properties/${result.item.propertyId}`);
-    }
-    setIsOpen(false);
-    setQuery('');
-    inputRef.current?.blur();
-  };
+  // Note: selectedIndex is reset in handleInputChange when query changes
+  // This avoids the react-hooks/set-state-in-effect warning
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
+    setSelectedIndex(0); // Reset selection when query changes
     setIsOpen(value.trim().length > 0);
   };
 

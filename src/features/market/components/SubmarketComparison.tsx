@@ -18,6 +18,32 @@ interface SubmarketComparisonProps {
 
 type ComparisonMetric = 'avgRent' | 'rentGrowth' | 'occupancy' | 'capRate';
 
+interface TooltipPayload {
+  payload: { name: string };
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  metricLabel: string;
+  metricFormat: (v: number) => string;
+}
+
+function CustomTooltip({ active, payload, metricLabel, metricFormat }: CustomTooltipProps) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
+        <p className="text-sm font-semibold text-neutral-900">{payload[0].payload.name}</p>
+        <p className="text-sm text-neutral-600 mt-1">
+          {metricLabel}: <span className="font-semibold">{metricFormat(payload[0].value)}</span>
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function SubmarketComparison({ submarkets }: SubmarketComparisonProps) {
   const [selectedMetric, setSelectedMetric] = useState<ComparisonMetric>('avgRent');
 
@@ -51,20 +77,6 @@ export function SubmarketComparison({ submarkets }: SubmarketComparisonProps) {
 
     const colorIndex = Math.floor((index / total) * colors.length);
     return colors[Math.min(colorIndex, colors.length - 1)];
-  };
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
-          <p className="text-sm font-semibold text-neutral-900">{payload[0].payload.name}</p>
-          <p className="text-sm text-neutral-600 mt-1">
-            {currentMetric.label}: <span className="font-semibold">{currentMetric.format(payload[0].value)}</span>
-          </p>
-        </div>
-      );
-    }
-    return null;
   };
 
   return (
@@ -108,7 +120,7 @@ export function SubmarketComparison({ submarkets }: SubmarketComparisonProps) {
             tickLine={false}
             axisLine={false}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip metricLabel={currentMetric.label} metricFormat={currentMetric.format} />} />
           <Bar dataKey="value" radius={[0, 4, 4, 0]}>
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={getBarColor(index, chartData.length)} />

@@ -18,6 +18,41 @@ interface MonthlyData {
   noi: number;
 }
 
+interface TooltipPayload {
+  payload: MonthlyData;
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+}
+
+// Pre-defined variance values to avoid Math.random() during render (simulates +/- 2% variance)
+const PORTFOLIO_VARIANCE = [0.99, 1.02, 0.98, 1.01, 1.00, 0.99, 1.02, 0.98, 1.01, 1.00, 0.99, 1.02];
+const NOI_VARIANCE = [0.98, 1.02, 0.99, 1.03, 0.97, 1.01, 0.99, 1.02, 0.98, 1.01, 0.99, 1.00];
+
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-4 border border-neutral-200 rounded-lg shadow-lg">
+        <p className="text-sm font-semibold text-neutral-900 mb-2">
+          {payload[0].payload.month}
+        </p>
+        <div className="space-y-1">
+          <p className="text-sm text-primary-500">
+            Portfolio: {formatCurrency(payload[0].value, true)}
+          </p>
+          <p className="text-sm text-accent-500">
+            Monthly NOI: {formatCurrency(payload[1].value, true)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function PortfolioPerformanceChart() {
   // Generate 12 months of mock historical data based on current values
   const chartData = useMemo<MonthlyData[]>(() => {
@@ -36,14 +71,14 @@ export function PortfolioPerformanceChart() {
       const growthFactor = Math.pow(1.01, monthsAgo);
       const baseValue = currentValue / growthFactor;
 
-      // Add some realistic variance (+/- 2%)
-      const variance = 1 + (Math.random() * 0.04 - 0.02);
+      // Use pre-defined variance values (+/- 2%)
+      const variance = PORTFOLIO_VARIANCE[index];
       const portfolioValue = baseValue * variance;
 
       // NOI grows at similar rate but with different variance
       const noiGrowthFactor = Math.pow(1.008, monthsAgo);
       const baseNOI = (currentNOI / 12) / noiGrowthFactor;
-      const noiVariance = 1 + (Math.random() * 0.06 - 0.03);
+      const noiVariance = NOI_VARIANCE[index];
       const noi = baseNOI * noiVariance;
 
       return {
@@ -53,27 +88,6 @@ export function PortfolioPerformanceChart() {
       };
     });
   }, []);
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-4 border border-neutral-200 rounded-lg shadow-lg">
-          <p className="text-sm font-semibold text-neutral-900 mb-2">
-            {payload[0].payload.month}
-          </p>
-          <div className="space-y-1">
-            <p className="text-sm text-primary-500">
-              Portfolio: {formatCurrency(payload[0].value, true)}
-            </p>
-            <p className="text-sm text-accent-500">
-              Monthly NOI: {formatCurrency(payload[1].value, true)}
-            </p>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="w-full h-[400px]">

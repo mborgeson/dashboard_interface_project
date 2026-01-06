@@ -17,7 +17,7 @@ import { ProjectionsTab } from './ProjectionsTab';
 import { SensitivityTab } from './SensitivityTab';
 import { useToast } from '@/hooks/useToast';
 import jsPDF from 'jspdf';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 interface UnderwritingModalProps {
   trigger?: React.ReactNode;
@@ -88,12 +88,28 @@ export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
     success('PDF exported', { description: 'Check your downloads' });
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!results) return;
 
     const propertyName = inputs.propertyName || 'Investment Property';
 
+    // Helper to format sensitivity values
+    const formatSensValue = (name: string, value: number): string => {
+      if (name.includes('Percent') || name.includes('Rate') || name === 'exitCapRate') {
+        return `${(value * 100).toFixed(2)}%`;
+      }
+      if (name.includes('PerUnit') || name === 'currentRentPerUnit') {
+        return `$${value.toLocaleString()}`;
+      }
+      return value.toFixed(1);
+    };
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'B&R Capital Analytics';
+    workbook.created = new Date();
+
     // Summary sheet
+    const summarySheet = workbook.addWorksheet('Summary');
     const summaryData = [
       ['Underwriting Analysis', propertyName],
       [''],
@@ -126,11 +142,13 @@ export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
       ['Sale Proceeds', results.saleProceeds],
       ['Total Profit', results.totalProfit],
     ];
+    summaryData.forEach((row) => summarySheet.addRow(row));
 
     // Projections sheet
-    const projectionsData = [
-      ['Year', 'Gross Income', 'Vacancy', 'EGI', 'OpEx', 'NOI', 'Debt Service', 'Cash Flow', 'Cumulative CF', 'Property Value', 'Loan Balance', 'Equity'],
-      ...results.cashFlowProjection.map((p) => [
+    const projectionsSheet = workbook.addWorksheet('Projections');
+    projectionsSheet.addRow(['Year', 'Gross Income', 'Vacancy', 'EGI', 'OpEx', 'NOI', 'Debt Service', 'Cash Flow', 'Cumulative CF', 'Property Value', 'Loan Balance', 'Equity']);
+    results.cashFlowProjection.forEach((p) => {
+      projectionsSheet.addRow([
         p.year,
         p.grossIncome,
         p.vacancy,
@@ -143,43 +161,33 @@ export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
         p.propertyValue,
         p.loanBalance,
         p.equity,
-      ]),
-    ];
-
-    // Helper to format sensitivity values
-    const formatSensValue = (name: string, value: number): string => {
-      if (name.includes('Percent') || name.includes('Rate') || name === 'exitCapRate') {
-        return `${(value * 100).toFixed(2)}%`;
-      }
-      if (name.includes('PerUnit') || name === 'currentRentPerUnit') {
-        return `$${value.toLocaleString()}`;
-      }
-      return value.toFixed(1);
-    };
+      ]);
+    });
 
     // Sensitivity sheet
-    const sensitivityData = [
-      ['Variable', 'Downside Scenario', 'Downside IRR', 'Base IRR', 'Upside IRR', 'Upside Scenario'],
-      ...sensitivity.map((s) => [
+    const sensitivitySheet = workbook.addWorksheet('Sensitivity');
+    sensitivitySheet.addRow(['Variable', 'Downside Scenario', 'Downside IRR', 'Base IRR', 'Upside IRR', 'Upside Scenario']);
+    sensitivity.forEach((s) => {
+      sensitivitySheet.addRow([
         s.label,
         formatSensValue(s.name, s.lowValue),
         `${(s.lowIRR * 100).toFixed(2)}%`,
         `${(results.leveredIRR * 100).toFixed(2)}%`,
         `${(s.highIRR * 100).toFixed(2)}%`,
         formatSensValue(s.name, s.highValue),
-      ]),
-    ];
+      ]);
+    });
 
-    const wb = XLSX.utils.book_new();
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-    const wsProjections = XLSX.utils.aoa_to_sheet(projectionsData);
-    const wsSensitivity = XLSX.utils.aoa_to_sheet(sensitivityData);
+    // Generate and download file
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `underwriting-${propertyName.replace(/\s+/g, '-').toLowerCase()}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(url);
 
-    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
-    XLSX.utils.book_append_sheet(wb, wsProjections, 'Projections');
-    XLSX.utils.book_append_sheet(wb, wsSensitivity, 'Sensitivity');
-
-    XLSX.writeFile(wb, `underwriting-${propertyName.replace(/\s+/g, '-').toLowerCase()}.xlsx`);
     success('Excel exported');
   };
 

@@ -64,6 +64,9 @@ function TableSkeleton({
   )
 }
 
+// Pre-defined heights for skeleton bars to avoid Math.random() during render
+const SKELETON_BAR_HEIGHTS = [72, 55, 88, 63, 45, 78];
+
 // Chart skeleton for chart placeholders
 function ChartSkeleton({ className }: { className?: string }) {
   return (
@@ -79,7 +82,7 @@ function ChartSkeleton({ className }: { className?: string }) {
             <Skeleton
               key={`bar-${i}`}
               className="w-full"
-              style={{ height: `${Math.random() * 60 + 40}%` }}
+              style={{ height: `${SKELETON_BAR_HEIGHTS[i]}%` }}
             />
           ))}
         </div>
@@ -96,5 +99,19 @@ function ChartSkeleton({ className }: { className?: string }) {
 
 export { Skeleton, CardSkeleton, TableSkeleton, ChartSkeleton }
 
-// Re-export specialized skeletons
-export * from '../skeletons'
+// Re-export specialized skeletons with explicit named exports
+export {
+  PropertyCardSkeleton,
+  PropertyCardSkeletonGrid,
+  TableSkeleton as DetailedTableSkeleton,
+  CompactTableSkeleton,
+  ChartSkeleton as DetailedChartSkeleton,
+  ChartCardSkeleton,
+  LineChartSkeleton,
+  DealCardSkeleton,
+  DealCardSkeletonList,
+  DealPipelineSkeleton,
+  StatCardSkeleton,
+  StatCardSkeletonGrid,
+  MiniStatSkeleton,
+} from '../skeletons'

@@ -74,15 +74,15 @@ export function MappingPage() {
     toggleClustering,
   } = useMapFilters(mockProperties);
 
-  // Center on Phoenix, AZ area
-  const center: L.LatLngExpression = [33.4484, -112.074];
-  const zoom = 10;
-
   // Initialize map
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) {
       return;
     }
+
+    // Center on Phoenix, AZ area (defined inside effect as it's only used for initialization)
+    const center: L.LatLngExpression = [33.4484, -112.074];
+    const zoom = 10;
 
     // Create map instance
     const map = L.map(mapContainerRef.current, {

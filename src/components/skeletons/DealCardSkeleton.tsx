@@ -77,9 +77,12 @@ export function DealCardSkeletonList({
   );
 }
 
+// Pre-defined card counts per stage to avoid Math.random() during render
+const STAGE_CARD_COUNTS = [2, 3, 1, 2];
+
 export function DealPipelineSkeleton({ className }: { className?: string }) {
   const stages = ['Prospecting', 'Qualification', 'Due Diligence', 'Closing'];
-  
+
   return (
     <div className={cn('grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4', className)}>
       {stages.map((stage, i) => (
@@ -89,10 +92,10 @@ export function DealPipelineSkeleton({ className }: { className?: string }) {
             <Skeleton className="h-5 w-32" />
             <Skeleton className="h-4 w-20" />
           </div>
-          
+
           {/* Deal cards in stage */}
           <div className="space-y-3">
-            {Array.from({ length: Math.floor(Math.random() * 3) + 1 }).map((_, j) => (
+            {Array.from({ length: STAGE_CARD_COUNTS[i] }).map((_, j) => (
               <Card key={`stage-${i}-card-${j}`} className="p-4">
                 <div className="space-y-3">
                   <Skeleton className="h-4 w-3/4" />

@@ -10,7 +10,6 @@ import {
   FileText,
   FileSpreadsheet,
   Presentation,
-  MoreVertical,
   Search,
   Filter,
   Eye,

@@ -223,7 +223,9 @@ function CollapsibleSection({
 export function InputsTab({ inputs, updateInput }: InputsTabProps) {
   const handleLoadPreset = (presetInputs: Partial<UnderwritingInputs>) => {
     Object.entries(presetInputs).forEach(([key, value]) => {
-      updateInput(key as keyof UnderwritingInputs, value as any);
+      if (value !== undefined) {
+        updateInput(key as keyof UnderwritingInputs, value as UnderwritingInputs[keyof UnderwritingInputs]);
+      }
     });
   };
 

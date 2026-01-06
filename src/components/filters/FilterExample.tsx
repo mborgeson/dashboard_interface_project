@@ -10,6 +10,7 @@ import { SavedFilters } from './SavedFilters';
 import { useFilterPersistence } from '@/hooks/useFilterPersistence';
 
 interface PropertyFilters {
+  [key: string]: string | number | boolean | string[] | number[] | Record<string, unknown> | null | undefined;
   propertyClass?: string;
   city?: string;
   minUnits?: number;

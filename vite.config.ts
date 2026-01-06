@@ -70,7 +70,7 @@ export default defineConfig({
           ],
           // Export libraries - split for better lazy loading
           "vendor-pdf": ["jspdf", "html2canvas"],
-          "vendor-xlsx": ["xlsx"],
+          "vendor-xlsx": ["exceljs"],
           // Date/form libraries
           "vendor-forms": [
             "date-fns",

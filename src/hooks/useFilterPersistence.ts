@@ -5,7 +5,9 @@ import { useSearchParams } from 'react-router-dom';
  * Custom hook for persisting filters in URL search parameters
  * Enables sharing filtered views via URL
  */
-export function useFilterPersistence<T extends Record<string, any>>(
+type FilterValue = string | number | boolean | string[] | number[] | Record<string, unknown> | null | undefined;
+
+export function useFilterPersistence<T extends Record<string, FilterValue>>(
   filters: T,
   setFilters: (filters: T) => void,
   options: {
@@ -26,7 +28,7 @@ export function useFilterPersistence<T extends Record<string, any>>(
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Serialize filter value to string
-  const serializeValue = (value: any): string | null => {
+  const serializeValue = (value: FilterValue): string | null => {
     if (value === null || value === undefined || value === '') {
       return null;
     }
@@ -43,7 +45,7 @@ export function useFilterPersistence<T extends Record<string, any>>(
   };
 
   // Deserialize filter value from string
-  const deserializeValue = (value: string): any => {
+  const deserializeValue = (value: string): FilterValue => {
     try {
       // Try parsing as JSON first
       return JSON.parse(value);
@@ -57,7 +59,7 @@ export function useFilterPersistence<T extends Record<string, any>>(
   useEffect(() => {
     if (!enabled) return;
 
-    const urlFilters: Record<string, any> = {};
+    const urlFilters: Record<string, FilterValue> = {};
     let hasFilters = false;
 
     // Extract all filter params from URL
@@ -126,7 +128,7 @@ export function useFilterPersistence<T extends Record<string, any>>(
     // Reset filters to empty object
     const emptyFilters: Partial<T> = {};
     Object.keys(filters).forEach((key) => {
-      emptyFilters[key as keyof T] = undefined as any;
+      emptyFilters[key as keyof T] = undefined as T[keyof T];
     });
     
     setFilters(emptyFilters as T);

@@ -20,29 +20,38 @@ interface DistributionChartsProps {
 
 const COLORS = ['#2A3F54', '#E74C3C', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
 
+interface PieLabelProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
+}
+
+function CustomPieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }: PieLabelProps) {
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="white"
+      textAnchor={x > cx ? 'start' : 'end'}
+      dominantBaseline="central"
+      style={{ fontSize: '12px', fontWeight: 'bold' }}
+    >
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+}
+
 export function DistributionCharts({ valueByClass, noiBySubmarket }: DistributionChartsProps) {
   const formatCurrency = (value: number) => {
     return `$${(value / 1000000).toFixed(1)}M`;
-  };
-
-  const CustomPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="white"
-        textAnchor={x > cx ? 'start' : 'end'}
-        dominantBaseline="central"
-        style={{ fontSize: '12px', fontWeight: 'bold' }}
-      >
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
   };
 
   return (
@@ -106,10 +115,13 @@ export function DistributionCharts({ valueByClass, noiBySubmarket }: Distributio
                 fontSize: '12px',
               }}
             />
-            <Legend 
-              verticalAlign="bottom" 
+            <Legend
+              verticalAlign="bottom"
               height={36}
-              formatter={(value, entry: any) => `${value} (${formatCurrency(entry.payload.noi)})`}
+              formatter={(value, entry) => {
+                const payload = entry.payload as { noi: number } | undefined;
+                return payload ? `${value} (${formatCurrency(payload.noi)})` : value;
+              }}
             />
           </PieChart>
         </ResponsiveContainer>

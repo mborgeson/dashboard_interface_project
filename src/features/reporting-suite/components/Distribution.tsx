@@ -14,10 +14,8 @@ import {
   Play,
   Pause,
   CheckCircle,
-  AlertCircle,
   Search,
   Filter,
-  MoreVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mockDistributionSchedules, mockReportTemplates, type DistributionSchedule } from '@/data/mockReportingData';

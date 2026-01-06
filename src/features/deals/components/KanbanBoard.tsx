@@ -37,6 +37,23 @@ const PIPELINE_STAGES: DealStage[] = [
   'closed_won',
 ];
 
+// Validate stage transitions (prevent skipping stages or going backwards)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function isValidTransition(from: DealStage, _to: DealStage): boolean {
+  // Allow any transition for flexibility - can be customized for business rules
+  // For example, to enforce sequential progression:
+  // const stageOrder: DealStage[] = ['lead', 'underwriting', 'loi', 'due_diligence', 'closing', 'closed_won'];
+  // const fromIndex = stageOrder.indexOf(from);
+  // const toIndex = stageOrder.indexOf(to);
+  // return toIndex === fromIndex + 1 || to === 'closed_lost';
+
+  // For now, allow any transition except from closed states
+  if (from === 'closed_won' || from === 'closed_lost') {
+    return false;
+  }
+  return true;
+}
+
 export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
@@ -76,7 +93,8 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
     setActiveDeal(deal);
   }, [findDealById]);
 
-  const handleDragOver = useCallback((event: DragOverEvent) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleDragOver = useCallback((_event: DragOverEvent) => {
     // Preview of drop is handled by visual highlighting in KanbanColumn
   }, []);
 
@@ -119,22 +137,6 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
     setActiveId(null);
     setActiveDeal(null);
   }, []);
-
-  // Validate stage transitions (prevent skipping stages or going backwards)
-  const isValidTransition = (from: DealStage, to: DealStage): boolean => {
-    // Allow any transition for flexibility - can be customized for business rules
-    // For example, to enforce sequential progression:
-    // const stageOrder: DealStage[] = ['lead', 'underwriting', 'loi', 'due_diligence', 'closing', 'closed_won'];
-    // const fromIndex = stageOrder.indexOf(from);
-    // const toIndex = stageOrder.indexOf(to);
-    // return toIndex === fromIndex + 1 || to === 'closed_lost';
-
-    // For now, allow any transition except from closed states
-    if (from === 'closed_won' || from === 'closed_lost') {
-      return false;
-    }
-    return true;
-  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {

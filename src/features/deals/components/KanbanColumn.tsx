@@ -8,7 +8,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import type { Deal, DealStage } from '@/types/deal';
-import { DEAL_STAGE_LABELS, DEAL_STAGE_COLORS } from '@/types/deal';
+import { DEAL_STAGE_LABELS } from '@/types/deal';
 import { DraggableDealCard } from './DraggableDealCard';
 import { cn } from '@/lib/utils';
 import { Plus, Inbox } from 'lucide-react';
@@ -40,7 +40,8 @@ const STAGE_BG_COLORS: Record<DealStage, string> = {
   closed_lost: 'bg-red-50 border-t-red-400',
 };
 
-export function KanbanColumn({ stage, deals, total, isOver }: KanbanColumnProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function KanbanColumn({ stage, deals, total, isOver: _isOver }: KanbanColumnProps) {
   const { setNodeRef, isOver: isDragOver } = useDroppable({
     id: stage,
   });

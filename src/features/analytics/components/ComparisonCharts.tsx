@@ -29,6 +29,43 @@ interface ComparisonChartsProps {
   }>;
 }
 
+interface ScatterTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: {
+      name: string;
+      return: number;
+      risk: number;
+      size: number;
+    };
+  }>;
+}
+
+function formatPercentageValue(value: number) {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function CustomScatterTooltip({ active, payload }: ScatterTooltipProps) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
+        <p className="font-semibold text-primary-500 mb-2">{data.name}</p>
+        <p className="text-sm text-neutral-600">
+          Return (IRR): <span className="font-medium">{formatPercentageValue(data.return)}</span>
+        </p>
+        <p className="text-sm text-neutral-600">
+          Risk Score: <span className="font-medium">{data.risk.toFixed(2)}</span>
+        </p>
+        <p className="text-sm text-neutral-600">
+          Value: <span className="font-medium">${(data.size / 1000000).toFixed(1)}M</span>
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function ComparisonCharts({ propertyPerformance, riskReturn }: ComparisonChartsProps) {
   const formatPercentage = (value: number) => {
     return `${(value * 100).toFixed(1)}%`;
@@ -38,27 +75,6 @@ export function ComparisonCharts({ propertyPerformance, riskReturn }: Comparison
     const words = name.split(' ');
     if (words.length <= 2) return name;
     return words.slice(0, 2).join(' ');
-  };
-
-  const CustomScatterTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-primary-500 mb-2">{data.name}</p>
-          <p className="text-sm text-neutral-600">
-            Return (IRR): <span className="font-medium">{formatPercentage(data.return)}</span>
-          </p>
-          <p className="text-sm text-neutral-600">
-            Risk Score: <span className="font-medium">{data.risk.toFixed(2)}</span>
-          </p>
-          <p className="text-sm text-neutral-600">
-            Value: <span className="font-medium">${(data.size / 1000000).toFixed(1)}M</span>
-          </p>
-        </div>
-      );
-    }
-    return null;
   };
 
   return (

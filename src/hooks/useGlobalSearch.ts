@@ -3,13 +3,16 @@ import Fuse from 'fuse.js';
 import { mockProperties } from '@/data/mockProperties';
 import { mockTransactions } from '@/data/mockTransactions';
 
+import type { Property } from '@/types/property';
+import type { Transaction } from '@/types/transaction';
+
 export interface SearchResult {
   type: 'property' | 'transaction';
   id: string;
   title: string;
   subtitle: string;
   matchedField?: string;
-  item: any;
+  item: Property | Transaction;
 }
 
 export function useGlobalSearch(query: string) {

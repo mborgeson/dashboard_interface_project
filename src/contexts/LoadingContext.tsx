@@ -1,25 +1,9 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface LoadingContextType {
-  isLoading: boolean;
-  loadingMessage?: string;
-  setLoading: (loading: boolean, message?: string) => void;
-  startLoading: (message?: string) => void;
-  stopLoading: () => void;
-}
-
-const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
-
-export function useLoading() {
-  const context = useContext(LoadingContext);
-  if (!context) {
-    throw new Error('useLoading must be used within a LoadingProvider');
-  }
-  return context;
-}
+import { LoadingContext } from './loading-context';
+import type { LoadingContextType } from './loading-context';
 
 interface LoadingProviderProps {
   children: ReactNode;
@@ -93,10 +77,10 @@ interface InlineLoadingProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function InlineLoading({ 
-  message, 
-  className, 
-  size = 'md' 
+export function InlineLoading({
+  message,
+  className,
+  size = 'md'
 }: InlineLoadingProps) {
   const sizeClasses = {
     sm: 'h-4 w-4',
@@ -163,12 +147,12 @@ export function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) 
 
   return (
     <div className="flex items-center justify-center p-4">
-      <Loader2 
+      <Loader2
         className={cn(
-          'animate-spin text-muted-foreground', 
+          'animate-spin text-muted-foreground',
           sizeClasses[size],
           className
-        )} 
+        )}
       />
     </div>
   );

@@ -2,6 +2,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
+// Pre-defined heights for skeleton bars to avoid Math.random() during render
+const CHART_BAR_HEIGHTS = [65, 82, 48, 91, 73, 55, 88, 62];
+
 interface ChartSkeletonProps {
   className?: string;
   showLegend?: boolean;
@@ -9,20 +12,20 @@ interface ChartSkeletonProps {
   height?: number;
 }
 
-export function ChartSkeleton({ 
-  className, 
-  showLegend = true, 
+export function ChartSkeleton({
+  className,
+  showLegend = true,
   showTitle = true,
-  height = 300 
+  height = 300
 }: ChartSkeletonProps) {
   return (
     <div className={cn('space-y-3', className)}>
       {/* Chart title */}
       {showTitle && <Skeleton className="h-6 w-1/4" />}
-      
+
       {/* Chart area */}
-      <div 
-        className="relative w-full rounded-lg bg-muted/50" 
+      <div
+        className="relative w-full rounded-lg bg-muted/50"
         style={{ height: `${height}px` }}
       >
         {/* Chart bars/lines simulation */}
@@ -31,8 +34,8 @@ export function ChartSkeleton({
             <Skeleton
               key={`bar-${i}`}
               className="w-full rounded-t"
-              style={{ 
-                height: `${Math.floor(Math.random() * 60) + 40}%`,
+              style={{
+                height: `${CHART_BAR_HEIGHTS[i]}%`,
                 animationDelay: `${i * 100}ms`
               }}
             />
@@ -69,6 +72,12 @@ export function ChartCardSkeleton({ className }: { className?: string }) {
   );
 }
 
+// Pre-defined Y coordinates for line chart paths to avoid Math.random() during render
+const LINE_CHART_Y_COORDS = [
+  [45, 62, 38, 71, 55, 28, 65, 42, 58, 35],
+  [32, 48, 72, 41, 63, 55, 38, 68, 45, 52],
+];
+
 export function LineChartSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn('space-y-3', className)}>
@@ -89,7 +98,7 @@ export function LineChartSkeleton({ className }: { className?: string }) {
               key={`line-${i}`}
               points={Array.from({ length: 10 }, (_, j) => {
                 const x = (j / 9) * 100;
-                const y = 20 + Math.random() * 60;
+                const y = LINE_CHART_Y_COORDS[i][j];
                 return `${x},${y}`;
               }).join(' ')}
               fill="none"

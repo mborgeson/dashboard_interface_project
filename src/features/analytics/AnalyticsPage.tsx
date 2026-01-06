@@ -142,14 +142,16 @@ export function AnalyticsPage() {
 
   // Risk vs Return scatter data
   const riskReturnData = useMemo(() => {
-    return mockProperties.map(p => {
+    return mockProperties.map((p, index) => {
       // Calculate risk score based on occupancy variance from optimal (96%)
       const occupancyVariance = Math.abs(p.operations.occupancy - 0.96);
       // Include property class as risk factor (C=higher risk)
-      const classRisk = p.propertyDetails.propertyClass === 'C' ? 0.3 : 
+      const classRisk = p.propertyDetails.propertyClass === 'C' ? 0.3 :
                         p.propertyDetails.propertyClass === 'B' ? 0.15 : 0;
-      const riskScore = (occupancyVariance * 10) + classRisk + (Math.random() * 0.1);
-      
+      // Use a deterministic small variance based on property index instead of Math.random()
+      const deterministicVariance = ((index * 7) % 10) / 100; // 0.00 to 0.09
+      const riskScore = (occupancyVariance * 10) + classRisk + deterministicVariance;
+
       return {
         name: p.name,
         risk: riskScore,
@@ -166,8 +168,9 @@ export function AnalyticsPage() {
     const sorted = [...mockProperties];
     if (sortConfig) {
       sorted.sort((a, b) => {
-        let aVal: any, bVal: any;
-        
+        let aVal: string | number;
+        let bVal: string | number;
+
         switch (sortConfig.key) {
           case 'name':
             aVal = a.name;

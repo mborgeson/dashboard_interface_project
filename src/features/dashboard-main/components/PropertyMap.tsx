@@ -31,15 +31,15 @@ export function PropertyMap({ properties }: PropertyMapProps) {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
 
-  // Center on Phoenix, AZ area
-  const center: L.LatLngExpression = [33.4484, -112.074];
-  const zoom = 10;
-
   useEffect(() => {
     // Only initialize if container exists and map doesn't
     if (!mapContainerRef.current || mapInstanceRef.current) {
       return;
     }
+
+    // Center on Phoenix, AZ area (defined inside effect as it's only used for initialization)
+    const center: L.LatLngExpression = [33.4484, -112.074];
+    const zoom = 10;
 
     // Create map instance
     const map = L.map(mapContainerRef.current, {

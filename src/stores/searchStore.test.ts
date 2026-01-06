@@ -83,14 +83,14 @@ describe('searchStore', () => {
           title: 'Result 1',
           type: 'property' as const,
           subtitle: 'Sub 1',
-          item: {}
+          item: { id: '1', name: 'Test Property' } as never,
         },
         {
           id: '2',
           title: 'Result 2',
           type: 'transaction' as const,
           subtitle: 'Sub 2',
-          item: {}
+          item: { id: '2', name: 'Test Transaction' } as never,
         },
       ];
       useSearchStore.getState().setResults(mockResults);
@@ -99,7 +99,7 @@ describe('searchStore', () => {
 
     it('clears results', () => {
       useSearchStore.getState().setResults([
-        { id: '1', title: 'Result', type: 'property' as const, subtitle: 'Sub', item: {} },
+        { id: '1', title: 'Result', type: 'property' as const, subtitle: 'Sub', item: { id: '1' } as never },
       ]);
       useSearchStore.getState().setResults([]);
       expect(useSearchStore.getState().searchResults).toHaveLength(0);

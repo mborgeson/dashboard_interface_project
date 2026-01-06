@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   GripVertical,
   Plus,
@@ -54,6 +54,7 @@ export function CustomReportBuilder() {
   const [placedWidgets, setPlacedWidgets] = useState<PlacedWidget[]>([]);
   const [selectedWidget, setSelectedWidget] = useState<PlacedWidget | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const widgetIdCounter = useRef(0);
 
   const categories = ['all', ...Array.from(new Set(mockReportWidgets.map(w => w.category)))];
 
@@ -61,8 +62,9 @@ export function CustomReportBuilder() {
     activeCategory === 'all' ? mockReportWidgets : mockReportWidgets.filter(w => w.category === activeCategory);
 
   const handleAddWidget = (widget: ReportWidget) => {
+    widgetIdCounter.current += 1;
     const newWidget: PlacedWidget = {
-      id: `placed-${Date.now()}`,
+      id: `placed-${widgetIdCounter.current}`,
       widgetId: widget.id,
       widget,
       x: 0,
@@ -206,7 +208,7 @@ export function CustomReportBuilder() {
             </div>
           ) : (
             <div className="p-6 space-y-4">
-              {placedWidgets.map((placed, index) => {
+              {placedWidgets.map((placed) => {
                 const Icon = widgetIcons[placed.widget.icon] || FileText;
                 const isSelected = selectedWidget?.id === placed.id;
                 return (

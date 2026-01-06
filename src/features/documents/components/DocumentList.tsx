@@ -25,6 +25,22 @@ interface DocumentListProps {
 
 type SortColumn = 'name' | 'type' | 'propertyName' | 'size' | 'uploadedAt' | 'uploadedBy';
 
+// Sort icon component - declared outside to avoid static-components warning
+interface SortIconProps {
+  column: SortColumn;
+  sortColumn: SortColumn;
+  sortDirection: 'asc' | 'desc';
+}
+
+function SortIcon({ column, sortColumn, sortDirection }: SortIconProps) {
+  if (sortColumn !== column) return null;
+  return sortDirection === 'asc' ? (
+    <ChevronUp className="h-4 w-4" />
+  ) : (
+    <ChevronDown className="h-4 w-4" />
+  );
+}
+
 // Helper to get file icon
 function getFileIcon(document: Document) {
   const extension = document.name.split('.').pop()?.toLowerCase();
@@ -163,16 +179,6 @@ export function DocumentList({
     setExpandedDocs(newExpanded);
   };
 
-  // Render sort icon
-  const SortIcon = ({ column }: { column: SortColumn }) => {
-    if (sortColumn !== column) return null;
-    return sortDirection === 'asc' ? (
-      <ChevronUp className="h-4 w-4" />
-    ) : (
-      <ChevronDown className="h-4 w-4" />
-    );
-  };
-
   if (documents.length === 0) {
     return (
       <Card>
@@ -207,7 +213,7 @@ export function DocumentList({
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Name</span>
-                    <SortIcon column="name" />
+                    <SortIcon column="name" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
                 </th>
                 <th
@@ -216,7 +222,7 @@ export function DocumentList({
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Type</span>
-                    <SortIcon column="type" />
+                    <SortIcon column="type" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
                 </th>
                 <th
@@ -225,7 +231,7 @@ export function DocumentList({
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Property</span>
-                    <SortIcon column="propertyName" />
+                    <SortIcon column="propertyName" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
                 </th>
                 <th
@@ -234,7 +240,7 @@ export function DocumentList({
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Size</span>
-                    <SortIcon column="size" />
+                    <SortIcon column="size" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
                 </th>
                 <th
@@ -243,7 +249,7 @@ export function DocumentList({
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Uploaded</span>
-                    <SortIcon column="uploadedAt" />
+                    <SortIcon column="uploadedAt" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
                 </th>
                 <th
@@ -252,7 +258,7 @@ export function DocumentList({
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Uploaded By</span>
-                    <SortIcon column="uploadedBy" />
+                    <SortIcon column="uploadedBy" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
                 </th>
                 <th className="p-4 text-left">

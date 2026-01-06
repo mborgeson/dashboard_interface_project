@@ -116,7 +116,13 @@ export function AssumptionsPresets({ onLoadPreset, currentInputs }: AssumptionsP
     }
 
     // Simple selection via prompt (could be enhanced with a modal)
-    const presetNames = customPresets.map((p: any, i: number) => `${i + 1}. ${p.name}`).join('\n');
+    interface CustomPreset {
+      name: string;
+      description: string;
+      inputs: Partial<UnderwritingInputs>;
+      timestamp: number;
+    }
+    const presetNames = customPresets.map((p: CustomPreset, i: number) => `${i + 1}. ${p.name}`).join('\n');
     const selection = prompt(`Select a preset:\n${presetNames}\n\nEnter number:`);
     
     if (!selection) return;

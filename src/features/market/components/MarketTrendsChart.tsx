@@ -17,6 +17,32 @@ interface MarketTrendsChartProps {
 
 type MetricType = 'rentGrowth' | 'occupancy' | 'capRate';
 
+interface TooltipPayload {
+  payload: { month: string };
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  metricLabel: string;
+  metricFormat: (v: number) => string;
+}
+
+function CustomTooltip({ active, payload, metricLabel, metricFormat }: CustomTooltipProps) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
+        <p className="text-sm font-medium text-neutral-900">{payload[0].payload.month}</p>
+        <p className="text-sm text-neutral-600 mt-1">
+          {metricLabel}: <span className="font-semibold">{metricFormat(payload[0].value)}</span>
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function MarketTrendsChart({ trends }: MarketTrendsChartProps) {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('rentGrowth');
 
@@ -34,20 +60,6 @@ export function MarketTrendsChart({ trends }: MarketTrendsChartProps) {
            selectedMetric === 'occupancy' ? trend.occupancyPct :
            trend.capRatePct,
   }));
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
-          <p className="text-sm font-medium text-neutral-900">{payload[0].payload.month}</p>
-          <p className="text-sm text-neutral-600 mt-1">
-            {currentMetric.label}: <span className="font-semibold">{currentMetric.format(payload[0].value)}</span>
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <Card className="p-6">
@@ -92,7 +104,7 @@ export function MarketTrendsChart({ trends }: MarketTrendsChartProps) {
             tickLine={{ stroke: '#e5e7eb' }}
             tickFormatter={(value) => currentMetric.format(value)}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip metricLabel={currentMetric.label} metricFormat={currentMetric.format} />} />
           <Area
             type="monotone"
             dataKey="value"

@@ -1,42 +1,22 @@
-import { createBrowserRouter } from 'react-router-dom';
-import { lazy } from 'react';
+import { createBrowserRouter, RouterProvider as ReactRouterProvider } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { PageSuspenseWrapper } from '@/components/SuspenseWrapper';
+import {
+  AnalyticsPage,
+  InvestmentsPage,
+  PropertyDetailPage,
+  TransactionsPage,
+  MappingPage,
+  DealsPage,
+  MarketPage,
+  DocumentsPage,
+  InterestRatesPage,
+  ReportingSuitePage,
+  routerOptions,
+} from './routes';
 
 // Eager load - Dashboard is the landing page
 import { DashboardMain } from '@/features/dashboard-main/DashboardMain';
-
-// Lazy load all other pages for code splitting
-const AnalyticsPage = lazy(() =>
-  import('@/features/analytics').then(m => ({ default: m.AnalyticsPage }))
-);
-const InvestmentsPage = lazy(() =>
-  import('@/features/investments').then(m => ({ default: m.InvestmentsPage }))
-);
-const PropertyDetailPage = lazy(() =>
-  import('@/features/property-detail').then(m => ({ default: m.PropertyDetailPage }))
-);
-const TransactionsPage = lazy(() =>
-  import('@/features/transactions').then(m => ({ default: m.TransactionsPage }))
-);
-const MappingPage = lazy(() =>
-  import('@/features/mapping').then(m => ({ default: m.MappingPage }))
-);
-const DealsPage = lazy(() =>
-  import('@/features/deals').then(m => ({ default: m.DealsPage }))
-);
-const MarketPage = lazy(() =>
-  import('@/features/market').then(m => ({ default: m.MarketPage }))
-);
-const DocumentsPage = lazy(() =>
-  import('@/features/documents').then(m => ({ default: m.DocumentsPage }))
-);
-const InterestRatesPage = lazy(() =>
-  import('@/features/interest-rates').then(m => ({ default: m.InterestRatesPage }))
-);
-const ReportingSuitePage = lazy(() =>
-  import('@/features/reporting-suite').then(m => ({ default: m.ReportingSuitePage }))
-);
 
 // Wrapper for lazy-loaded routes
 function LazyRoute({ children }: { children: React.ReactNode }) {
@@ -47,7 +27,13 @@ function LazyRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const router = createBrowserRouter(
+// Separate component to handle the Deals route with Suspense
+function DealsRoute() {
+  return <DealsPage />;
+}
+
+// Create the router instance (internal, not exported)
+const router = createBrowserRouter(
   [
     {
       path: '/',
@@ -140,14 +126,10 @@ export const router = createBrowserRouter(
       ],
     },
   ],
-  {
-    future: {
-      v7_relativeSplatPath: true,
-    },
-  }
+  routerOptions
 );
 
-// Separate component to handle the Deals route with Suspense
-function DealsRoute() {
-  return <DealsPage />;
+// Export only the RouterProvider component wrapper
+export function AppRouter() {
+  return <ReactRouterProvider router={router} future={{ v7_startTransition: true }} />;
 }

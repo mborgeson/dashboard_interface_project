@@ -23,6 +23,106 @@ interface ChartDataItem {
   color: string;
 }
 
+interface TooltipPayload {
+  payload: ChartDataItem;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  totalValue: number;
+}
+
+function CustomTooltip({ active, payload, totalValue }: CustomTooltipProps) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const percentage = (data.value / totalValue) * 100;
+
+    return (
+      <div className="bg-white p-4 border border-neutral-200 rounded-lg shadow-lg">
+        <p className="text-sm font-semibold text-neutral-900 mb-2">{data.name}</p>
+        <div className="space-y-1">
+          <p className="text-sm text-neutral-700">
+            Value: {formatCurrency(data.value, true)}
+          </p>
+          <p className="text-sm text-neutral-700">
+            Properties: {data.count}
+          </p>
+          <p className="text-sm text-neutral-700">
+            Share: {formatPercent(percentage / 100)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+interface CustomLabelProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
+}
+
+function CustomLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }: CustomLabelProps) {
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  if (percent < 0.05) return null; // Don't show label for small slices
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="white"
+      textAnchor={x > cx ? 'start' : 'end'}
+      dominantBaseline="central"
+      className="text-sm font-semibold"
+    >
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+}
+
+interface LegendEntry {
+  value: string;
+  color: string;
+}
+
+interface CustomLegendProps {
+  payload?: LegendEntry[];
+  chartData: ChartDataItem[];
+  totalValue: number;
+}
+
+function CustomLegend({ payload, chartData, totalValue }: CustomLegendProps) {
+  return (
+    <div className="flex flex-wrap justify-center gap-4 mt-4">
+      {payload?.map((entry: LegendEntry, index: number) => {
+        const dataItem = chartData[index];
+        const percentage = (dataItem.value / totalValue) * 100;
+
+        return (
+          <div key={`legend-${index}`} className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-sm text-neutral-700">
+              {entry.value} ({dataItem.count}) - {percentage.toFixed(1)}%
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const CLASS_COLORS = {
   'Class A': '#2A3F54', // primary-500
   'Class B': '#E74C3C', // accent-500
@@ -88,76 +188,6 @@ export function PropertyDistributionChart({ type = 'class' }: PropertyDistributi
     [chartData]
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      const percentage = (data.value / totalValue) * 100;
-
-      return (
-        <div className="bg-white p-4 border border-neutral-200 rounded-lg shadow-lg">
-          <p className="text-sm font-semibold text-neutral-900 mb-2">{data.name}</p>
-          <div className="space-y-1">
-            <p className="text-sm text-neutral-700">
-              Value: {formatCurrency(data.value, true)}
-            </p>
-            <p className="text-sm text-neutral-700">
-              Properties: {data.count}
-            </p>
-            <p className="text-sm text-neutral-700">
-              Share: {formatPercent(percentage / 100)}
-            </p>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    if (percent < 0.05) return null; // Don't show label for small slices
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="white"
-        textAnchor={x > cx ? 'start' : 'end'}
-        dominantBaseline="central"
-        className="text-sm font-semibold"
-      >
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
-  };
-
-  const CustomLegend = ({ payload }: any) => {
-    return (
-      <div className="flex flex-wrap justify-center gap-4 mt-4">
-        {payload.map((entry: any, index: number) => {
-          const dataItem = chartData[index];
-          const percentage = (dataItem.value / totalValue) * 100;
-
-          return (
-            <div key={`legend-${index}`} className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: entry.color }}
-              />
-              <span className="text-sm text-neutral-700">
-                {entry.value} ({dataItem.count}) - {percentage.toFixed(1)}%
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
     <div className="w-full h-[400px]">
       <ResponsiveContainer width="100%" height="100%">
@@ -178,8 +208,8 @@ export function PropertyDistributionChart({ type = 'class' }: PropertyDistributi
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip content={<CustomTooltip />} />
-          <Legend content={<CustomLegend />} />
+          <Tooltip content={<CustomTooltip totalValue={totalValue} />} />
+          <Legend content={<CustomLegend chartData={chartData} totalValue={totalValue} />} />
         </PieChart>
       </ResponsiveContainer>
     </div>

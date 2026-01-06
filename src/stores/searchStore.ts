@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 
+import type { Property } from '@/types/property';
+import type { Deal } from '@/types/deal';
+import type { Document } from '@/types/document';
+import type { Transaction } from '@/types/transaction';
+
 export interface SearchResult {
   type: 'property' | 'deal' | 'document' | 'transaction';
   id: string;
@@ -12,7 +17,7 @@ export interface SearchResult {
     date?: string;
     property?: string;
   };
-  item: any;
+  item: Property | Deal | Document | Transaction;
 }
 
 interface SearchState {
