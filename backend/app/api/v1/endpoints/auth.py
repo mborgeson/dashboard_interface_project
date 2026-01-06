@@ -167,8 +167,7 @@ async def get_current_user(
             "id": db_user.id,
             "email": db_user.email,
             "role": db_user.role,
-            "first_name": db_user.first_name,
-            "last_name": db_user.last_name,
+            "full_name": db_user.full_name,
         }
 
     # Fallback for demo users (no DB record)
