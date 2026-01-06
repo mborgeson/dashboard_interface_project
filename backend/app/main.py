@@ -20,6 +20,7 @@ from loguru import logger
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.middleware.rate_limiter import RateLimitMiddleware
 from app.services.monitoring import MetricsMiddleware, get_metrics_manager
 
 
@@ -94,6 +95,10 @@ app.add_middleware(
 
 # Add performance monitoring middleware
 app.add_middleware(MetricsMiddleware)
+
+# Add rate limiting middleware (if enabled)
+if settings.RATE_LIMIT_ENABLED:
+    app.add_middleware(RateLimitMiddleware)
 
 
 # Global exception handler

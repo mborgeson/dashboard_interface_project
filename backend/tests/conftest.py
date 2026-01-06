@@ -98,6 +98,28 @@ def cleanup_engine():
         loop.close()
 
 
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """
+    Reset rate limiter state between tests.
+
+    This prevents rate limiting from affecting subsequent tests
+    when multiple tests hit the same endpoints.
+    """
+    # Reset before each test to ensure clean state
+    from app.middleware.rate_limiter import RateLimiter
+    limiter = RateLimiter.get_instance()
+    if limiter is not None:
+        limiter.reset()
+
+    yield
+
+    # Also reset after each test
+    limiter = RateLimiter.get_instance()
+    if limiter is not None:
+        limiter.reset()
+
+
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """

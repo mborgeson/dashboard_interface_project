@@ -98,6 +98,14 @@ class Settings(BaseSettings):
     FILE_EXTENSIONS: str = ".xlsb,.xlsm"
     CUTOFF_DATE: str = "2024-07-15"
 
+    # Rate Limiting Settings
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_BACKEND: str = "auto"  # "memory", "redis", or "auto"
+    RATE_LIMIT_REQUESTS: int = 100  # Default requests per window for API endpoints
+    RATE_LIMIT_WINDOW: int = 60  # Default window in seconds
+    RATE_LIMIT_AUTH_REQUESTS: int = 5  # Stricter limit for auth endpoints
+    RATE_LIMIT_AUTH_WINDOW: int = 60  # Window for auth rate limiting
+
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
