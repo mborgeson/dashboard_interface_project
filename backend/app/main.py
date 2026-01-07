@@ -88,6 +88,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     logger.info("Application shutdown complete")
 
 
+# Only expose API docs in development environment
+_show_docs = settings.ENVIRONMENT == "development"
+
 # Create FastAPI application
 app = FastAPI(
     title=settings.APP_NAME,
@@ -101,19 +104,21 @@ app = FastAPI(
     - Real-time collaboration via WebSockets
     - Report generation and distribution
     """,
-    openapi_url="/api/v1/openapi.json" if settings.DEBUG else None,
-    docs_url="/api/docs" if settings.DEBUG else None,
-    redoc_url="/api/redoc" if settings.DEBUG else None,
+    openapi_url="/api/v1/openapi.json" if _show_docs else None,
+    docs_url="/api/docs" if _show_docs else None,
+    redoc_url="/api/redoc" if _show_docs else None,
     lifespan=lifespan,
 )
 
-# Configure CORS
+# Configure CORS with production-ready settings
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
+    expose_headers=["X-Request-ID"],
+    max_age=600,  # Cache preflight responses for 10 minutes
 )
 
 # Add performance monitoring middleware
@@ -150,7 +155,7 @@ async def root():
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "status": "running",
-        "docs": "/api/docs" if settings.DEBUG else "disabled",
+        "docs": "/api/docs" if _show_docs else "disabled",
     }
 
 

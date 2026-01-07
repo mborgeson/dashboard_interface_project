@@ -1,0 +1,63 @@
+{
+  "memories": [
+    {
+      "type": "completed_feature",
+      "content": "Extraction API sync/async fix completed (2026-01-06). Added get_sync_db() to db/session.py, updated 6 extraction endpoints. O(n²) → O(1) cell lookup optimization implemented with sheet caching. Performance: 1.04s for 14MB file, 99.5% cache hit rate.",
+      "added_at": "2026-01-07T06:45:00.000000",
+      "source": "consolidated"
+    },
+    {
+      "type": "tech_decision",
+      "content": "Security: config.py uses env vars only (no hardcoded secrets). Token blacklist implemented in app/core/token_blacklist.py with Redis primary + in-memory fallback. JWTs include jti for blacklist support. CORS configured for localhost dev + brcapital.com production domains.",
+      "added_at": "2026-01-07T06:45:00.000000",
+      "source": "consolidated"
+    },
+    {
+      "type": "project_status",
+      "content": "Tests: 1004 passed, 16 skipped. Deployment readiness: ~70%. Main blockers: complete deploy.yml placeholders, create docker-compose.yml. Key files: backend/app/extraction/extractor.py (cell caching), backend/app/api/v1/endpoints/extraction.py (18 endpoints), backend/app/core/config.py (env-based config).",
+      "added_at": "2026-01-07T06:45:00.000000",
+      "source": "consolidated"
+    },
+    {
+      "type": "outstanding_tasks",
+      "content": "Priority: 1) Complete deploy.yml placeholder scripts, 2) Create docker-compose.yml for local dev, 3) Add tests for 7 monitor endpoints, 4) Split extraction.py (1154 lines) into smaller files, 5) Create test_crud/test_extraction.py and test_services/test_file_monitor.py.",
+      "added_at": "2026-01-07T06:45:00.000000",
+      "source": "consolidated"
+    },
+    {
+      "type": "convention",
+      "content": "SharePoint extraction uses memory-keeper for checkpoints (namespace: dashboard-project). Extraction scheduler at EXTRACTION_SCHEDULE_CRON (default 2 AM). File filter: .*UW.*Model.*vCurrent.* pattern, excludes ~$,.tmp,backup,vOld. Reference file: Underwriting_Dashboard_Cell_References.xlsx with 1169 cell mappings.",
+      "added_at": "2026-01-07T06:45:00.000000",
+      "source": "consolidated"
+    }
+  ],
+  "manual_memories": [],
+  "realtime_memories": [
+    {
+      "type": "claude_response",
+      "content": "Memory consolidated: 11 → 5 memories. Ready to continue or commit changes.",
+      "added_at": "2026-01-07T07:10:14.670394",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Let's continue with the remaining items.",
+      "added_at": "2026-01-07T07:10:14.670417",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "## Summary - All Tasks Complete\n\n| Task | Status |\n|------|--------|\n| Complete deploy.yml placeholder scripts | ✅ Done |\n| Create docker-compose.yml for local dev | ✅ Already existed |\n| Add tests fo",
+      "added_at": "2026-01-07T07:28:30.093169",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Yes, but include it as referenced in the below request: I would like to create an automatic memory workflow/hook whereby the completion of each project Phase triggers a claude-mem save (i.e., please t",
+      "added_at": "2026-01-07T07:28:30.093213",
+      "source": "realtime_capture"
+    }
+  ],
+  "created_at": "2026-01-07T02:10:53.387854",
+  "updated_at": "2026-01-07T07:28:30.093215"
+}

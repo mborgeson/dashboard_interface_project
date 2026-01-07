@@ -1,10 +1,16 @@
 """
 Application configuration using Pydantic Settings.
 Loads from environment variables with sensible defaults.
+
+SECURITY NOTE: Secrets must be provided via environment variables.
+No hardcoded secrets are used in production.
 """
 
+import secrets as secrets_module
 from functools import lru_cache
+from typing import Any
 
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,7 +18,12 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+        # Parse nested settings like CORS_ORIGINS from JSON or comma-separated strings
+        env_nested_delimiter="__",
     )
 
     # Application Settings
@@ -26,27 +37,83 @@ class Settings(BaseSettings):
     PORT: int = 8000
     WORKERS: int = 4
 
-    # Security Settings
-    SECRET_KEY: str = (
-        "K$!dL8?jbyHaA&H@RtG6XBQtprn&q4ECHf?sJJsjak9epfMX&q&ohePhakX4Pf5"
-        "Ar5gHJ9zDD!8$ejiRLqQcD6oNkFTgLKzs4md@RCJfd65?aYi7iik"
-    )
+    # Security Settings - SECRET_KEY MUST be set via environment variable in production
+    SECRET_KEY: str | None = None  # No hardcoded default - validated below
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # CORS Settings
+    # CORS Settings - configurable via CORS_ORIGINS env var
+    # Supports both JSON array ["url1", "url2"] and comma-separated "url1,url2" formats
+    # Development origins are defaults; production origins should be set via CORS_ORIGINS env var
     CORS_ORIGINS: list[str] = [
+        # Development origins (defaults)
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        # Production origins - also set via CORS_ORIGINS env var for flexibility
+        "https://dashboard.brcapital.com",
+        "https://app.brcapital.com",
+        "https://brcapital.com",
     ]
 
-    # Database Settings
-    # Simple password for asyncpg compatibility (no special characters)
-    DATABASE_URL: str = (
-        "postgresql://postgres:postgres123@localhost:5432/dashboard_interface_data"
-    )
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: Any) -> list[str]:
+        """Parse CORS origins from comma-separated string, JSON array, or list.
+
+        Environment variable formats supported:
+        - Comma-separated: CORS_ORIGINS="https://example.com,https://app.example.com"
+        - JSON array: CORS_ORIGINS='["https://example.com","https://app.example.com"]'
+        """
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return [str(origin).strip() for origin in v if origin]
+        if isinstance(v, str):
+            v = v.strip()
+            # Try JSON parse first (for ["url1", "url2"] format)
+            if v.startswith("["):
+                import json
+
+                try:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(origin).strip() for origin in parsed if origin]
+                except json.JSONDecodeError:
+                    pass
+            # Fall back to comma-separated parsing
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return []
+
+    @model_validator(mode="after")
+    def validate_secrets(self) -> "Settings":
+        """Validate that required secrets are set appropriately for the environment."""
+        # SECRET_KEY validation
+        if self.ENVIRONMENT == "production":
+            if not self.SECRET_KEY:
+                raise ValueError(
+                    "SECRET_KEY environment variable must be set in production. "
+                    "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+                )
+            if len(self.SECRET_KEY) < 32:
+                raise ValueError("SECRET_KEY must be at least 32 characters in production")
+            # DATABASE_URL validation - must be PostgreSQL in production
+            if "sqlite" in self.DATABASE_URL.lower():
+                raise ValueError(
+                    "DATABASE_URL must use PostgreSQL in production. "
+                    "SQLite is only allowed for development/testing."
+                )
+        else:
+            # For development/testing, generate a random key if not provided
+            if not self.SECRET_KEY:
+                object.__setattr__(self, "SECRET_KEY", secrets_module.token_urlsafe(64))
+
+        return self
+
+    # Database Settings - use SQLite for dev, PostgreSQL URL via env var for production
+    DATABASE_URL: str = "sqlite:///./test.db"  # Safe default for development only
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
     DATABASE_POOL_TIMEOUT: int = 30
@@ -59,10 +126,10 @@ class Settings(BaseSettings):
     # Email Settings -- General (Gmail SMTP)
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 465
-    SMTP_USER: str | None = "borgesom68@gmail.com"
-    SMTP_PASSWORD: str | None = "dgbrnbtlwrlyljcy"
+    SMTP_USER: str | None = None  # Set via environment variable
+    SMTP_PASSWORD: str | None = None  # NEVER hardcode - set via SMTP_PASSWORD env var
     EMAIL_FROM_NAME: str = "Dashboard Interface (B&R Capital)"
-    EMAIL_FROM_ADDRESS: str | None = "borgesom68@gmail.com"
+    EMAIL_FROM_ADDRESS: str | None = None  # Set via environment variable
     # Email Settings -- Advanced Settings (Gmail SMTP)
     EMAIL_RATE_LIMIT: int = 60
     EMAIL_MAX_RETRIES: int = 3
@@ -79,8 +146,8 @@ class Settings(BaseSettings):
     ML_BATCH_SIZE: int = 32
     ML_PREDICTION_CACHE_TTL: int = 300  # 5 minutes
 
-    # External APIs
-    FRED_API_KEY: str | None = "d043d26a9a4139438bb2a8d565bc01f7"
+    # External APIs - set via environment variables, no hardcoded keys
+    FRED_API_KEY: str | None = None  # Set via FRED_API_KEY env var
 
     # SharePoint/Azure AD Settings (load from .env)
     AZURE_CLIENT_ID: str | None = None

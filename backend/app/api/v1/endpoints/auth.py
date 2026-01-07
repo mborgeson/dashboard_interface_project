@@ -2,7 +2,10 @@
 Authentication endpoints for login, logout, and token management.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import time
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +16,7 @@ from app.core.security import (
     create_refresh_token,
     decode_token,
 )
+from app.core.token_blacklist import token_blacklist
 from app.crud import user as user_crud
 from app.db.session import get_db
 from app.schemas.auth import RefreshTokenRequest, Token
@@ -20,19 +24,30 @@ from app.schemas.auth import RefreshTokenRequest, Token
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-# Demo users fallback (for development without DB setup)
-DEMO_USERS = {
-    "admin@brcapital.com": {
-        "password": "admin123",
-        "id": 1,
-        "role": "admin",
-    },
-    "analyst@brcapital.com": {
-        "password": "analyst123",
-        "id": 2,
-        "role": "analyst",
-    },
-}
+
+def _get_demo_users() -> dict:
+    """
+    Get demo users dictionary - only available in non-production environments.
+
+    SECURITY: Demo users are disabled in production to prevent unauthorized access.
+    In production, all authentication must go through the database.
+    """
+    if settings.ENVIRONMENT == "production":
+        return {}
+
+    # Demo users for development/testing only
+    return {
+        "admin@brcapital.com": {
+            "password": "admin123",
+            "id": 1,
+            "role": "admin",
+        },
+        "analyst@brcapital.com": {
+            "password": "analyst123",
+            "id": 2,
+            "role": "analyst",
+        },
+    }
 
 
 @router.post("/login", response_model=Token)
@@ -77,8 +92,9 @@ async def login(
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
 
-    # Fallback to demo users for development
-    demo_user = DEMO_USERS.get(form_data.username)
+    # Fallback to demo users for development (disabled in production)
+    demo_users = _get_demo_users()
+    demo_user = demo_users.get(form_data.username)
     if demo_user and form_data.password == demo_user["password"]:
         access_token = create_access_token(
             subject=str(demo_user["id"]),
@@ -117,6 +133,14 @@ async def refresh_token(request: RefreshTokenRequest):
             detail="Invalid refresh token",
         )
 
+    # Check if refresh token has been revoked
+    jti = payload.get("jti")
+    if jti and await token_blacklist.is_blacklisted(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token has been revoked",
+        )
+
     # Create new tokens
     user_id = payload.get("sub")
     access_token = create_access_token(subject=user_id)
@@ -131,15 +155,32 @@ async def refresh_token(request: RefreshTokenRequest):
 
 
 @router.post("/logout")
-async def logout():
+async def logout(
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
     """
     Logout user (invalidate tokens).
 
-    Note: In a stateless JWT setup, this primarily signals the client
-    to discard tokens. Server-side token invalidation requires a
-    token blacklist (typically using Redis).
+    Adds the token to a blacklist to prevent further use.
+    The token will remain blacklisted until its natural expiration.
     """
-    # TODO: Add token to blacklist if implementing server-side invalidation
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ", 1)[1]
+        try:
+            payload = decode_token(token)
+            if payload:
+                jti = payload.get("jti")
+                exp = payload.get("exp", 0)
+                if jti:
+                    # Calculate remaining token lifetime
+                    ttl = max(0, int(exp) - int(time.time()))
+                    if ttl > 0:
+                        await token_blacklist.add(jti, ttl)
+                        logger.info(f"Token blacklisted: {jti[:8]}... (TTL: {ttl}s)")
+        except Exception as e:
+            # Token may be invalid or expired, no need to blacklist
+            logger.debug(f"Logout token processing skipped: {e}")
+
     return {"message": "Successfully logged out"}
 
 
@@ -156,6 +197,14 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
+        )
+
+    # Check if token has been revoked (logout)
+    jti = payload.get("jti")
+    if jti and await token_blacklist.is_blacklisted(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
         )
 
     user_id = payload.get("sub")

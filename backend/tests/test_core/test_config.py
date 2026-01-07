@@ -223,3 +223,124 @@ class TestSettingsBoundaries:
     def test_port_valid_range(self):
         """Test port is in valid range."""
         assert 1 <= settings.PORT <= 65535
+
+
+# =============================================================================
+# Security Validation Tests
+# =============================================================================
+
+
+class TestSecurityValidation:
+    """Tests for security configuration validation."""
+
+    def test_secret_key_auto_generated_in_development(self):
+        """Test that SECRET_KEY is auto-generated in non-production environments."""
+        # In development/testing, SECRET_KEY should be auto-generated if not set
+        assert settings.SECRET_KEY is not None
+        assert len(settings.SECRET_KEY) >= 32
+
+    def test_production_requires_secret_key(self, monkeypatch, tmp_path):
+        """Test that production environment requires SECRET_KEY to be set."""
+        # Clear the lru_cache to get fresh settings
+        from app.core.config import get_settings
+
+        get_settings.cache_clear()
+
+        # Create empty .env to prevent loading real .env file
+        empty_env = tmp_path / ".env"
+        empty_env.write_text("")
+        monkeypatch.chdir(tmp_path)
+
+        # Set production environment without SECRET_KEY
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.delenv("SECRET_KEY", raising=False)
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+
+        with pytest.raises(ValueError, match="SECRET_KEY.*must be set in production"):
+            Settings()
+
+        # Reset
+        get_settings.cache_clear()
+
+    def test_production_requires_long_secret_key(self, monkeypatch):
+        """Test that production requires SECRET_KEY >= 32 characters."""
+        from app.core.config import get_settings
+
+        get_settings.cache_clear()
+
+        # Set production with a short key
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.setenv("SECRET_KEY", "tooshort")
+        monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost/db")
+
+        with pytest.raises(ValueError, match="at least 32 characters"):
+            Settings()
+
+        get_settings.cache_clear()
+
+    def test_production_rejects_sqlite(self, monkeypatch):
+        """Test that production environment rejects SQLite database."""
+        from app.core.config import get_settings
+
+        get_settings.cache_clear()
+
+        # Set production with valid secret but SQLite
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.setenv("SECRET_KEY", "a" * 64)  # Long enough key
+        monkeypatch.setenv("DATABASE_URL", "sqlite:///./test.db")
+
+        with pytest.raises(ValueError, match="DATABASE_URL must use PostgreSQL"):
+            Settings()
+
+        get_settings.cache_clear()
+
+    def test_development_allows_sqlite(self):
+        """Test that development environment allows SQLite database."""
+        # Default environment should allow SQLite
+        if settings.ENVIRONMENT != "production":
+            # SQLite is acceptable in non-production
+            assert "sqlite" in settings.DATABASE_URL or "postgresql" in settings.DATABASE_URL
+
+    def test_no_hardcoded_smtp_password(self, tmp_path, monkeypatch):
+        """Test that SMTP_PASSWORD default is None (not hardcoded)."""
+        from app.core.config import get_settings
+
+        get_settings.cache_clear()
+
+        # Create empty .env to test default behavior
+        empty_env = tmp_path / ".env"
+        empty_env.write_text("")
+        monkeypatch.chdir(tmp_path)
+
+        # Clear any env var that might be set
+        monkeypatch.delenv("SMTP_PASSWORD", raising=False)
+
+        # Create fresh settings without .env influence
+        fresh_settings = Settings()
+
+        # Default should be None, not hardcoded
+        assert fresh_settings.SMTP_PASSWORD is None
+
+        get_settings.cache_clear()
+
+    def test_no_hardcoded_fred_api_key(self, tmp_path, monkeypatch):
+        """Test that FRED_API_KEY default is None (not hardcoded)."""
+        from app.core.config import get_settings
+
+        get_settings.cache_clear()
+
+        # Create empty .env to test default behavior
+        empty_env = tmp_path / ".env"
+        empty_env.write_text("")
+        monkeypatch.chdir(tmp_path)
+
+        # Clear any env var that might be set
+        monkeypatch.delenv("FRED_API_KEY", raising=False)
+
+        # Create fresh settings without .env influence
+        fresh_settings = Settings()
+
+        # Default should be None, not hardcoded
+        assert fresh_settings.FRED_API_KEY is None
+
+        get_settings.cache_clear()

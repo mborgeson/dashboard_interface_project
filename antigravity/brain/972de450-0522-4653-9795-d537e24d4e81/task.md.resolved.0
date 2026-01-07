@@ -1,0 +1,56 @@
+# Task List: 4-Task Roadmap Implementation
+
+## Current Session: 2026-01-06
+
+---
+
+## Task 1: Increase Frontend Test Coverage (55.7% → 70%+)
+
+- [/] Analyze current coverage gaps
+- [ ] Add tests for skeleton components (8.1% coverage)
+  - [ ] ChartSkeleton tests
+  - [ ] DealCardSkeleton tests
+  - [ ] PropertyCardSkeleton tests
+  - [ ] StatCardSkeleton tests
+  - [ ] TableSkeleton tests
+- [ ] Add tests for toast component (8.33% coverage)
+- [ ] Add tests for skeleton.tsx utilities (20% coverage)
+- [ ] Add tests for hooks
+  - [ ] useFilterPersistence
+  - [ ] useGlobalSearch
+  - [ ] useToast
+- [ ] Add tests for additional UI components
+  - [ ] empty-state.tsx
+  - [ ] error-state.tsx
+  - [ ] alert-banner.tsx
+- [ ] Verify 70%+ coverage achieved
+- [ ] Commit changes
+
+---
+
+## Task 2: Increase Backend Coverage (70% → 75%+)
+
+- [ ] Add integration tests for collectors.py
+- [ ] Add integration tests for workflow_engine.py
+- [ ] Verify 75%+ coverage achieved
+- [ ] Commit changes
+
+---
+
+## Task 3: Add E2E Tests with Playwright
+
+- [ ] Set up Playwright test suite for critical user flows
+- [ ] Test Dashboard navigation
+- [ ] Test Deals page functionality
+- [ ] Test Interest Rates page
+- [ ] Test Map page interactions
+- [ ] Commit changes
+
+---
+
+## Task 4: CI/CD Enhancements - Automated Deployments
+
+- [ ] Add deployment workflow
+- [ ] Configure environment secrets
+- [ ] Test deployment pipeline
+- [ ] Commit changes

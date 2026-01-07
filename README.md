@@ -1,73 +1,79 @@
-# React + TypeScript + Vite
+# B&R Capital Dashboard Interface
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A comprehensive real estate investment dashboard for B&R Capital, featuring automated data extraction from SharePoint, financial analytics, and portfolio management.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Real-time portfolio dashboard with key metrics
+- Automated SharePoint integration for UW model extraction
+- Financial data visualization and reporting
+- Interest rate and economic data integration (FRED API)
+- WebSocket support for live updates
+- Role-based access control
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Backend:**
+- Python 3.11+ with FastAPI
+- PostgreSQL 15+ database
+- Redis for caching and rate limiting
+- SQLAlchemy + Alembic for ORM and migrations
 
-## Expanding the ESLint configuration
+**Frontend:**
+- React 18+ with TypeScript
+- Vite for build tooling
+- TailwindCSS for styling
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Quick Start
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+```bash
+# Clone repository
+git clone <repository-url>
+cd dashboard_interface_project
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# Configure environment
+cp backend/.env.example backend/.env
+# Edit backend/.env with your settings
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Start with Docker
+docker-compose up -d
+
+# Access the application
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:8000/docs
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Documentation
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- [Deployment Guide](docs/DEPLOYMENT.md) - Complete setup and deployment instructions
+- [API Documentation](http://localhost:8000/docs) - Interactive API docs (when running)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Development
+
+```bash
+# Backend
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+
+# Frontend
+npm install
+npm run dev
 ```
+
+## Testing
+
+```bash
+# Backend tests
+cd backend
+pytest --cov=app
+
+# Frontend tests
+npm run test
+```
+
+## License
+
+Proprietary - B&R Capital

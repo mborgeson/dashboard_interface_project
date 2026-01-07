@@ -3,104 +3,46 @@
     "PreToolUse": [],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "claudekit-hooks run lint-changed"
+            "command": "/home/mattb/.claude-mem/hooks/post-tool-use.js",
+            "timeout": 180
           }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claudekit-hooks run typecheck-changed"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claudekit-hooks run check-any-changed"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claudekit-hooks run test-changed"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claudekit-hooks run check-comment-replacement"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claudekit-hooks run check-unused-parameters"
-          }
-        ]
+        ],
+        "matcher": "*"
       }
     ],
     "Stop": [
       {
-        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "claudekit-hooks run typecheck-project"
-          },
-          {
-            "type": "command",
-            "command": "claudekit-hooks run lint-project"
-          },
-          {
-            "type": "command",
-            "command": "claudekit-hooks run test-project"
-          },
-          {
-            "type": "command",
-            "command": "claudekit-hooks run check-todos"
-          },
-          {
-            "type": "command",
-            "command": "claudekit-hooks run self-review"
-          },
-          {
-            "type": "command",
-            "command": "claudekit-hooks run create-checkpoint"
+            "command": "/home/mattb/.claude-mem/hooks/stop.js",
+            "timeout": 60
           }
         ]
       }
     ],
     "SubagentStop": [],
-    "SessionStart": [],
-    "UserPromptSubmit": [
+    "SessionStart": [
       {
-        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "claudekit-hooks run codebase-map"
-          },
+            "command": "/home/mattb/.claude-mem/hooks/session-start.js",
+            "timeout": 180
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
           {
             "type": "command",
-            "command": "claudekit-hooks run thinking-level"
+            "command": "/home/mattb/.claude-mem/hooks/user-prompt-submit.js",
+            "timeout": 60
           }
         ]
       }

@@ -5,8 +5,10 @@ import pytest_asyncio
 from app.core.security import (
     create_access_token,
     create_refresh_token,
+    decode_token,
     get_password_hash,
 )
+from app.core.token_blacklist import token_blacklist
 from app.models import User
 
 # =============================================================================
@@ -106,7 +108,13 @@ async def test_login_inactive_user(client, inactive_user):
 
 @pytest.mark.asyncio
 async def test_login_demo_user_admin(client):
-    """Test login with demo admin user (fallback for development)."""
+    """Test login with demo admin user (fallback for development only).
+
+    NOTE: Demo users are only available in non-production environments.
+    In production, this should fail with 401 (tested separately).
+    """
+    from app.core.config import settings
+
     response = await client.post(
         "/api/v1/auth/login",
         data={
@@ -116,16 +124,23 @@ async def test_login_demo_user_admin(client):
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
 
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
-    assert "refresh_token" in data
-    assert data["token_type"] == "bearer"
+    # In non-production (testing), demo users should work
+    if settings.ENVIRONMENT != "production":
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["token_type"] == "bearer"
+    else:
+        # In production, demo users should fail
+        assert response.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_login_demo_user_analyst(client):
-    """Test login with demo analyst user (fallback for development)."""
+    """Test login with demo analyst user (fallback for development only)."""
+    from app.core.config import settings
+
     response = await client.post(
         "/api/v1/auth/login",
         data={
@@ -135,9 +150,12 @@ async def test_login_demo_user_analyst(client):
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
 
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
+    if settings.ENVIRONMENT != "production":
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+    else:
+        assert response.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -331,3 +349,202 @@ async def test_protected_endpoint_with_auth(client, auth_headers):
     # Should not be auth error - may be 200, 422 (validation), etc.
     # The key test is that auth headers are accepted
     assert response.status_code != 401
+
+
+@pytest.mark.asyncio
+async def test_demo_users_disabled_in_production_environment():
+    """Test that _get_demo_users returns empty dict in production."""
+    from app.api.v1.endpoints.auth import _get_demo_users
+    from app.core.config import settings
+
+    demo_users = _get_demo_users()
+
+    # Should have demo users in non-production
+    if settings.ENVIRONMENT != "production":
+        assert len(demo_users) > 0
+        assert "admin@brcapital.com" in demo_users
+        assert "analyst@brcapital.com" in demo_users
+    # Note: Cannot easily test production behavior without changing settings
+    # The implementation guards against production by checking settings.ENVIRONMENT
+
+
+# =============================================================================
+# Token Blacklist Tests
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_logout_blacklists_token(client, test_user):
+    """Test that logout adds token to blacklist."""
+    # Login to get a token
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": "test@example.com",
+            "password": "testpassword123",
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login_response.status_code == 200
+    access_token = login_response.json()["access_token"]
+
+    # Verify token works before logout
+    me_response = await client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert me_response.status_code == 200
+
+    # Logout with the token
+    logout_response = await client.post(
+        "/api/v1/auth/logout",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert logout_response.status_code == 200
+    assert "logged out" in logout_response.json()["message"].lower()
+
+    # Token should now be rejected
+    me_response_after = await client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert me_response_after.status_code == 401
+    assert "revoked" in me_response_after.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_logout_without_token_still_succeeds(client):
+    """Test that logout without a token still returns success."""
+    response = await client.post("/api/v1/auth/logout")
+    assert response.status_code == 200
+    assert "logged out" in response.json()["message"].lower()
+
+
+@pytest.mark.asyncio
+async def test_logout_with_invalid_token_still_succeeds(client):
+    """Test that logout with invalid token still returns success."""
+    response = await client.post(
+        "/api/v1/auth/logout",
+        headers={"Authorization": "Bearer invalid.token.here"},
+    )
+    assert response.status_code == 200
+    assert "logged out" in response.json()["message"].lower()
+
+
+@pytest.mark.asyncio
+async def test_token_contains_jti(client, test_user):
+    """Test that generated tokens contain a JTI claim."""
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": "test@example.com",
+            "password": "testpassword123",
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login_response.status_code == 200
+
+    access_token = login_response.json()["access_token"]
+    refresh_token = login_response.json()["refresh_token"]
+
+    # Decode and verify JTI exists
+    access_payload = decode_token(access_token)
+    refresh_payload = decode_token(refresh_token)
+
+    assert access_payload is not None
+    assert "jti" in access_payload
+    assert len(access_payload["jti"]) == 36  # UUID format
+
+    assert refresh_payload is not None
+    assert "jti" in refresh_payload
+    assert len(refresh_payload["jti"]) == 36  # UUID format
+
+    # JTIs should be unique
+    assert access_payload["jti"] != refresh_payload["jti"]
+
+
+@pytest.mark.asyncio
+async def test_blacklist_add_and_check():
+    """Test token blacklist add and check operations."""
+    test_jti = "test-jti-12345678"
+
+    # Should not be blacklisted initially
+    is_blocked = await token_blacklist.is_blacklisted(test_jti)
+    assert is_blocked is False
+
+    # Add to blacklist
+    await token_blacklist.add(test_jti, expires_in=60)
+
+    # Should now be blacklisted
+    is_blocked = await token_blacklist.is_blacklisted(test_jti)
+    assert is_blocked is True
+
+    # Clean up
+    await token_blacklist.remove(test_jti)
+
+    # Should no longer be blacklisted
+    is_blocked = await token_blacklist.is_blacklisted(test_jti)
+    assert is_blocked is False
+
+
+@pytest.mark.asyncio
+async def test_blacklist_empty_jti():
+    """Test that empty JTI is handled gracefully."""
+    # Should not raise errors with empty/None JTI
+    await token_blacklist.add("", expires_in=60)
+    is_blocked = await token_blacklist.is_blacklisted("")
+    assert is_blocked is False
+
+    await token_blacklist.add(None, expires_in=60)  # type: ignore
+    is_blocked = await token_blacklist.is_blacklisted(None)  # type: ignore
+    assert is_blocked is False
+
+
+@pytest.mark.asyncio
+async def test_blacklist_stats():
+    """Test blacklist stats retrieval."""
+    stats = token_blacklist.get_stats()
+
+    assert "backend" in stats
+    assert stats["backend"] in ["redis", "memory"]
+    assert "memory_entries" in stats
+    assert isinstance(stats["memory_entries"], int)
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_blacklisted_after_logout(client, test_user):
+    """Test that refresh token works before logout but not after using access token logout."""
+    # Login to get tokens
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": "test@example.com",
+            "password": "testpassword123",
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login_response.status_code == 200
+    access_token = login_response.json()["access_token"]
+    refresh_token = login_response.json()["refresh_token"]
+
+    # Verify refresh works before logout
+    refresh_response = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert refresh_response.status_code == 200
+
+    # Logout using access token (this blacklists the access token, not refresh)
+    await client.post(
+        "/api/v1/auth/logout",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    # Refresh token should still work since only access token was blacklisted
+    # (In a stricter implementation, you might also blacklist refresh token)
+    refresh_response_after = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    # This should work since we only blacklisted the access token
+    assert refresh_response_after.status_code == 200

@@ -144,17 +144,47 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
       - name: Deploy to staging server
-        # This is a placeholder - configure based on your deployment target
+        env:
+          DEPLOY_HOST: ${{ secrets.STAGING_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'deploy' }}
+          FRONTEND_IMAGE: ${{ needs.build-images.outputs.frontend-image }}
+          BACKEND_IMAGE: ${{ needs.build-images.outputs.backend-image }}
         run: |
           echo "🚀 Deploying to staging environment..."
-          echo "Image: ${{ needs.build-images.outputs.frontend-image }}"
-          echo "Backend: ${{ needs.build-images.outputs.backend-image }}"
-          # Add your deployment commands here:
-          # - SSH to server and pull new images
-          # - Docker Compose update
-          # - Kubernetes apply
-          # - Cloud provider CLI (AWS, GCP, Azure)
+
+          # Skip if no host configured (allows dry-run)
+          if [ -z "$DEPLOY_HOST" ]; then
+            echo "::warning::STAGING_HOST not configured - running in dry-run mode"
+            echo "Would deploy: Frontend=$FRONTEND_IMAGE, Backend=$BACKEND_IMAGE"
+            exit 0
+          fi
+
+          # Deploy via SSH
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} << 'ENDSSH'
+            cd /opt/dashboard || exit 1
+
+            # Pull latest images
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+
+            # Update and restart services
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d --force-recreate backend frontend
+
+            # Clean up old images
+            docker image prune -f
+
+            echo "Staging deployment complete"
+          ENDSSH
+
           echo "✅ Staging deployment complete"
 
       - name: Notify deployment
@@ -176,13 +206,58 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
       - name: Deploy to production server
-        # This is a placeholder - configure based on your deployment target
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'deploy' }}
+          FRONTEND_IMAGE: ${{ needs.build-images.outputs.frontend-image }}
+          BACKEND_IMAGE: ${{ needs.build-images.outputs.backend-image }}
         run: |
           echo "🚀 Deploying to production environment..."
-          echo "Image: ${{ needs.build-images.outputs.frontend-image }}"
-          echo "Backend: ${{ needs.build-images.outputs.backend-image }}"
-          # Add your production deployment commands here
+
+          # Skip if no host configured (allows dry-run)
+          if [ -z "$DEPLOY_HOST" ]; then
+            echo "::warning::PRODUCTION_HOST not configured - running in dry-run mode"
+            echo "Would deploy: Frontend=$FRONTEND_IMAGE, Backend=$BACKEND_IMAGE"
+            exit 0
+          fi
+
+          # Deploy via SSH with rolling update
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} << 'ENDSSH'
+            cd /opt/dashboard || exit 1
+
+            # Backup current state
+            docker-compose -f docker-compose.prod.yml config > /tmp/docker-compose-backup.yml
+
+            # Pull latest images
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+
+            # Run database migrations
+            docker-compose -f docker-compose.prod.yml exec -T backend alembic upgrade head || echo "Migration skipped"
+
+            # Rolling update - backend first, then frontend
+            docker-compose -f docker-compose.prod.yml up -d --no-deps --force-recreate backend
+            sleep 10  # Wait for backend health check
+            docker-compose -f docker-compose.prod.yml up -d --no-deps --force-recreate frontend
+
+            # Verify health
+            sleep 5
+            curl -sf http://localhost:8000/health || echo "Backend health check pending"
+
+            # Clean up old images
+            docker image prune -f
+
+            echo "Production deployment complete"
+          ENDSSH
+
           echo "✅ Production deployment complete"
 
       - name: Create deployment tag
@@ -202,15 +277,36 @@ jobs:
       - name: Check frontend health
         continue-on-error: true
         run: |
-          # Replace with your actual health check endpoint
           echo "Checking frontend health..."
-          # curl -sf ${{ vars.STAGING_URL }}/health || echo "Health check pending"
+          if [ -n "${{ vars.STAGING_URL }}" ]; then
+            curl -sf "${{ vars.STAGING_URL }}" -o /dev/null && echo "✅ Frontend healthy" || echo "⚠️ Frontend health check failed"
+          elif [ -n "${{ vars.PRODUCTION_URL }}" ]; then
+            curl -sf "${{ vars.PRODUCTION_URL }}" -o /dev/null && echo "✅ Frontend healthy" || echo "⚠️ Frontend health check failed"
+          else
+            echo "::notice::No URL configured for health check"
+          fi
 
       - name: Check backend health
         continue-on-error: true
         run: |
           echo "Checking backend health..."
-          # curl -sf ${{ vars.STAGING_URL }}/api/health || echo "Health check pending"
+          if [ -n "${{ vars.STAGING_URL }}" ]; then
+            curl -sf "${{ vars.STAGING_URL }}/api/v1/health" && echo "✅ Backend healthy" || echo "⚠️ Backend health check failed"
+          elif [ -n "${{ vars.PRODUCTION_URL }}" ]; then
+            curl -sf "${{ vars.PRODUCTION_URL }}/api/v1/health" && echo "✅ Backend healthy" || echo "⚠️ Backend health check failed"
+          else
+            echo "::notice::No URL configured for health check"
+          fi
+
+      - name: Check monitoring endpoints
+        continue-on-error: true
+        run: |
+          echo "Checking monitoring endpoints..."
+          BASE_URL="${{ vars.STAGING_URL || vars.PRODUCTION_URL }}"
+          if [ -n "$BASE_URL" ]; then
+            curl -sf "${BASE_URL}/api/v1/monitoring/health/live" && echo "✅ Liveness probe OK"
+            curl -sf "${BASE_URL}/api/v1/monitoring/health/ready" && echo "✅ Readiness probe OK"
+          fi
 
       - name: Report status
         run: |

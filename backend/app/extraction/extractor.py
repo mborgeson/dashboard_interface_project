@@ -268,6 +268,21 @@ class ExcelDataExtractor:
             "error_summary": error_summary,
         }
 
+        # Log cache statistics for performance monitoring
+        if is_xlsb and hasattr(workbook, "_cache_stats"):
+            stats = workbook._cache_stats
+            total_lookups = stats["hits"] + stats["misses"]
+            hit_rate = round(stats["hits"] / total_lookups * 100, 1) if total_lookups > 0 else 0
+            self.logger.info(
+                "cache_performance",
+                total_lookups=total_lookups,
+                cache_hits=stats["hits"],
+                cache_misses=stats["misses"],
+                hit_rate=hit_rate,
+                sheets_cached=len(stats["builds"]),
+                cache_build_time=round(sum(b["time"] for b in stats["builds"]), 3),
+            )
+
         self.logger.info(
             "extraction_complete",
             file_path=file_path,
@@ -322,10 +337,44 @@ class ExcelDataExtractor:
                 field_name, sheet_name, cell_address, str(e)
             )
 
+    def _build_xlsb_sheet_cache(
+        self, workbook, sheet_name: str
+    ) -> dict[tuple[int, int], Any]:
+        """
+        Build a cell lookup dictionary for an XLSB sheet.
+
+        PERFORMANCE OPTIMIZATION: This converts O(n) sheet iteration into a
+        one-time O(n) operation, enabling O(1) lookups for all subsequent
+        cell accesses. For ~1,179 mappings on a sheet with thousands of cells,
+        this reduces complexity from O(mappings * cells) to O(cells + mappings).
+
+        Args:
+            workbook: pyxlsb workbook object
+            sheet_name: Name of the sheet to cache
+
+        Returns:
+            Dictionary mapping (row, col) tuples to cell values.
+            Row and column are 0-based indices as used by pyxlsb.
+        """
+        cell_cache: dict[tuple[int, int], Any] = {}
+
+        with workbook.get_sheet(sheet_name) as sheet:
+            for row in sheet.rows():
+                for cell in row:
+                    # Store cell value indexed by (row, col) for O(1) lookup
+                    cell_cache[(cell.r, cell.c)] = cell.v
+
+        return cell_cache
+
     def _extract_from_xlsb(
         self, workbook, sheet_name: str, cell_address: str, field_name: str
     ) -> Any:
-        """Extract value from .xlsb file with pyxlsb"""
+        """
+        Extract value from .xlsb file with pyxlsb using cached lookups.
+
+        PERFORMANCE: Uses pre-built cell cache for O(1) lookups instead of
+        iterating through all cells for each mapping (O(n) per lookup).
+        """
         # Check sheet exists
         if sheet_name not in workbook.sheets:
             return self.error_handler.handle_missing_sheet(
@@ -350,16 +399,47 @@ class ExcelDataExtractor:
         target_row = int(row_str) - 1
         target_col = self._column_to_index(col_str)
 
-        # Read from sheet
-        with workbook.get_sheet(sheet_name) as sheet:
-            for row in sheet.rows():
-                for cell in row:
-                    if cell.r == target_row and cell.c == target_col:
-                        return self.error_handler.process_cell_value(
-                            cell.v, field_name, sheet_name, cell_address
-                        )
+        # Get or build the sheet cache for O(1) cell lookups
+        # Cache is stored on workbook object for reuse across mappings
+        if not hasattr(workbook, "_sheet_cache"):
+            workbook._sheet_cache = {}
+            workbook._cache_stats = {"hits": 0, "misses": 0, "builds": []}
 
-        # Cell not found (likely empty or outside bounds)
+        if sheet_name not in workbook._sheet_cache:
+            # CACHE MISS - need to build cache for this sheet
+            import time
+            build_start = time.time()
+            workbook._sheet_cache[sheet_name] = self._build_xlsb_sheet_cache(
+                workbook, sheet_name
+            )
+            build_time = time.time() - build_start
+            workbook._cache_stats["misses"] += 1
+            workbook._cache_stats["builds"].append({
+                "sheet": sheet_name,
+                "time": round(build_time, 3),
+                "cells": len(workbook._sheet_cache[sheet_name])
+            })
+            self.logger.info(
+                "CACHE_MISS",
+                sheet=sheet_name,
+                build_time=round(build_time, 3),
+                cells_cached=len(workbook._sheet_cache[sheet_name]),
+            )
+        else:
+            # CACHE HIT - reusing existing cache
+            workbook._cache_stats["hits"] += 1
+
+        cell_cache = workbook._sheet_cache[sheet_name]
+
+        # O(1) lookup instead of O(cells) iteration
+        cell_value = cell_cache.get((target_row, target_col))
+
+        if cell_value is not None:
+            return self.error_handler.process_cell_value(
+                cell_value, field_name, sheet_name, cell_address
+            )
+
+        # Cell not found in cache (empty cell or outside data bounds)
         return self.error_handler.handle_empty_value(
             field_name, sheet_name, cell_address
         )

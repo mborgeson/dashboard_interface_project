@@ -1,0 +1,120 @@
+# =============================================================================
+# B&R Capital Dashboard - Development Docker Compose
+# =============================================================================
+# Local development environment with hot-reload and debugging support
+# Usage: docker-compose up -d
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: dashboard-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: dashboard_interface_data
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dashboard-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Redis Cache
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: dashboard-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dashboard-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Backend API (FastAPI)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      target: development
+    container_name: dashboard-backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/dashboard_interface_data
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=debug
+      - HOST=0.0.0.0
+      - PORT=8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dashboard-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Frontend (React + Vite via Nginx)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      target: production
+    container_name: dashboard-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    networks:
+      - dashboard-network
+    restart: unless-stopped
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  dashboard-network:
+    driver: bridge
+    name: dashboard-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    name: dashboard-postgres-data
+  redis_data:
+    name: dashboard-redis-data
+  backend_logs:
+    name: dashboard-backend-logs

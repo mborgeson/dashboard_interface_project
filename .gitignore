@@ -49,6 +49,10 @@ htmlcov/
 .env
 .env.local
 *.env
+!.env.example
+
+# Docker
+docker-compose.override.yml
 
 # Claude-Flow / Swarm (local state)
 .swarm/

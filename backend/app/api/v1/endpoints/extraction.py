@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.crud.extraction import ExtractedValueCRUD, ExtractionRunCRUD
-from app.db.session import get_db, get_sync_db
+from app.db.session import SessionLocal, get_db, get_sync_db
 from app.extraction.file_filter import get_file_filter
 from app.extraction.sharepoint import (
     SharePointAuthError,
@@ -109,16 +109,23 @@ async def _download_sharepoint_file(
 
 
 def run_extraction_task(
-    run_id: UUID, db: Session, source: str, file_paths: list | None = None
+    run_id: UUID, source: str, file_paths: list | None = None
 ):
     """
     Background task to run extraction.
 
     This is executed in a separate thread by FastAPI BackgroundTasks.
     Supports both local files and SharePoint sources.
+
+    Note: Creates its own database session since the request session
+    will be closed by the time this background task executes.
     """
     from app.crud.extraction import ExtractedValueCRUD, ExtractionRunCRUD
     from app.extraction import CellMappingParser
+
+    # Create a new database session for this background task
+    # The request session is closed after the endpoint returns
+    db = SessionLocal()
 
     try:
         # Load mappings
@@ -249,8 +256,19 @@ def run_extraction_task(
 
     except Exception as e:
         logger.exception("extraction_task_failed", error=str(e))
-        ExtractionRunCRUD.fail(db, run_id, {"error": str(e)})
-        raise
+        try:
+            ExtractionRunCRUD.fail(db, run_id, {"error": str(e)})
+        except Exception as db_error:
+            logger.error(
+                "failed_to_update_run_status",
+                run_id=str(run_id),
+                original_error=str(e),
+                db_error=str(db_error),
+            )
+        # Don't re-raise - this is a background task, there's no caller to handle it
+    finally:
+        # Always close the session we created
+        db.close()
 
 
 def _process_files(
@@ -282,6 +300,7 @@ def _process_files(
 
     processed = 0
     failed = 0
+    file_errors: list[dict] = []  # Track individual file errors for reporting
 
     for file_info in files_to_process:
         file_path = file_info["file_path"]
@@ -319,20 +338,39 @@ def _process_files(
 
         except Exception as e:
             failed += 1
+            file_name = Path(file_path).name
+            error_msg = str(e)
+            file_errors.append({"file": file_name, "error": error_msg})
             logger.error(
                 "file_processing_failed",
-                file=Path(file_path).name,
-                error=str(e),
+                file=file_name,
+                error=error_msg,
+                exc_info=True,  # Include traceback in logs
             )
 
-        # Update progress
-        ExtractionRunCRUD.update_progress(
-            db, run_id, files_processed=processed, files_failed=failed
-        )
+        # Update progress after each file
+        try:
+            ExtractionRunCRUD.update_progress(
+                db, run_id, files_processed=processed, files_failed=failed
+            )
+        except Exception as progress_error:
+            logger.warning(
+                "progress_update_failed",
+                run_id=str(run_id),
+                error=str(progress_error),
+            )
 
-    # Mark complete
+    # Prepare error summary if there were failures
+    error_summary = None
+    if file_errors:
+        error_summary = {
+            "failed_files": file_errors[:10],  # Limit to first 10 errors
+            "total_failures": len(file_errors),
+        }
+
+    # Mark complete with error summary
     ExtractionRunCRUD.complete(
-        db, run_id, files_processed=processed, files_failed=failed
+        db, run_id, files_processed=processed, files_failed=failed, error_summary=error_summary
     )
     logger.info(
         "extraction_completed",
@@ -419,8 +457,10 @@ async def start_extraction(
     )
 
     # Start background task
+    # Note: The background task creates its own session since this session
+    # will be closed after the request returns
     background_tasks.add_task(
-        run_extraction_task, run.id, db, request.source, request.file_paths
+        run_extraction_task, run.id, request.source, request.file_paths
     )
 
     source_label = "SharePoint" if request.source == "sharepoint" else request.source

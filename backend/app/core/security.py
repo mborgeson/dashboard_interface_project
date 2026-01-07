@@ -2,6 +2,7 @@
 Security utilities for authentication and authorization.
 """
 
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -47,7 +48,11 @@ def create_access_token(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
-    to_encode = {"exp": expire, "sub": str(subject)}
+    to_encode = {
+        "exp": expire,
+        "sub": str(subject),
+        "jti": str(uuid.uuid4()),  # Unique token ID for blacklist support
+    }
 
     if additional_claims:
         to_encode.update(additional_claims)
@@ -61,7 +66,12 @@ def create_access_token(
 def create_refresh_token(subject: str | Any) -> str:
     """Create a JWT refresh token with longer expiration."""
     expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
+    to_encode = {
+        "exp": expire,
+        "sub": str(subject),
+        "type": "refresh",
+        "jti": str(uuid.uuid4()),  # Unique token ID for blacklist support
+    }
 
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
