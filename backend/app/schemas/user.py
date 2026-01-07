@@ -14,7 +14,7 @@ class UserBase(BaseSchema):
 
     email: EmailStr
     full_name: str = Field(..., min_length=1, max_length=255)
-    role: str = Field(default="viewer", pattern="^(admin|analyst|viewer)$")
+    role: str = Field(default="viewer", pattern="^(admin|manager|analyst|viewer)$")
     department: str | None = Field(None, max_length=100)
     phone: str | None = Field(None, max_length=20)
 
@@ -30,7 +30,7 @@ class UserUpdate(BaseSchema):
 
     email: EmailStr | None = None
     full_name: str | None = Field(None, min_length=1, max_length=255)
-    role: str | None = Field(None, pattern="^(admin|analyst|viewer)$")
+    role: str | None = Field(None, pattern="^(admin|manager|analyst|viewer)$")
     department: str | None = Field(None, max_length=100)
     phone: str | None = Field(None, max_length=20)
     avatar_url: str | None = Field(None, max_length=500)

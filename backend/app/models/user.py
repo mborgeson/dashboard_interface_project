@@ -31,7 +31,7 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
         String(50),
         default="viewer",
         nullable=False,
-    )  # admin, analyst, viewer
+    )  # admin, manager, analyst, viewer
 
     # Account status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

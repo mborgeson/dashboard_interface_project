@@ -309,7 +309,7 @@ class TestExtractionStart:
         """Starts extraction with local file source."""
         # Mock the background task to avoid actual extraction
         with patch(
-            "app.api.v1.endpoints.extraction.run_extraction_task"
+            "app.api.v1.endpoints.extraction.common.run_extraction_task"
         ) as mock_task:
             response = await extraction_client.post(
                 "/api/v1/extraction/start",
@@ -330,7 +330,7 @@ class TestExtractionStart:
     async def test_start_extraction_fixture_source(self, extraction_client) -> None:
         """Starts extraction with fixture files (fallback source)."""
         with patch(
-            "app.api.v1.endpoints.extraction.run_extraction_task"
+            "app.api.v1.endpoints.extraction.common.run_extraction_task"
         ) as mock_task:
             response = await extraction_client.post(
                 "/api/v1/extraction/start",
@@ -347,7 +347,7 @@ class TestExtractionStart:
     async def test_start_extraction_sharepoint_not_configured(self, extraction_client) -> None:
         """Returns 400 when SharePoint is not configured."""
         with patch(
-            "app.api.v1.endpoints.extraction.settings"
+            "app.api.v1.endpoints.extraction.extract.settings"
         ) as mock_settings:
             mock_settings.sharepoint_configured = False
             mock_settings.get_sharepoint_config_errors.return_value = [
@@ -511,7 +511,7 @@ class TestSchedulerStatus:
     async def test_get_scheduler_status(self, extraction_client) -> None:
         """Returns scheduler status."""
         with patch(
-            "app.api.v1.endpoints.extraction.get_extraction_scheduler"
+            "app.api.v1.endpoints.extraction.scheduler.get_extraction_scheduler"
         ) as mock_get_scheduler:
             mock_scheduler = MagicMock()
             mock_scheduler.get_status.return_value = {
@@ -547,7 +547,7 @@ class TestSchedulerEnable:
     async def test_enable_scheduler(self, extraction_client) -> None:
         """Successfully enables the scheduler."""
         with patch(
-            "app.api.v1.endpoints.extraction.get_extraction_scheduler"
+            "app.api.v1.endpoints.extraction.scheduler.get_extraction_scheduler"
         ) as mock_get_scheduler:
             mock_scheduler = MagicMock()
             mock_scheduler.enable = AsyncMock(
@@ -580,7 +580,7 @@ class TestSchedulerDisable:
     async def test_disable_scheduler(self, extraction_client) -> None:
         """Successfully disables the scheduler."""
         with patch(
-            "app.api.v1.endpoints.extraction.get_extraction_scheduler"
+            "app.api.v1.endpoints.extraction.scheduler.get_extraction_scheduler"
         ) as mock_get_scheduler:
             mock_scheduler = MagicMock()
             mock_scheduler.disable = AsyncMock(
@@ -613,7 +613,7 @@ class TestSchedulerConfig:
     async def test_update_scheduler_config(self, extraction_client) -> None:
         """Updates scheduler configuration."""
         with patch(
-            "app.api.v1.endpoints.extraction.get_extraction_scheduler"
+            "app.api.v1.endpoints.extraction.scheduler.get_extraction_scheduler"
         ) as mock_get_scheduler:
             mock_scheduler = MagicMock()
             mock_scheduler.update_config = AsyncMock(
@@ -646,7 +646,7 @@ class TestSchedulerConfig:
     async def test_update_scheduler_invalid_cron(self, extraction_client) -> None:
         """Returns 400 for invalid cron expression."""
         with patch(
-            "app.api.v1.endpoints.extraction.get_extraction_scheduler"
+            "app.api.v1.endpoints.extraction.scheduler.get_extraction_scheduler"
         ) as mock_get_scheduler:
             mock_scheduler = MagicMock()
             mock_scheduler.update_config = AsyncMock(
@@ -673,7 +673,7 @@ class TestFileFilters:
     async def test_get_filter_config(self, extraction_client) -> None:
         """Returns current filter configuration."""
         with patch(
-            "app.api.v1.endpoints.extraction.get_file_filter"
+            "app.api.v1.endpoints.extraction.filters.get_file_filter"
         ) as mock_get_filter:
             mock_filter = MagicMock()
             mock_filter.get_config.return_value = {
@@ -707,7 +707,7 @@ class TestFileFilterTest:
     async def test_filter_accepts_valid_file(self, extraction_client) -> None:
         """Tests that filter accepts valid UW model file."""
         with patch(
-            "app.api.v1.endpoints.extraction.get_file_filter"
+            "app.api.v1.endpoints.extraction.filters.get_file_filter"
         ) as mock_get_filter:
             mock_filter = MagicMock()
             mock_result = MagicMock()
@@ -734,7 +734,7 @@ class TestFileFilterTest:
     async def test_filter_rejects_excluded_pattern(self, extraction_client) -> None:
         """Tests that filter rejects file matching exclude pattern."""
         with patch(
-            "app.api.v1.endpoints.extraction.get_file_filter"
+            "app.api.v1.endpoints.extraction.filters.get_file_filter"
         ) as mock_get_filter:
             mock_filter = MagicMock()
             mock_result = MagicMock()
@@ -770,7 +770,7 @@ class TestBackgroundTaskIntegration:
     async def test_extraction_task_receives_correct_params(self, extraction_client) -> None:
         """Verifies background task receives correct parameters."""
         with patch(
-            "app.api.v1.endpoints.extraction.run_extraction_task"
+            "app.api.v1.endpoints.extraction.common.run_extraction_task"
         ) as mock_task:
             response = await extraction_client.post(
                 "/api/v1/extraction/start",
@@ -802,7 +802,7 @@ class TestEdgeCases:
         to loading files from the fixtures directory for testing purposes.
         """
         with patch(
-            "app.api.v1.endpoints.extraction.run_extraction_task"
+            "app.api.v1.endpoints.extraction.common.run_extraction_task"
         ):
             response = await extraction_client.post(
                 "/api/v1/extraction/start",
