@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { mockDeals } from '@/data/mockDeals';
+import { useState } from 'react';
+import { useDealsWithMockFallback } from '@/hooks/api/useDeals';
 import { useDeals } from './hooks/useDeals';
 import { DealPipeline } from './components/DealPipeline';
 import { KanbanBoard } from './components/KanbanBoard';
@@ -9,13 +9,18 @@ import { Briefcase, LayoutGrid, List, TrendingUp, Calendar, Target, Kanban } fro
 import { cn } from '@/lib/utils';
 import { DealPipelineSkeleton } from '@/components/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 
 type ViewMode = 'kanban' | 'pipeline' | 'list';
 
 export function DealsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
-  const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch deals from API (with mock fallback)
+  const { data: dealsData, isLoading, error, refetch } = useDealsWithMockFallback();
+  const deals = dealsData?.deals ?? [];
+
+  // Local state management for filtering and stage updates
   const {
     filters,
     updateFilters,
@@ -25,15 +30,7 @@ export function DealsPage() {
     metrics,
     filterOptions,
     updateDealStage,
-  } = useDeals(mockDeals);
-
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
+  } = useDeals(deals);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -49,6 +46,27 @@ export function DealsPage() {
   const formatPercent = (value: number) => {
     return (value * 100).toFixed(0) + '%';
   };
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900">Deal Pipeline</h1>
+            <p className="text-neutral-600 mt-1">
+              Track and manage acquisition opportunities
+            </p>
+          </div>
+        </div>
+        <ErrorState
+          title="Failed to load deals"
+          description={error instanceof Error ? error.message : 'Unable to fetch deals. Please try again.'}
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
 
   // Show loading state
   if (isLoading) {
@@ -204,7 +222,7 @@ export function DealsPage() {
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-neutral-600">
-          Showing {filteredDeals.length} of {mockDeals.length} deals
+          Showing {filteredDeals.length} of {deals.length} deals
         </p>
       </div>
 

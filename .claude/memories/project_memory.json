@@ -2,32 +2,38 @@
   "memories": [
     {
       "type": "completed_feature",
-      "content": "Extraction API sync/async fix completed (2026-01-06). Added get_sync_db() to db/session.py, updated 6 extraction endpoints. O(n²) → O(1) cell lookup optimization implemented with sheet caching. Performance: 1.04s for 14MB file, 99.5% cache hit rate.",
-      "added_at": "2026-01-07T06:45:00.000000",
+      "content": "Extraction API with O(1) cell lookup optimization (2026-01-06). Sync/async session handling via get_sync_db(). Performance: 1.04s for 14MB file, 99.5% cache hit rate. Extraction endpoint refactored into 6 modular files in backend/app/api/v1/endpoints/extraction/.",
+      "added_at": "2026-01-07T10:12:00.000000",
       "source": "consolidated"
     },
     {
-      "type": "tech_decision",
-      "content": "Security: config.py uses env vars only (no hardcoded secrets). Token blacklist implemented in app/core/token_blacklist.py with Redis primary + in-memory fallback. JWTs include jti for blacklist support. CORS configured for localhost dev + brcapital.com production domains.",
-      "added_at": "2026-01-07T06:45:00.000000",
+      "type": "completed_feature",
+      "content": "Security Hardening (2026-01-07, commit 7c8a87e). RBAC with 4 roles in backend/app/core/permissions.py. Token blacklist with Redis + memory fallback. Config.py uses env vars only. Fixed GlobalSearch infinite loop bug (checkpoint: globalsearch-fix 20260113_133244).",
+      "added_at": "2026-01-13T13:50:00.000000",
       "source": "consolidated"
     },
     {
       "type": "project_status",
-      "content": "Tests: 1004 passed, 16 skipped. Deployment readiness: ~70%. Main blockers: complete deploy.yml placeholders, create docker-compose.yml. Key files: backend/app/extraction/extractor.py (cell caching), backend/app/api/v1/endpoints/extraction.py (18 endpoints), backend/app/core/config.py (env-based config).",
-      "added_at": "2026-01-07T06:45:00.000000",
+      "content": "Database integration: Phase 1 COMPLETE (DealsPage API migration). ~40% overall. Properties/Deals/Extractions/Auth connected. Remaining: Transactions, Documents, Market Data, Interest Rates, Reporting APIs (Phases 2-6). Docker DEFERRED. Checkpoints: docker-removed, pre-api-consolidation, phase1-complete-deals-api-migration.",
+      "added_at": "2026-01-13T16:00:00.000000",
       "source": "consolidated"
     },
     {
-      "type": "outstanding_tasks",
-      "content": "Priority: 1) Complete deploy.yml placeholder scripts, 2) Create docker-compose.yml for local dev, 3) Add tests for 7 monitor endpoints, 4) Split extraction.py (1154 lines) into smaller files, 5) Create test_crud/test_extraction.py and test_services/test_file_monitor.py.",
-      "added_at": "2026-01-07T06:45:00.000000",
+      "type": "user_preference",
+      "content": "Development: conda env 'dashboard-backend'. Run './scripts/start.sh' from project root. Backend: port 8000. Frontend: port 5173. Ctrl+C stops both. User prefers automatic memory save on phase completion. Git stash apply preferred over pop for checkpoints (keeps backup).",
+      "added_at": "2026-01-13T16:00:00.000000",
+      "source": "consolidated"
+    },
+    {
+      "type": "tech_decision",
+      "content": "API client: Consolidated to axios-based src/lib/api.ts (fetch client deprecated). Env vars: standardized on VITE_API_URL. Mock toggle: VITE_USE_MOCK_DATA + src/lib/config.ts utilities (USE_MOCK_DATA, IS_DEV, withMockFallback). Created useDealsWithMockFallback pattern for API hooks.",
+      "added_at": "2026-01-13T16:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "convention",
-      "content": "SharePoint extraction uses memory-keeper for checkpoints (namespace: dashboard-project). Extraction scheduler at EXTRACTION_SCHEDULE_CRON (default 2 AM). File filter: .*UW.*Model.*vCurrent.* pattern, excludes ~$,.tmp,backup,vOld. Reference file: Underwriting_Dashboard_Cell_References.xlsx with 1169 cell mappings.",
-      "added_at": "2026-01-07T06:45:00.000000",
+      "content": "SharePoint extraction: namespace dashboard-project, scheduler EXTRACTION_SCHEDULE_CRON (2 AM), file filter .*UW.*Model.*vCurrent.*. Reference: Underwriting_Dashboard_Cell_References.xlsx (1169 mappings).",
+      "added_at": "2026-01-07T14:55:00.000000",
       "source": "consolidated"
     }
   ],
@@ -35,29 +41,29 @@
   "realtime_memories": [
     {
       "type": "claude_response",
-      "content": "Memory consolidated: 11 → 5 memories. Ready to continue or commit changes.",
-      "added_at": "2026-01-07T07:10:14.670394",
+      "content": "Phase 1 changes restored successfully. Now let me provide my comprehensive swarm recommendations for implementing the remaining phases.\n\n---\n\n## Agent Swarm Recommendations for Database Integration Pl",
+      "added_at": "2026-01-13T16:00:52.905256",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "Let's continue with the remaining items.",
-      "added_at": "2026-01-07T07:10:14.670417",
+      "content": "Before proceeding, should we first create checkpoint memorializing these updates?",
+      "added_at": "2026-01-13T16:00:52.905393",
       "source": "realtime_capture"
     },
     {
       "type": "claude_response",
-      "content": "## Summary - All Tasks Complete\n\n| Task | Status |\n|------|--------|\n| Complete deploy.yml placeholder scripts | ✅ Done |\n| Create docker-compose.yml for local dev | ✅ Already existed |\n| Add tests fo",
-      "added_at": "2026-01-07T07:28:30.093169",
+      "content": "Current state shows:\n- **Modified**: DealsPage.tsx, useDeals.ts, project_memory.json\n- **New files**: src/lib/config.ts, docs/plans/, scripts/start.sh, and others\n\n**Two checkpoint options:**\n\n| Optio",
+      "added_at": "2026-01-13T16:13:30.306596",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "Yes, but include it as referenced in the below request: I would like to create an automatic memory workflow/hook whereby the completion of each project Phase triggers a claude-mem save (i.e., please t",
-      "added_at": "2026-01-07T07:28:30.093213",
+      "content": "Let's move forward with your r3ecommendation.",
+      "added_at": "2026-01-13T16:13:30.306638",
       "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-01-07T07:28:30.093215"
+  "updated_at": "2026-01-13T16:13:30.306641"
 }

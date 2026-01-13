@@ -1,0 +1,42 @@
+{
+  "project_name": "dashboard_interface_project",
+  "project_path": "/home/mattb/projects/dashboard_interface_project",
+  "checkpoints": [
+    {
+      "id": "20260113_143852",
+      "name": "api-consolidation-complete",
+      "message": "Completed API client consolidation, env var standardization, mock toggle utility, and created database integration plan.",
+      "timestamp": "2026-01-13T14:38:52.857522",
+      "git_commit": "7c8a87e6",
+      "git_branch": "main",
+      "project_type": "nodejs"
+    },
+    {
+      "id": "20260113_134747",
+      "name": "pre-api-consolidation",
+      "message": "Before consolidating API clients, env vars, and adding mock toggle. Database integration review complete.",
+      "timestamp": "2026-01-13T13:47:47.608664",
+      "git_commit": "7c8a87e6",
+      "git_branch": "main",
+      "project_type": "nodejs"
+    },
+    {
+      "id": "20260113_133244",
+      "name": "globalsearch-fix",
+      "message": "Fixed infinite loop in GlobalSearch component - added ref-based equality check to prevent unnecessary store updates",
+      "timestamp": "2026-01-13T13:32:44.365304",
+      "git_commit": "7c8a87e6",
+      "git_branch": "main",
+      "project_type": "nodejs"
+    },
+    {
+      "id": "20260113_130126",
+      "name": "docker-removed",
+      "message": "Removed Docker files and disabled deploy.yml. Deployment deferred to end of project.",
+      "timestamp": "2026-01-13T13:01:26.176308",
+      "git_commit": "7c8a87e6",
+      "git_branch": "main",
+      "project_type": "nodejs"
+    }
+  ]
+}

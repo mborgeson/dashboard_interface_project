@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get, post, put, patch, del } from '@/lib/api';
+import { USE_MOCK_DATA, IS_DEV } from '@/lib/config';
+import { mockDeals } from '@/data/mockDeals';
+import type { Deal } from '@/types/deal';
 import type {
   DealFilters,
   DealApiResponse,
@@ -27,13 +30,99 @@ export const dealKeys = {
 };
 
 // ============================================================================
-// Query Hooks
+// Query Hooks (with mock data fallback for development)
 // ============================================================================
 
 /**
- * Fetch paginated list of deals with filters
+ * Response type for deals with fallback
  */
-export function useDeals(
+export interface DealsWithFallbackResponse {
+  deals: Deal[];
+  total: number;
+}
+
+/**
+ * Hook to fetch all deals with mock data fallback
+ * Falls back to mock data if API is unavailable or USE_MOCK_DATA is true
+ */
+export function useDealsWithMockFallback(
+  options?: Omit<UseQueryOptions<DealsWithFallbackResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery({
+    queryKey: dealKeys.lists(),
+    queryFn: async (): Promise<DealsWithFallbackResponse> => {
+      if (USE_MOCK_DATA) {
+        // Return mock data for development/testing
+        return {
+          deals: mockDeals,
+          total: mockDeals.length,
+        };
+      }
+
+      try {
+        const response = await get<DealListResponse>('/deals');
+        // Transform API response to Deal[] format
+        return {
+          deals: response.deals?.map(transformDealFromApi) ?? mockDeals,
+          total: response.total ?? mockDeals.length,
+        };
+      } catch (error) {
+        // Fall back to mock data if API fails in development
+        if (IS_DEV) {
+          console.warn('API unavailable, falling back to mock deals:', error);
+          return {
+            deals: mockDeals,
+            total: mockDeals.length,
+          };
+        }
+        throw error;
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    ...options,
+  });
+}
+
+/**
+ * Transform API deal response to local Deal type
+ */
+function transformDealFromApi(apiDeal: DealApiResponse): Deal {
+  return {
+    id: apiDeal.id,
+    propertyName: apiDeal.property_name || apiDeal.propertyName || '',
+    address: {
+      street: apiDeal.address?.street || '',
+      city: apiDeal.address?.city || '',
+      state: apiDeal.address?.state || '',
+    },
+    value: apiDeal.value || 0,
+    capRate: apiDeal.cap_rate || apiDeal.capRate || 0,
+    stage: apiDeal.stage as Deal['stage'],
+    daysInStage: apiDeal.days_in_stage || apiDeal.daysInStage || 0,
+    totalDaysInPipeline: apiDeal.total_days_in_pipeline || apiDeal.totalDaysInPipeline || 0,
+    assignee: apiDeal.assignee || '',
+    propertyType: apiDeal.property_type || apiDeal.propertyType || '',
+    units: apiDeal.units || 0,
+    createdAt: new Date(apiDeal.created_at || apiDeal.createdAt || Date.now()),
+    timeline: (apiDeal.timeline || []).map((event) => ({
+      id: event.id,
+      date: new Date(event.date),
+      stage: event.stage as Deal['stage'],
+      description: event.description,
+      user: event.user,
+    })),
+    notes: apiDeal.notes,
+  };
+}
+
+// ============================================================================
+// Query Hooks (API-first, no mock fallback)
+// ============================================================================
+
+/**
+ * Fetch paginated list of deals with filters (API-first, no mock fallback)
+ */
+export function useDealsApi(
   filters: DealFilters = {},
   options?: Omit<UseQueryOptions<DealListResponse>, 'queryKey' | 'queryFn'>
 ) {
