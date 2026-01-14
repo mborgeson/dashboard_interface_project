@@ -9,7 +9,7 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Tex
 from sqlalchemy.dialects.postgresql import ARRAY, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.session import Base
+from app.db.base import Base
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
