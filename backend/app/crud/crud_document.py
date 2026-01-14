@@ -30,7 +30,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         result = await db.execute(
             select(Document)
             .where(Document.property_id == property_id)
-            .where(Document.is_deleted == False)  # noqa: E712
+            .where(Document.is_deleted.is_(False))
             .order_by(Document.uploaded_at.desc())
             .offset(skip)
             .limit(limit)
@@ -49,7 +49,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         result = await db.execute(
             select(Document)
             .where(Document.type == doc_type)
-            .where(Document.is_deleted == False)  # noqa: E712
+            .where(Document.is_deleted.is_(False))
             .order_by(Document.uploaded_at.desc())
             .offset(skip)
             .limit(limit)
@@ -70,7 +70,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         order_desc: bool = True,
     ) -> list[Document]:
         """Get documents with multiple filters."""
-        query = select(Document).where(Document.is_deleted == False)  # noqa: E712
+        query = select(Document).where(Document.is_deleted.is_(False))
 
         # Filter by document type
         if doc_type and doc_type != "all":
@@ -131,7 +131,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
     ) -> int:
         """Count documents with filters."""
         query = select(func.count()).select_from(Document)
-        query = query.where(Document.is_deleted == False)  # noqa: E712
+        query = query.where(Document.is_deleted.is_(False))
 
         if doc_type and doc_type != "all":
             try:
@@ -177,13 +177,13 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         total_result = await db.execute(
             select(func.count())
             .select_from(Document)
-            .where(Document.is_deleted == False)  # noqa: E712
+            .where(Document.is_deleted.is_(False))
         )
         total_documents = total_result.scalar() or 0
 
         # Total size
         size_result = await db.execute(
-            select(func.sum(Document.size)).where(Document.is_deleted == False)  # noqa: E712
+            select(func.sum(Document.size)).where(Document.is_deleted.is_(False))
         )
         total_size = size_result.scalar() or 0
 
@@ -194,7 +194,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
                 select(func.count())
                 .select_from(Document)
                 .where(Document.type == doc_type)
-                .where(Document.is_deleted == False)  # noqa: E712
+                .where(Document.is_deleted.is_(False))
             )
             by_type[doc_type.value] = type_result.scalar() or 0
 
@@ -204,7 +204,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
             select(func.count())
             .select_from(Document)
             .where(Document.uploaded_at >= cutoff)
-            .where(Document.is_deleted == False)  # noqa: E712
+            .where(Document.is_deleted.is_(False))
         )
         recent_uploads = recent_result.scalar() or 0
 

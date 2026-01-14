@@ -3,7 +3,6 @@ Authentication endpoints for login, logout, and token management.
 """
 
 import time
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -156,7 +155,7 @@ async def refresh_token(request: RefreshTokenRequest):
 
 @router.post("/logout")
 async def logout(
-    authorization: Optional[str] = Header(None, alias="Authorization"),
+    authorization: str | None = Header(None, alias="Authorization"),
 ):
     """
     Logout user (invalidate tokens).

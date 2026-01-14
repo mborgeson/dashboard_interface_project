@@ -31,7 +31,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         result = await db.execute(
             select(Transaction)
             .where(Transaction.property_id == property_id)
-            .where(Transaction.is_deleted == False)  # noqa: E712
+            .where(Transaction.is_deleted.is_(False))  # noqa: E712
             .order_by(Transaction.date.desc())
             .offset(skip)
             .limit(limit)
@@ -50,7 +50,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         result = await db.execute(
             select(Transaction)
             .where(Transaction.type == transaction_type)
-            .where(Transaction.is_deleted == False)  # noqa: E712
+            .where(Transaction.is_deleted.is_(False))  # noqa: E712
             .order_by(Transaction.date.desc())
             .offset(skip)
             .limit(limit)
@@ -71,7 +71,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
             select(Transaction)
             .where(Transaction.date >= start_date)
             .where(Transaction.date <= end_date)
-            .where(Transaction.is_deleted == False)  # noqa: E712
+            .where(Transaction.is_deleted.is_(False))  # noqa: E712
             .order_by(Transaction.date.desc())
             .offset(skip)
             .limit(limit)
@@ -93,7 +93,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         order_desc: bool = True,
     ) -> list[Transaction]:
         """Get transactions with multiple filters."""
-        query = select(Transaction).where(Transaction.is_deleted == False)  # noqa: E712
+        query = select(Transaction).where(Transaction.is_deleted.is_(False))  # noqa: E712
 
         # Apply filters
         if transaction_type:
@@ -134,9 +134,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         query = (
             select(func.count())
             .select_from(Transaction)
-            .where(
-                Transaction.is_deleted == False  # noqa: E712
-            )
+            .where(Transaction.is_deleted.is_(False))
         )
 
         if transaction_type:
@@ -172,7 +170,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
                 func.count(Transaction.id).label("count"),
                 func.sum(Transaction.amount).label("total"),
             )
-            .where(Transaction.is_deleted == False)
+            .where(Transaction.is_deleted.is_(False))
             .group_by(Transaction.type)
         )  # noqa: E712
 

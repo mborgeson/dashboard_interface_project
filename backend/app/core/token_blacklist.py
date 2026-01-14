@@ -6,7 +6,6 @@ Falls back to in-memory store if Redis unavailable.
 """
 
 import time
-from typing import Optional
 
 from loguru import logger
 

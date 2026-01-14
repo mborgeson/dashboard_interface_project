@@ -2,8 +2,6 @@
 Document endpoints for document management.
 """
 
-from datetime import UTC, datetime
-
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
