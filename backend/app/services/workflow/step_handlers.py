@@ -254,7 +254,9 @@ class ConditionHandler(StepHandler):
             elif isinstance(node, ast.UnaryOp):
                 if isinstance(node.op, ast.Not):
                     return not safe_eval_node(node.operand)
-                raise ValueError(f"Unsupported unary operator: {type(node.op).__name__}")
+                raise ValueError(
+                    f"Unsupported unary operator: {type(node.op).__name__}"
+                )
             elif isinstance(node, ast.BinOp):
                 op_func = SAFE_OPERATORS.get(type(node.op))
                 if op_func is None:
@@ -271,7 +273,7 @@ class ConditionHandler(StepHandler):
                 raise ValueError(f"Unsupported AST node: {type(node).__name__}")
 
         try:
-            tree = ast.parse(expression, mode='eval')
+            tree = ast.parse(expression, mode="eval")
             return bool(safe_eval_node(tree))
         except Exception as e:
             logger.warning(f"Expression evaluation failed: {expression} - {e}")
