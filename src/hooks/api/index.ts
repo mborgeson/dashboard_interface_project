@@ -121,6 +121,56 @@ export {
   usePrefetchPropertyDocuments,
 } from './useDocuments';
 
+// Market Data hooks
+export {
+  marketDataKeys,
+  // Primary hooks with mock fallback
+  useMarketOverview,
+  useSubmarkets,
+  useMarketTrends,
+  useComparables,
+  // Explicit mock fallback hooks
+  useMarketOverviewWithMockFallback,
+  useSubmarketsWithMockFallback,
+  useMarketTrendsWithMockFallback,
+  useComparablesWithMockFallback,
+  // API-first hooks (no mock fallback)
+  useMarketOverviewApi,
+  useSubmarketsApi,
+  useMarketTrendsApi,
+  useComparablesApi,
+} from './useMarketData';
+
+// Reporting hooks
+export {
+  reportingKeys,
+  // Primary hooks with mock fallback
+  useReportTemplates,
+  useQueuedReports,
+  useDistributionSchedules,
+  useReportWidgets,
+  // Explicit mock fallback hooks
+  useReportTemplatesWithMockFallback,
+  useQueuedReportsWithMockFallback,
+  useDistributionSchedulesWithMockFallback,
+  useReportWidgetsWithMockFallback,
+  // API-first hooks (no mock fallback)
+  useReportTemplatesApi,
+  useReportTemplate,
+  useQueuedReportsApi,
+  useQueuedReport,
+  useDistributionSchedulesApi,
+  useReportWidgetsApi,
+  // Mutations
+  useCreateReportTemplate,
+  useUpdateReportTemplate,
+  useDeleteReportTemplate,
+  useGenerateReport,
+  useCreateDistributionSchedule,
+  useUpdateDistributionSchedule,
+  useDeleteDistributionSchedule,
+} from './useReporting';
+
 // Re-export types for convenience
 export type {
   PropertyFilters,
@@ -177,3 +227,45 @@ export type {
   TransactionUpdateInput,
   TransactionsWithFallbackResponse,
 } from './useTransactions';
+
+// Market data response types
+export type {
+  MarketOverviewApiResponse,
+  SubmarketsApiResponse,
+  MarketTrendsApiResponse,
+  ComparablesApiResponse,
+  ComparableFilters,
+  MarketOverviewWithFallbackResponse,
+  SubmarketsWithFallbackResponse,
+  MarketTrendsWithFallbackResponse,
+  ComparablesWithFallbackResponse,
+} from './useMarketData';
+
+// Reporting response types
+export type {
+  ReportCategory,
+  ReportFormat,
+  ReportStatus,
+  ScheduleFrequency,
+  ReportTemplateApiResponse,
+  ReportTemplateListApiResponse,
+  QueuedReportApiResponse,
+  QueuedReportListApiResponse,
+  DistributionScheduleApiResponse,
+  DistributionScheduleListApiResponse,
+  ReportWidgetApiResponse,
+  ReportWidgetListApiResponse,
+  GenerateReportRequest,
+  GenerateReportResponse,
+  ReportTemplateCreateInput,
+  ReportTemplateUpdateInput,
+  DistributionScheduleCreateInput,
+  DistributionScheduleUpdateInput,
+  TemplateFilters,
+  QueueFilters,
+  ScheduleFilters,
+  TemplatesWithFallbackResponse,
+  QueuedReportsWithFallbackResponse,
+  SchedulesWithFallbackResponse,
+  WidgetsWithFallbackResponse,
+} from './useReporting';
