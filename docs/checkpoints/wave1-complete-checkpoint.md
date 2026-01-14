@@ -1,8 +1,25 @@
 # Wave 1 Complete Checkpoint
 
 **Date**: 2026-01-13
-**Commit**: `35a56c7` - fix(ci): use 32+ character SECRET_KEY for test validation
+**Commit**: `e962a7c` - feat: add Alembic migration for Transaction and Document models
+**Previous Commit**: `35a56c7` - fix(ci): use 32+ character SECRET_KEY for test validation
 **Stash**: `wave1-complete-checkpoint-20260113_192332`
+
+## Wave 1 Integration Testing Results
+
+| Endpoint | Status | Response |
+|----------|--------|----------|
+| `GET /api/v1/transactions/` | ✅ Pass | `{"items": [], "total": 0, "page": 1, "page_size": 20}` |
+| `GET /api/v1/transactions/summary` | ✅ Pass | Transaction summary with all type totals |
+| `GET /api/v1/documents/` | ✅ Pass | `{"items": [], "total": 0, "page": 1, "page_size": 20}` |
+| `GET /api/v1/documents/stats` | ✅ Pass | Document stats by type |
+| `GET /api/v1/interest-rates/current` | ✅ Pass | Returns 10+ key rates (Fed Funds, Treasury yields, etc.) |
+| `GET /api/v1/interest-rates/yield-curve` | ✅ Pass | Full Treasury yield curve data |
+| `GET /api/v1/interest-rates/lending-context` | ✅ Pass | CRE lending spreads and indicative rates |
+
+**Database Migration**: Applied successfully (tables created with indexes)
+**Frontend Build**: ✅ Passes
+**CI Pipeline**: ✅ All checks passing
 
 ## Status Summary
 
@@ -64,19 +81,18 @@ Use the following prompt to restore context:
 ```
 Please restore context for B&R Capital Dashboard database integration project.
 
-## Current State (commit 35a56c7)
+## Current State (commit e962a7c)
 - **Wave 1 COMPLETE**: Phases 2, 3, 5 implemented (Transactions, Documents, Interest Rates)
+- **Wave 1 TESTED**: All API endpoints verified working
+- **Database**: Migrations applied, tables created
 - **CI PASSING**: All backend checks green
-- **Next Step**: Wave 1 Integration Testing
 
-## Immediate Tasks (Wave 1 Testing)
-1. Start backend and verify new API endpoints work
-2. Run database migrations for new models
-3. Test frontend hooks with `VITE_USE_MOCK_DATA=false`
+## Immediate Tasks (Wave 2)
+1. Phase 4: Market Data API
+2. Phase 6: Reporting API
 
-## Then Proceed to Wave 2
-- Phase 4: Market Data API
-- Phase 6: Reporting API
+## Then Proceed to Wave 3
+- Phase 7: Cleanup (remove mock data files)
 
 ## Reference Files
 - Plan: docs/plans/database-integration-plan.md
@@ -119,6 +135,7 @@ VITE_USE_MOCK_DATA=false npm run dev
 ## Commit History (Wave 1)
 
 ```
+e962a7c feat: add Alembic migration for Transaction and Document models
 35a56c7 fix(ci): use 32+ character SECRET_KEY for test validation
 004c128 fix: resolve ruff linting errors (E712, F401, UP045)
 3c71811 style: apply ruff formatting to Wave 1 files
