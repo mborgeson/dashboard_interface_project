@@ -5,8 +5,7 @@ Report template and queued report models for the reporting suite.
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY, JSON
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -63,12 +62,12 @@ class ReportTemplate(Base, TimestampMixin, SoftDeleteMixin):
         nullable=False,
     )
     sections: Mapped[list[str]] = mapped_column(
-        ARRAY(String),
+        JSON,
         default=list,
         nullable=False,
     )
     export_formats: Mapped[list[str]] = mapped_column(
-        ARRAY(String),
+        JSON,
         default=lambda: ["pdf"],
         nullable=False,
     )
@@ -155,7 +154,7 @@ class DistributionSchedule(Base, TimestampMixin, SoftDeleteMixin):
         nullable=False,
     )
     recipients: Mapped[list[str]] = mapped_column(
-        ARRAY(String),
+        JSON,
         default=list,
         nullable=False,
     )
