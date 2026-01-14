@@ -2,7 +2,7 @@
  * ReportWizard - Dialog wizard for report generation
  * 4-step wizard: Template → Configure → Format → Generate
  */
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -42,22 +42,74 @@ interface WizardState {
   generatedReportId: string | null;
 }
 
-const INITIAL_STATE: WizardState = {
-  step: 'template',
-  completedSteps: [],
-  selectedTemplate: null,
-  parameters: {},
-  selectedFormat: null,
-  generatedReportId: null,
-};
-
+/**
+ * Wrapper component that manages dialog state and reset key.
+ * Uses key-based reset pattern to avoid setState in useEffect.
+ */
 export function ReportWizard({ open, onOpenChange, defaultTemplateId }: ReportWizardProps) {
-  const [state, setState] = useState<WizardState>(INITIAL_STATE);
-  const [paramErrors, setParamErrors] = useState<Record<string, string>>({});
+  // Increment key when dialog closes to force fresh state on next open
+  const [resetKey, setResetKey] = useState(0);
 
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    if (!newOpen) {
+      // Dialog is closing - increment key for next open
+      setResetKey((k) => k + 1);
+    }
+    onOpenChange(newOpen);
+  }, [onOpenChange]);
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        {open && (
+          <ReportWizardContent
+            key={resetKey}
+            defaultTemplateId={defaultTemplateId}
+            onClose={() => handleOpenChange(false)}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface WizardContentProps {
+  defaultTemplateId?: string;
+  onClose: () => void;
+}
+
+function ReportWizardContent({ defaultTemplateId, onClose }: WizardContentProps) {
   // Fetch templates
   const { data: templates, isLoading: templatesLoading, error: templatesError, refetch } =
     useReportTemplatesWithMockFallback();
+
+  // Compute initial state based on defaultTemplateId
+  const initialState = useMemo((): WizardState => {
+    if (defaultTemplateId && templates?.templates) {
+      const template = templates.templates.find((t) => t.id === defaultTemplateId);
+      if (template) {
+        return {
+          step: 'configure',
+          completedSteps: ['template'],
+          selectedTemplate: template,
+          parameters: {},
+          selectedFormat: null,
+          generatedReportId: null,
+        };
+      }
+    }
+    return {
+      step: 'template',
+      completedSteps: [],
+      selectedTemplate: null,
+      parameters: {},
+      selectedFormat: null,
+      generatedReportId: null,
+    };
+  }, [defaultTemplateId, templates]);
+
+  const [state, setState] = useState<WizardState>(initialState);
+  const [paramErrors, setParamErrors] = useState<Record<string, string>>({});
 
   // Generate report mutation
   const generateMutation = useGenerateReportWithMockFallback();
@@ -70,34 +122,6 @@ export function ReportWizard({ open, onOpenChange, defaultTemplateId }: ReportWi
   } = useQueuedReportWithMockFallback(state.generatedReportId, {
     refetchInterval: state.generatedReportId ? 2000 : undefined,
   });
-
-  // Track previous open state for reset logic
-  const prevOpenRef = useRef(open);
-
-  // Reset state when dialog closes - using ref to avoid effect setState
-  if (prevOpenRef.current && !open) {
-    setState(INITIAL_STATE);
-    setParamErrors({});
-  }
-  prevOpenRef.current = open;
-
-  // Set default template if provided - using ref to track initialization
-  const initializedRef = useRef(false);
-  if (open && !initializedRef.current && defaultTemplateId && templates?.templates) {
-    const template = templates.templates.find((t) => t.id === defaultTemplateId);
-    if (template) {
-      setState((s) => ({
-        ...s,
-        selectedTemplate: template,
-        step: 'configure',
-        completedSteps: ['template'],
-      }));
-      initializedRef.current = true;
-    }
-  }
-  if (!open) {
-    initializedRef.current = false;
-  }
 
   // Validation helper - must be declared before canGoNext
   const validateParameters = useCallback((): boolean => {
@@ -263,67 +287,65 @@ export function ReportWizard({ open, onOpenChange, defaultTemplateId }: ReportWi
   const isGenerating = state.step === 'generate';
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-neutral-500" />
-            <DialogTitle>Generate Report</DialogTitle>
-          </div>
-          <DialogDescription>
-            Create a customized report from available templates
-          </DialogDescription>
-        </DialogHeader>
-
-        {/* Step Indicator */}
-        <div className="py-4 border-b border-neutral-200">
-          <WizardStepIndicator
-            currentStep={state.step}
-            completedSteps={state.completedSteps}
-          />
+    <>
+      <DialogHeader>
+        <div className="flex items-center gap-2">
+          <FileText className="w-5 h-5 text-neutral-500" />
+          <DialogTitle>Generate Report</DialogTitle>
         </div>
+        <DialogDescription>
+          Create a customized report from available templates
+        </DialogDescription>
+      </DialogHeader>
 
-        {/* Step Content */}
-        <div className="py-4 min-h-[400px]">{renderStepContent()}</div>
+      {/* Step Indicator */}
+      <div className="py-4 border-b border-neutral-200">
+        <WizardStepIndicator
+          currentStep={state.step}
+          completedSteps={state.completedSteps}
+        />
+      </div>
 
-        {/* Navigation */}
-        {!isGenerating && (
-          <div className="flex items-center justify-between pt-4 border-t border-neutral-200">
-            <div>
-              {showBackButton && (
-                <Button variant="outline" onClick={goToPreviousStep}>
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Back
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
+      {/* Step Content */}
+      <div className="py-4 min-h-[400px]">{renderStepContent()}</div>
+
+      {/* Navigation */}
+      {!isGenerating && (
+        <div className="flex items-center justify-between pt-4 border-t border-neutral-200">
+          <div>
+            {showBackButton && (
+              <Button variant="outline" onClick={goToPreviousStep}>
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Back
               </Button>
-              {showNextButton && (
-                <Button onClick={goToNextStep} disabled={!canGoNext()}>
-                  {state.step === 'format' ? 'Generate' : 'Next'}
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              )}
-            </div>
+            )}
           </div>
-        )}
-
-        {/* Close button when complete */}
-        {isGenerating && queuedReport?.status === 'completed' && (
-          <div className="flex items-center justify-center pt-4 border-t border-neutral-200">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Close
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={onClose}
+            >
+              Cancel
             </Button>
+            {showNextButton && (
+              <Button onClick={goToNextStep} disabled={!canGoNext()}>
+                {state.step === 'format' ? 'Generate' : 'Next'}
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            )}
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+        </div>
+      )}
+
+      {/* Close button when complete */}
+      {isGenerating && queuedReport?.status === 'completed' && (
+        <div className="flex items-center justify-center pt-4 border-t border-neutral-200">
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      )}
+    </>
   );
 }
 

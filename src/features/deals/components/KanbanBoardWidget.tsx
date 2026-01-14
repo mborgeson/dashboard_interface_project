@@ -77,13 +77,14 @@ export function KanbanBoardWidget({
   );
 
   // Extract unique deal types and assignees for filter options
+  const stages = data?.stages;
   const filterOptions = useMemo(() => {
-    if (!data?.stages) return { dealTypes: [], assignees: [] };
+    if (!stages) return { dealTypes: [], assignees: [] };
 
     const dealTypes = new Set<string>();
     const assignees = new Set<string>();
 
-    Object.values(data.stages).forEach(({ deals }) => {
+    Object.values(stages).forEach(({ deals }) => {
       deals.forEach(deal => {
         if (deal.propertyType) dealTypes.add(deal.propertyType);
         if (deal.assignee) assignees.add(deal.assignee);
@@ -94,25 +95,25 @@ export function KanbanBoardWidget({
       dealTypes: Array.from(dealTypes).sort(),
       assignees: Array.from(assignees).sort(),
     };
-  }, [data?.stages]);
+  }, [stages]);
 
   const findDealById = useCallback((id: string): Deal | null => {
-    if (!data?.stages) return null;
-    for (const stage of Object.keys(data.stages) as DealStageApi[]) {
-      const deal = data.stages[stage].deals.find((d) => d.id === id);
+    if (!stages) return null;
+    for (const stage of Object.keys(stages) as DealStageApi[]) {
+      const deal = stages[stage].deals.find((d) => d.id === id);
       if (deal) return deal;
     }
     return null;
-  }, [data?.stages]);
+  }, [stages]);
 
   const findStageByDealId = useCallback((id: string): DealStageApi | null => {
-    if (!data?.stages) return null;
-    for (const stage of Object.keys(data.stages) as DealStageApi[]) {
-      const deal = data.stages[stage].deals.find((d) => d.id === id);
+    if (!stages) return null;
+    for (const stage of Object.keys(stages) as DealStageApi[]) {
+      const deal = stages[stage].deals.find((d) => d.id === id);
       if (deal) return stage;
     }
     return null;
-  }, [data?.stages]);
+  }, [stages]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
@@ -189,10 +190,10 @@ export function KanbanBoardWidget({
   };
 
   const getTotalPipelineValue = useCallback(() => {
-    if (!data?.stages) return 0;
+    if (!stages) return 0;
     return PIPELINE_STAGES.filter(s => s !== 'closed_won')
-      .reduce((sum, stage) => sum + (data.stages[stage]?.totalValue || 0), 0);
-  }, [data?.stages]);
+      .reduce((sum, stage) => sum + (stages[stage]?.totalValue || 0), 0);
+  }, [stages]);
 
   if (isLoading) {
     return <KanbanSkeleton className={className} />;
