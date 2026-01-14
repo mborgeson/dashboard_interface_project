@@ -149,8 +149,12 @@ class MarketDataService:
 
         total_inventory = sum(s.inventory for s in submarkets)
         total_absorption = sum(s.absorption for s in submarkets)
-        avg_occupancy = sum(s.occupancy * s.inventory for s in submarkets) / total_inventory
-        avg_rent_growth = sum(s.rent_growth * s.inventory for s in submarkets) / total_inventory
+        avg_occupancy = (
+            sum(s.occupancy * s.inventory for s in submarkets) / total_inventory
+        )
+        avg_rent_growth = (
+            sum(s.rent_growth * s.inventory for s in submarkets) / total_inventory
+        )
 
         return SubmarketsResponse(
             submarkets=submarkets,
@@ -173,7 +177,20 @@ class MarketDataService:
             Market trends with monthly data points.
         """
         # Generate trailing 12-month trend data
-        months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        months = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+        ]
 
         # Base values that trend upward
         base_rent_growth = 0.048
@@ -353,7 +370,9 @@ class MarketDataService:
         # Filter by submarket if specified
         comparables = all_comparables
         if submarket:
-            comparables = [c for c in comparables if c.submarket.lower() == submarket.lower()]
+            comparables = [
+                c for c in comparables if c.submarket.lower() == submarket.lower()
+            ]
 
         # Limit results
         comparables = comparables[:limit]

@@ -2,7 +2,6 @@
 Reporting endpoints for report templates, queued reports, and distribution schedules.
 """
 
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -133,7 +132,9 @@ async def update_template(
             detail=f"Template {template_id} not found",
         )
 
-    updated_template = await template_crud.update(db, db_obj=existing, obj_in=template_data)
+    updated_template = await template_crud.update(
+        db, db_obj=existing, obj_in=template_data
+    )
 
     logger.info(f"Updated report template: {template_id}")
 
@@ -376,7 +377,9 @@ async def create_schedule(
 
     new_schedule = await schedule_crud.create(db, obj_in=schedule_data)
 
-    logger.info(f"Created distribution schedule: {new_schedule.name} (ID: {new_schedule.id})")
+    logger.info(
+        f"Created distribution schedule: {new_schedule.name} (ID: {new_schedule.id})"
+    )
 
     return DistributionScheduleResponse(
         id=new_schedule.id,
@@ -412,7 +415,9 @@ async def update_schedule(
             detail=f"Schedule {schedule_id} not found",
         )
 
-    updated_schedule = await schedule_crud.update(db, db_obj=existing, obj_in=schedule_data)
+    updated_schedule = await schedule_crud.update(
+        db, db_obj=existing, obj_in=schedule_data
+    )
     template = await template_crud.get(db, updated_schedule.template_id)
 
     logger.info(f"Updated distribution schedule: {schedule_id}")
@@ -463,7 +468,9 @@ async def delete_schedule(
 
 @router.get("/widgets", response_model=ReportWidgetListResponse)
 async def list_widgets(
-    widget_type: str | None = Query(None, description="Filter by type: chart, table, metric, etc."),
+    widget_type: str | None = Query(
+        None, description="Filter by type: chart, table, metric, etc."
+    ),
 ):
     """
     List available report widgets for custom report building.

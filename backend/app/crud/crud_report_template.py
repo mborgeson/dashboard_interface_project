@@ -23,7 +23,9 @@ from app.schemas.reporting import (
 )
 
 
-class CRUDReportTemplate(CRUDBase[ReportTemplate, ReportTemplateCreate, ReportTemplateUpdate]):
+class CRUDReportTemplate(
+    CRUDBase[ReportTemplate, ReportTemplateCreate, ReportTemplateUpdate]
+):
     """CRUD operations for ReportTemplate model."""
 
     async def get_by_category(
@@ -167,9 +169,7 @@ class CRUDQueuedReport(CRUDBase[QueuedReport, QueuedReportCreate, QueuedReportCr
     ) -> list[QueuedReport]:
         """Get recent queued reports."""
         result = await db.execute(
-            select(QueuedReport)
-            .order_by(QueuedReport.requested_at.desc())
-            .limit(limit)
+            select(QueuedReport).order_by(QueuedReport.requested_at.desc()).limit(limit)
         )
         return list(result.scalars().all())
 
@@ -232,7 +232,9 @@ class CRUDQueuedReport(CRUDBase[QueuedReport, QueuedReportCreate, QueuedReportCr
         if requested_by:
             query = query.where(QueuedReport.requested_by == requested_by)
 
-        query = query.order_by(QueuedReport.requested_at.desc()).offset(skip).limit(limit)
+        query = (
+            query.order_by(QueuedReport.requested_at.desc()).offset(skip).limit(limit)
+        )
         result = await db.execute(query)
         return list(result.scalars().all())
 
@@ -261,7 +263,9 @@ class CRUDQueuedReport(CRUDBase[QueuedReport, QueuedReportCreate, QueuedReportCr
 
 
 class CRUDDistributionSchedule(
-    CRUDBase[DistributionSchedule, DistributionScheduleCreate, DistributionScheduleUpdate]
+    CRUDBase[
+        DistributionSchedule, DistributionScheduleCreate, DistributionScheduleUpdate
+    ]
 ):
     """CRUD operations for DistributionSchedule model."""
 

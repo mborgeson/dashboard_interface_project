@@ -73,7 +73,9 @@ class ReportTemplate(Base, TimestampMixin, SoftDeleteMixin):
         nullable=False,
     )
     is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_by: Mapped[str] = mapped_column(String(255), default="System", nullable=False)
+    created_by: Mapped[str] = mapped_column(
+        String(255), default="System", nullable=False
+    )
 
     # Configuration for custom widgets/layout
     config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
@@ -118,8 +120,12 @@ class QueuedReport(Base, TimestampMixin):
         nullable=False,
     )
     requested_by: Mapped[str] = mapped_column(String(255), nullable=False)
-    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     file_size: Mapped[str | None] = mapped_column(String(50), nullable=True)
     download_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -131,7 +137,9 @@ class QueuedReport(Base, TimestampMixin):
     )
 
     def __repr__(self) -> str:
-        return f"<QueuedReport(id={self.id}, name='{self.name}', status='{self.status}')>"
+        return (
+            f"<QueuedReport(id={self.id}, name='{self.name}', status='{self.status}')>"
+        )
 
 
 class DistributionSchedule(Base, TimestampMixin, SoftDeleteMixin):
@@ -155,8 +163,12 @@ class DistributionSchedule(Base, TimestampMixin, SoftDeleteMixin):
         Enum(ScheduleFrequency),
         nullable=False,
     )
-    day_of_week: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 0-6 for weekly
-    day_of_month: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 1-31 for monthly
+    day_of_week: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # 0-6 for weekly
+    day_of_month: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # 1-31 for monthly
     time: Mapped[str] = mapped_column(String(5), nullable=False)  # HH:MM format
     format: Mapped[str] = mapped_column(
         Enum(ReportFormat),
@@ -164,8 +176,12 @@ class DistributionSchedule(Base, TimestampMixin, SoftDeleteMixin):
         nullable=False,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    last_sent: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    next_scheduled: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_sent: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    next_scheduled: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
     # Relationships
     template: Mapped["ReportTemplate"] = relationship(

@@ -41,7 +41,9 @@ async def get_submarkets():
 
 @router.get("/trends", response_model=MarketTrendsResponse)
 async def get_market_trends(
-    period_months: int = Query(12, ge=1, le=36, description="Number of months of trend data"),
+    period_months: int = Query(
+        12, ge=1, le=36, description="Number of months of trend data"
+    ),
 ):
     """
     Get market trends over time.
@@ -60,7 +62,9 @@ async def get_market_trends(
 async def get_comparables(
     property_id: str | None = Query(None, description="Reference property ID"),
     submarket: str | None = Query(None, description="Filter to specific submarket"),
-    radius_miles: float = Query(5.0, ge=0.5, le=25.0, description="Search radius in miles"),
+    radius_miles: float = Query(
+        5.0, ge=0.5, le=25.0, description="Search radius in miles"
+    ),
     limit: int = Query(10, ge=1, le=50, description="Maximum number of comparables"),
 ):
     """

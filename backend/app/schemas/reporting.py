@@ -112,7 +112,9 @@ class QueuedReportBase(BaseSchema):
 
     name: str = Field(..., min_length=1, max_length=255, description="Report name")
     template_id: int = Field(..., description="Template ID")
-    format: ReportFormatSchema = Field(ReportFormatSchema.PDF, description="Export format")
+    format: ReportFormatSchema = Field(
+        ReportFormatSchema.PDF, description="Export format"
+    )
     requested_by: str = Field(..., description="User who requested the report")
 
 
@@ -156,15 +158,23 @@ class DistributionScheduleBase(BaseSchema):
     name: str = Field(..., min_length=1, max_length=255, description="Schedule name")
     template_id: int = Field(..., description="Template ID")
     recipients: list[str] = Field(..., min_length=1, description="Email recipients")
-    frequency: ScheduleFrequencySchema = Field(..., description="Distribution frequency")
-    day_of_week: int | None = Field(None, ge=0, le=6, description="Day of week (0=Mon, 6=Sun)")
-    day_of_month: int | None = Field(None, ge=1, le=31, description="Day of month (1-31)")
+    frequency: ScheduleFrequencySchema = Field(
+        ..., description="Distribution frequency"
+    )
+    day_of_week: int | None = Field(
+        None, ge=0, le=6, description="Day of week (0=Mon, 6=Sun)"
+    )
+    day_of_month: int | None = Field(
+        None, ge=1, le=31, description="Day of month (1-31)"
+    )
     time: str = Field(
         ...,
         pattern=r"^([01]\d|2[0-3]):([0-5]\d)$",
         description="Time in HH:MM format",
     )
-    format: ReportFormatSchema = Field(ReportFormatSchema.PDF, description="Export format")
+    format: ReportFormatSchema = Field(
+        ReportFormatSchema.PDF, description="Export format"
+    )
     is_active: bool = Field(True, description="Is schedule active")
 
 
@@ -214,7 +224,9 @@ class GenerateReportRequest(BaseSchema):
 
     template_id: int = Field(..., description="Template ID to use")
     name: str = Field(..., min_length=1, max_length=255, description="Report name")
-    format: ReportFormatSchema = Field(ReportFormatSchema.PDF, description="Export format")
+    format: ReportFormatSchema = Field(
+        ReportFormatSchema.PDF, description="Export format"
+    )
     parameters: dict | None = Field(None, description="Additional report parameters")
 
 
@@ -233,7 +245,9 @@ class ReportWidgetSchema(BaseSchema):
     """Schema for report widget definition."""
 
     id: str
-    type: str = Field(..., description="Widget type: chart, table, metric, text, image, map")
+    type: str = Field(
+        ..., description="Widget type: chart, table, metric, text, image, map"
+    )
     name: str
     description: str
     category: str
