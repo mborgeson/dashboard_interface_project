@@ -29,17 +29,28 @@ export {
 // Deal hooks
 export {
   dealKeys,
+  // Primary hooks with mock fallback
   useDealsWithMockFallback,
   useDealsWithMockFallback as useDeals, // Alias for backwards compatibility
+  useKanbanBoard,
+  useKanbanBoardWithMockFallback,
+  useDealActivities,
+  useDealActivitiesWithMockFallback,
+  // API-first hooks (no mock fallback)
   useDealsApi,
   useDeal,
   useDealPipeline,
   useDealsByStage,
   useDealStats,
+  useKanbanBoardApi,
+  useDealActivitiesApi,
+  // Mutations
   useCreateDeal,
   useUpdateDeal,
   useUpdateDealStage,
   useDeleteDeal,
+  useAddDealActivity,
+  // Prefetch utilities
   usePrefetchDeal,
   usePrefetchDealStage,
 } from './useDeals';
@@ -269,3 +280,17 @@ export type {
   SchedulesWithFallbackResponse,
   WidgetsWithFallbackResponse,
 } from './useReporting';
+
+// Deal response types
+export type {
+  KanbanFilters,
+  KanbanStageData,
+  KanbanBoardApiResponse,
+  KanbanBoardWithFallbackResponse,
+  DealActivityApiResponse,
+  DealActivitiesApiResponse,
+  DealActivity,
+  DealActivitiesWithFallbackResponse,
+  AddActivityInput,
+  DealsWithFallbackResponse,
+} from './useDeals';

@@ -26,8 +26,19 @@ export const dealKeys = {
   detail: (id: string) => [...dealKeys.details(), id] as const,
   pipeline: () => [...dealKeys.all, 'pipeline'] as const,
   pipelineByStage: (stage: DealStageApi) => [...dealKeys.pipeline(), stage] as const,
+  kanban: (filters?: KanbanFilters) => [...dealKeys.all, 'kanban', filters] as const,
   stats: () => [...dealKeys.all, 'stats'] as const,
+  activities: (dealId: string) => [...dealKeys.all, 'activities', dealId] as const,
 };
+
+// ============================================================================
+// Filter Types
+// ============================================================================
+
+export interface KanbanFilters {
+  dealType?: string;
+  assignedUserId?: number;
+}
 
 // ============================================================================
 // Query Hooks (with mock data fallback for development)
@@ -117,6 +128,178 @@ function transformDealFromApi(apiDeal: DealApiResponse): Deal {
   };
 }
 
+/**
+ * Transform deal timeline events to activities format
+ */
+function transformTimelineToActivities(deal: Deal): DealActivity[] {
+  return deal.timeline.map((event) => ({
+    id: event.id,
+    dealId: deal.id,
+    type: 'stage_change' as const,
+    description: event.description,
+    user: event.user || 'System',
+    timestamp: event.date,
+    metadata: { stage: event.stage },
+  }));
+}
+
+/**
+ * Build mock Kanban board from deals
+ */
+function buildMockKanbanBoard(
+  deals: Deal[],
+  filters?: KanbanFilters
+): KanbanBoardWithFallbackResponse {
+  let filtered = [...deals];
+
+  if (filters?.dealType) {
+    filtered = filtered.filter((d) => d.propertyType === filters.dealType);
+  }
+  if (filters?.assignedUserId) {
+    // Mock filtering by assignee name (in real app would filter by ID)
+    filtered = filtered.filter((d) => d.assignee.includes(String(filters.assignedUserId)));
+  }
+
+  const stages: DealStageApi[] = [
+    'lead',
+    'underwriting',
+    'loi',
+    'due_diligence',
+    'closing',
+    'closed_won',
+    'closed_lost',
+  ];
+
+  const stagesData: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
+  const stageCounts: Record<DealStageApi, number> = {} as never;
+
+  for (const stage of stages) {
+    const stageDeals = filtered.filter((d) => d.stage === stage);
+    const totalValue = stageDeals.reduce((sum, d) => sum + d.value, 0);
+    stagesData[stage] = {
+      deals: stageDeals,
+      count: stageDeals.length,
+      totalValue,
+    };
+    stageCounts[stage] = stageDeals.length;
+  }
+
+  return {
+    stages: stagesData,
+    totalDeals: filtered.length,
+    stageCounts,
+  };
+}
+
+/**
+ * Hook to fetch Kanban board with mock data fallback
+ * Falls back to mock data if API is unavailable or USE_MOCK_DATA is true
+ */
+export function useKanbanBoardWithMockFallback(
+  filters?: KanbanFilters,
+  options?: Omit<UseQueryOptions<KanbanBoardWithFallbackResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery({
+    queryKey: dealKeys.kanban(filters),
+    queryFn: async (): Promise<KanbanBoardWithFallbackResponse> => {
+      if (USE_MOCK_DATA) {
+        return buildMockKanbanBoard(mockDeals, filters);
+      }
+
+      try {
+        const params: Record<string, unknown> = {};
+        if (filters?.dealType) params.deal_type = filters.dealType;
+        if (filters?.assignedUserId) params.assigned_user_id = filters.assignedUserId;
+
+        const response = await get<KanbanBoardApiResponse>('/deals/kanban', params);
+
+        // Transform API response to local format
+        const stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
+        for (const [stage, data] of Object.entries(response.stages)) {
+          stages[stage as DealStageApi] = {
+            deals: data.deals.map(transformDealFromApi),
+            count: data.count,
+            totalValue: data.totalValue,
+          };
+        }
+
+        return {
+          stages,
+          totalDeals: response.total_deals,
+          stageCounts: response.stage_counts,
+        };
+      } catch (error) {
+        if (IS_DEV) {
+          console.warn('API unavailable, falling back to mock kanban board:', error);
+          return buildMockKanbanBoard(mockDeals, filters);
+        }
+        throw error;
+      }
+    },
+    staleTime: 1000 * 60 * 2, // 2 minutes - kanban should be more responsive
+    ...options,
+  });
+}
+
+/**
+ * Hook to fetch deal activities with mock data fallback
+ * Uses deal timeline as mock activity data
+ */
+export function useDealActivitiesWithMockFallback(
+  dealId: string,
+  options?: Omit<UseQueryOptions<DealActivitiesWithFallbackResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery({
+    queryKey: dealKeys.activities(dealId),
+    queryFn: async (): Promise<DealActivitiesWithFallbackResponse> => {
+      if (USE_MOCK_DATA) {
+        const deal = mockDeals.find((d) => d.id === dealId);
+        if (!deal) {
+          return { activities: [], total: 0 };
+        }
+        const activities = transformTimelineToActivities(deal);
+        return {
+          activities: activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
+          total: activities.length,
+        };
+      }
+
+      try {
+        const response = await get<DealActivitiesApiResponse>(`/deals/${dealId}/activities`);
+        return {
+          activities: response.activities.map((a) => ({
+            id: a.id,
+            dealId: a.deal_id,
+            type: a.type,
+            description: a.description,
+            user: a.user,
+            timestamp: new Date(a.timestamp),
+            metadata: a.metadata,
+          })),
+          total: response.total,
+        };
+      } catch (error) {
+        if (IS_DEV) {
+          console.warn('API unavailable, falling back to mock activities:', error);
+          const deal = mockDeals.find((d) => d.id === dealId);
+          if (!deal) {
+            return { activities: [], total: 0 };
+          }
+          const activities = transformTimelineToActivities(deal);
+          return {
+            activities: activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
+            total: activities.length,
+          };
+        }
+        throw error;
+      }
+    },
+    enabled: !!dealId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    ...options,
+  });
+}
+
 // ============================================================================
 // Query Hooks (API-first, no mock fallback)
 // ============================================================================
@@ -190,6 +373,39 @@ export function useDealStats(
   });
 }
 
+/**
+ * Fetch Kanban board data from API (API-first)
+ */
+export function useKanbanBoardApi(
+  filters?: KanbanFilters,
+  options?: Omit<UseQueryOptions<KanbanBoardApiResponse>, 'queryKey' | 'queryFn'>
+) {
+  const params: Record<string, unknown> = {};
+  if (filters?.dealType) params.deal_type = filters.dealType;
+  if (filters?.assignedUserId) params.assigned_user_id = filters.assignedUserId;
+
+  return useQuery({
+    queryKey: dealKeys.kanban(filters),
+    queryFn: () => get<KanbanBoardApiResponse>('/deals/kanban', params),
+    ...options,
+  });
+}
+
+/**
+ * Fetch deal activities from API (API-first)
+ */
+export function useDealActivitiesApi(
+  dealId: string,
+  options?: Omit<UseQueryOptions<DealActivitiesApiResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery({
+    queryKey: dealKeys.activities(dealId),
+    queryFn: () => get<DealActivitiesApiResponse>(`/deals/${dealId}/activities`),
+    enabled: !!dealId,
+    ...options,
+  });
+}
+
 // Local types for pipeline and stats responses
 interface DealPipelineResponse {
   lead: DealApiResponse[];
@@ -209,6 +425,71 @@ interface DealStatsResponse {
   conversionRate: number;
   dealsByStage: Record<DealStageApi, number>;
   valueByStage: Record<DealStageApi, number>;
+}
+
+// ============================================================================
+// Kanban Board Types
+// ============================================================================
+
+export interface KanbanStageData {
+  stage: DealStageApi;
+  deals: DealApiResponse[];
+  count: number;
+  totalValue: number;
+}
+
+export interface KanbanBoardApiResponse {
+  stages: Record<DealStageApi, KanbanStageData>;
+  total_deals: number;
+  stage_counts: Record<DealStageApi, number>;
+}
+
+export interface KanbanBoardWithFallbackResponse {
+  stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }>;
+  totalDeals: number;
+  stageCounts: Record<DealStageApi, number>;
+}
+
+// ============================================================================
+// Activity Types
+// ============================================================================
+
+export interface DealActivityApiResponse {
+  id: string;
+  deal_id: string;
+  type: 'stage_change' | 'note' | 'document' | 'call' | 'email' | 'meeting' | 'other';
+  description: string;
+  user: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface DealActivitiesApiResponse {
+  activities: DealActivityApiResponse[];
+  total: number;
+}
+
+export interface DealActivity {
+  id: string;
+  dealId: string;
+  type: 'stage_change' | 'note' | 'document' | 'call' | 'email' | 'meeting' | 'other';
+  description: string;
+  user: string;
+  timestamp: Date;
+  metadata?: Record<string, unknown>;
+}
+
+export interface DealActivitiesWithFallbackResponse {
+  activities: DealActivity[];
+  total: number;
+}
+
+export interface AddActivityInput {
+  dealId: string;
+  type: DealActivity['type'];
+  description: string;
+  user?: string;
+  metadata?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -328,6 +609,27 @@ export function useDeleteDeal() {
   });
 }
 
+/**
+ * Add activity to a deal
+ */
+export function useAddDealActivity() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ dealId, ...data }: AddActivityInput) =>
+      post<DealActivityApiResponse, Omit<AddActivityInput, 'dealId'>>(
+        `/deals/${dealId}/activity`,
+        data
+      ),
+    onSuccess: (_, variables) => {
+      // Invalidate activities for this deal
+      queryClient.invalidateQueries({ queryKey: dealKeys.activities(variables.dealId) });
+      // Also invalidate deal detail as timeline may have changed
+      queryClient.invalidateQueries({ queryKey: dealKeys.detail(variables.dealId) });
+    },
+  });
+}
+
 // ============================================================================
 // Prefetch Utilities
 // ============================================================================
@@ -361,3 +663,17 @@ export function usePrefetchDealStage() {
     });
   };
 }
+
+// ============================================================================
+// Convenience Aliases
+// ============================================================================
+
+/**
+ * Primary hook for Kanban board - uses mock fallback pattern
+ */
+export const useKanbanBoard = useKanbanBoardWithMockFallback;
+
+/**
+ * Primary hook for deal activities - uses mock fallback pattern
+ */
+export const useDealActivities = useDealActivitiesWithMockFallback;
