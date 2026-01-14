@@ -4,14 +4,23 @@ Property endpoints for CRUD operations and analytics.
 
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import CurrentUser, get_current_user
 from app.crud import property as property_crud
+from app.crud.crud_activity import property_activity
 from app.db.session import get_db
 from app.models import Property
+from app.models.activity import ActivityType as ActivityTypeModel
+from app.schemas.activity import (
+    ActivityType,
+    PropertyActivityCreate,
+    PropertyActivityListResponse,
+    PropertyActivityResponse,
+)
 from app.schemas.property import (
     PropertyCreate,
     PropertyListResponse,
@@ -301,3 +310,168 @@ async def get_property_analytics(
             "comparable_count": comp_count,
         },
     }
+
+
+@router.get("/{property_id}/activities", response_model=PropertyActivityListResponse)
+async def get_property_activities(
+    property_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    activity_type: str | None = Query(
+        None,
+        description="Filter by activity type: view, edit, comment, status_change, document_upload",
+    ),
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Get activity history for a property.
+
+    Returns a paginated list of activities including views, edits, comments,
+    status changes, and document uploads.
+
+    - **property_id**: Property ID to get activities for
+    - **skip**: Number of records to skip (default: 0)
+    - **limit**: Maximum number of records to return (default: 50, max: 100)
+    - **activity_type**: Filter by type (view, edit, comment, status_change, document_upload)
+    """
+    # Verify property exists
+    property_obj = await property_crud.get(db, property_id)
+    if not property_obj:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Property {property_id} not found",
+        )
+
+    # Validate activity_type if provided
+    valid_types = {"view", "edit", "comment", "status_change", "document_upload"}
+    if activity_type and activity_type not in valid_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid activity_type. Must be one of: {', '.join(valid_types)}",
+        )
+
+    # Get activities from database
+    activities = await property_activity.get_by_property(
+        db,
+        property_id=property_id,
+        skip=skip,
+        limit=limit,
+        activity_type=activity_type,
+    )
+
+    # Get total count
+    total = await property_activity.count_by_property(
+        db,
+        property_id=property_id,
+        activity_type=activity_type,
+    )
+
+    # Convert to response models
+    items = []
+    for activity in activities:
+        items.append(
+            PropertyActivityResponse(
+                id=activity.id,
+                property_id=activity.property_id,
+                user_id=activity.user_id,
+                user_name=None,  # Would need join with users table
+                activity_type=ActivityType(activity.activity_type.value),
+                description=activity.description,
+                field_changed=activity.field_changed,
+                old_value=activity.old_value,
+                new_value=activity.new_value,
+                comment_text=activity.comment_text,
+                document_name=activity.document_name,
+                document_url=activity.document_url,
+                created_at=activity.created_at,
+                updated_at=activity.updated_at,
+            )
+        )
+
+    logger.info(
+        f"User {current_user.email} retrieved {len(items)} activities for property {property_id}"
+    )
+
+    return PropertyActivityListResponse(
+        items=items,
+        total=total,
+        page=skip // limit + 1 if limit > 0 else 1,
+        page_size=limit,
+    )
+
+
+@router.post("/{property_id}/activities", response_model=PropertyActivityResponse)
+async def create_property_activity(
+    property_id: int,
+    activity_data: PropertyActivityCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Create a new activity entry for a property.
+
+    Used to log comments, document uploads, and other manual activities.
+    Views and edits are typically logged automatically.
+
+    - **property_id**: Property ID
+    - **activity_data**: Activity details
+    """
+    # Verify property exists
+    property_obj = await property_crud.get(db, property_id)
+    if not property_obj:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Property {property_id} not found",
+        )
+
+    # Ensure property_id in body matches path
+    if activity_data.property_id != property_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Property ID in body must match path parameter",
+        )
+
+    # Create the activity
+    from app.models.activity import PropertyActivity as PropertyActivityModel
+
+    activity = PropertyActivityModel(
+        property_id=property_id,
+        user_id=current_user.id,
+        activity_type=ActivityTypeModel(activity_data.activity_type.value),
+        description=activity_data.description,
+        field_changed=activity_data.field_changed,
+        old_value=activity_data.old_value,
+        new_value=activity_data.new_value,
+        comment_text=activity_data.comment_text,
+        document_name=activity_data.document_name,
+        document_url=activity_data.document_url,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+
+    db.add(activity)
+    await db.commit()
+    await db.refresh(activity)
+
+    logger.info(
+        f"User {current_user.email} created {activity_data.activity_type} activity for property {property_id}"
+    )
+
+    return PropertyActivityResponse(
+        id=activity.id,
+        property_id=activity.property_id,
+        user_id=activity.user_id,
+        user_name=current_user.full_name,
+        activity_type=ActivityType(activity.activity_type.value),
+        description=activity.description,
+        field_changed=activity.field_changed,
+        old_value=activity.old_value,
+        new_value=activity.new_value,
+        comment_text=activity.comment_text,
+        document_name=activity.document_name,
+        document_url=activity.document_url,
+        created_at=activity.created_at,
+        updated_at=activity.updated_at,
+    )

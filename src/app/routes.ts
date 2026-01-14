@@ -37,6 +37,9 @@ export const ReportingSuitePage = lazy(() =>
 export const ExtractionDashboard = lazy(() =>
   import('@/features/extraction').then(m => ({ default: m.ExtractionDashboard }))
 );
+export const DealComparisonPage = lazy(() =>
+  import('@/features/deals/DealComparisonPage').then(m => ({ default: m.DealComparisonPage }))
+);
 
 // Router configuration options
 export const routerOptions = {
@@ -52,6 +55,7 @@ export const ROUTES = {
   PROPERTY_DETAIL: '/properties/:id',
   TRANSACTIONS: '/transactions',
   DEALS: '/deals',
+  DEALS_COMPARE: '/deals/compare',
   ANALYTICS: '/analytics',
   MAPPING: '/mapping',
   MARKET: '/market',

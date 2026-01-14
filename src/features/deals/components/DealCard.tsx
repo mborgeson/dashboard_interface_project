@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import type { Deal } from '@/types/deal';
 import { DEAL_STAGE_LABELS, DEAL_STAGE_COLORS } from '@/types/deal';
-import { 
-  Building2, 
-  MapPin, 
-  DollarSign, 
-  TrendingUp, 
-  User, 
+import {
+  Building2,
+  MapPin,
+  DollarSign,
+  TrendingUp,
+  User,
   Calendar,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
+import { DealQuickActions } from '@/components/quick-actions/QuickActionButton';
 
 interface DealCardProps {
   deal: Deal;
@@ -142,9 +143,12 @@ export function DealCard({ deal, isDragging = false, compact = false, onClick }:
           <User className="w-3.5 h-3.5" />
           <span>{deal.assignee}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-neutral-600">
-          <Calendar className="w-3.5 h-3.5" />
-          <span>{deal.daysInStage} days</span>
+        <div className="flex items-center gap-3">
+          <DealQuickActions dealId={deal.id} size="sm" />
+          <div className="flex items-center gap-1.5 text-xs text-neutral-600">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>{deal.daysInStage} days</span>
+          </div>
         </div>
       </div>
 

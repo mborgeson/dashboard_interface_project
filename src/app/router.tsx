@@ -13,6 +13,7 @@ import {
   InterestRatesPage,
   ReportingSuitePage,
   ExtractionDashboard,
+  DealComparisonPage,
   routerOptions,
 } from './routes';
 
@@ -73,6 +74,14 @@ const router = createBrowserRouter(
           element: (
             <LazyRoute>
               <DealsRoute />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'deals/compare',
+          element: (
+            <LazyRoute>
+              <DealComparisonPage />
             </LazyRoute>
           ),
         },

@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { TopNav } from './TopNav';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
+import { ComparisonBar } from '@/components/comparison';
 
 export function AppLayout(){
   const { sidebarCollapsed } = useAppStore();
@@ -35,6 +36,9 @@ export function AppLayout(){
           <Outlet />
         </div>
       </main>
+
+      {/* Floating comparison bar */}
+      <ComparisonBar />
     </div>
   );
 }

@@ -36,6 +36,7 @@ export {
   useKanbanBoardWithMockFallback,
   useDealActivities,
   useDealActivitiesWithMockFallback,
+  useDealWithMockFallback,
   // API-first hooks (no mock fallback)
   useDealsApi,
   useDeal,
@@ -54,6 +55,14 @@ export {
   usePrefetchDeal,
   usePrefetchDealStage,
 } from './useDeals';
+
+// Deal comparison hooks
+export {
+  dealComparisonKeys,
+  useDealComparisonWithMockFallback,
+  useDealComparisonWithMockFallback as useDealComparison,
+  useDealComparisonApi,
+} from './useDealComparison';
 
 // Extraction hooks
 export {
@@ -303,3 +312,34 @@ export type {
   AddActivityInput,
   DealsWithFallbackResponse,
 } from './useDeals';
+
+// Deal comparison types
+export type {
+  ComparisonMetric,
+  DealForComparison,
+  DealComparisonApiResponse,
+  DealComparisonWithFallbackResponse,
+} from './useDealComparison';
+
+// Property Activities hooks
+export {
+  propertyActivityKeys,
+  // Primary hook with mock fallback
+  usePropertyActivities,
+  usePropertyActivitiesWithMockFallback,
+  // API-first hook (no mock fallback)
+  usePropertyActivitiesApi,
+  // Mutations
+  useAddPropertyActivity,
+} from './usePropertyActivities';
+
+// Property Activities response types
+export type {
+  PropertyActivityType,
+  PropertyActivity,
+  PropertyActivityApiResponse,
+  PropertyActivitiesApiResponse,
+  PropertyActivitiesWithFallbackResponse,
+  AddPropertyActivityInput,
+  UsePropertyActivitiesOptions,
+} from './usePropertyActivities';

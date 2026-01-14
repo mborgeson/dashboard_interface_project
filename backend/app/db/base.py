@@ -27,6 +27,7 @@ class Base(DeclarativeBase):
 # Import all models here for Alembic to detect them  # noqa: E402
 # noqa comments prevent unused import warnings
 from app.models.deal import Deal  # noqa: E402, F401
+from app.models.document import Document  # noqa: E402, F401
 
 # Extraction Models (SharePoint UW Model Integration)
 from app.models.extraction import (  # noqa: E402, F401
@@ -40,6 +41,9 @@ from app.models.file_monitor import (  # noqa: E402, F401
     MonitoredFile,
 )
 from app.models.property import Property  # noqa: E402, F401
+
+# Wave 1: Transaction and Document Models
+from app.models.transaction import Transaction  # noqa: E402, F401
 
 # Underwriting Models
 from app.models.underwriting import (  # noqa: E402, F401
@@ -58,6 +62,6 @@ from app.models.underwriting import (  # noqa: E402, F401
 )
 from app.models.user import User  # noqa: E402, F401
 
-# Wave 1: Transaction and Document Models
-from app.models.transaction import Transaction  # noqa: E402, F401
-from app.models.document import Document  # noqa: E402, F401
+# Activity models are imported from app.models.__init__ to avoid circular imports
+# They inherit from Base but don't need explicit import here as long as
+# app.models is imported before running migrations

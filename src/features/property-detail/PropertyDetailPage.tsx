@@ -8,6 +8,7 @@ import { FinancialsTab } from './components/FinancialsTab';
 import { OperationsTab } from './components/OperationsTab';
 import { PerformanceTab } from './components/PerformanceTab';
 import { TransactionsTab } from './components/TransactionsTab';
+import { PropertyActivityFeed } from './components/PropertyActivityFeed';
 
 type Tab = 'overview' | 'financials' | 'operations' | 'performance' | 'transactions';
 
@@ -128,13 +129,28 @@ export function PropertyDetailPage() {
         </div>
       </div>
 
-      {/* Tab Content */}
+      {/* Tab Content with Activity Feed Sidebar */}
       <div className="bg-gray-50 min-h-[600px]">
-        {activeTab === 'overview' && <OverviewTab property={property} />}
-        {activeTab === 'financials' && <FinancialsTab property={property} />}
-        {activeTab === 'operations' && <OperationsTab property={property} />}
-        {activeTab === 'performance' && <PerformanceTab property={property} />}
-        {activeTab === 'transactions' && <TransactionsTab propertyId={property.id} />}
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 p-6">
+          {/* Main Tab Content */}
+          <div className="min-w-0">
+            {activeTab === 'overview' && <OverviewTab property={property} />}
+            {activeTab === 'financials' && <FinancialsTab property={property} />}
+            {activeTab === 'operations' && <OperationsTab property={property} />}
+            {activeTab === 'performance' && <PerformanceTab property={property} />}
+            {activeTab === 'transactions' && <TransactionsTab propertyId={property.id} />}
+          </div>
+
+          {/* Activity Feed Sidebar */}
+          <aside className="xl:sticky xl:top-6 xl:self-start">
+            <PropertyActivityFeed
+              propertyId={property.id}
+              maxItems={15}
+              collapsible
+              enableRealtime
+            />
+          </aside>
+        </div>
       </div>
     </div>
   );

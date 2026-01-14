@@ -365,3 +365,434 @@ async def test_add_deal_activity_not_found(client):
     response = await client.post("/api/v1/deals/999999/activity", json=activity)
 
     assert response.status_code == 404
+
+
+# =============================================================================
+# Deal Comparison Tests
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_compare_deals_requires_auth(client, multiple_deals):
+    """Test that deal comparison requires authentication."""
+    deal_ids = [d.id for d in multiple_deals[:2]]
+    ids_str = ",".join(str(id) for id in deal_ids)
+
+    response = await client.get(f"/api/v1/deals/compare?ids={ids_str}")
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_compare_two_deals(client, multiple_deals, auth_headers):
+    """Test comparing exactly 2 deals."""
+    deal_ids = [multiple_deals[0].id, multiple_deals[1].id]
+    ids_str = ",".join(str(id) for id in deal_ids)
+
+    response = await client.get(
+        f"/api/v1/deals/compare?ids={ids_str}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "deals" in data
+    assert "comparison_summary" in data
+    assert "metric_comparisons" in data
+    assert "deal_count" in data
+    assert "compared_at" in data
+    assert data["deal_count"] == 2
+    assert len(data["deals"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_compare_four_deals(client, multiple_deals, auth_headers):
+    """Test comparing 4 deals (within limit)."""
+    deal_ids = [d.id for d in multiple_deals[:4]]
+    ids_str = ",".join(str(id) for id in deal_ids)
+
+    response = await client.get(
+        f"/api/v1/deals/compare?ids={ids_str}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["deal_count"] == 4
+    assert len(data["deals"]) == 4
+
+
+@pytest.mark.asyncio
+async def test_compare_deals_has_comparison_summary(client, multiple_deals, auth_headers):
+    """Test that comparison response includes correct summary structure."""
+    deal_ids = [d.id for d in multiple_deals[:2]]
+    ids_str = ",".join(str(id) for id in deal_ids)
+
+    response = await client.get(
+        f"/api/v1/deals/compare?ids={ids_str}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    summary = data["comparison_summary"]
+    expected_fields = [
+        "best_irr",
+        "best_coc",
+        "best_equity_multiple",
+        "lowest_price",
+        "highest_score",
+        "overall_recommendation",
+        "recommendation_reason",
+    ]
+    for field in expected_fields:
+        assert field in summary
+
+
+@pytest.mark.asyncio
+async def test_compare_deals_has_metric_comparisons(client, multiple_deals, auth_headers):
+    """Test that comparison includes metric comparisons."""
+    deal_ids = [d.id for d in multiple_deals[:2]]
+    ids_str = ",".join(str(id) for id in deal_ids)
+
+    response = await client.get(
+        f"/api/v1/deals/compare?ids={ids_str}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data["metric_comparisons"]) > 0
+
+    # Check metric comparison structure
+    metric = data["metric_comparisons"][0]
+    assert "metric_name" in metric
+    assert "values" in metric
+    assert "best_deal_id" in metric
+    assert "comparison_type" in metric
+
+
+@pytest.mark.asyncio
+async def test_compare_deals_too_few(client, test_deal, auth_headers):
+    """Test 400 when comparing fewer than 2 deals."""
+    response = await client.get(
+        f"/api/v1/deals/compare?ids={test_deal.id}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert "at least 2" in data["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_compare_deals_too_many(client, auth_headers, db_session, test_user):
+    """Test 400 when comparing more than 10 deals."""
+    from app.models import Deal, DealStage
+
+    # Create 11 deals
+    deals = []
+    for i in range(11):
+        deal = Deal(
+            name=f"Comparison Deal #{i+1}",
+            deal_type="acquisition",
+            stage=DealStage.LEAD,
+            stage_order=i,
+            assigned_user_id=test_user.id,
+            priority="medium",
+        )
+        db_session.add(deal)
+        deals.append(deal)
+
+    await db_session.commit()
+    for deal in deals:
+        await db_session.refresh(deal)
+
+    deal_ids = [d.id for d in deals]
+    ids_str = ",".join(str(id) for id in deal_ids)
+
+    response = await client.get(
+        f"/api/v1/deals/compare?ids={ids_str}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert "maximum 10" in data["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_compare_deals_invalid_format(client, auth_headers):
+    """Test 400 for invalid deal ID format."""
+    response = await client.get(
+        "/api/v1/deals/compare?ids=abc,def",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert "invalid" in data["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_compare_deals_nonexistent_deal(client, multiple_deals, auth_headers):
+    """Test 404 when one of the deal IDs doesn't exist."""
+    deal_ids = [multiple_deals[0].id, 999999]
+    ids_str = ",".join(str(id) for id in deal_ids)
+
+    response = await client.get(
+        f"/api/v1/deals/compare?ids={ids_str}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 404
+    data = response.json()
+    assert "not found" in data["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_compare_deals_with_duplicates(client, multiple_deals, auth_headers):
+    """Test that duplicate deal IDs are handled (deduplicated)."""
+    # Same ID repeated - should deduplicate
+    deal_id = multiple_deals[0].id
+    ids_str = f"{deal_id},{deal_id},{multiple_deals[1].id}"
+
+    response = await client.get(
+        f"/api/v1/deals/compare?ids={ids_str}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    # After deduplication, should only have 2 unique deals
+    assert data["deal_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_compare_deals_metrics_values(client, test_deal, multiple_deals, auth_headers):
+    """Test that deal metrics are populated correctly."""
+    deal_ids = [test_deal.id, multiple_deals[0].id]
+    ids_str = ",".join(str(id) for id in deal_ids)
+
+    response = await client.get(
+        f"/api/v1/deals/compare?ids={ids_str}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Find test_deal in the response
+    test_deal_data = None
+    for deal in data["deals"]:
+        if deal["id"] == test_deal.id:
+            test_deal_data = deal
+            break
+
+    assert test_deal_data is not None
+    assert test_deal_data["name"] == test_deal.name
+    assert test_deal_data["deal_type"] == test_deal.deal_type
+
+
+# =============================================================================
+# Watchlist Tests
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_toggle_watchlist_requires_auth(client, test_deal):
+    """Test that toggling watchlist requires authentication."""
+    response = await client.post(f"/api/v1/deals/{test_deal.id}/watchlist")
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_add_deal_to_watchlist(client, test_deal, auth_headers):
+    """Test adding a deal to the watchlist."""
+    response = await client.post(
+        f"/api/v1/deals/{test_deal.id}/watchlist",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["deal_id"] == test_deal.id
+    assert data["is_watched"] is True
+    assert "added" in data["message"].lower()
+    assert "watchlist_id" in data
+
+
+@pytest.mark.asyncio
+async def test_remove_deal_from_watchlist(client, test_deal, auth_headers):
+    """Test removing a deal from the watchlist (toggle off)."""
+    # First, add to watchlist
+    add_response = await client.post(
+        f"/api/v1/deals/{test_deal.id}/watchlist",
+        headers=auth_headers,
+    )
+    assert add_response.status_code == 200
+    assert add_response.json()["is_watched"] is True
+
+    # Then, toggle again to remove
+    remove_response = await client.post(
+        f"/api/v1/deals/{test_deal.id}/watchlist",
+        headers=auth_headers,
+    )
+
+    assert remove_response.status_code == 200
+    data = remove_response.json()
+
+    assert data["deal_id"] == test_deal.id
+    assert data["is_watched"] is False
+    assert "removed" in data["message"].lower()
+
+
+@pytest.mark.asyncio
+async def test_toggle_watchlist_deal_not_found(client, auth_headers):
+    """Test 404 when toggling watchlist for non-existent deal."""
+    response = await client.post(
+        "/api/v1/deals/999999/watchlist",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 404
+    data = response.json()
+    assert "not found" in data["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_get_watchlist_status_requires_auth(client, test_deal):
+    """Test that checking watchlist status requires authentication."""
+    response = await client.get(f"/api/v1/deals/{test_deal.id}/watchlist/status")
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_watchlist_status_not_watched(client, test_deal, auth_headers):
+    """Test checking watchlist status for a deal not on watchlist."""
+    response = await client.get(
+        f"/api/v1/deals/{test_deal.id}/watchlist/status",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["deal_id"] == test_deal.id
+    assert data["is_watched"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_watchlist_status_watched(client, test_deal, auth_headers):
+    """Test checking watchlist status for a watched deal."""
+    # First, add to watchlist
+    add_response = await client.post(
+        f"/api/v1/deals/{test_deal.id}/watchlist",
+        headers=auth_headers,
+    )
+    assert add_response.status_code == 200
+
+    # Then check status
+    status_response = await client.get(
+        f"/api/v1/deals/{test_deal.id}/watchlist/status",
+        headers=auth_headers,
+    )
+
+    assert status_response.status_code == 200
+    data = status_response.json()
+
+    assert data["deal_id"] == test_deal.id
+    assert data["is_watched"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_watchlist_status_deal_not_found(client, auth_headers):
+    """Test 404 when checking watchlist status for non-existent deal."""
+    response = await client.get(
+        "/api/v1/deals/999999/watchlist/status",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 404
+    data = response.json()
+    assert "not found" in data["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_watchlist_toggle_twice_returns_to_original(client, test_deal, auth_headers):
+    """Test that toggling twice returns to original state."""
+    # Check initial status
+    initial_status = await client.get(
+        f"/api/v1/deals/{test_deal.id}/watchlist/status",
+        headers=auth_headers,
+    )
+    assert initial_status.json()["is_watched"] is False
+
+    # Toggle on
+    await client.post(f"/api/v1/deals/{test_deal.id}/watchlist", headers=auth_headers)
+
+    # Toggle off
+    await client.post(f"/api/v1/deals/{test_deal.id}/watchlist", headers=auth_headers)
+
+    # Check final status
+    final_status = await client.get(
+        f"/api/v1/deals/{test_deal.id}/watchlist/status",
+        headers=auth_headers,
+    )
+    assert final_status.json()["is_watched"] is False
+
+
+@pytest.mark.asyncio
+async def test_watchlist_user_isolation(client, test_deal, auth_headers, admin_auth_headers):
+    """Test that watchlist entries are isolated per user."""
+    # User 1 adds to watchlist
+    user1_add = await client.post(
+        f"/api/v1/deals/{test_deal.id}/watchlist",
+        headers=auth_headers,
+    )
+    assert user1_add.status_code == 200
+    assert user1_add.json()["is_watched"] is True
+
+    # User 2 (admin) should not see it on their watchlist
+    user2_status = await client.get(
+        f"/api/v1/deals/{test_deal.id}/watchlist/status",
+        headers=admin_auth_headers,
+    )
+    assert user2_status.status_code == 200
+    assert user2_status.json()["is_watched"] is False
+
+
+@pytest.mark.asyncio
+async def test_multiple_deals_watchlist(client, multiple_deals, auth_headers):
+    """Test adding multiple deals to watchlist."""
+    # Add first two deals to watchlist
+    for deal in multiple_deals[:2]:
+        response = await client.post(
+            f"/api/v1/deals/{deal.id}/watchlist",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["is_watched"] is True
+
+    # Verify both are watched
+    for deal in multiple_deals[:2]:
+        status = await client.get(
+            f"/api/v1/deals/{deal.id}/watchlist/status",
+            headers=auth_headers,
+        )
+        assert status.json()["is_watched"] is True
+
+    # Verify others are not watched
+    for deal in multiple_deals[2:]:
+        status = await client.get(
+            f"/api/v1/deals/{deal.id}/watchlist/status",
+            headers=auth_headers,
+        )
+        assert status.json()["is_watched"] is False

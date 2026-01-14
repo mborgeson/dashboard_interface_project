@@ -1,5 +1,7 @@
 """SQLAlchemy models for the application."""
 
+# Activity models - imported last to avoid circular imports with db/base.py
+from .activity import ActivityType, DealActivity, PropertyActivity, UserWatchlist
 from .base import SoftDeleteMixin, TimestampMixin
 from .deal import Deal, DealStage
 from .document import Document, DocumentType
@@ -47,6 +49,11 @@ __all__ = [
     "DealStage",
     "Document",
     "DocumentType",
+    # Activity Models
+    "ActivityType",
+    "PropertyActivity",
+    "DealActivity",
+    "UserWatchlist",
     # File Monitoring Models
     "MonitoredFile",
     "FileChangeLog",
