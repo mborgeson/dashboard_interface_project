@@ -195,7 +195,9 @@ async def get_property_analytics(
             func.lower(Property.market) == func.lower(property_obj.market)
         )
     if property_obj.property_type:
-        market_comps_filters.append(Property.property_type == property_obj.property_type)
+        market_comps_filters.append(
+            Property.property_type == property_obj.property_type
+        )
 
     # Exclude current property from comparables
     market_comps_filters.append(Property.id != property_id)
@@ -219,8 +221,12 @@ async def get_property_analytics(
 
     # Get market averages
     market_avg_rent = _decimal_to_float(market_row.avg_rent) if market_row else None
-    market_avg_occupancy = _decimal_to_float(market_row.avg_occupancy) if market_row else None
-    market_avg_cap_rate = _decimal_to_float(market_row.avg_cap_rate) if market_row else None
+    market_avg_occupancy = (
+        _decimal_to_float(market_row.avg_occupancy) if market_row else None
+    )
+    market_avg_cap_rate = (
+        _decimal_to_float(market_row.avg_cap_rate) if market_row else None
+    )
     comp_count = market_row.comp_count if market_row else 0
 
     # Calculate rent vs market ratio
@@ -260,13 +266,19 @@ async def get_property_analytics(
         "data_source": "database",
         "metrics": {
             "current_rent_per_unit": round(current_rent, 2) if current_rent else None,
-            "current_occupancy": round(current_occupancy, 1) if current_occupancy else None,
-            "current_cap_rate": round(current_cap_rate, 2) if current_cap_rate else None,
+            "current_occupancy": round(current_occupancy, 1)
+            if current_occupancy
+            else None,
+            "current_cap_rate": round(current_cap_rate, 2)
+            if current_cap_rate
+            else None,
             "current_noi": round(current_noi, 2) if current_noi else None,
             # Historical growth rates would need time-series data
             "ytd_rent_growth": None,  # Would need historical rent data
             "ytd_noi_growth": None,  # Would need historical NOI data
-            "avg_occupancy_12m": round(current_occupancy, 1) if current_occupancy else None,
+            "avg_occupancy_12m": round(current_occupancy, 1)
+            if current_occupancy
+            else None,
             "rent_vs_market": rent_vs_market,
         },
         "trends": {
@@ -280,8 +292,12 @@ async def get_property_analytics(
             "market": property_obj.market,
             "property_type": property_obj.property_type,
             "market_avg_rent": round(market_avg_rent, 2) if market_avg_rent else None,
-            "market_avg_occupancy": round(market_avg_occupancy, 1) if market_avg_occupancy else None,
-            "market_avg_cap_rate": round(market_avg_cap_rate, 2) if market_avg_cap_rate else None,
+            "market_avg_occupancy": round(market_avg_occupancy, 1)
+            if market_avg_occupancy
+            else None,
+            "market_avg_cap_rate": round(market_avg_cap_rate, 2)
+            if market_avg_cap_rate
+            else None,
             "comparable_count": comp_count,
         },
     }

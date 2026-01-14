@@ -74,7 +74,9 @@ async def get_yield_curve():
 
 @router.get("/historical", response_model=HistoricalRatesResponse)
 async def get_historical_rates(
-    months: int = Query(12, ge=1, le=60, description="Number of months of historical data"),
+    months: int = Query(
+        12, ge=1, le=60, description="Number of months of historical data"
+    ),
 ):
     """
     Get historical interest rate data.

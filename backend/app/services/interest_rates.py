@@ -214,17 +214,72 @@ class InterestRatesService:
     def get_mock_yield_curve(self) -> list[dict]:
         """Return mock yield curve data."""
         return [
-            {"maturity": "1M", "yield": 5.47, "previous_yield": 5.48, "maturity_months": 1},
-            {"maturity": "3M", "yield": 5.41, "previous_yield": 5.42, "maturity_months": 3},
-            {"maturity": "6M", "yield": 5.18, "previous_yield": 5.20, "maturity_months": 6},
-            {"maturity": "1Y", "yield": 4.65, "previous_yield": 4.68, "maturity_months": 12},
-            {"maturity": "2Y", "yield": 4.18, "previous_yield": 4.21, "maturity_months": 24},
-            {"maturity": "3Y", "yield": 4.08, "previous_yield": 4.11, "maturity_months": 36},
-            {"maturity": "5Y", "yield": 4.05, "previous_yield": 4.09, "maturity_months": 60},
-            {"maturity": "7Y", "yield": 4.12, "previous_yield": 4.15, "maturity_months": 84},
-            {"maturity": "10Y", "yield": 4.22, "previous_yield": 4.26, "maturity_months": 120},
-            {"maturity": "20Y", "yield": 4.52, "previous_yield": 4.55, "maturity_months": 240},
-            {"maturity": "30Y", "yield": 4.42, "previous_yield": 4.46, "maturity_months": 360},
+            {
+                "maturity": "1M",
+                "yield": 5.47,
+                "previous_yield": 5.48,
+                "maturity_months": 1,
+            },
+            {
+                "maturity": "3M",
+                "yield": 5.41,
+                "previous_yield": 5.42,
+                "maturity_months": 3,
+            },
+            {
+                "maturity": "6M",
+                "yield": 5.18,
+                "previous_yield": 5.20,
+                "maturity_months": 6,
+            },
+            {
+                "maturity": "1Y",
+                "yield": 4.65,
+                "previous_yield": 4.68,
+                "maturity_months": 12,
+            },
+            {
+                "maturity": "2Y",
+                "yield": 4.18,
+                "previous_yield": 4.21,
+                "maturity_months": 24,
+            },
+            {
+                "maturity": "3Y",
+                "yield": 4.08,
+                "previous_yield": 4.11,
+                "maturity_months": 36,
+            },
+            {
+                "maturity": "5Y",
+                "yield": 4.05,
+                "previous_yield": 4.09,
+                "maturity_months": 60,
+            },
+            {
+                "maturity": "7Y",
+                "yield": 4.12,
+                "previous_yield": 4.15,
+                "maturity_months": 84,
+            },
+            {
+                "maturity": "10Y",
+                "yield": 4.22,
+                "previous_yield": 4.26,
+                "maturity_months": 120,
+            },
+            {
+                "maturity": "20Y",
+                "yield": 4.52,
+                "previous_yield": 4.55,
+                "maturity_months": 240,
+            },
+            {
+                "maturity": "30Y",
+                "yield": 4.42,
+                "previous_yield": 4.46,
+                "maturity_months": 360,
+            },
         ]
 
     def get_mock_historical_rates(self, months: int = 12) -> list[dict]:
@@ -362,7 +417,12 @@ class InterestRatesService:
                 "name": "U.S. Treasury Department",
                 "url": "https://home.treasury.gov/",
                 "description": "Official source for Treasury yield curve data, auction results, and government securities information.",
-                "data_types": ["Treasury Yields", "Yield Curve", "Auction Results", "Savings Bonds"],
+                "data_types": [
+                    "Treasury Yields",
+                    "Yield Curve",
+                    "Auction Results",
+                    "Savings Bonds",
+                ],
                 "update_frequency": "Daily",
             },
             {
@@ -370,7 +430,12 @@ class InterestRatesService:
                 "name": "Federal Reserve Economic Data (FRED)",
                 "url": "https://fred.stlouisfed.org/",
                 "description": "Comprehensive economic database maintained by the Federal Reserve Bank of St. Louis.",
-                "data_types": ["Federal Funds Rate", "Treasury Yields", "SOFR", "Economic Indicators"],
+                "data_types": [
+                    "Federal Funds Rate",
+                    "Treasury Yields",
+                    "SOFR",
+                    "Economic Indicators",
+                ],
                 "update_frequency": "Daily",
             },
             {
@@ -378,7 +443,12 @@ class InterestRatesService:
                 "name": "TreasuryDirect",
                 "url": "https://treasurydirect.gov/",
                 "description": "Official source for purchasing and managing U.S. Treasury securities.",
-                "data_types": ["Savings Bonds", "Treasury Bills", "Treasury Notes", "Treasury Bonds"],
+                "data_types": [
+                    "Savings Bonds",
+                    "Treasury Bills",
+                    "Treasury Notes",
+                    "Treasury Bonds",
+                ],
                 "update_frequency": "Real-time",
             },
             {
@@ -386,7 +456,12 @@ class InterestRatesService:
                 "name": "Bankrate",
                 "url": "https://www.bankrate.com/",
                 "description": "Leading source for current mortgage rates, personal loan rates, and banking information.",
-                "data_types": ["Mortgage Rates", "CD Rates", "Savings Rates", "Loan Rates"],
+                "data_types": [
+                    "Mortgage Rates",
+                    "CD Rates",
+                    "Savings Rates",
+                    "Loan Rates",
+                ],
                 "update_frequency": "Daily",
             },
             {
@@ -453,20 +528,26 @@ class InterestRatesService:
         fed_funds_vs_treasury = []
 
         for rate in historical_rates:
-            treasury_spread_2s10s.append({
-                "date": rate["date"],
-                "spread": round(rate["treasury_10y"] - rate["treasury_2y"], 2),
-            })
-            mortgage_spread.append({
-                "date": rate["date"],
-                "spread": round(rate["mortgage_30y"] - rate["treasury_10y"], 2),
-            })
-            fed_funds_vs_treasury.append({
-                "date": rate["date"],
-                "fed_funds": rate["federal_funds"],
-                "treasury_10y": rate["treasury_10y"],
-                "spread": round(rate["federal_funds"] - rate["treasury_10y"], 2),
-            })
+            treasury_spread_2s10s.append(
+                {
+                    "date": rate["date"],
+                    "spread": round(rate["treasury_10y"] - rate["treasury_2y"], 2),
+                }
+            )
+            mortgage_spread.append(
+                {
+                    "date": rate["date"],
+                    "spread": round(rate["mortgage_30y"] - rate["treasury_10y"], 2),
+                }
+            )
+            fed_funds_vs_treasury.append(
+                {
+                    "date": rate["date"],
+                    "fed_funds": rate["federal_funds"],
+                    "treasury_10y": rate["treasury_10y"],
+                    "spread": round(rate["federal_funds"] - rate["treasury_10y"], 2),
+                }
+            )
 
         return {
             "treasury_spread_2s10s": treasury_spread_2s10s,

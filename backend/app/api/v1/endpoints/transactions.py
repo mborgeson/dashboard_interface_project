@@ -180,7 +180,9 @@ async def get_transaction(
     return transaction
 
 
-@router.post("/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_transaction(
     transaction_data: TransactionCreate,
     db: AsyncSession = Depends(get_db),

@@ -131,8 +131,12 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         category: str | None = None,
     ) -> int:
         """Count transactions with filters."""
-        query = select(func.count()).select_from(Transaction).where(
-            Transaction.is_deleted == False  # noqa: E712
+        query = (
+            select(func.count())
+            .select_from(Transaction)
+            .where(
+                Transaction.is_deleted == False  # noqa: E712
+            )
         )
 
         if transaction_type:
@@ -162,11 +166,15 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         date_to: date | None = None,
     ) -> dict[str, Any]:
         """Get transaction summary statistics."""
-        query = select(
-            Transaction.type,
-            func.count(Transaction.id).label("count"),
-            func.sum(Transaction.amount).label("total"),
-        ).where(Transaction.is_deleted == False).group_by(Transaction.type)  # noqa: E712
+        query = (
+            select(
+                Transaction.type,
+                func.count(Transaction.id).label("count"),
+                func.sum(Transaction.amount).label("total"),
+            )
+            .where(Transaction.is_deleted == False)
+            .group_by(Transaction.type)
+        )  # noqa: E712
 
         if property_id:
             query = query.where(Transaction.property_id == property_id)

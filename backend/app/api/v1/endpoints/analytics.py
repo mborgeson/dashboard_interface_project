@@ -32,9 +32,7 @@ def _get_time_period_start(time_period: str) -> datetime:
             month=quarter_start_month, day=1, hour=0, minute=0, second=0, microsecond=0
         )
     elif time_period == "ytd":
-        return now.replace(
-            month=1, day=1, hour=0, minute=0, second=0, microsecond=0
-        )
+        return now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
     elif time_period == "1y":
         return now - timedelta(days=365)
     elif time_period == "3y":
@@ -138,22 +136,26 @@ async def get_dashboard_metrics(
     recent_activity = []
     for deal in recent_deals:
         stage_display = deal.stage.value.replace("_", " ").title() if deal.stage else ""
-        recent_activity.append({
-            "type": "deal_update",
-            "message": f"{deal.name} moved to {stage_display}",
-            "timestamp": deal.stage_updated_at.isoformat() if deal.stage_updated_at else None,
-        })
+        recent_activity.append(
+            {
+                "type": "deal_update",
+                "message": f"{deal.name} moved to {stage_display}",
+                "timestamp": deal.stage_updated_at.isoformat()
+                if deal.stage_updated_at
+                else None,
+            }
+        )
     for prop in recent_properties:
-        recent_activity.append({
-            "type": "property_update",
-            "message": f"{prop.name} updated",
-            "timestamp": prop.updated_at.isoformat() if prop.updated_at else None,
-        })
+        recent_activity.append(
+            {
+                "type": "property_update",
+                "message": f"{prop.name} updated",
+                "timestamp": prop.updated_at.isoformat() if prop.updated_at else None,
+            }
+        )
 
     # Sort by timestamp and take top 5
-    recent_activity.sort(
-        key=lambda x: x["timestamp"] or "", reverse=True
-    )
+    recent_activity.sort(key=lambda x: x["timestamp"] or "", reverse=True)
     recent_activity = recent_activity[:5]
 
     # Build response with database values, falling back to defaults if no data
@@ -206,17 +208,21 @@ async def get_dashboard_metrics(
     # Build alerts based on actual data
     alerts = []
     if low_occupancy_count > 0:
-        alerts.append({
-            "type": "warning",
-            "message": f"{low_occupancy_count} properties below 90% occupancy",
-            "count": low_occupancy_count,
-        })
+        alerts.append(
+            {
+                "type": "warning",
+                "message": f"{low_occupancy_count} properties below 90% occupancy",
+                "count": low_occupancy_count,
+            }
+        )
     if dd_deals_count > 0:
-        alerts.append({
-            "type": "info",
-            "message": f"{dd_deals_count} deals entering due diligence this week",
-            "count": dd_deals_count,
-        })
+        alerts.append(
+            {
+                "type": "info",
+                "message": f"{dd_deals_count} deals entering due diligence this week",
+                "count": dd_deals_count,
+            }
+        )
 
     return {
         "portfolio_summary": {
@@ -234,12 +240,12 @@ async def get_dashboard_metrics(
             "deals_closed_ytd": deals_closed_ytd,
             "capital_deployed_ytd": capital_deployed_ytd or 0,
         },
-        "alerts": alerts if alerts else [
-            {"type": "info", "message": "No alerts at this time", "count": 0}
-        ],
-        "recent_activity": recent_activity if recent_activity else [
-            {"type": "info", "message": "No recent activity", "timestamp": None}
-        ],
+        "alerts": alerts
+        if alerts
+        else [{"type": "info", "message": "No alerts at this time", "count": 0}],
+        "recent_activity": recent_activity
+        if recent_activity
+        else [{"type": "info", "message": "No recent activity", "timestamp": None}],
     }
 
 
@@ -290,10 +296,13 @@ async def get_portfolio_analytics(
 
     # Calculate total value for percentage calculations
     total_value_result = await db.execute(
-        select(func.coalesce(func.sum(Property.current_value), 0))
-        .where(*base_filter if base_filter else [True])
+        select(func.coalesce(func.sum(Property.current_value), 0)).where(
+            *base_filter if base_filter else [True]
+        )
     )
-    total_value = _decimal_to_float(total_value_result.scalar()) or 1  # Avoid division by zero
+    total_value = (
+        _decimal_to_float(total_value_result.scalar()) or 1
+    )  # Avoid division by zero
 
     # Check if we have any data
     total_count_result = await db.execute(
@@ -377,7 +386,9 @@ async def get_portfolio_analytics(
 
     # Current values for trends (would need historical data for actual trends)
     current_noi = _decimal_to_float(avg_metrics.avg_noi) if avg_metrics else 0
-    current_occupancy = _decimal_to_float(avg_metrics.avg_occupancy) if avg_metrics else 0
+    current_occupancy = (
+        _decimal_to_float(avg_metrics.avg_occupancy) if avg_metrics else 0
+    )
     current_rent_psf = _decimal_to_float(avg_metrics.avg_rent_psf) if avg_metrics else 0
 
     return {
@@ -488,7 +499,9 @@ async def get_market_data(
         "metrics": {
             "avg_rent_psf": round(_decimal_to_float(metrics_row.avg_rent_psf) or 0, 2),
             "avg_cap_rate": round(_decimal_to_float(metrics_row.avg_cap_rate) or 0, 2),
-            "vacancy_rate": round(vacancy_rate, 1) if vacancy_rate is not None else None,
+            "vacancy_rate": round(vacancy_rate, 1)
+            if vacancy_rate is not None
+            else None,
             "property_count": property_count,
             "total_units": metrics_row.total_units or 0,
             # Placeholder: would need external data for market-wide metrics
@@ -683,7 +696,14 @@ async def get_deal_pipeline_analytics(
 
     # Cumulative counts for conversion calculation
     # (deals currently in or past each stage, excluding dead)
-    past_lead = initial_review + underwriting + due_diligence + loi_submitted + under_contract + closed
+    past_lead = (
+        initial_review
+        + underwriting
+        + due_diligence
+        + loi_submitted
+        + under_contract
+        + closed
+    )
     past_review = underwriting + due_diligence + loi_submitted + under_contract + closed
     past_underwriting = due_diligence + loi_submitted + under_contract + closed
     past_dd = loi_submitted + under_contract + closed
@@ -692,12 +712,20 @@ async def get_deal_pipeline_analytics(
 
     conversion_rates = {
         "lead_to_review": calc_conversion(leads + past_lead, past_lead),
-        "review_to_underwriting": calc_conversion(initial_review + past_review, past_review),
-        "underwriting_to_dd": calc_conversion(underwriting + past_underwriting, past_underwriting),
+        "review_to_underwriting": calc_conversion(
+            initial_review + past_review, past_review
+        ),
+        "underwriting_to_dd": calc_conversion(
+            underwriting + past_underwriting, past_underwriting
+        ),
         "dd_to_loi": calc_conversion(due_diligence + past_dd, past_dd),
         "loi_to_contract": calc_conversion(loi_submitted + past_loi, past_loi),
-        "contract_to_close": calc_conversion(under_contract + past_contract, past_contract),
-        "overall": calc_conversion(total_deals - dead, closed) if (total_deals - dead) > 0 else 0.0,
+        "contract_to_close": calc_conversion(
+            under_contract + past_contract, past_contract
+        ),
+        "overall": calc_conversion(total_deals - dead, closed)
+        if (total_deals - dead) > 0
+        else 0.0,
     }
 
     # Query volume metrics
@@ -725,7 +753,9 @@ async def get_deal_pipeline_analytics(
     closed_row = closed_result.fetchone()
 
     total_reviewed = volume_row.total_reviewed if volume_row else 0
-    total_value = _decimal_to_float(volume_row.total_value_reviewed) if volume_row else 0
+    total_value = (
+        _decimal_to_float(volume_row.total_value_reviewed) if volume_row else 0
+    )
     avg_deal_size = total_value / total_reviewed if total_reviewed > 0 else 0
 
     # Cycle time calculations would need tracking of stage transition timestamps
@@ -747,6 +777,8 @@ async def get_deal_pipeline_analytics(
             "total_value_reviewed": total_value,
             "avg_deal_size": round(avg_deal_size, 0) if avg_deal_size else 0,
             "deals_closed": closed_row.deals_closed if closed_row else 0,
-            "capital_deployed": _decimal_to_float(closed_row.capital_deployed) if closed_row else 0,
+            "capital_deployed": _decimal_to_float(closed_row.capital_deployed)
+            if closed_row
+            else 0,
         },
     }

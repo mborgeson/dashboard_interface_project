@@ -272,7 +272,11 @@ class ExcelDataExtractor:
         if is_xlsb and hasattr(workbook, "_cache_stats"):
             stats = workbook._cache_stats
             total_lookups = stats["hits"] + stats["misses"]
-            hit_rate = round(stats["hits"] / total_lookups * 100, 1) if total_lookups > 0 else 0
+            hit_rate = (
+                round(stats["hits"] / total_lookups * 100, 1)
+                if total_lookups > 0
+                else 0
+            )
             self.logger.info(
                 "cache_performance",
                 total_lookups=total_lookups,
@@ -408,17 +412,20 @@ class ExcelDataExtractor:
         if sheet_name not in workbook._sheet_cache:
             # CACHE MISS - need to build cache for this sheet
             import time
+
             build_start = time.time()
             workbook._sheet_cache[sheet_name] = self._build_xlsb_sheet_cache(
                 workbook, sheet_name
             )
             build_time = time.time() - build_start
             workbook._cache_stats["misses"] += 1
-            workbook._cache_stats["builds"].append({
-                "sheet": sheet_name,
-                "time": round(build_time, 3),
-                "cells": len(workbook._sheet_cache[sheet_name])
-            })
+            workbook._cache_stats["builds"].append(
+                {
+                    "sheet": sheet_name,
+                    "time": round(build_time, 3),
+                    "cells": len(workbook._sheet_cache[sheet_name]),
+                }
+            )
             self.logger.info(
                 "CACHE_MISS",
                 sheet=sheet_name,

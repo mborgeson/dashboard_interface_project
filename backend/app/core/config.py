@@ -95,10 +95,12 @@ class Settings(BaseSettings):
             if not self.SECRET_KEY:
                 raise ValueError(
                     "SECRET_KEY environment variable must be set in production. "
-                    "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+                    'Generate one with: python -c "import secrets; print(secrets.token_urlsafe(64))"'
                 )
             if len(self.SECRET_KEY) < 32:
-                raise ValueError("SECRET_KEY must be at least 32 characters in production")
+                raise ValueError(
+                    "SECRET_KEY must be at least 32 characters in production"
+                )
             # DATABASE_URL validation - must be PostgreSQL in production
             if "sqlite" in self.DATABASE_URL.lower():
                 raise ValueError(

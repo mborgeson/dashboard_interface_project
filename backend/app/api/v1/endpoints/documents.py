@@ -146,7 +146,9 @@ async def upload_document(
     file: UploadFile,
     property_id: str | None = None,
     property_name: str | None = None,
-    type: str = Query("other", pattern="^(lease|financial|legal|due_diligence|photo|other)$"),
+    type: str = Query(
+        "other", pattern="^(lease|financial|legal|due_diligence|photo|other)$"
+    ),
     description: str | None = None,
     tags: str | None = None,  # Comma-separated tags
     uploaded_by: str | None = None,
@@ -183,7 +185,9 @@ async def upload_document(
     # Create document in database
     new_doc = await document_crud.create(db, obj_in=document_data)
 
-    logger.info(f"Uploaded document: {new_doc.name} (ID: {new_doc.id}, size: {file_size})")
+    logger.info(
+        f"Uploaded document: {new_doc.name} (ID: {new_doc.id}, size: {file_size})"
+    )
 
     return DocumentUploadResponse(
         document=new_doc,

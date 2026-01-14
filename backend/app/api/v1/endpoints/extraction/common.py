@@ -181,7 +181,11 @@ def process_files(
 
     # Mark complete with error summary
     ExtractionRunCRUD.complete(
-        db, run_id, files_processed=processed, files_failed=failed, error_summary=error_summary
+        db,
+        run_id,
+        files_processed=processed,
+        files_failed=failed,
+        error_summary=error_summary,
     )
     logger.info(
         "extraction_completed",
@@ -191,9 +195,7 @@ def process_files(
     )
 
 
-def run_extraction_task(
-    run_id: UUID, source: str, file_paths: list | None = None
-):
+def run_extraction_task(run_id: UUID, source: str, file_paths: list | None = None):
     """
     Background task to run extraction.
 
@@ -330,6 +332,7 @@ def run_extraction_task(
         logger.exception("extraction_task_failed", error=str(e))
         try:
             from app.crud.extraction import ExtractionRunCRUD
+
             ExtractionRunCRUD.fail(db, run_id, {"error": str(e)})
         except Exception as db_error:
             logger.error(

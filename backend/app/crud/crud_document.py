@@ -183,8 +183,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
 
         # Total size
         size_result = await db.execute(
-            select(func.sum(Document.size))
-            .where(Document.is_deleted == False)  # noqa: E712
+            select(func.sum(Document.size)).where(Document.is_deleted == False)  # noqa: E712
         )
         total_size = size_result.scalar() or 0
 
