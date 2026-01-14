@@ -16,6 +16,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -26,6 +28,53 @@ from app.services.extraction.scheduler import (
     run_scheduled_extraction,
 )
 from app.services.monitoring import MetricsMiddleware, get_metrics_manager
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Security headers middleware for defense-in-depth.
+
+    Adds security headers to all responses as a fallback
+    if Nginx headers are not present.
+    """
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+
+        # Security headers (only add if not already present)
+        if "X-Content-Type-Options" not in response.headers:
+            response.headers["X-Content-Type-Options"] = "nosniff"
+        if "X-Frame-Options" not in response.headers:
+            response.headers["X-Frame-Options"] = "DENY"
+        if "X-XSS-Protection" not in response.headers:
+            response.headers["X-XSS-Protection"] = "1; mode=block"
+        if "Referrer-Policy" not in response.headers:
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        if "Permissions-Policy" not in response.headers:
+            response.headers["Permissions-Policy"] = (
+                "geolocation=(), microphone=(), camera=(), payment=()"
+            )
+
+        # Cache control for API responses (prevent caching of sensitive data)
+        if request.url.path.startswith("/api/"):
+            if "Cache-Control" not in response.headers:
+                response.headers["Cache-Control"] = "no-store, private"
+
+        # Content Security Policy (restrictive default)
+        if "Content-Security-Policy" not in response.headers:
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: https:; "
+                "font-src 'self'; "
+                "connect-src 'self' wss:; "
+                "frame-ancestors 'none'; "
+                "base-uri 'self'; "
+                "form-action 'self'"
+            )
+
+        return response
 
 
 @asynccontextmanager
@@ -127,6 +176,9 @@ app.add_middleware(MetricsMiddleware)
 # Add rate limiting middleware (if enabled)
 if settings.RATE_LIMIT_ENABLED:
     app.add_middleware(RateLimitMiddleware)
+
+# Add security headers middleware (defense-in-depth)
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # Global exception handler

@@ -182,32 +182,97 @@ class ConditionHandler(StepHandler):
         expression: str | None,
         variables: dict[str, Any],
     ) -> bool:
-        """Safely evaluate a condition expression."""
+        """
+        Safely evaluate a condition expression.
+
+        Uses AST-based parsing to prevent code injection attacks.
+        Only allows safe comparison and logical operators.
+        """
+        import ast
+        import operator
+
         if not expression:
             return True
 
-        # Create a restricted namespace for evaluation
-        namespace = {
-            "variables": variables,
-            **variables,  # Also expose variables at top level
+        # Safe operators whitelist
+        SAFE_OPERATORS = {
+            ast.Eq: operator.eq,
+            ast.NotEq: operator.ne,
+            ast.Lt: operator.lt,
+            ast.LtE: operator.le,
+            ast.Gt: operator.gt,
+            ast.GtE: operator.ge,
+            ast.In: lambda a, b: a in b,
+            ast.NotIn: lambda a, b: a not in b,
+            ast.Is: operator.is_,
+            ast.IsNot: operator.is_not,
+            ast.And: lambda a, b: a and b,
+            ast.Or: lambda a, b: a or b,
+            ast.Not: operator.not_,
+            ast.Add: operator.add,
+            ast.Sub: operator.sub,
+            ast.Mult: operator.mul,
+            ast.Div: operator.truediv,
         }
 
-        try:
-            # Only allow simple comparisons and logical operators
-            allowed_names = {
-                "True",
-                "False",
-                "None",
-                "and",
-                "or",
-                "not",
-                "in",
-            }
-            # Basic safety check
-            for name in allowed_names:
-                expression = expression.replace(name, name)
+        def safe_eval_node(node: ast.AST) -> Any:
+            """Recursively evaluate AST nodes safely."""
+            if isinstance(node, ast.Expression):
+                return safe_eval_node(node.body)
+            elif isinstance(node, ast.Constant):
+                return node.value
+            elif isinstance(node, ast.Name):
+                if node.id in variables:
+                    return variables[node.id]
+                elif node.id == "True":
+                    return True
+                elif node.id == "False":
+                    return False
+                elif node.id == "None":
+                    return None
+                else:
+                    raise ValueError(f"Unknown variable: {node.id}")
+            elif isinstance(node, ast.Compare):
+                left = safe_eval_node(node.left)
+                for op, comparator in zip(node.ops, node.comparators, strict=False):
+                    op_func = SAFE_OPERATORS.get(type(op))
+                    if op_func is None:
+                        raise ValueError(f"Unsupported operator: {type(op).__name__}")
+                    right = safe_eval_node(comparator)
+                    if not op_func(left, right):
+                        return False
+                    left = right
+                return True
+            elif isinstance(node, ast.BoolOp):
+                op_func = SAFE_OPERATORS.get(type(node.op))
+                if op_func is None:
+                    raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
+                result = safe_eval_node(node.values[0])
+                for value in node.values[1:]:
+                    result = op_func(result, safe_eval_node(value))
+                return result
+            elif isinstance(node, ast.UnaryOp):
+                if isinstance(node.op, ast.Not):
+                    return not safe_eval_node(node.operand)
+                raise ValueError(f"Unsupported unary operator: {type(node.op).__name__}")
+            elif isinstance(node, ast.BinOp):
+                op_func = SAFE_OPERATORS.get(type(node.op))
+                if op_func is None:
+                    raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
+                return op_func(safe_eval_node(node.left), safe_eval_node(node.right))
+            elif isinstance(node, ast.Subscript):
+                value = safe_eval_node(node.value)
+                index = safe_eval_node(node.slice)
+                return value[index]
+            elif isinstance(node, ast.Attribute):
+                # Only allow attribute access on dict-like objects via get
+                raise ValueError("Attribute access not allowed for security")
+            else:
+                raise ValueError(f"Unsupported AST node: {type(node).__name__}")
 
-            return bool(eval(expression, {"__builtins__": {}}, namespace))
+        try:
+            tree = ast.parse(expression, mode='eval')
+            return bool(safe_eval_node(tree))
         except Exception as e:
             logger.warning(f"Expression evaluation failed: {expression} - {e}")
             return False
