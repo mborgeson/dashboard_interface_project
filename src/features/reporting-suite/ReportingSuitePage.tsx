@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import {
   FileText,
   Hammer,
@@ -13,6 +13,11 @@ import { CustomReportBuilder } from './components/CustomReportBuilder';
 import { ReportQueue } from './components/ReportQueue';
 import { Distribution } from './components/Distribution';
 import { ReportSettings } from './components/ReportSettings';
+
+// Lazy load ReportWizard modal for code splitting
+const ReportWizard = lazy(() =>
+  import('./components/ReportWizard/ReportWizard').then(m => ({ default: m.ReportWizard }))
+);
 
 type TabId = 'templates' | 'builder' | 'queue' | 'distribution' | 'settings';
 
@@ -58,6 +63,7 @@ const tabs: Tab[] = [
 
 export function ReportingSuitePage() {
   const [activeTab, setActiveTab] = useState<TabId>('templates');
+  const [showWizard, setShowWizard] = useState(false);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -94,7 +100,7 @@ export function ReportingSuitePage() {
                   'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                   'bg-primary-600 text-white hover:bg-primary-700'
                 )}
-                onClick={() => setActiveTab('builder')}
+                onClick={() => setShowWizard(true)}
               >
                 <Plus className="w-4 h-4" />
                 <span>New Report</span>
@@ -132,6 +138,16 @@ export function ReportingSuitePage() {
       <div className="max-w-7xl mx-auto px-6 py-6">
         {renderContent()}
       </div>
+
+      {/* Report Wizard Dialog - Lazy loaded */}
+      {showWizard && (
+        <Suspense fallback={null}>
+          <ReportWizard
+            open={showWizard}
+            onOpenChange={setShowWizard}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

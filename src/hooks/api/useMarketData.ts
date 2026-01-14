@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get } from '@/lib/api';
 import { USE_MOCK_DATA, IS_DEV } from '@/lib/config';
@@ -458,6 +458,98 @@ export function useComparablesApi(
       get<ComparablesApiResponse>('/market/comparables', filters as Record<string, unknown>),
     ...options,
   });
+}
+
+// ============================================================================
+// Prefetch Utilities
+// ============================================================================
+
+/**
+ * Prefetch market overview data
+ * Useful for navigation patterns where market data is likely to be needed
+ */
+export function usePrefetchMarketOverview() {
+  const queryClient = useQueryClient();
+
+  return () => {
+    queryClient.prefetchQuery({
+      queryKey: marketDataKeys.overview(),
+      queryFn: async () => {
+        if (USE_MOCK_DATA) {
+          return {
+            msaOverview: phoenixMSAOverview,
+            economicIndicators: economicIndicators,
+          };
+        }
+        const response = await get<MarketOverviewApiResponse>('/market/overview');
+        return {
+          msaOverview: {
+            population: response.msa_overview.population,
+            employment: response.msa_overview.employment,
+            gdp: response.msa_overview.gdp,
+            populationGrowth: response.msa_overview.population_growth,
+            employmentGrowth: response.msa_overview.employment_growth,
+            gdpGrowth: response.msa_overview.gdp_growth,
+            lastUpdated: response.msa_overview.last_updated,
+          },
+          economicIndicators: response.economic_indicators.map((ind) => ({
+            indicator: ind.indicator,
+            value: ind.value,
+            yoyChange: ind.yoy_change,
+            unit: ind.unit,
+          })),
+        };
+      },
+      staleTime: 15 * 60 * 1000, // 15 minutes
+    });
+  };
+}
+
+/**
+ * Prefetch submarkets data
+ * Useful when navigating to market analysis sections
+ */
+export function usePrefetchSubmarkets() {
+  const queryClient = useQueryClient();
+
+  return () => {
+    queryClient.prefetchQuery({
+      queryKey: marketDataKeys.submarkets(),
+      queryFn: async () => {
+        if (USE_MOCK_DATA) {
+          const totalInventory = submarketMetrics.reduce((sum, s) => sum + s.inventory, 0);
+          return {
+            submarkets: submarketMetrics,
+            totalInventory,
+            totalAbsorption: submarketMetrics.reduce((sum, s) => sum + s.absorption, 0),
+            averageOccupancy:
+              submarketMetrics.reduce((sum, s) => sum + s.occupancy * s.inventory, 0) /
+              totalInventory,
+            averageRentGrowth:
+              submarketMetrics.reduce((sum, s) => sum + s.rentGrowth * s.inventory, 0) /
+              totalInventory,
+          };
+        }
+        const response = await get<SubmarketsApiResponse>('/market/submarkets');
+        return {
+          submarkets: response.submarkets.map((s) => ({
+            name: s.name,
+            avgRent: s.avg_rent,
+            rentGrowth: s.rent_growth,
+            occupancy: s.occupancy,
+            capRate: s.cap_rate,
+            inventory: s.inventory,
+            absorption: s.absorption,
+          })),
+          totalInventory: response.total_inventory,
+          totalAbsorption: response.total_absorption,
+          averageOccupancy: response.average_occupancy,
+          averageRentGrowth: response.average_rent_growth,
+        };
+      },
+      staleTime: 15 * 60 * 1000, // 15 minutes
+    });
+  };
 }
 
 // ============================================================================

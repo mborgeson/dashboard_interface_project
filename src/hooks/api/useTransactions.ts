@@ -197,7 +197,7 @@ export function useTransactionsWithMockFallback(
         throw error;
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 7, // 7 min - transactions change more than properties but less than real-time data
     ...options,
   });
 }

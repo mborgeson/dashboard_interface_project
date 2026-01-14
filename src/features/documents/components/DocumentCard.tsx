@@ -10,7 +10,10 @@ import {
   File,
 } from 'lucide-react';
 import type { Document, DocumentType } from '@/types/document';
-import { formatDistanceToNow } from 'date-fns';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 interface DocumentCardProps {
   document: Document;
@@ -117,7 +120,7 @@ export function DocumentCard({
           {/* Metadata */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{formatFileSize(document.size)}</span>
-            <span>{formatDistanceToNow(document.uploadedAt, { addSuffix: true })}</span>
+            <span>{dayjs(document.uploadedAt).fromNow()}</span>
           </div>
 
           {/* Uploader */}

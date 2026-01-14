@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useDealsWithMockFallback } from '@/hooks/api/useDeals';
 import { useDeals } from './hooks/useDeals';
 import { DealPipeline } from './components/DealPipeline';
 import { KanbanBoardWidget } from './components/KanbanBoardWidget';
 import { DealTimeline } from './components/DealTimeline';
 import { DealFilters } from './components/DealFilters';
-import { DealDetailModal } from './components/DealDetailModal';
 import { Briefcase, LayoutGrid, List, TrendingUp, Calendar, Target, Kanban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DealPipelineSkeleton } from '@/components/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+
+// Lazy load DealDetailModal for code splitting
+const DealDetailModal = lazy(() =>
+  import('./components/DealDetailModal').then(m => ({ default: m.DealDetailModal }))
+);
 
 type ViewMode = 'kanban' | 'pipeline' | 'list';
 
@@ -251,14 +255,18 @@ export function DealsPage() {
         <DealTimeline deals={filteredDeals} />
       )}
 
-      {/* Deal Detail Modal */}
-      <DealDetailModal
-        dealId={selectedDealId}
-        open={selectedDealId !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedDealId(null);
-        }}
-      />
+      {/* Deal Detail Modal - Lazy loaded */}
+      {selectedDealId !== null && (
+        <Suspense fallback={null}>
+          <DealDetailModal
+            dealId={selectedDealId}
+            open={selectedDealId !== null}
+            onOpenChange={(open) => {
+              if (!open) setSelectedDealId(null);
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

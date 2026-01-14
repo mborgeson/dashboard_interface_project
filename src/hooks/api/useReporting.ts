@@ -849,6 +849,98 @@ export function useDeleteDistributionSchedule() {
 }
 
 // ============================================================================
+// Prefetch Utilities
+// ============================================================================
+
+/**
+ * Prefetch report templates
+ * Useful for navigation patterns where report generation is likely to be accessed
+ */
+export function usePrefetchReportTemplates() {
+  const queryClient = useQueryClient();
+
+  return (filters: TemplateFilters = {}) => {
+    queryClient.prefetchQuery({
+      queryKey: reportingKeys.templateList(filters),
+      queryFn: async () => {
+        if (USE_MOCK_DATA) {
+          let filtered = [...mockReportTemplates];
+
+          if (filters.category) {
+            filtered = filtered.filter((t) => t.category === filters.category);
+          }
+          if (filters.is_default !== undefined) {
+            filtered = filtered.filter((t) => t.isDefault === filters.is_default);
+          }
+          if (filters.search) {
+            const search = filters.search.toLowerCase();
+            filtered = filtered.filter(
+              (t) =>
+                t.name.toLowerCase().includes(search) ||
+                t.description.toLowerCase().includes(search)
+            );
+          }
+
+          const page = filters.page || 1;
+          const pageSize = filters.page_size || 20;
+          const start = (page - 1) * pageSize;
+          const paginated = filtered.slice(start, start + pageSize);
+
+          return {
+            templates: paginated,
+            total: filtered.length,
+          };
+        }
+
+        const response = await get<ReportTemplateListApiResponse>(
+          '/reporting/templates',
+          filters as Record<string, unknown>
+        );
+        return {
+          templates: response.items.map(transformTemplateFromApi),
+          total: response.total,
+        };
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+  };
+}
+
+/**
+ * Prefetch report widgets
+ * Useful for report builder screens
+ */
+export function usePrefetchReportWidgets() {
+  const queryClient = useQueryClient();
+
+  return (widgetType?: string) => {
+    queryClient.prefetchQuery({
+      queryKey: reportingKeys.widgets(widgetType),
+      queryFn: async () => {
+        if (USE_MOCK_DATA) {
+          let filtered = [...mockReportWidgets];
+          if (widgetType) {
+            filtered = filtered.filter((w) => w.type === widgetType);
+          }
+          return {
+            widgets: filtered,
+            total: filtered.length,
+          };
+        }
+
+        const params = widgetType ? { widget_type: widgetType } : {};
+        const response = await get<ReportWidgetListApiResponse>('/reporting/widgets', params);
+        return {
+          widgets: response.widgets.map(transformWidgetFromApi),
+          total: response.total,
+        };
+      },
+      staleTime: 30 * 60 * 1000, // 30 minutes - widgets rarely change
+    });
+  };
+}
+
+// ============================================================================
 // Convenience Aliases
 // ============================================================================
 

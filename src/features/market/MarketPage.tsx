@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useMarketData } from './hooks/useMarketData';
 import { MarketOverview } from './components/MarketOverview';
 import { EconomicIndicators } from './components/EconomicIndicators';
@@ -9,9 +9,15 @@ import { Download, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
 
+// Lazy load ReportWizard modal for code splitting
+const ReportWizard = lazy(() =>
+  import('@/features/reporting-suite/components/ReportWizard/ReportWizard').then(m => ({ default: m.ReportWizard }))
+);
+
 export function MarketPage() {
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [showReportWizard, setShowReportWizard] = useState(false);
+
   const {
     msaOverview,
     economicIndicators,
@@ -75,7 +81,7 @@ export function MarketPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={() => setShowReportWizard(true)}>
             <Download className="h-4 w-4" />
             Export Report
           </Button>
@@ -111,6 +117,16 @@ export function MarketPage() {
           </p>
         </div>
       </div>
+
+      {/* Report Wizard Dialog - Lazy loaded */}
+      {showReportWizard && (
+        <Suspense fallback={null}>
+          <ReportWizard
+            open={showReportWizard}
+            onOpenChange={setShowReportWizard}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

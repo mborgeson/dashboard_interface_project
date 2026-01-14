@@ -1,10 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { Button } from '@/components/ui/button';
 import { Download, Calendar } from 'lucide-react';
 import { MarketOverviewWidget } from '@/features/market/components/widgets/MarketOverviewWidget';
 import { EconomicIndicatorsWidget } from '@/features/market/components/widgets/EconomicIndicatorsWidget';
-import { ReportWizard } from '@/features/reporting-suite/components/ReportWizard/ReportWizard';
+
+// Lazy load ReportWizard modal for code splitting
+const ReportWizard = lazy(() =>
+  import('@/features/reporting-suite/components/ReportWizard/ReportWizard').then(m => ({ default: m.ReportWizard }))
+);
 import {
   Table,
   TableBody,
@@ -496,11 +500,15 @@ export function AnalyticsPage() {
         </p>
       </div>
 
-      {/* Report Wizard Dialog */}
-      <ReportWizard
-        open={showReportWizard}
-        onOpenChange={setShowReportWizard}
-      />
+      {/* Report Wizard Dialog - Lazy loaded */}
+      {showReportWizard && (
+        <Suspense fallback={null}>
+          <ReportWizard
+            open={showReportWizard}
+            onOpenChange={setShowReportWizard}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

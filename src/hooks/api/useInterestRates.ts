@@ -10,7 +10,7 @@
  * - Real estate lending context
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get } from '@/lib/api';
 import { USE_MOCK_DATA, IS_DEV } from '@/lib/config';
@@ -621,6 +621,63 @@ export function useLendingContextApi(
     staleTime: 1000 * 60 * 5,
     ...options,
   });
+}
+
+// ============================================================================
+// Prefetch Utilities
+// ============================================================================
+
+/**
+ * Prefetch current key interest rates
+ * Useful for navigation patterns where rate data is likely to be needed
+ */
+export function usePrefetchKeyRates() {
+  const queryClient = useQueryClient();
+
+  return () => {
+    queryClient.prefetchQuery({
+      queryKey: interestRateKeys.current(),
+      queryFn: async () => {
+        if (USE_MOCK_DATA) {
+          return {
+            keyRates: mockKeyRates,
+            lastUpdated: new Date(),
+            source: 'mock',
+          };
+        }
+        const response = await get<KeyRatesApiResponse>('/interest-rates/current');
+        return transformKeyRatesFromApi(response);
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+  };
+}
+
+/**
+ * Prefetch Treasury yield curve
+ * Useful for financing and deal analysis screens
+ */
+export function usePrefetchYieldCurve() {
+  const queryClient = useQueryClient();
+
+  return () => {
+    queryClient.prefetchQuery({
+      queryKey: interestRateKeys.yieldCurve(),
+      queryFn: async () => {
+        if (USE_MOCK_DATA) {
+          return {
+            yieldCurve: mockYieldCurve,
+            asOfDate: '2025-12-05',
+            lastUpdated: new Date(),
+            source: 'mock',
+          };
+        }
+        const response = await get<YieldCurveApiResponse>('/interest-rates/yield-curve');
+        return transformYieldCurveFromApi(response);
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+  };
 }
 
 // ============================================================================

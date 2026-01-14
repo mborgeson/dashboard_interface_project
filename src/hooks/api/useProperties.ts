@@ -71,7 +71,7 @@ export function useProperties(filters?: PropertyFiltersParams) {
         throw error;
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 10, // 10 min - property data is relatively stable, rarely changes mid-session
   });
 }
 
@@ -124,7 +124,7 @@ export function useProperty(id: string | undefined) {
       }
     },
     enabled: !!id,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 10, // 10 min - individual property details are stable within a session
   });
 }
 
@@ -165,7 +165,7 @@ export function usePortfolioSummary() {
         throw error;
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 10, // 10 min - portfolio summary aggregates are stable, no need to refetch frequently
   });
 }
 

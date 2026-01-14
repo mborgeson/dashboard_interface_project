@@ -14,7 +14,7 @@ import {
   Image,
 } from 'lucide-react';
 import type { Document, DocumentType } from '@/types/document';
-import { format } from 'date-fns';
+import dayjs from 'dayjs';
 
 interface DocumentListProps {
   documents: Document[];
@@ -308,7 +308,7 @@ export function DocumentList({
                     </td>
                     <td className="p-4">
                       <span className="text-sm text-muted-foreground">
-                        {format(doc.uploadedAt, 'MMM d, yyyy')}
+                        {dayjs(doc.uploadedAt).format('MMM D, YYYY')}
                       </span>
                     </td>
                     <td className="p-4">

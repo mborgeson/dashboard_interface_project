@@ -1,14 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Grid3x3, List, Upload, HardDrive } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DocumentFilters } from './components/DocumentFilters';
 import { DocumentGrid } from './components/DocumentGrid';
 import { DocumentList } from './components/DocumentList';
-import { DocumentUploadModal } from './components/DocumentUploadModal';
 import { useDocuments } from './hooks/useDocuments';
 import type { Document, DocumentType } from '@/types/document';
 import { EmptyDocuments } from '@/components/ui/empty-state';
+
+// Lazy load DocumentUploadModal for code splitting
+const DocumentUploadModal = lazy(() =>
+  import('./components/DocumentUploadModal').then(m => ({ default: m.DocumentUploadModal }))
+);
 
 type ViewMode = 'grid' | 'list';
 
@@ -258,11 +262,15 @@ export function DocumentsPage() {
         )}
       </div>
 
-      {/* Upload Modal */}
-      <DocumentUploadModal
-        open={uploadModalOpen}
-        onClose={() => setUploadModalOpen(false)}
-      />
+      {/* Upload Modal - Lazy loaded */}
+      {uploadModalOpen && (
+        <Suspense fallback={null}>
+          <DocumentUploadModal
+            open={uploadModalOpen}
+            onClose={() => setUploadModalOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

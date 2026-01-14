@@ -58,7 +58,7 @@ export default defineConfig({
             "@radix-ui/react-tooltip",
           ],
           // Chart libraries
-          "vendor-charts": ["recharts", "chart.js", "react-chartjs-2"],
+          "vendor-charts": ["recharts"],
           // Map libraries
           "vendor-maps": ["leaflet", "react-leaflet", "leaflet.markercluster"],
           // Data/utility libraries
@@ -68,12 +68,13 @@ export default defineConfig({
             "zustand",
             "fuse.js",
           ],
-          // Export libraries - split for better lazy loading
-          "vendor-pdf": ["jspdf", "html2canvas"],
-          "vendor-xlsx": ["exceljs"],
+          // NOTE: jspdf and exceljs are now dynamically imported
+          // in src/features/underwriting/utils/exporters.ts
+          // Vite will automatically create separate chunks for these (~52MB total)
+          // They are only loaded when user clicks export buttons
           // Date/form libraries
           "vendor-forms": [
-            "date-fns",
+            "dayjs",
             "react-hook-form",
             "@hookform/resolvers",
             "zod",

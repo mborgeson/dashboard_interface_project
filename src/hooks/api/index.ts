@@ -114,6 +114,9 @@ export {
   useDataSourcesApi,
   useRateSpreadsApi,
   useLendingContextApi,
+  // Prefetch utilities
+  usePrefetchKeyRates,
+  usePrefetchYieldCurve,
 } from './useInterestRates';
 
 // Document hooks
@@ -150,6 +153,9 @@ export {
   useSubmarketsApi,
   useMarketTrendsApi,
   useComparablesApi,
+  // Prefetch utilities
+  usePrefetchMarketOverview,
+  usePrefetchSubmarkets,
 } from './useMarketData';
 
 // Reporting hooks
@@ -180,6 +186,9 @@ export {
   useCreateDistributionSchedule,
   useUpdateDistributionSchedule,
   useDeleteDistributionSchedule,
+  // Prefetch utilities
+  usePrefetchReportTemplates,
+  usePrefetchReportWidgets,
 } from './useReporting';
 
 // Re-export types for convenience
