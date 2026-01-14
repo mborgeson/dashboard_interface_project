@@ -8,10 +8,13 @@ from app.api.v1.endpoints import (
     analytics,
     auth,
     deals,
+    documents,
     exports,
     extraction,
+    interest_rates,
     monitoring,
     properties,
+    transactions,
     users,
 )
 
@@ -34,3 +37,10 @@ api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(exports.router, prefix="/exports", tags=["exports"])
 api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
 api_router.include_router(extraction.router, prefix="/extraction", tags=["extraction"])
+api_router.include_router(
+    interest_rates.router, prefix="/interest-rates", tags=["interest-rates"]
+)
+api_router.include_router(
+    transactions.router, prefix="/transactions", tags=["transactions"]
+)
+api_router.include_router(documents.router, prefix="/documents", tags=["documents"])

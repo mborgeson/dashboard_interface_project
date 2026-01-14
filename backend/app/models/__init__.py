@@ -2,6 +2,7 @@
 
 from .base import SoftDeleteMixin, TimestampMixin
 from .deal import Deal, DealStage
+from .document import Document, DocumentType
 
 # File Monitoring Models - imported after underwriting to avoid circular imports
 from .file_monitor import FileChangeLog, MonitoredFile
@@ -33,6 +34,8 @@ __all__ = [
     "Property",
     "Deal",
     "DealStage",
+    "Document",
+    "DocumentType",
     # File Monitoring Models
     "MonitoredFile",
     "FileChangeLog",

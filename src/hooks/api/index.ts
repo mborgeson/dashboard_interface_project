@@ -29,7 +29,9 @@ export {
 // Deal hooks
 export {
   dealKeys,
-  useDeals,
+  useDealsWithMockFallback,
+  useDealsWithMockFallback as useDeals, // Alias for backwards compatibility
+  useDealsApi,
   useDeal,
   useDealPipeline,
   useDealsByStage,
@@ -60,6 +62,65 @@ export {
   useIsDealExtracting,
 } from './useExtraction';
 
+// Transaction hooks
+export {
+  transactionKeys,
+  useTransactionsWithMockFallback,
+  useTransactionsApi,
+  useTransaction,
+  useTransactionsByProperty,
+  useTransactionsByType,
+  useTransactionSummary,
+  useCreateTransaction,
+  useUpdateTransaction,
+  usePatchTransaction,
+  useDeleteTransaction,
+  usePrefetchTransaction,
+  usePrefetchPropertyTransactions,
+} from './useTransactions';
+
+// Interest Rates hooks
+export {
+  interestRateKeys,
+  // Primary hooks with mock fallback
+  useInterestRates,
+  useYieldCurve,
+  useHistoricalRates,
+  useDataSources,
+  useRateSpreads,
+  useLendingContext,
+  // Explicit mock fallback hooks
+  useKeyRatesWithMockFallback,
+  useYieldCurveWithMockFallback,
+  useHistoricalRatesWithMockFallback,
+  useDataSourcesWithMockFallback,
+  useRateSpreadsWithMockFallback,
+  useLendingContextWithMockFallback,
+  // API-first hooks (no mock fallback)
+  useKeyRatesApi,
+  useYieldCurveApi,
+  useHistoricalRatesApi,
+  useDataSourcesApi,
+  useRateSpreadsApi,
+  useLendingContextApi,
+} from './useInterestRates';
+
+// Document hooks
+export {
+  documentKeys,
+  useDocumentsWithMockFallback,
+  useDocumentStatsWithMockFallback,
+  useDocumentsApi,
+  useDocument,
+  useDocumentsByProperty,
+  useDocumentStats,
+  useCreateDocument,
+  useUpdateDocument,
+  useDeleteDocument,
+  usePrefetchDocument,
+  usePrefetchPropertyDocuments,
+} from './useDocuments';
+
 // Re-export types for convenience
 export type {
   PropertyFilters,
@@ -85,3 +146,34 @@ export type {
   PaginatedResponse,
   ApiError,
 } from '@/types/api';
+
+// Interest rates response types
+export type {
+  KeyRatesWithFallbackResponse,
+  YieldCurveWithFallbackResponse,
+  HistoricalRatesWithFallbackResponse,
+  DataSourcesWithFallbackResponse,
+  RateSpreadsWithFallbackResponse,
+  LendingContextWithFallbackResponse,
+} from './useInterestRates';
+
+// Document response types
+export type {
+  DocumentApiResponse,
+  DocumentListApiResponse,
+  DocumentStatsApiResponse,
+  DocumentCreateInput,
+  DocumentUpdateInput,
+  DocumentsWithFallbackResponse,
+} from './useDocuments';
+
+// Transaction response types
+export type {
+  TransactionFilters,
+  TransactionApiResponse,
+  TransactionListResponse,
+  TransactionSummaryResponse,
+  TransactionCreateInput,
+  TransactionUpdateInput,
+  TransactionsWithFallbackResponse,
+} from './useTransactions';

@@ -2,6 +2,7 @@
 
 from .email_service import EmailService, get_email_service
 from .export_service import ExcelExportService, get_excel_service
+from .interest_rates import InterestRatesService, get_interest_rates_service
 from .pdf_service import PDFReportService, get_pdf_service
 from .redis_service import RedisService, get_redis_service
 from .websocket_service import WebSocketManager, get_websocket_manager
@@ -17,4 +18,6 @@ __all__ = [
     "get_excel_service",
     "PDFReportService",
     "get_pdf_service",
+    "InterestRatesService",
+    "get_interest_rates_service",
 ]

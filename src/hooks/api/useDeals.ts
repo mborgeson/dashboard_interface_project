@@ -62,8 +62,9 @@ export function useDealsWithMockFallback(
       try {
         const response = await get<DealListResponse>('/deals');
         // Transform API response to Deal[] format
+        // DealListResponse is PaginatedResponse<DealApiResponse> with 'data' property
         return {
-          deals: response.deals?.map(transformDealFromApi) ?? mockDeals,
+          deals: response.data?.map(transformDealFromApi) ?? mockDeals,
           total: response.total ?? mockDeals.length,
         };
       } catch (error) {
@@ -85,25 +86,26 @@ export function useDealsWithMockFallback(
 
 /**
  * Transform API deal response to local Deal type
+ * API response uses camelCase properties
  */
 function transformDealFromApi(apiDeal: DealApiResponse): Deal {
   return {
     id: apiDeal.id,
-    propertyName: apiDeal.property_name || apiDeal.propertyName || '',
+    propertyName: apiDeal.propertyName || '',
     address: {
       street: apiDeal.address?.street || '',
       city: apiDeal.address?.city || '',
       state: apiDeal.address?.state || '',
     },
     value: apiDeal.value || 0,
-    capRate: apiDeal.cap_rate || apiDeal.capRate || 0,
+    capRate: apiDeal.capRate || 0,
     stage: apiDeal.stage as Deal['stage'],
-    daysInStage: apiDeal.days_in_stage || apiDeal.daysInStage || 0,
-    totalDaysInPipeline: apiDeal.total_days_in_pipeline || apiDeal.totalDaysInPipeline || 0,
+    daysInStage: apiDeal.daysInStage || 0,
+    totalDaysInPipeline: apiDeal.totalDaysInPipeline || 0,
     assignee: apiDeal.assignee || '',
-    propertyType: apiDeal.property_type || apiDeal.propertyType || '',
+    propertyType: apiDeal.propertyType || '',
     units: apiDeal.units || 0,
-    createdAt: new Date(apiDeal.created_at || apiDeal.createdAt || Date.now()),
+    createdAt: new Date(apiDeal.createdAt || Date.now()),
     timeline: (apiDeal.timeline || []).map((event) => ({
       id: event.id,
       date: new Date(event.date),
