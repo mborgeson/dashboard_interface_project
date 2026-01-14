@@ -57,6 +57,7 @@ export function KanbanBoardWidget({
   showFilters = true,
   showHeader = true,
   viewMode: initialViewMode = 'full',
+  onDealClick,
 }: KanbanBoardWidgetProps) {
   const [filters, setFilters] = useState<KanbanFilters>({});
   const [viewMode, setViewMode] = useState<'compact' | 'full'>(initialViewMode);
@@ -252,6 +253,7 @@ export function KanbanBoardWidget({
               deals={data.stages[stage]?.deals || []}
               total={data.stages[stage]?.totalValue || 0}
               isOver={false}
+              onDealClick={onDealClick}
             />
           ))}
         </div>
@@ -284,6 +286,7 @@ export function KanbanBoardWidget({
                   key={deal.id}
                   deal={deal}
                   compact={viewMode === 'compact'}
+                  onClick={onDealClick}
                 />
               ))}
             </div>

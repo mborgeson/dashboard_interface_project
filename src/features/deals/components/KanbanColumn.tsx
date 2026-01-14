@@ -18,6 +18,7 @@ interface KanbanColumnProps {
   deals: Deal[];
   total: number;
   isOver?: boolean;
+  onDealClick?: (dealId: string) => void;
 }
 
 const STAGE_ICONS: Record<DealStage, string> = {
@@ -41,7 +42,7 @@ const STAGE_BG_COLORS: Record<DealStage, string> = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function KanbanColumn({ stage, deals, total, isOver: _isOver }: KanbanColumnProps) {
+export function KanbanColumn({ stage, deals, total, isOver: _isOver, onDealClick }: KanbanColumnProps) {
   const { setNodeRef, isOver: isDragOver } = useDroppable({
     id: stage,
   });
@@ -114,7 +115,7 @@ export function KanbanColumn({ stage, deals, total, isOver: _isOver }: KanbanCol
             </div>
           ) : (
             deals.map((deal) => (
-              <DraggableDealCard key={deal.id} deal={deal} />
+              <DraggableDealCard key={deal.id} deal={deal} onClick={onDealClick} />
             ))
           )}
         </div>

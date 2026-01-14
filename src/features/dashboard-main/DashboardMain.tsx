@@ -7,6 +7,9 @@ import { PropertyMap } from './components/PropertyMap';
 import { PortfolioPerformanceChart } from './components/PortfolioPerformanceChart';
 import { PropertyDistributionChart } from './components/PropertyDistributionChart';
 import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
+import { MarketTrendsWidget } from '@/features/market/components/widgets/MarketTrendsWidget';
+import { MarketOverviewWidget } from '@/features/market/components/widgets/MarketOverviewWidget';
+import { SubmarketComparisonWidget } from '@/features/market/components/widgets/SubmarketComparisonWidget';
 
 export function DashboardMain() {
   // Fetch properties from API
@@ -305,6 +308,20 @@ export function DashboardMain() {
         </h2>
         <PropertyDistributionChart type="submarket" properties={properties} />
       </Card>
+
+      {/* Market Insights */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MarketOverviewWidget variant="compact" className="shadow-card" />
+        <SubmarketComparisonWidget
+          className="shadow-card"
+          showChart={true}
+          showTable={false}
+          limit={5}
+        />
+      </div>
+
+      {/* Market Trends */}
+      <MarketTrendsWidget className="bg-white rounded-lg border border-neutral-200 shadow-card" />
 
       {/* Property Map */}
       <Card className="p-6 shadow-card">

@@ -18,9 +18,10 @@ interface DealCardProps {
   deal: Deal;
   isDragging?: boolean;
   compact?: boolean;
+  onClick?: (dealId: string) => void;
 }
 
-export function DealCard({ deal, isDragging = false, compact = false }: DealCardProps) {
+export function DealCard({ deal, isDragging = false, compact = false, onClick }: DealCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { info } = useToast();
 
@@ -47,12 +48,23 @@ export function DealCard({ deal, isDragging = false, compact = false }: DealCard
   };
 
   return (
-    <div className={cn(
-      "bg-white rounded-lg border border-neutral-200 shadow-card transition-all",
-      compact ? "p-3" : "p-4",
-      isDragging ? "shadow-2xl ring-2 ring-blue-400 cursor-grabbing" : "hover:shadow-card-hover",
-      !isDragging && "cursor-pointer"
-    )}>
+    <div
+      className={cn(
+        "bg-white rounded-lg border border-neutral-200 shadow-card transition-all",
+        compact ? "p-3" : "p-4",
+        isDragging ? "shadow-2xl ring-2 ring-blue-400 cursor-grabbing" : "hover:shadow-card-hover",
+        !isDragging && onClick && "cursor-pointer"
+      )}
+      onClick={() => onClick?.(deal.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.(deal.id);
+        }
+      }}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">

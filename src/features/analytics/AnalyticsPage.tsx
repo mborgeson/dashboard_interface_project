@@ -2,6 +2,9 @@ import { useState, useMemo } from 'react';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { Button } from '@/components/ui/button';
 import { Download, Calendar } from 'lucide-react';
+import { MarketOverviewWidget } from '@/features/market/components/widgets/MarketOverviewWidget';
+import { EconomicIndicatorsWidget } from '@/features/market/components/widgets/EconomicIndicatorsWidget';
+import { ReportWizard } from '@/features/reporting-suite/components/ReportWizard/ReportWizard';
 import {
   Table,
   TableBody,
@@ -20,6 +23,7 @@ type DateRange = '30' | '90' | '365' | 'all';
 
 export function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<DateRange>('365');
+  const [showReportWizard, setShowReportWizard] = useState(false);
 
   // Fetch properties from API
   const { data, isLoading, error } = useProperties();
@@ -340,7 +344,7 @@ export function AnalyticsPage() {
               <option value="all">All Time</option>
             </select>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={() => setShowReportWizard(true)}>
             <Download className="h-4 w-4" />
             Export Report
           </Button>
@@ -394,6 +398,15 @@ export function AnalyticsPage() {
       <div>
         <h2 className="text-section-title text-primary-500 mb-4">Property Analysis</h2>
         <ComparisonCharts propertyPerformance={propertyPerformance} riskReturn={riskReturnData} />
+      </div>
+
+      {/* Market Insights */}
+      <div>
+        <h2 className="text-section-title text-primary-500 mb-4">Market Insights</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <MarketOverviewWidget variant="compact" />
+          <EconomicIndicatorsWidget columns={2} showSparklines={false} />
+        </div>
       </div>
 
       {/* Property Comparison Table */}
@@ -482,6 +495,12 @@ export function AnalyticsPage() {
           Worst performer
         </p>
       </div>
+
+      {/* Report Wizard Dialog */}
+      <ReportWizard
+        open={showReportWizard}
+        onOpenChange={setShowReportWizard}
+      />
     </div>
   );
 }

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useDealsWithMockFallback } from '@/hooks/api/useDeals';
 import { useDeals } from './hooks/useDeals';
 import { DealPipeline } from './components/DealPipeline';
-import { KanbanBoard } from './components/KanbanBoard';
+import { KanbanBoardWidget } from './components/KanbanBoardWidget';
 import { DealTimeline } from './components/DealTimeline';
 import { DealFilters } from './components/DealFilters';
+import { DealDetailModal } from './components/DealDetailModal';
 import { Briefcase, LayoutGrid, List, TrendingUp, Calendar, Target, Kanban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DealPipelineSkeleton } from '@/components/skeletons';
@@ -15,6 +16,7 @@ type ViewMode = 'kanban' | 'pipeline' | 'list';
 
 export function DealsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
 
   // Fetch deals from API (with mock fallback)
   const { data: dealsData, isLoading, error, refetch } = useDealsWithMockFallback();
@@ -29,7 +31,6 @@ export function DealsPage() {
     dealsByStage,
     metrics,
     filterOptions,
-    updateDealStage,
   } = useDeals(deals);
 
   const formatCurrency = (value: number) => {
@@ -238,12 +239,26 @@ export function DealsPage() {
           }}
         />
       ) : viewMode === 'kanban' ? (
-        <KanbanBoard dealsByStage={dealsByStage} onDealStageChange={updateDealStage} />
+        <KanbanBoardWidget
+          className="mt-0"
+          showFilters={false}
+          showHeader={false}
+          onDealClick={(dealId) => setSelectedDealId(dealId)}
+        />
       ) : viewMode === 'pipeline' ? (
         <DealPipeline dealsByStage={dealsByStage} />
       ) : (
         <DealTimeline deals={filteredDeals} />
       )}
+
+      {/* Deal Detail Modal */}
+      <DealDetailModal
+        dealId={selectedDealId}
+        open={selectedDealId !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDealId(null);
+        }}
+      />
     </div>
   );
 }

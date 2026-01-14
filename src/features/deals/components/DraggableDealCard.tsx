@@ -11,9 +11,10 @@ import { GripVertical } from 'lucide-react';
 
 interface DraggableDealCardProps {
   deal: Deal;
+  onClick?: (dealId: string) => void;
 }
 
-export function DraggableDealCard({ deal }: DraggableDealCardProps) {
+export function DraggableDealCard({ deal, onClick }: DraggableDealCardProps) {
   const {
     attributes,
     listeners,
@@ -64,7 +65,7 @@ export function DraggableDealCard({ deal }: DraggableDealCardProps) {
         'transition-all duration-200',
         'group-hover:translate-x-2'
       )}>
-        <DealCard deal={deal} isDragging={isDragging} compact />
+        <DealCard deal={deal} isDragging={isDragging} compact onClick={onClick} />
       </div>
     </div>
   );
