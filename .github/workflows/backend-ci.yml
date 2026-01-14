@@ -81,7 +81,7 @@ jobs:
         timeout-minutes: 10
         env:
           DATABASE_URL: "sqlite+aiosqlite:///:memory:"
-          SECRET_KEY: test-secret-key-for-ci
+          SECRET_KEY: test-secret-key-for-ci-at-least-32-chars
           ENVIRONMENT: testing
         run: |
           set +e  # Don't exit on error, we'll handle it
@@ -186,7 +186,7 @@ jobs:
       - name: Verify FastAPI app starts
         env:
           DATABASE_URL: sqlite+aiosqlite:///./test.db
-          SECRET_KEY: test-secret-key-for-ci
+          SECRET_KEY: test-secret-key-for-ci-at-least-32-chars
           ENVIRONMENT: testing
         run: |
           timeout 10 python -c "
