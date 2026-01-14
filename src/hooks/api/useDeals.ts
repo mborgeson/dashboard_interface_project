@@ -334,6 +334,42 @@ export function useDeal(
 }
 
 /**
+ * Hook to fetch a single deal with mock data fallback
+ * Falls back to mock data if API is unavailable or USE_MOCK_DATA is true
+ */
+export function useDealWithMockFallback(
+  id: string | null,
+  options?: Omit<UseQueryOptions<Deal | null>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery({
+    queryKey: dealKeys.detail(id ?? ''),
+    queryFn: async (): Promise<Deal | null> => {
+      if (!id) return null;
+
+      if (USE_MOCK_DATA) {
+        const deal = mockDeals.find((d) => d.id === id);
+        return deal ?? null;
+      }
+
+      try {
+        const response = await get<DealApiResponse>(`/deals/${id}`);
+        return transformDealFromApi(response);
+      } catch (error) {
+        if (IS_DEV) {
+          console.warn('API unavailable, falling back to mock deal:', error);
+          const deal = mockDeals.find((d) => d.id === id);
+          return deal ?? null;
+        }
+        throw error;
+      }
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    ...options,
+  });
+}
+
+/**
  * Fetch deals grouped by pipeline stage (for kanban board)
  */
 export function useDealPipeline(

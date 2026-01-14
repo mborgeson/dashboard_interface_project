@@ -15,7 +15,7 @@ import { useDealWithMockFallback } from '@/hooks/api/useDeals';
 import { ActivityFeed } from './ActivityFeed';
 import { Building2, DollarSign, Percent, Home, Calendar, User, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DEAL_STAGE_LABELS } from '@/types/deal';
+import { DEAL_STAGE_LABELS, type DealStage } from '@/types/deal';
 
 interface DealDetailModalProps {
   dealId: string | null;
@@ -151,7 +151,7 @@ export function DealDetailModal({ dealId, open, onOpenChange }: DealDetailModalP
                   stageColors[deal.stage] || 'bg-neutral-100 text-neutral-800'
                 )}
               >
-                {DEAL_STAGE_LABELS[deal.stage] || deal.stage}
+                {DEAL_STAGE_LABELS[deal.stage as DealStage] ?? deal.stage}
               </Badge>
             </div>
 
