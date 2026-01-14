@@ -92,12 +92,10 @@ export function GlobalSearch() {
   const {
     searchQuery,
     recentSearches,
-    searchResults,
     isOpen,
     setQuery,
     addRecentSearch,
     clearRecentSearches,
-    setResults,
     setOpen,
   } = useSearchStore();
 
@@ -267,10 +265,8 @@ export function GlobalSearch() {
     ];
   }, [debouncedQuery, properties]);
 
-  // Update results in store
-  useEffect(() => {
-    setResults(results);
-  }, [results, setResults]);
+  // Use results directly - no need to sync to store
+  // The local results are already computed and available for rendering
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -322,7 +318,7 @@ export function GlobalSearch() {
     // Determine available items based on search query
     let items: (SearchResult | string | QuickAction)[];
     if (searchQuery) {
-      items = searchResults;
+      items = results;
     } else if (recentSearches.length > 0) {
       items = recentSearches;
     } else {
@@ -342,8 +338,8 @@ export function GlobalSearch() {
         break;
       case 'Enter':
         e.preventDefault();
-        if (searchQuery && searchResults[selectedIndex]) {
-          handleResultClick(searchResults[selectedIndex]);
+        if (searchQuery && results[selectedIndex]) {
+          handleResultClick(results[selectedIndex]);
         } else if (!searchQuery && recentSearches.length > 0 && recentSearches[selectedIndex]) {
           setQuery(recentSearches[selectedIndex]);
         } else if (!searchQuery && recentSearches.length === 0 && quickActions[selectedIndex]) {
@@ -445,7 +441,7 @@ export function GlobalSearch() {
             aria-label="Search properties, deals, documents"
             aria-autocomplete="list"
             aria-controls="search-results"
-            aria-expanded={searchResults.length > 0 || recentSearches.length > 0 || !searchQuery}
+            aria-expanded={results.length > 0 || recentSearches.length > 0 || !searchQuery}
           />
           {searchQuery && (
             <button
@@ -466,9 +462,9 @@ export function GlobalSearch() {
         <div id="search-results" className="max-h-[60vh] overflow-y-auto" role="listbox" aria-label="Search results">
           {searchQuery ? (
             <>
-              {searchResults.length > 0 ? (
+              {results.length > 0 ? (
                 <div className="py-2">
-                  {searchResults.map((result, index) => {
+                  {results.map((result, index) => {
                     const Icon = getResultIcon(result.type);
                     return (
                       <button
