@@ -157,7 +157,7 @@ export function ReportTemplates() {
                     <span>{new Date(template.lastModified).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    {template.exportFormats.map(format => {
+                    {template.supportedFormats.map(format => {
                       const Icon = formatIcons[format];
                       return <Icon key={format} className="w-4 h-4" />;
                     })}
@@ -170,7 +170,7 @@ export function ReportTemplates() {
                 <button
                   onClick={e => {
                     e.stopPropagation();
-                    handleGenerateReport(template, template.exportFormats[0]);
+                    handleGenerateReport(template, template.supportedFormats[0]);
                   }}
                   className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700 transition-colors"
                 >
@@ -243,7 +243,7 @@ export function ReportTemplates() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      {template.exportFormats.map(format => {
+                      {template.supportedFormats.map(format => {
                         const Icon = formatIcons[format];
                         return (
                           <span key={format} className="p-1 bg-neutral-100 rounded" title={format.toUpperCase()}>
@@ -261,7 +261,7 @@ export function ReportTemplates() {
                       <button
                         onClick={e => {
                           e.stopPropagation();
-                          handleGenerateReport(template, template.exportFormats[0]);
+                          handleGenerateReport(template, template.supportedFormats[0]);
                         }}
                         className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700 transition-colors"
                       >
@@ -345,7 +345,7 @@ export function ReportTemplates() {
               <div>
                 <h3 className="text-sm font-medium text-neutral-700 mb-3">Generate Report</h3>
                 <div className="flex items-center gap-3">
-                  {selectedTemplate.exportFormats.map(format => {
+                  {selectedTemplate.supportedFormats.map(format => {
                     const Icon = formatIcons[format];
                     return (
                       <button

@@ -13,6 +13,15 @@ import {
   type ReportWidget,
 } from '@/data/mockReportingData';
 
+// Re-export mock types for component usage
+export type {
+  ReportTemplate,
+  QueuedReport,
+  DistributionSchedule,
+  ReportWidget,
+  ReportTemplateParameter,
+} from '@/data/mockReportingData';
+
 // ============================================================================
 // API Types
 // ============================================================================
@@ -220,7 +229,8 @@ function transformTemplateFromApi(api: ReportTemplateApiResponse): ReportTemplat
     lastModified: api.updated_at.split('T')[0],
     createdBy: api.created_by,
     isDefault: api.is_default,
-    exportFormats: api.export_formats,
+    supportedFormats: api.export_formats,
+  parameters: [],
   };
 }
 
@@ -513,6 +523,110 @@ export function useReportWidgetsWithMockFallback(
       }
     },
     staleTime: 1000 * 60 * 30, // 30 minutes - widgets rarely change
+    ...options,
+  });
+}
+
+/**
+ * Mock-aware generate report hook
+ * In mock mode, creates a simulated queued report
+ */
+export interface MockGenerateReportResponse {
+  id: string;
+  status: 'pending' | 'generating' | 'completed' | 'failed';
+}
+
+export function useGenerateReportWithMockFallback() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      templateId: string;
+      format: ReportFormat;
+      parameters?: Record<string, unknown>;
+    }): Promise<MockGenerateReportResponse> => {
+      if (USE_MOCK_DATA) {
+        // Simulate API delay
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const id = `queue-${Date.now()}`;
+        return { id, status: 'pending' };
+      }
+
+      const response = await post<GenerateReportResponse, GenerateReportRequest>(
+        '/reporting/generate',
+        {
+          template_id: parseInt(data.templateId, 10),
+          name: `Report ${new Date().toISOString()}`,
+          format: data.format,
+          parameters: data.parameters,
+        }
+      );
+      return {
+        id: String(response.queued_report_id),
+        status: response.status,
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: reportingKeys.queue() });
+    },
+  });
+}
+
+/**
+ * Mock-aware hook to poll for a queued report's status
+ * Simulates progress in mock mode
+ */
+export function useQueuedReportWithMockFallback(
+  id: string | null,
+  options?: { refetchInterval?: number }
+) {
+  const progressRef = { current: 0 };
+
+  return useQuery({
+    queryKey: ['reporting', 'queue', id],
+    queryFn: async (): Promise<QueuedReport | null> => {
+      if (!id) return null;
+
+      if (USE_MOCK_DATA) {
+        // Simulate progress
+        progressRef.current = Math.min(progressRef.current + 25, 100);
+        const isComplete = progressRef.current >= 100;
+
+        return {
+          id,
+          name: 'Generated Report',
+          templateId: 'exec-summary',
+          templateName: 'Executive Summary',
+          status: isComplete ? 'completed' : 'generating',
+          progress: progressRef.current,
+          requestedBy: 'Current User',
+          requestedAt: new Date().toISOString(),
+          completedAt: isComplete ? new Date().toISOString() : undefined,
+          format: 'pdf',
+          fileSize: isComplete ? '2.4 MB' : undefined,
+          downloadUrl: isComplete ? '/mock-report.pdf' : undefined,
+        };
+      }
+
+      const response = await get<QueuedReportApiResponse>(`/reporting/queue/${id}`);
+      return {
+        id: String(response.id),
+        name: response.name,
+        templateId: String(response.template_id),
+        templateName: response.template_name || '',
+        status: response.status,
+        progress: response.progress,
+        requestedBy: response.requested_by,
+        requestedAt: response.requested_at,
+        completedAt: response.completed_at || undefined,
+        format: response.format,
+        fileSize: response.file_size || undefined,
+        downloadUrl: response.download_url || undefined,
+        error: response.error || undefined,
+      };
+    },
+    enabled: !!id,
+    refetchInterval: options?.refetchInterval ?? 2000,
     ...options,
   });
 }

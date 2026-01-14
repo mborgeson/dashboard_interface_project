@@ -3,6 +3,16 @@
  * Templates, queued reports, distribution settings, and widget definitions
  */
 
+export interface ReportTemplateParameter {
+  name: string;
+  label: string;
+  description?: string;
+  type: 'string' | 'number' | 'boolean' | 'date' | 'select' | 'multiselect';
+  required: boolean;
+  defaultValue?: unknown;
+  options?: string[];
+}
+
 export interface ReportTemplate {
   id: string;
   name: string;
@@ -13,7 +23,8 @@ export interface ReportTemplate {
   lastModified: string;
   createdBy: string;
   isDefault: boolean;
-  exportFormats: ('pdf' | 'excel' | 'pptx')[];
+  supportedFormats: ('pdf' | 'excel' | 'pptx')[];
+  parameters: ReportTemplateParameter[];
 }
 
 export interface QueuedReport {
@@ -87,7 +98,11 @@ export const mockReportTemplates: ReportTemplate[] = [
     lastModified: '2025-12-01',
     createdBy: 'System',
     isDefault: true,
-    exportFormats: ['pdf', 'pptx'],
+    supportedFormats: ['pdf', 'pptx'],
+    parameters: [
+      { name: 'reportDate', label: 'Report Date', type: 'date', required: true, description: 'Date for the report data' },
+      { name: 'includeCommentary', label: 'Include Market Commentary', type: 'boolean', required: false, defaultValue: true },
+    ],
   },
   {
     id: 'financial-performance',
@@ -98,7 +113,13 @@ export const mockReportTemplates: ReportTemplate[] = [
     lastModified: '2025-11-28',
     createdBy: 'System',
     isDefault: true,
-    exportFormats: ['pdf', 'excel'],
+    supportedFormats: ['pdf', 'excel'],
+    parameters: [
+      { name: 'startDate', label: 'Start Date', type: 'date', required: true },
+      { name: 'endDate', label: 'End Date', type: 'date', required: true },
+      { name: 'comparePeriod', label: 'Compare to Previous Period', type: 'boolean', required: false, defaultValue: true },
+      { name: 'metrics', label: 'Metrics to Include', type: 'multiselect', required: false, options: ['IRR', 'NOI', 'Cash Flow', 'Equity Multiple'] },
+    ],
   },
   {
     id: 'market-analysis',
@@ -109,7 +130,11 @@ export const mockReportTemplates: ReportTemplate[] = [
     lastModified: '2025-11-25',
     createdBy: 'System',
     isDefault: true,
-    exportFormats: ['pdf', 'excel', 'pptx'],
+    supportedFormats: ['pdf', 'excel', 'pptx'],
+    parameters: [
+      { name: 'market', label: 'Target Market', type: 'select', required: true, options: ['Austin', 'Dallas', 'Houston', 'San Antonio', 'Denver'] },
+      { name: 'radius', label: 'Comp Radius (miles)', type: 'number', required: false, defaultValue: 3 },
+    ],
   },
   {
     id: 'portfolio-overview',
@@ -120,7 +145,8 @@ export const mockReportTemplates: ReportTemplate[] = [
     lastModified: '2025-11-20',
     createdBy: 'System',
     isDefault: true,
-    exportFormats: ['pdf', 'excel', 'pptx'],
+    supportedFormats: ['pdf', 'excel', 'pptx'],
+    parameters: [],
   },
   {
     id: 'quarterly-investor',
@@ -131,7 +157,11 @@ export const mockReportTemplates: ReportTemplate[] = [
     lastModified: '2025-12-03',
     createdBy: 'Admin',
     isDefault: false,
-    exportFormats: ['pdf'],
+    supportedFormats: ['pdf'],
+    parameters: [
+      { name: 'quarter', label: 'Quarter', type: 'select', required: true, options: ['Q1', 'Q2', 'Q3', 'Q4'] },
+      { name: 'year', label: 'Year', type: 'number', required: true, defaultValue: 2025 },
+    ],
   },
   {
     id: 'deal-memo',
@@ -142,7 +172,11 @@ export const mockReportTemplates: ReportTemplate[] = [
     lastModified: '2025-12-02',
     createdBy: 'Admin',
     isDefault: false,
-    exportFormats: ['pdf', 'pptx'],
+    supportedFormats: ['pdf', 'pptx'],
+    parameters: [
+      { name: 'dealName', label: 'Deal Name', type: 'string', required: true },
+      { name: 'propertyAddress', label: 'Property Address', type: 'string', required: true },
+    ],
   },
   {
     id: 'property-performance',
@@ -153,7 +187,10 @@ export const mockReportTemplates: ReportTemplate[] = [
     lastModified: '2025-11-15',
     createdBy: 'System',
     isDefault: false,
-    exportFormats: ['pdf', 'excel'],
+    supportedFormats: ['pdf', 'excel'],
+    parameters: [
+      { name: 'propertyId', label: 'Property', type: 'select', required: true, options: ['Lakewood Plaza', 'Riverside Office', 'Downtown Tower'] },
+    ],
   },
   {
     id: 'sensitivity-analysis',
@@ -164,7 +201,8 @@ export const mockReportTemplates: ReportTemplate[] = [
     lastModified: '2025-11-10',
     createdBy: 'System',
     isDefault: false,
-    exportFormats: ['pdf', 'excel'],
+    supportedFormats: ['pdf', 'excel'],
+    parameters: [],
   },
 ];
 
