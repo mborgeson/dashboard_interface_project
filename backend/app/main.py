@@ -56,9 +56,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             )
 
         # Cache control for API responses (prevent caching of sensitive data)
-        if request.url.path.startswith("/api/"):
-            if "Cache-Control" not in response.headers:
-                response.headers["Cache-Control"] = "no-store, private"
+        if request.url.path.startswith("/api/") and "Cache-Control" not in response.headers:
+            response.headers["Cache-Control"] = "no-store, private"
 
         # Content Security Policy (restrictive default)
         if "Content-Security-Policy" not in response.headers:
