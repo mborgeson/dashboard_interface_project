@@ -1,6 +1,7 @@
 import { Building2, MapPin, Calendar, TrendingUp } from 'lucide-react';
 import type { Property } from '@/types';
 import { formatCurrency, formatPercent, formatNumber } from '@/lib/utils/formatters';
+import { LazyImage } from '@/components/ui/LazyImage';
 
 interface PropertyHeroProps {
   property: Property;
@@ -27,13 +28,17 @@ export function PropertyHero({ property }: PropertyHeroProps) {
         <div className="lg:col-span-1">
           <div className="aspect-[4/3] bg-gray-200 relative">
             {property.images.main ? (
-              <img
+              <LazyImage
                 src={property.images.main}
                 alt={property.name}
+                aspectRatio="4/3"
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
+                containerClassName="w-full h-full"
+                errorFallback={
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
+                    <Building2 className="w-16 h-16 text-gray-400" />
+                  </div>
+                }
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">

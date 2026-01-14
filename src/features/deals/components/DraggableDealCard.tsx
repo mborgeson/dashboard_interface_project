@@ -2,6 +2,7 @@
  * DraggableDealCard - Draggable wrapper for DealCard in Kanban board
  * Uses @dnd-kit/sortable for drag-and-drop functionality
  */
+import { memo, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Deal } from '@/types/deal';
@@ -14,7 +15,7 @@ interface DraggableDealCardProps {
   onClick?: (dealId: string) => void;
 }
 
-export function DraggableDealCard({ deal, onClick }: DraggableDealCardProps) {
+export const DraggableDealCard = memo(function DraggableDealCard({ deal, onClick }: DraggableDealCardProps) {
   const {
     attributes,
     listeners,
@@ -30,10 +31,11 @@ export function DraggableDealCard({ deal, onClick }: DraggableDealCardProps) {
     },
   });
 
-  const style = {
+  // Memoize style object to prevent unnecessary re-renders
+  const style = useMemo(() => ({
     transform: CSS.Transform.toString(transform),
     transition,
-  };
+  }), [transform, transition]);
 
   return (
     <div
@@ -69,4 +71,4 @@ export function DraggableDealCard({ deal, onClick }: DraggableDealCardProps) {
       </div>
     </div>
   );
-}
+});

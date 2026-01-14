@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, useCallback, useMemo } from 'react';
 import type { Deal } from '@/types/deal';
 import { DEAL_STAGE_LABELS, DEAL_STAGE_COLORS } from '@/types/deal';
 import {
@@ -22,31 +22,59 @@ interface DealCardProps {
   onClick?: (dealId: string) => void;
 }
 
-export function DealCard({ deal, isDragging = false, compact = false, onClick }: DealCardProps) {
+// Currency formatter instance - created once, reused
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+// Progress stages constant - defined outside component
+const PROGRESS_STAGES: Deal['stage'][] = [
+  'lead',
+  'underwriting',
+  'loi',
+  'due_diligence',
+  'closing',
+];
+
+export const DealCard = memo(function DealCard({ deal, isDragging = false, compact = false, onClick }: DealCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { info } = useToast();
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  // Memoized currency formatting
+  const formattedValue = useMemo(() => currencyFormatter.format(deal.value), [deal.value]);
 
-  const getProgressPercentage = () => {
-    const stages: Deal['stage'][] = [
-      'lead',
-      'underwriting',
-      'loi',
-      'due_diligence',
-      'closing',
-    ];
-    const currentIndex = stages.indexOf(deal.stage);
+  // Memoized progress percentage calculation
+  const progressPercentage = useMemo(() => {
+    const currentIndex = PROGRESS_STAGES.indexOf(deal.stage);
     if (currentIndex === -1) return 100;
-    return ((currentIndex + 1) / stages.length) * 100;
-  };
+    return ((currentIndex + 1) / PROGRESS_STAGES.length) * 100;
+  }, [deal.stage]);
+
+  // Memoized click handler
+  const handleClick = useCallback(() => {
+    onClick?.(deal.id);
+  }, [onClick, deal.id]);
+
+  // Memoized keyboard handler
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick?.(deal.id);
+    }
+  }, [onClick, deal.id]);
+
+  // Memoized stage button click handler
+  const handleStageClick = useCallback(() => {
+    info(`Deal moved to ${DEAL_STAGE_LABELS[deal.stage]}`);
+  }, [info, deal.stage]);
+
+  // Memoized expand toggle
+  const toggleExpanded = useCallback(() => {
+    setIsExpanded(prev => !prev);
+  }, []);
 
   return (
     <div
@@ -56,13 +84,8 @@ export function DealCard({ deal, isDragging = false, compact = false, onClick }:
         isDragging ? "shadow-2xl ring-2 ring-blue-400 cursor-grabbing" : "hover:shadow-card-hover",
         !isDragging && onClick && "cursor-pointer"
       )}
-      onClick={() => onClick?.(deal.id)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick?.(deal.id);
-        }
-      }}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
     >
@@ -80,7 +103,7 @@ export function DealCard({ deal, isDragging = false, compact = false, onClick }:
           </div>
         </div>
         <button
-          onClick={() => info(`Deal moved to ${DEAL_STAGE_LABELS[deal.stage]}`)}
+          onClick={handleStageClick}
           className={cn(
             'px-2.5 py-1 rounded-md text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity',
             DEAL_STAGE_COLORS[deal.stage]
@@ -98,7 +121,7 @@ export function DealCard({ deal, isDragging = false, compact = false, onClick }:
             <span>Value</span>
           </div>
           <span className="font-semibold text-neutral-900">
-            {formatCurrency(deal.value)}
+            {formattedValue}
           </span>
         </div>
 
@@ -126,12 +149,12 @@ export function DealCard({ deal, isDragging = false, compact = false, onClick }:
         <div className="mb-3">
           <div className="flex items-center justify-between text-xs text-neutral-600 mb-1">
             <span>Progress</span>
-            <span>{getProgressPercentage().toFixed(0)}%</span>
+            <span>{progressPercentage.toFixed(0)}%</span>
           </div>
           <div className="w-full bg-neutral-100 rounded-full h-1.5">
             <div
               className="bg-accent-500 h-1.5 rounded-full transition-all"
-              style={{ width: `${getProgressPercentage()}%` }}
+              style={{ width: `${progressPercentage}%` }}
             />
           </div>
         </div>
@@ -156,7 +179,7 @@ export function DealCard({ deal, isDragging = false, compact = false, onClick }:
       {deal.notes && (
         <>
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={toggleExpanded}
             className="w-full flex items-center justify-center gap-1 mt-3 pt-3 border-t border-neutral-100 text-xs text-neutral-600 hover:text-neutral-900 transition-colors"
           >
             {isExpanded ? (
@@ -182,4 +205,4 @@ export function DealCard({ deal, isDragging = false, compact = false, onClick }:
       )}
     </div>
   );
-}
+});

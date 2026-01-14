@@ -1,6 +1,6 @@
-import { NavLink } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { useProperties, selectProperties } from '@/hooks/api';
+import { PrefetchLink } from '@/components/PrefetchLink';
 import {
   LayoutDashboard,
   Building2,
@@ -136,7 +136,7 @@ export function Sidebar(){
         {navigation.map((item) => {
           const Icon = item.icon;
           return (
-            <NavLink
+            <PrefetchLink
               key={item.name}
               to={item.href}
               onClick={() => setMobileMenuOpen(false)}
@@ -156,7 +156,7 @@ export function Sidebar(){
               {(!sidebarCollapsed || mobileMenuOpen) && (
                 <span className="font-medium">{item.name}</span>
               )}
-            </NavLink>
+            </PrefetchLink>
           );
         })}
       </nav>

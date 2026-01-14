@@ -2,6 +2,7 @@
  * KanbanColumn - Droppable column for deal stages
  * Represents a single stage in the deal pipeline
  */
+import { memo, useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -41,24 +42,27 @@ const STAGE_BG_COLORS: Record<DealStage, string> = {
   closed_lost: 'bg-red-50 border-t-red-400',
 };
 
+// Currency formatter instance - created once, reused
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+  notation: 'compact',
+  compactDisplay: 'short',
+});
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function KanbanColumn({ stage, deals, total, isOver: _isOver, onDealClick }: KanbanColumnProps) {
+export const KanbanColumn = memo(function KanbanColumn({ stage, deals, total, isOver: _isOver, onDealClick }: KanbanColumnProps) {
   const { setNodeRef, isOver: isDragOver } = useDroppable({
     id: stage,
   });
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      notation: 'compact',
-      compactDisplay: 'short',
-    }).format(value);
-  };
+  // Memoized currency formatting
+  const formattedTotal = useMemo(() => currencyFormatter.format(total), [total]);
 
-  const dealIds = deals.map((deal) => deal.id);
+  // Memoize deal IDs array to maintain stable reference
+  const dealIds = useMemo(() => deals.map((deal) => deal.id), [deals]);
 
   return (
     <div
@@ -91,7 +95,7 @@ export function KanbanColumn({ stage, deals, total, isOver: _isOver, onDealClick
           </span>
           {total > 0 && (
             <span className="text-xs font-semibold text-neutral-700">
-              {formatCurrency(total)}
+              {formattedTotal}
             </span>
           )}
         </div>
@@ -134,4 +138,4 @@ export function KanbanColumn({ stage, deals, total, isOver: _isOver, onDealClick
       )}
     </div>
   );
-}
+});

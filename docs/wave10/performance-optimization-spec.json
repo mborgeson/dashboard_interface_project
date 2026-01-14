@@ -1,0 +1,269 @@
+{
+  "specification": {
+    "id": "WAVE10-PERF-001",
+    "title": "Wave 10 Performance Optimization Specification",
+    "version": "1.0.0",
+    "date": "2026-01-14",
+    "agent": "specification"
+  },
+  "analysis_summary": {
+    "total_components_analyzed": 12,
+    "optimization_targets_identified": 14,
+    "priority_distribution": {
+      "high": 5,
+      "medium": 6,
+      "low": 3
+    }
+  },
+  "optimization_targets": [
+    {
+      "id": "OPT-001",
+      "component": "PropertyHero.tsx",
+      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/property-detail/components/PropertyHero.tsx",
+      "current_implementation": "Uses basic <img> tag without lazy loading, srcset, or optimized image handling. Error handling hides image on failure but does not provide fallback.",
+      "optimization_opportunity": "Implement lazy loading with native loading='lazy' attribute, add srcset for responsive images, use picture element for format optimization (WebP/AVIF with fallback), add blur placeholder for better perceived performance",
+      "priority": "high",
+      "estimated_impact": "LCP improvement ~30-40%, reduced initial bundle load",
+      "acceptance_criteria": [
+        "Images load lazily with native loading='lazy'",
+        "Responsive srcset provides appropriate image sizes",
+        "WebP format used when supported with JPEG fallback",
+        "Blur-up placeholder shows during image load"
+      ]
+    },
+    {
+      "id": "OPT-002",
+      "component": "PropertyCard.tsx",
+      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/investments/components/PropertyCard.tsx",
+      "current_implementation": "No images currently loaded - uses placeholder colored divs. No memoization on the component despite being rendered in lists.",
+      "optimization_opportunity": "Add React.memo() wrapper to prevent unnecessary re-renders when parent state changes but property data hasn't. When images are added, implement lazy loading and optimized formats.",
+      "priority": "medium",
+      "estimated_impact": "Reduced re-renders in property list views, ~15-25% render time improvement",
+      "acceptance_criteria": [
+        "Component wrapped with React.memo with custom comparison",
+        "No re-render when parent filters change but property remains visible",
+        "Stable callback references passed via useCallback"
+      ]
+    },
+    {
+      "id": "OPT-003",
+      "component": "PropertyTable.tsx",
+      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/investments/components/PropertyTable.tsx",
+      "current_implementation": "Table rows re-render on every state change including expand/collapse. SortIcon component is correctly extracted. Missing key on React.Fragment (<>).",
+      "optimization_opportunity": "Extract table row into memoized component, fix missing key warning on Fragment, implement virtualization for large property lists (50+ items).",
+      "priority": "high",
+      "estimated_impact": "Significant improvement for 50+ row tables, ~40-60% render reduction",
+      "acceptance_criteria": [
+        "Table rows wrapped in memoized component",
+        "Fragment has proper key attribute",
+        "Row expansion does not re-render other rows",
+        "Virtual scrolling activated for lists > 50 items"
+      ]
+    },
+    {
+      "id": "OPT-004",
+      "component": "TransactionTable.tsx",
+      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/transactions/components/TransactionTable.tsx",
+      "current_implementation": "Creates new Date object and formats it on every render. No memoization on table rows.",
+      "optimization_opportunity": "Memoize formatted date values, extract transaction row into memoized component, consider virtualization for large datasets.",
+      "priority": "medium",
+      "estimated_impact": "Reduced date formatting overhead, ~20-30% render improvement",
+      "acceptance_criteria": [
+        "Date formatting cached or memoized",
+        "Transaction rows memoized",
+        "No unnecessary re-renders on sort"
+      ]
+    },
+    {
+      "id": "OPT-005",
+      "component": "ComparisonTable.tsx",
+      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/deals/components/comparison/ComparisonTable.tsx",
+      "current_implementation": "Has good useMemo usage for activeMetrics and metricStats. Creates new Intl.NumberFormat instance on each formatCurrency call.",
+      "optimization_opportunity": "Cache Intl.NumberFormat instance outside component or in useMemo. Already has reasonable optimization.",
+      "priority": "low",
+      "estimated_impact": "Minor improvement, ~5-10% for repeated formatting",
+      "acceptance_criteria": [
+        "Intl.NumberFormat instances cached",
+        "No new formatter created on each render"
+      ]
+    },
+    {
+      "id": "OPT-006",
+      "component": "routes.ts / router.tsx",
+      "file_path": "/home/mattb/projects/dashboard_interface_project/src/app/routes.ts",
+      "current_implementation": "Good lazy loading implementation with React.lazy() for all routes except DashboardMain. Uses PageSuspenseWrapper for loading states.",
+      "optimization_opportunity": "Add route prefetching for likely navigation paths. Implement preload hints for common routes. Consider adding route-based code splitting with granular chunks.",
+      "priority": "medium",
+      "estimated_impact": "Faster subsequent page loads, improved perceived performance",
+      "acceptance_criteria": [
+        "Common routes prefetched on hover",
+        "Route preload hints added to navigation links",
+        "Bundle analysis shows optimal chunk sizes"
+      ]
+    },
+    {
+      "id": "OPT-007",
+      "component": "DashboardMain.tsx",
+      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/dashboard-main/DashboardMain.tsx",
+      "current_implementation": "Calculates portfolio metrics (totalProperties, totalUnits, totalValue, totalNOI, avgOccupancy, avgCapRate) on every render. Sorts and slices transactions/properties on every render.",
+      "optimization_opportunity": "Memoize all calculated metrics with useMemo. Memoize sorted/filtered lists. Extract child sections into separate memoized components.",
+      "priority": "high",
+      "estimated_impact": "Significant improvement on data updates, ~30-50% render reduction",
+      "acceptance_criteria": [
+        "All metric calculations wrapped in useMemo",
+        "Sorted/filtered lists memoized",
+        "Child sections don't re-render on unrelated state changes"
+      ]
+    },
+    {
+      "id": "OPT-008",
+      "component": "KanbanBoard.tsx",
+      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/deals/components/KanbanBoard.tsx",
+      "current_implementation": "Good useCallback usage for handlers. Creates new Intl.NumberFormat on each formatCurrency call. getStageTotal and getTotalPipelineValue recalculate on each render.",
+      "optimization_opportunity": "Cache formatter, memoize stage totals calculation, consider memoizing KanbanColumn renders when stage data hasn't changed.",
+      "priority": "medium",
+      "estimated_impact": "Smoother drag experience, ~15-25% render improvement",
+      "acceptance_criteria": [
+        "Stage totals memoized",
+        "Formatter cached",
+        "Columns don't re-render during drag of other columns"
+      ]
+    },
+    {
+      "id": "OPT-009",
+      "component": "PropertyDetailPanel.tsx",
+      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/mapping/components/PropertyDetailPanel.tsx",
+      "current_implementation": "Simple component with no obvious performance issues. Could benefit from React.memo for map popup use case.",
+      "optimization_opportunity": "Wrap in React.memo to prevent re-renders when map state changes but selected property hasn't.",
+      "priority": "low",
+      "estimated_impact": "Minor improvement for map interactions, ~10% render reduction",
+      "acceptance_criteria": [
+        "Component wrapped with React.memo",
+        "No re-render when map pans/zooms"
+      ]
+    },
+    {
+      "id": "OPT-010",
+      "component": "Image Optimization Strategy",
+      "file_path": "N/A - Cross-cutting concern",
+      "current_implementation": "Only PropertyHero uses actual images with basic img tag. Most components use placeholder colored divs or icons.",
+      "optimization_opportunity": "Create reusable OptimizedImage component with lazy loading, WebP support, blur placeholder, and responsive sizing. Apply across all image-using components.",
+      "priority": "high",
+      "estimated_impact": "LCP improvement across all image-heavy pages, reduced bandwidth",
+      "acceptance_criteria": [
+        "OptimizedImage component created",
+        "Supports WebP with JPEG fallback",
+        "Native lazy loading enabled",
+        "Blur-up placeholder for perceived performance",
+        "Responsive srcset for different viewport sizes"
+      ]
+    },
+    {
+      "id": "OPT-011",
+      "component": "Intl.NumberFormat Caching",
+      "file_path": "N/A - Cross-cutting concern",
+      "current_implementation": "Multiple components create new Intl.NumberFormat instances on each render (KanbanBoard, ComparisonTable, TransactionTable).",
+      "optimization_opportunity": "Create cached formatter utilities in lib/utils/formatters.ts that reuse formatter instances.",
+      "priority": "medium",
+      "estimated_impact": "Reduced GC pressure, ~5-10% improvement in heavy number formatting",
+      "acceptance_criteria": [
+        "Formatter instances cached in module scope",
+        "All components use shared formatters",
+        "No new formatter instances created on render"
+      ]
+    },
+    {
+      "id": "OPT-012",
+      "component": "Table Virtualization",
+      "file_path": "N/A - Cross-cutting concern",
+      "current_implementation": "PropertyTable and TransactionTable render all rows regardless of viewport visibility.",
+      "optimization_opportunity": "Implement react-virtual or similar for tables with potential for 50+ rows. Lazy render rows as user scrolls.",
+      "priority": "high",
+      "estimated_impact": "Massive improvement for large datasets, ~70-90% render reduction",
+      "acceptance_criteria": [
+        "Virtual scrolling library integrated",
+        "Only visible rows render",
+        "Smooth scroll performance maintained",
+        "Fallback for small datasets"
+      ]
+    },
+    {
+      "id": "OPT-013",
+      "component": "Route Prefetching",
+      "file_path": "/home/mattb/projects/dashboard_interface_project/src/app/layout/Sidebar.tsx",
+      "current_implementation": "Standard navigation links without prefetching. Routes are lazy-loaded on demand.",
+      "optimization_opportunity": "Add prefetch on link hover or IntersectionObserver for visible navigation items. Preload common routes based on user behavior.",
+      "priority": "medium",
+      "estimated_impact": "Near-instant page transitions for prefetched routes",
+      "acceptance_criteria": [
+        "Navigation links prefetch on hover",
+        "Top 3 most-used routes preloaded",
+        "No prefetch on mobile/slow connections"
+      ]
+    },
+    {
+      "id": "OPT-014",
+      "component": "React Query Optimization",
+      "file_path": "/home/mattb/projects/dashboard_interface_project/src/app/App.tsx",
+      "current_implementation": "Good setup with 5-minute staleTime. usePrefetchDashboard hook exists for preloading.",
+      "optimization_opportunity": "Add cache-first strategy for static data, implement optimistic updates for mutations, add query invalidation strategy documentation.",
+      "priority": "low",
+      "estimated_impact": "Better perceived performance, reduced API calls",
+      "acceptance_criteria": [
+        "Static data uses longer staleTime",
+        "Mutations use optimistic updates where appropriate",
+        "Query invalidation documented"
+      ]
+    }
+  ],
+  "implementation_recommendations": {
+    "phase_1_quick_wins": [
+      "OPT-011: Cache Intl.NumberFormat instances (1 hour)",
+      "OPT-002: Add React.memo to PropertyCard (1 hour)",
+      "OPT-009: Add React.memo to PropertyDetailPanel (30 min)"
+    ],
+    "phase_2_component_optimization": [
+      "OPT-007: Memoize DashboardMain calculations (2-3 hours)",
+      "OPT-003: Fix PropertyTable and add row memoization (2 hours)",
+      "OPT-008: Optimize KanbanBoard calculations (1-2 hours)"
+    ],
+    "phase_3_image_optimization": [
+      "OPT-010: Create OptimizedImage component (3-4 hours)",
+      "OPT-001: Apply OptimizedImage to PropertyHero (1 hour)"
+    ],
+    "phase_4_advanced_optimization": [
+      "OPT-012: Implement table virtualization (4-6 hours)",
+      "OPT-006: Add route prefetching (2-3 hours)",
+      "OPT-013: Navigation link prefetching (2 hours)"
+    ]
+  },
+  "metrics_to_track": [
+    "Lighthouse Performance Score",
+    "Largest Contentful Paint (LCP)",
+    "First Input Delay (FID)",
+    "Cumulative Layout Shift (CLS)",
+    "Time to Interactive (TTI)",
+    "React DevTools Profiler render counts",
+    "Bundle size per route",
+    "Memory usage over time"
+  ],
+  "dependencies": {
+    "new_packages_recommended": [
+      "@tanstack/react-virtual (for table virtualization)",
+      "No new packages required for other optimizations"
+    ],
+    "existing_packages_to_leverage": [
+      "@tanstack/react-query (already configured well)",
+      "react-router-dom (add prefetching)"
+    ]
+  },
+  "validation_checklist": {
+    "testable_requirements": true,
+    "acceptance_criteria_defined": true,
+    "edge_cases_documented": true,
+    "performance_metrics_defined": true,
+    "security_considerations": "N/A - Performance optimizations only",
+    "dependencies_identified": true,
+    "constraints_documented": true
+  }
+}

@@ -2,7 +2,7 @@
  * KanbanBoard - Drag and drop deal management board
  * Provides visual pipeline management with stage transitions
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -138,7 +138,8 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
     setActiveDeal(null);
   }, []);
 
-  const formatCurrency = (value: number) => {
+  // Memoized currency formatter
+  const formatCurrency = useCallback((value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -147,16 +148,22 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
       notation: 'compact',
       compactDisplay: 'short',
     }).format(value);
-  };
+  }, []);
 
-  const getStageTotal = (stage: DealStage) => {
-    return dealsByStage[stage].reduce((sum, deal) => sum + deal.value, 0);
-  };
+  // Memoize stage totals to avoid recalculation on every render
+  const stageTotals = useMemo(() => {
+    const totals: Record<DealStage, number> = {} as Record<DealStage, number>;
+    for (const stage of [...PIPELINE_STAGES, 'closed_lost'] as DealStage[]) {
+      totals[stage] = dealsByStage[stage]?.reduce((sum, deal) => sum + deal.value, 0) ?? 0;
+    }
+    return totals;
+  }, [dealsByStage]);
 
-  const getTotalPipelineValue = () => {
+  // Memoized total pipeline value
+  const totalPipelineValue = useMemo(() => {
     return PIPELINE_STAGES.filter(s => s !== 'closed_won')
-      .reduce((sum, stage) => sum + getStageTotal(stage), 0);
-  };
+      .reduce((sum, stage) => sum + stageTotals[stage], 0);
+  }, [stageTotals]);
 
   return (
     <div className="bg-white rounded-lg border border-neutral-200 shadow-card">
@@ -172,7 +179,7 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
           <div className="text-right">
             <div className="text-sm text-neutral-600">Total Pipeline Value</div>
             <div className="text-2xl font-bold text-blue-600">
-              {formatCurrency(getTotalPipelineValue())}
+              {formatCurrency(totalPipelineValue)}
             </div>
           </div>
         </div>
@@ -193,7 +200,7 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
               key={stage}
               stage={stage}
               deals={dealsByStage[stage]}
-              total={getStageTotal(stage)}
+              total={stageTotals[stage]}
               isOver={false}
             />
           ))}
@@ -220,7 +227,7 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
               <div className="text-xs text-red-600">
                 {dealsByStage.closed_lost.length}{' '}
                 {dealsByStage.closed_lost.length === 1 ? 'deal' : 'deals'} • {' '}
-                {formatCurrency(getStageTotal('closed_lost'))}
+                {formatCurrency(stageTotals.closed_lost)}
               </div>
             </div>
             <div className="grid grid-cols-6 gap-3">
