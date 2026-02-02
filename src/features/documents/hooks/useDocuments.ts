@@ -1,11 +1,18 @@
 import { useMemo } from 'react';
 import type { DocumentFilters, DocumentStats, DocumentType } from '@/types/document';
-import { mockDocuments } from '@/data/mockDocuments';
+import {
+  useDocumentsWithMockFallback,
+  useDocumentStatsWithMockFallback,
+} from '@/hooks/api/useDocuments';
 
 export function useDocuments(filters: DocumentFilters) {
-  // Filter documents based on criteria
+  // Fetch documents from API (with mock fallback)
+  const { data: docData, isLoading } = useDocumentsWithMockFallback(filters);
+  const allDocuments = docData?.documents ?? [];
+
+  // Filter documents client-side (API may not support all filter combos)
   const filteredDocuments = useMemo(() => {
-    let filtered = mockDocuments;
+    let filtered = allDocuments;
 
     // Apply search filter
     if (filters.searchTerm) {
@@ -53,12 +60,18 @@ export function useDocuments(filters: DocumentFilters) {
     }
 
     return filtered;
-  }, [filters]);
+  }, [allDocuments, filters]);
 
-  // Calculate statistics
+  // Fetch stats from API (with mock fallback)
+  const { data: apiStats } = useDocumentStatsWithMockFallback();
+
+  // Calculate statistics from fetched data
   const stats = useMemo((): DocumentStats => {
-    const totalDocuments = mockDocuments.length;
-    const totalSize = mockDocuments.reduce((sum, doc) => sum + doc.size, 0);
+    if (apiStats) return apiStats;
+
+    // Fallback: calculate from loaded documents
+    const totalDocuments = allDocuments.length;
+    const totalSize = allDocuments.reduce((sum, doc) => sum + doc.size, 0);
 
     const byType: Record<DocumentType, number> = {
       lease: 0,
@@ -69,14 +82,13 @@ export function useDocuments(filters: DocumentFilters) {
       other: 0,
     };
 
-    mockDocuments.forEach((doc) => {
+    allDocuments.forEach((doc) => {
       byType[doc.type]++;
     });
 
-    // Count documents uploaded in last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentUploads = mockDocuments.filter(
+    const recentUploads = allDocuments.filter(
       (doc) => doc.uploadedAt >= thirtyDaysAgo
     ).length;
 
@@ -86,10 +98,11 @@ export function useDocuments(filters: DocumentFilters) {
       byType,
       recentUploads,
     };
-  }, []);
+  }, [allDocuments, apiStats]);
 
   return {
     documents: filteredDocuments,
     stats,
+    isLoading,
   };
 }

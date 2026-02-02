@@ -24,7 +24,8 @@ export const IS_PROD = import.meta.env.PROD;
 /**
  * API base URL for backend requests
  */
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const BASE_SERVER_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_URL = `${BASE_SERVER_URL.replace(/\/+$/, '')}/api/v1`;
 
 /**
  * WebSocket URL for real-time updates

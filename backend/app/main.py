@@ -27,6 +27,7 @@ from app.services.extraction.scheduler import (
     get_extraction_scheduler,
     run_scheduled_extraction,
 )
+from app.services.extraction.monitor_scheduler import get_monitor_scheduler
 from app.services.monitoring import MetricsMiddleware, get_metrics_manager
 
 
@@ -121,12 +122,31 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         timezone=settings.EXTRACTION_SCHEDULE_TIMEZONE,
     )
 
+    # Initialize file monitor scheduler
+    monitor_scheduler = get_monitor_scheduler()
+    await monitor_scheduler.initialize(
+        enabled=settings.FILE_MONITOR_ENABLED,
+        interval_minutes=settings.FILE_MONITOR_INTERVAL_MINUTES,
+        auto_extract=settings.AUTO_EXTRACT_ON_CHANGE,
+        timezone=settings.EXTRACTION_SCHEDULE_TIMEZONE,
+    )
+    logger.info(
+        "File monitor scheduler initialized",
+        enabled=settings.FILE_MONITOR_ENABLED,
+        interval_minutes=settings.FILE_MONITOR_INTERVAL_MINUTES,
+        auto_extract=settings.AUTO_EXTRACT_ON_CHANGE,
+    )
+
     logger.info("Application startup complete")
 
     yield
 
     # Shutdown
     logger.info("Shutting down application...")
+
+    # Shutdown file monitor scheduler
+    await monitor_scheduler.shutdown()
+    logger.info("File monitor scheduler shutdown complete")
 
     # Shutdown extraction scheduler
     await extraction_scheduler.shutdown()

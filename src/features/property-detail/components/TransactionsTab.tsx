@@ -1,5 +1,5 @@
 import { Calendar, TrendingUp, TrendingDown, DollarSign, Wrench } from 'lucide-react';
-import { mockTransactions } from '@/data/mockTransactions';
+import { useTransactionsWithMockFallback } from '@/hooks/api/useTransactions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 
@@ -8,7 +8,9 @@ interface TransactionsTabProps {
 }
 
 export function TransactionsTab({ propertyId }: TransactionsTabProps) {
-  const propertyTransactions = mockTransactions.filter(
+  const { data: txnData } = useTransactionsWithMockFallback();
+  const allTransactions = txnData?.transactions ?? [];
+  const propertyTransactions = allTransactions.filter(
     (transaction) => transaction.propertyId === propertyId
   );
 

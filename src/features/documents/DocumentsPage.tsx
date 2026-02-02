@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Grid3x3, List, Upload, HardDrive } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,6 @@ export function DocumentsPage() {
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,21 +27,13 @@ export function DocumentsPage() {
   const [propertyId, setPropertyId] = useState<string>('all');
   const [dateRange, setDateRange] = useState<'all' | '7days' | '30days' | '90days' | '1year'>('all');
 
-  // Get filtered documents and stats
-  const { documents, stats } = useDocuments({
+  // Get filtered documents and stats from API
+  const { documents, stats, isLoading } = useDocuments({
     searchTerm,
     type: documentType,
     propertyId,
     dateRange,
   });
-
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Mock handlers
   const handleView = (document: Document) => {

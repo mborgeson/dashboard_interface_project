@@ -15,7 +15,10 @@ import {
   Presentation,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockReportTemplates, type ReportTemplate } from '@/data/mockReportingData';
+import {
+  useReportTemplates,
+  type ReportTemplate,
+} from '@/hooks/api/useReporting';
 
 type ViewMode = 'grid' | 'list';
 type CategoryFilter = 'all' | ReportTemplate['category'];
@@ -48,7 +51,11 @@ export function ReportTemplates() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
 
-  const filteredTemplates = mockReportTemplates.filter(template => {
+  // Fetch templates from API (with mock fallback)
+  const { data: templateData } = useReportTemplates();
+  const templates = templateData?.templates ?? [];
+
+  const filteredTemplates = templates.filter(template => {
     const matchesSearch =
       template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       template.description.toLowerCase().includes(searchQuery.toLowerCase());

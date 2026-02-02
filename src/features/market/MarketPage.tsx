@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useMarketData } from './hooks/useMarketData';
 import { MarketOverview } from './components/MarketOverview';
 import { EconomicIndicators } from './components/EconomicIndicators';
@@ -15,7 +15,6 @@ const ReportWizard = lazy(() =>
 );
 
 export function MarketPage() {
-  const [isLoading, setIsLoading] = useState(true);
   const [showReportWizard, setShowReportWizard] = useState(false);
 
   const {
@@ -24,15 +23,8 @@ export function MarketPage() {
     marketTrends,
     submarketMetrics,
     sparklineData,
+    isLoading,
   } = useMarketData();
-
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Show loading state
   if (isLoading) {

@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
-import { mockTransactions } from '@/data/mockTransactions';
+import { useState, useMemo } from 'react';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
+import { useTransactionsWithMockFallback } from '@/hooks/api/useTransactions';
 import { useTransactionFilters } from './hooks/useTransactionFilters';
 import { TransactionSummary } from './components/TransactionSummary';
 import { TransactionFilters } from './components/TransactionFilters';
@@ -16,7 +16,10 @@ type ViewMode = 'table' | 'timeline';
 
 export function TransactionsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch transactions from API (with mock fallback)
+  const { data: txnData, isLoading } = useTransactionsWithMockFallback();
+  const allTransactions = txnData?.transactions ?? [];
 
   // Fetch properties from API for property filter dropdown
   const { data } = useProperties();
@@ -29,20 +32,12 @@ export function TransactionsPage() {
     sortConfig,
     toggleSort,
     filteredTransactions,
-  } = useTransactionFilters(mockTransactions);
+  } = useTransactionFilters(allTransactions);
 
   // Map properties for the filter dropdown
   const properties = useMemo(() => {
     return apiProperties.map((p) => ({ id: p.id, name: p.name }));
   }, [apiProperties]);
-
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Show loading state
   if (isLoading) {
@@ -134,7 +129,7 @@ export function TransactionsPage() {
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-neutral-600">
-          Showing {filteredTransactions.length} of {mockTransactions.length} transactions
+          Showing {filteredTransactions.length} of {allTransactions.length} transactions
         </p>
       </div>
 

@@ -10,8 +10,10 @@ import type {
   ExtractionFilters,
 } from '@/types/extraction';
 
-// API base URL - adjust based on environment
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { API_URL } from '@/lib/config';
+
+// API base URL from centralized config
+const API_BASE = API_URL;
 
 /**
  * Hook to fetch and manage extraction status
@@ -25,7 +27,7 @@ export function useExtractionStatus(runId?: string) {
     try {
       setIsLoading(true);
       const url = runId
-        ? `${API_BASE}/extraction/status/${runId}`
+        ? `${API_BASE}/extraction/status?run_id=${runId}`
         : `${API_BASE}/extraction/status`;
       const response = await fetch(url);
 
@@ -327,7 +329,7 @@ export function useStartExtraction() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE}/extraction/cancel/${runId}`, {
+      const response = await fetch(`${API_BASE}/extraction/cancel?run_id=${runId}`, {
         method: 'POST',
       });
 

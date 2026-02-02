@@ -20,18 +20,6 @@ import { interestRateKeys } from './api/useInterestRates';
 import { reportingKeys } from './api/useReporting';
 import { extractionKeys } from './api/useExtraction';
 import { get } from '@/lib/api';
-import { USE_MOCK_DATA } from '@/lib/config';
-import { mockProperties } from '@/data/mockProperties';
-import { mockDeals } from '@/data/mockDeals';
-import { mockTransactions } from '@/data/mockTransactions';
-import { mockDocuments } from '@/data/mockDocuments';
-import {
-  phoenixMSAOverview,
-  economicIndicators,
-  submarketMetrics,
-} from '@/data/mockMarketData';
-import { mockKeyRates, mockYieldCurve } from '@/data/mockInterestRates';
-import { mockReportTemplates, mockQueuedReports } from '@/data/mockReportingData';
 
 // Route to prefetch config mapping
 interface RoutePrefetchConfig {
@@ -64,12 +52,7 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
     case '/investments':
       configs.push({
         queryKey: propertyKeys.lists(),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return { properties: mockProperties, total: mockProperties.length };
-          }
-          return await get('/properties');
-        },
+        queryFn: () => get('/properties'),
         staleTime: STALE_TIMES.medium,
       });
       break;
@@ -77,12 +60,7 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
     case '/transactions':
       configs.push({
         queryKey: transactionKeys.list({}),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return { transactions: mockTransactions, total: mockTransactions.length };
-          }
-          return await get('/transactions');
-        },
+        queryFn: () => get('/transactions'),
         staleTime: STALE_TIMES.medium,
       });
       break;
@@ -90,12 +68,7 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
     case '/deals':
       configs.push({
         queryKey: dealKeys.lists(),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return { deals: mockDeals, total: mockDeals.length };
-          }
-          return await get('/deals');
-        },
+        queryFn: () => get('/deals'),
         staleTime: STALE_TIMES.medium,
       });
       break;
@@ -103,26 +76,15 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
     case '/documents':
       configs.push({
         queryKey: documentKeys.list({}),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return { documents: mockDocuments, total: mockDocuments.length };
-          }
-          return await get('/documents');
-        },
+        queryFn: () => get('/documents'),
         staleTime: STALE_TIMES.medium,
       });
       break;
 
     case '/analytics':
-      // Prefetch properties for analytics
       configs.push({
         queryKey: propertyKeys.lists(),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return { properties: mockProperties, total: mockProperties.length };
-          }
-          return await get('/properties');
-        },
+        queryFn: () => get('/properties'),
         staleTime: STALE_TIMES.medium,
       });
       break;
@@ -130,30 +92,12 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
     case '/interest-rates':
       configs.push({
         queryKey: interestRateKeys.current(),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return {
-              keyRates: mockKeyRates,
-              lastUpdated: new Date(),
-              source: 'mock',
-            };
-          }
-          return await get('/interest-rates/current');
-        },
+        queryFn: () => get('/interest-rates/current'),
         staleTime: STALE_TIMES.short,
       });
       configs.push({
         queryKey: interestRateKeys.yieldCurve(),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return {
-              yieldCurve: mockYieldCurve,
-              lastUpdated: new Date(),
-              source: 'mock',
-            };
-          }
-          return await get('/interest-rates/yield-curve');
-        },
+        queryFn: () => get('/interest-rates/yield-curve'),
         staleTime: STALE_TIMES.short,
       });
       break;
@@ -161,25 +105,12 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
     case '/market':
       configs.push({
         queryKey: marketDataKeys.overview(),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return {
-              msaOverview: phoenixMSAOverview,
-              economicIndicators: economicIndicators,
-            };
-          }
-          return await get('/market/overview');
-        },
+        queryFn: () => get('/market/overview'),
         staleTime: STALE_TIMES.long,
       });
       configs.push({
         queryKey: marketDataKeys.submarkets(),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return { submarkets: submarketMetrics, total: submarketMetrics.length };
-          }
-          return await get('/market/submarkets');
-        },
+        queryFn: () => get('/market/submarkets'),
         staleTime: STALE_TIMES.long,
       });
       break;
@@ -187,22 +118,12 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
     case '/reporting':
       configs.push({
         queryKey: reportingKeys.templateList({}),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return { templates: mockReportTemplates, total: mockReportTemplates.length };
-          }
-          return await get('/reporting/templates');
-        },
+        queryFn: () => get('/reporting/templates'),
         staleTime: STALE_TIMES.long,
       });
       configs.push({
         queryKey: reportingKeys.queueList({}),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return { reports: mockQueuedReports, total: mockQueuedReports.length };
-          }
-          return await get('/reporting/queue');
-        },
+        queryFn: () => get('/reporting/queue'),
         staleTime: STALE_TIMES.short,
       });
       break;
@@ -210,26 +131,15 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
     case '/extraction':
       configs.push({
         queryKey: extractionKeys.historyList({}),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return { runs: [], total: 0 };
-          }
-          return await get('/extraction/history');
-        },
+        queryFn: () => get('/extraction/history'),
         staleTime: STALE_TIMES.short,
       });
       break;
 
     case '/mapping':
-      // Mapping primarily uses properties data
       configs.push({
         queryKey: propertyKeys.lists(),
-        queryFn: async () => {
-          if (USE_MOCK_DATA) {
-            return { properties: mockProperties, total: mockProperties.length };
-          }
-          return await get('/properties');
-        },
+        queryFn: () => get('/properties'),
         staleTime: STALE_TIMES.medium,
       });
       break;

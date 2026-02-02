@@ -4,77 +4,59 @@
   "realtime_memories": [
     {
       "type": "claude_response",
-      "content": "## All Tasks Completed Successfully\n\n### Summary of Fixes Applied by Agent Swarm\n\n| Issue | Status | Impact |\n|-------|--------|--------|\n| O(n²) cell lookup | **Fixed** | ~1000x speedup for large she",
-      "added_at": "2026-01-07T02:50:12.457332",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "What command will resotre this convesation?",
-      "added_at": "2026-01-07T02:50:12.457351",
+      "content": "All 6 steps of extraction pipeline complete: (1) cell mapping validated, (2) single file test, (3) mapping gaps checked, (4) batch extraction 28 files → 30,394 values across 26 properties (run ID: 184f52e2), (5) frontend wired to real data, (6) scheduler/monitor enabled.",
+      "added_at": "2026-02-02T11:46:37.112423",
       "source": "realtime_capture"
     },
     {
       "type": "claude_response",
-      "content": "## Orchestrator Briefing Complete\n\nI've prepared comprehensive documentation for the agent orchestrator:\n\n### Created Files\n\n| File | Purpose |\n|------|---------|\n| `docs/orchestrator-briefing/extract",
-      "added_at": "2026-01-07T03:26:34.658290",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Do you think Option 1 is capable of resolving the issue? I want to really make sure we don't keep wasting our time stuck on this. I'm good with option 1, but have them truly go above and beyond to sol",
-      "added_at": "2026-01-07T03:26:34.658313",
+      "content": "VITE_API_URL fix: Shell env had VITE_API_URL=http://localhost:8000 (without /api/v1). Fixed src/lib/config.ts to always append /api/v1 to base URL. src/lib/api.ts and feature hooks now import API_URL from config.ts as single source of truth.",
+      "added_at": "2026-02-02T11:02:37.435461",
       "source": "realtime_capture"
     },
     {
       "type": "claude_response",
-      "content": "---\n\n# 🎉 SPARC ORCHESTRATOR MISSION COMPLETE\n\n## CRITICAL FINDING: The Problem Was Already Solved!\n\nThe 111-second extraction time was **outdated documentation** from before the cache optimization was",
-      "added_at": "2026-01-07T03:54:46.196018",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "With respect to your completion n resolving the SharePoint API extraction issue: 1. How many total properties have been pulled in from the extraction process? 1. What tests have you implemented to val",
-      "added_at": "2026-01-07T03:54:46.196052",
+      "content": "Scheduler config: Extraction runs twice daily (cron: 0 2,14 * * * Phoenix). File monitor polls SharePoint every 30 min with auto-extract on change. Both initialized in app/main.py lifespan. Env vars in backend/.env: EXTRACTION_SCHEDULE_ENABLED=true, FILE_MONITOR_ENABLED=true.",
+      "added_at": "2026-02-02T11:46:37.112423",
       "source": "realtime_capture"
     },
     {
       "type": "claude_response",
-      "content": "### Remaining Tasks\n\n| Priority | Task | Status |\n|----------|------|--------|\n| **HIGH** | Fix SharePoint URL environment variable | Pending |\n| **HIGH** | Complete extraction of all 30 files (1 miss",
-      "added_at": "2026-01-07T04:06:01.785706",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Yes, but after you complete that task, I want you to utilize a SPARC agent swarm for any relatively difficult or complex task, startiog now and continuing until the project is fully complete and produ",
-      "added_at": "2026-01-07T04:06:01.785735",
+      "content": "User preference: Be extremely clear and explicit about what actions the user needs to take. Don't assume context — state clearly if no action is needed. User prefers directness over hedging.",
+      "added_at": "2026-02-02T11:13:15.728937",
       "source": "realtime_capture"
     },
     {
       "type": "claude_response",
-      "content": "---\n\n# SPARC SWARM ORCHESTRATION COMPLETE\n\n## Execution Summary\n\n| Task | Status | Result |\n|------|--------|--------|\n| SharePoint Extraction | ✅ COMPLETE | 31/31 files, 2.6 min, 4.9s avg |\n| Code Qu",
-      "added_at": "2026-01-07T04:25:29.183137",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Yes. please move forward with your recommended next steps list, but make sure to continue utilzing SPARC agent swarms to work on each task.",
-      "added_at": "2026-01-07T04:25:29.183167",
+      "content": "28 files extracted → 26 unique properties because 2 files produced no ExtractedValue rows (likely empty property name cells). Each property has exactly 1,169 fields across 11 categories. [Investment Name] is template placeholder, not a real property.",
+      "added_at": "2026-02-02T11:02:37.435461",
       "source": "realtime_capture"
     },
     {
       "type": "claude_response",
-      "content": "Prompt is too long",
-      "added_at": "2026-01-07T05:03:51.124711",
+      "content": "Consolidated 10 → 5 memories. Removed task notifications, truncated summaries, and duplicate context. Kept: project completion status, technical fixes, config decisions, user preferences, and data exp",
+      "added_at": "2026-02-02T11:47:53.327987",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "<agent-notification> <agent-id>add51c7</agent-id> <output-file>/tmp/claude/-home-mattb-projects-dashboard-interface-project/tasks/add51c7.output</output-file> <status>completed</status> <summary>Agent",
-      "added_at": "2026-01-07T05:03:51.124757",
+      "content": "What are next steps?",
+      "added_at": "2026-02-02T11:47:53.328024",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "Here's what I see as the natural follow-ups, ordered by impact:\n\n**Data Quality**\n- High error rates in extracted data: many properties have 300-600+ errors out of 1,169 fields. For example, `[Investm",
+      "added_at": "2026-02-02T11:51:03.842894",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Let's start with the below task and work on wiring up real data to all of the pages on the dashboard: Frontend Integration - The extraction page is wired to real data, but the rest of the dashboard (d",
+      "added_at": "2026-02-02T11:51:03.842943",
       "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:50:12.455355",
-  "updated_at": "2026-01-07T05:03:51.124760"
+  "updated_at": "2026-02-02T11:51:03.842945"
 }

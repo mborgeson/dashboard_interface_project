@@ -9,18 +9,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { get } from '@/lib/api';
-import { USE_MOCK_DATA } from '@/lib/config';
 import { marketDataKeys, type MarketOverviewApiResponse } from './api/useMarketData';
 import { interestRateKeys } from './api/useInterestRates';
 import { reportingKeys, type ReportTemplateListApiResponse } from './api/useReporting';
 import { propertyKeys } from './api/useProperties';
-import {
-  phoenixMSAOverview,
-  economicIndicators,
-} from '@/data/mockMarketData';
-import { mockKeyRates } from '@/data/mockInterestRates';
-import { mockReportTemplates } from '@/data/mockReportingData';
-import { mockProperties } from '@/data/mockProperties';
 
 /**
  * Prefetch common dashboard data on app initialization
@@ -34,12 +26,6 @@ export function usePrefetchDashboard() {
     queryClient.prefetchQuery({
       queryKey: marketDataKeys.overview(),
       queryFn: async () => {
-        if (USE_MOCK_DATA) {
-          return {
-            msaOverview: phoenixMSAOverview,
-            economicIndicators: economicIndicators,
-          };
-        }
         const response = await get<MarketOverviewApiResponse>('/market/overview');
         return {
           msaOverview: {
@@ -66,13 +52,6 @@ export function usePrefetchDashboard() {
     queryClient.prefetchQuery({
       queryKey: interestRateKeys.current(),
       queryFn: async () => {
-        if (USE_MOCK_DATA) {
-          return {
-            keyRates: mockKeyRates,
-            lastUpdated: new Date(),
-            source: 'mock',
-          };
-        }
         const response = await get<{
           key_rates: Array<{
             id: string;
@@ -113,12 +92,6 @@ export function usePrefetchDashboard() {
     queryClient.prefetchQuery({
       queryKey: reportingKeys.templateList({}),
       queryFn: async () => {
-        if (USE_MOCK_DATA) {
-          return {
-            templates: mockReportTemplates,
-            total: mockReportTemplates.length,
-          };
-        }
         const response = await get<ReportTemplateListApiResponse>('/reporting/templates');
         return {
           templates: response.items.map((t) => ({
@@ -142,15 +115,7 @@ export function usePrefetchDashboard() {
     // Prefetch properties list - core dashboard data
     queryClient.prefetchQuery({
       queryKey: propertyKeys.lists(),
-      queryFn: async () => {
-        if (USE_MOCK_DATA) {
-          return {
-            properties: mockProperties,
-            total: mockProperties.length,
-          };
-        }
-        return await get('/properties');
-      },
+      queryFn: () => get('/properties'),
       staleTime: 5 * 60 * 1000, // 5 minutes
     });
   }, [queryClient]);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Download,
   RefreshCw,
@@ -15,7 +15,10 @@ import {
   Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockQueuedReports, type QueuedReport } from '@/data/mockReportingData';
+import {
+  useQueuedReports,
+  type QueuedReport,
+} from '@/hooks/api/useReporting';
 
 type StatusFilter = 'all' | QueuedReport['status'];
 
@@ -36,7 +39,14 @@ const formatIcons: Record<string, React.ComponentType<{ className?: string }>> =
 };
 
 export function ReportQueue() {
-  const [reports, setReports] = useState<QueuedReport[]>(mockQueuedReports);
+  // Fetch queued reports from API (with mock fallback)
+  const { data: queueData } = useQueuedReports();
+  const [reports, setReports] = useState<QueuedReport[]>([]);
+
+  // Sync API data into local state for optimistic updates
+  useEffect(() => {
+    if (queueData?.reports) setReports(queueData.reports);
+  }, [queueData?.reports]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReport, setSelectedReport] = useState<QueuedReport | null>(null);

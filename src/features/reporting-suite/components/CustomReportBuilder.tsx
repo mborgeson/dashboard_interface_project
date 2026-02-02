@@ -20,7 +20,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockReportWidgets, type ReportWidget } from '@/data/mockReportingData';
+import { useReportWidgets, type ReportWidget } from '@/hooks/api/useReporting';
 
 interface PlacedWidget {
   id: string;
@@ -56,10 +56,14 @@ export function CustomReportBuilder() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const widgetIdCounter = useRef(0);
 
-  const categories = ['all', ...Array.from(new Set(mockReportWidgets.map(w => w.category)))];
+  // Fetch report widgets from API (with mock fallback)
+  const { data: widgetData } = useReportWidgets();
+  const allWidgets = widgetData?.widgets ?? [];
+
+  const categories = ['all', ...Array.from(new Set(allWidgets.map(w => w.category)))];
 
   const filteredWidgets =
-    activeCategory === 'all' ? mockReportWidgets : mockReportWidgets.filter(w => w.category === activeCategory);
+    activeCategory === 'all' ? allWidgets : allWidgets.filter(w => w.category === activeCategory);
 
   const handleAddWidget = (widget: ReportWidget) => {
     widgetIdCounter.current += 1;

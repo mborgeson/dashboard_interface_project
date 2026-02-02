@@ -39,7 +39,7 @@ export function useExtractionStatus(
 ) {
   return useQuery({
     queryKey: extractionKeys.status(runId || ''),
-    queryFn: () => get<ExtractionStatusResponse>(`/extractions/${runId}/status`),
+    queryFn: () => get<ExtractionStatusResponse>(`/extraction/status`, { run_id: runId }),
     enabled: !!runId,
     // Poll every 2 seconds while extraction is in progress
     refetchInterval: (query) => {
@@ -62,7 +62,7 @@ export function useExtractionRun(
 ) {
   return useQuery({
     queryKey: extractionKeys.run(runId),
-    queryFn: () => get<ExtractionRun>(`/extractions/${runId}`),
+    queryFn: () => get<ExtractionRun>(`/extraction/status`, { run_id: runId }),
     enabled: !!runId,
     ...options,
   });
@@ -77,7 +77,7 @@ export function useExtractionHistory(
 ) {
   return useQuery({
     queryKey: extractionKeys.historyList(filters),
-    queryFn: () => get<ExtractionHistoryResponse>('/extractions/history', filters as Record<string, unknown>),
+    queryFn: () => get<ExtractionHistoryResponse>('/extraction/history', filters as Record<string, unknown>),
     ...options,
   });
 }
@@ -139,7 +139,7 @@ export function useStartExtraction() {
 
   return useMutation({
     mutationFn: (data: StartExtractionInput) =>
-      post<ExtractionRun, StartExtractionInput>('/extractions/start', data),
+      post<ExtractionRun, StartExtractionInput>('/extraction/start', data),
     onSuccess: (data) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: extractionKeys.history() });
@@ -168,7 +168,7 @@ export function useCancelExtraction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (runId: string) => post<void>(`/extractions/${runId}/cancel`),
+    mutationFn: (runId: string) => post<void>(`/extraction/cancel`, { run_id: runId }),
     onSuccess: (_, runId) => {
       // Invalidate the specific run and status
       queryClient.invalidateQueries({ queryKey: extractionKeys.run(runId) });

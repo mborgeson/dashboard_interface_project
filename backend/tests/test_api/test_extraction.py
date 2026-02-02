@@ -172,26 +172,31 @@ class TestExtractionStatus:
 
     @pytest.mark.asyncio
     async def test_get_status_no_runs(self, extraction_client) -> None:
-        """Returns 404 when no extraction runs exist."""
+        """Returns 200 with null runs when no extraction runs exist."""
         response = await extraction_client.get("/api/v1/extraction/status")
-        assert response.status_code == 404
-        assert "No extraction runs found" in response.json()["detail"]
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current_run"] is None
+        assert data["last_completed_run"] is None
+        assert data["stats"]["total_runs"] == 0
 
     @pytest.mark.asyncio
     async def test_get_status_latest_run(
         self, extraction_client, extraction_run: ExtractionRun
     ) -> None:
-        """Returns status of most recent run when no run_id specified."""
+        """Returns status with last completed run when no run_id specified."""
         response = await extraction_client.get("/api/v1/extraction/status")
         assert response.status_code == 200
 
         data = response.json()
-        assert data["run_id"] == str(extraction_run.id)
-        assert data["status"] == "completed"
-        assert data["trigger_type"] == "manual"
-        assert data["files_discovered"] == 8
-        assert data["files_processed"] == 7
-        assert data["files_failed"] == 1
+        run = data["last_completed_run"]
+        assert run is not None
+        assert run["id"] == str(extraction_run.id)
+        assert run["status"] == "completed"
+        assert run["trigger_type"] == "manual"
+        assert run["files_discovered"] == 8
+        assert run["files_processed"] == 7
+        assert run["files_failed"] == 1
 
     @pytest.mark.asyncio
     async def test_get_status_specific_run(
@@ -202,7 +207,8 @@ class TestExtractionStatus:
             f"/api/v1/extraction/status?run_id={extraction_run.id}"
         )
         assert response.status_code == 200
-        assert response.json()["run_id"] == str(extraction_run.id)
+        data = response.json()
+        assert data["current_run"]["id"] == str(extraction_run.id)
 
     @pytest.mark.asyncio
     async def test_get_status_invalid_run_id(self, extraction_client) -> None:
@@ -212,14 +218,14 @@ class TestExtractionStatus:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_status_includes_success_rate(
+    async def test_status_includes_stats(
         self, extraction_client, extraction_run: ExtractionRun
     ) -> None:
-        """Verifies success_rate is calculated in response."""
+        """Verifies stats are included in response."""
         response = await extraction_client.get("/api/v1/extraction/status")
         data = response.json()
-        # 7 processed / (7 processed + 1 failed) = 87.5%
-        assert data["success_rate"] == 87.5
+        assert data["stats"]["total_runs"] >= 1
+        assert data["stats"]["successful_runs"] >= 1
 
 
 # ============================================================================
@@ -435,13 +441,18 @@ class TestExtractionProperties:
     async def test_list_properties_with_data(
         self, extraction_client, extracted_values: list[ExtractedValue]
     ) -> None:
-        """Returns list of property names."""
+        """Returns list of property objects with field counts."""
         response = await extraction_client.get("/api/v1/extraction/properties")
         assert response.status_code == 200
 
         data = response.json()
-        assert "Test Property" in data["properties"]
         assert data["total"] >= 1
+        prop_names = [p["property_name"] for p in data["properties"]]
+        assert "Test Property" in prop_names
+        # Verify property object shape
+        prop = next(p for p in data["properties"] if p["property_name"] == "Test Property")
+        assert prop["total_fields"] == 3
+        assert "categories" in prop
 
     @pytest.mark.asyncio
     async def test_list_properties_by_run_id(
@@ -454,6 +465,7 @@ class TestExtractionProperties:
         assert response.status_code == 200
         data = response.json()
         assert data["total"] >= 1
+        assert len(data["properties"]) >= 1
 
 
 # ============================================================================
@@ -475,16 +487,18 @@ class TestExtractionPropertyData:
     async def test_get_property_data(
         self, extraction_client, extracted_values: list[ExtractedValue]
     ) -> None:
-        """Returns all extracted data for a property."""
+        """Returns all extracted values for a property."""
         response = await extraction_client.get("/api/v1/extraction/properties/Test%20Property")
         assert response.status_code == 200
 
         data = response.json()
         assert data["property_name"] == "Test Property"
-        assert data["total_fields"] == 3
-        assert "data" in data
-        assert "PROPERTY_NAME" in data["data"]
-        assert "TOTAL_UNITS" in data["data"]
+        assert data["total"] == 3
+        assert "values" in data
+        assert "categories" in data
+        field_names = [v["field_name"] for v in data["values"]]
+        assert "PROPERTY_NAME" in field_names
+        assert "TOTAL_UNITS" in field_names
 
     @pytest.mark.asyncio
     async def test_get_property_data_with_run_id(
@@ -496,7 +510,8 @@ class TestExtractionPropertyData:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["extraction_run_id"] == str(extraction_run.id)
+        assert data["total"] == 3
+        assert data["values"][0]["extraction_run_id"] == str(extraction_run.id)
 
 
 # ============================================================================

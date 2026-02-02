@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Send,
   Plus,
@@ -18,7 +18,11 @@ import {
   Filter,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockDistributionSchedules, mockReportTemplates, type DistributionSchedule } from '@/data/mockReportingData';
+import {
+  useDistributionSchedules,
+  useReportTemplates,
+  type DistributionSchedule,
+} from '@/hooks/api/useReporting';
 
 type FrequencyFilter = 'all' | DistributionSchedule['frequency'];
 
@@ -45,7 +49,16 @@ const formatIcons: Record<string, React.ComponentType<{ className?: string }>> =
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function Distribution() {
-  const [schedules, setSchedules] = useState<DistributionSchedule[]>(mockDistributionSchedules);
+  // Fetch distribution schedules and templates from API (with mock fallback)
+  const { data: scheduleData } = useDistributionSchedules();
+  const { data: templateData } = useReportTemplates();
+  const templates = templateData?.templates ?? [];
+  const [schedules, setSchedules] = useState<DistributionSchedule[]>([]);
+
+  // Sync API data into local state for optimistic updates
+  useEffect(() => {
+    if (scheduleData?.schedules) setSchedules(scheduleData.schedules);
+  }, [scheduleData?.schedules]);
   const [searchQuery, setSearchQuery] = useState('');
   const [frequencyFilter, setFrequencyFilter] = useState<FrequencyFilter>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -362,7 +375,7 @@ export function Distribution() {
                   className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Select a template</option>
-                  {mockReportTemplates.map(template => (
+                  {templates.map(template => (
                     <option key={template.id} value={template.id}>
                       {template.name}
                     </option>

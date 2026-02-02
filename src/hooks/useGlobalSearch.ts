@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import Fuse from 'fuse.js';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
-import { mockTransactions } from '@/data/mockTransactions';
+import { useTransactionsWithMockFallback } from '@/hooks/api/useTransactions';
 
 import type { Property } from '@/types/property';
 import type { Transaction } from '@/types/transaction';
@@ -18,9 +18,11 @@ export interface SearchResult {
 export function useGlobalSearch(query: string) {
   const [debouncedQuery, setDebouncedQuery] = useState(query);
 
-  // Fetch properties from API
+  // Fetch properties and transactions from API
   const { data } = useProperties();
   const properties = selectProperties(data);
+  const { data: txnData } = useTransactionsWithMockFallback();
+  const transactions = txnData?.transactions ?? [];
 
   // Debounce the search query
   useEffect(() => {
@@ -51,7 +53,7 @@ export function useGlobalSearch(query: string) {
     });
 
     // Configure Fuse.js for transactions
-    const transactionFuse = new Fuse(mockTransactions, {
+    const transactionFuse = new Fuse(transactions, {
       keys: [
         { name: 'propertyName', weight: 2 },
         { name: 'description', weight: 1.5 },
@@ -92,7 +94,7 @@ export function useGlobalSearch(query: string) {
 
     // Limit to top 10 results
     return combined.slice(0, 10);
-  }, [debouncedQuery, properties]);
+  }, [debouncedQuery, properties, transactions]);
 
   return {
     results,

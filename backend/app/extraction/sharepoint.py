@@ -620,15 +620,36 @@ class SharePointClient:
         return downloaded, discovery_result
 
     def _infer_deal_stage(self, folder_path: str) -> str | None:
-        """Infer deal stage from folder path structure"""
+        """Infer deal stage from folder path structure.
+
+        Maps SharePoint folder names to normalized stage identifiers:
+          0) Dead Deals          -> dead
+          1) Initial UW and Review -> initial_review
+          2) Active UW and Review  -> active_review
+          3) Deals Under Contract  -> under_contract
+          4) Closed Deals          -> closed
+          5) Realized Deals        -> realized
+          Archive                  -> archive
+          Deal Pipeline            -> pipeline
+        """
         path_lower = folder_path.lower()
 
-        if "closed" in path_lower or "acquired" in path_lower:
+        if "dead" in path_lower or "passed" in path_lower:
+            return "dead"
+        elif "initial uw" in path_lower or "initial review" in path_lower:
+            return "initial_review"
+        elif "active uw" in path_lower or "active review" in path_lower:
+            return "active_review"
+        elif "under contract" in path_lower:
+            return "under_contract"
+        elif "closed" in path_lower or "acquired" in path_lower:
             return "closed"
+        elif "realized" in path_lower:
+            return "realized"
+        elif "archive" in path_lower:
+            return "archive"
         elif "pipeline" in path_lower or "active" in path_lower:
             return "pipeline"
-        elif "dead" in path_lower or "passed" in path_lower:
-            return "dead"
         elif "loi" in path_lower:
             return "loi"
         elif "due diligence" in path_lower or "dd" in path_lower:

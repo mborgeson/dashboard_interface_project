@@ -1,5 +1,5 @@
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
-import { mockTransactions } from '@/data/mockTransactions';
+import { useTransactionsWithMockFallback } from '@/hooks/api/useTransactions';
 import { formatCurrency, formatPercent, formatNumber } from '@/lib/utils/formatters';
 import { Card } from '@/components/ui/card';
 import { TrendingUp, Building2, DollarSign, Percent } from 'lucide-react';
@@ -16,6 +16,10 @@ export function DashboardMain() {
   const { data, isLoading, error } = useProperties();
   const properties = selectProperties(data);
 
+  // Fetch transactions from API
+  const { data: txnData } = useTransactionsWithMockFallback();
+  const allTransactions = txnData?.transactions ?? [];
+
   // Calculate portfolio metrics
   const totalProperties = properties.length;
   const totalUnits = properties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
@@ -28,7 +32,7 @@ export function DashboardMain() {
     ? properties.reduce((sum, p) => sum + p.valuation.capRate, 0) / totalProperties
     : 0;
 
-  const recentTransactions = mockTransactions
+  const recentTransactions = [...allTransactions]
     .sort((a, b) => b.date.getTime() - a.date.getTime())
     .slice(0, 10);
 
