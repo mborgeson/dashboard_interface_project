@@ -118,7 +118,7 @@ async def test_login_demo_user_admin(client):
     response = await client.post(
         "/api/v1/auth/login",
         data={
-            "username": "admin@brcapital.com",
+            "username": "admin@bandrcapital.com",
             "password": "admin123",
         },
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -144,7 +144,7 @@ async def test_login_demo_user_analyst(client):
     response = await client.post(
         "/api/v1/auth/login",
         data={
-            "username": "analyst@brcapital.com",
+            "username": "analyst@bandrcapital.com",
             "password": "analyst123",
         },
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -164,7 +164,7 @@ async def test_login_demo_user_wrong_password(client):
     response = await client.post(
         "/api/v1/auth/login",
         data={
-            "username": "admin@brcapital.com",
+            "username": "admin@bandrcapital.com",
             "password": "wrongpassword",
         },
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -290,7 +290,7 @@ async def test_get_me_demo_user_fallback(client):
     # Create token for demo user (ID 1, which may not exist in test DB)
     demo_token = create_access_token(
         subject="999999",  # Non-existent user ID
-        additional_claims={"role": "viewer", "email": "demo@brcapital.com"},
+        additional_claims={"role": "viewer", "email": "demo@bandrcapital.com"},
     )
 
     response = await client.get(
@@ -362,8 +362,8 @@ async def test_demo_users_disabled_in_production_environment():
     # Should have demo users in non-production
     if settings.ENVIRONMENT != "production":
         assert len(demo_users) > 0
-        assert "admin@brcapital.com" in demo_users
-        assert "analyst@brcapital.com" in demo_users
+        assert "admin@bandrcapital.com" in demo_users
+        assert "analyst@bandrcapital.com" in demo_users
     # Note: Cannot easily test production behavior without changing settings
     # The implementation guards against production by checking settings.ENVIRONMENT
 

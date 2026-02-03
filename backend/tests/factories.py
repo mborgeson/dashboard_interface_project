@@ -23,7 +23,7 @@ class UserFactory(factory.Factory):
     class Meta:
         model = User
 
-    email = factory.Sequence(lambda n: f"user{n}@brcapital-test.com")
+    email = factory.Sequence(lambda n: f"user{n}@bandrcapital-test.com")
     first_name = factory.Faker("first_name")
     last_name = factory.Faker("last_name")
     hashed_password = factory.LazyFunction(lambda: get_password_hash("testpassword123"))
@@ -41,14 +41,14 @@ class AdminUserFactory(UserFactory):
     """Factory for creating admin users."""
 
     role = "admin"
-    email = factory.Sequence(lambda n: f"admin{n}@brcapital-test.com")
+    email = factory.Sequence(lambda n: f"admin{n}@bandrcapital-test.com")
 
 
 class AnalystUserFactory(UserFactory):
     """Factory for creating analyst users."""
 
     role = "analyst"
-    email = factory.Sequence(lambda n: f"analyst{n}@brcapital-test.com")
+    email = factory.Sequence(lambda n: f"analyst{n}@bandrcapital-test.com")
 
 
 class DealFactory(factory.Factory):

@@ -93,7 +93,7 @@ async def seed_users(session: AsyncSession) -> list[User]:
     """Create sample users."""
     users_data = [
         {
-            "email": "admin@brcapital.com",
+            "email": "admin@bandrcapital.com",
             "hashed_password": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4QwNOdIzQlKZ7CZa",  # password123
             "full_name": "System Administrator",
             "is_active": True,
@@ -102,7 +102,7 @@ async def seed_users(session: AsyncSession) -> list[User]:
             "department": "Technology",
         },
         {
-            "email": "analyst@brcapital.com",
+            "email": "analyst@bandrcapital.com",
             "hashed_password": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4QwNOdIzQlKZ7CZa",
             "full_name": "Senior Analyst",
             "is_active": True,
@@ -111,7 +111,7 @@ async def seed_users(session: AsyncSession) -> list[User]:
             "department": "Acquisitions",
         },
         {
-            "email": "investor@brcapital.com",
+            "email": "investor@bandrcapital.com",
             "hashed_password": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4QwNOdIzQlKZ7CZa",
             "full_name": "LP Investor",
             "is_active": True,

@@ -1,7 +1,8 @@
 """
-Property endpoints for CRUD operations and analytics.
+Property endpoints for CRUD operations, analytics, and dashboard views.
 """
 
+from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -34,6 +35,292 @@ router = APIRouter()
 def _decimal_to_float(value: Decimal | None) -> float | None:
     """Convert Decimal to float, returning None if input is None."""
     return float(value) if value is not None else None
+
+
+def _to_frontend_property(prop: Property) -> dict:
+    """
+    Transform a flat Property DB model into the nested structure
+    the frontend Property TypeScript interface expects.
+    """
+    fd = prop.financial_data or {}
+    acq = fd.get("acquisition", {})
+    fin = fd.get("financing", {})
+    ret = fd.get("returns", {})
+    ops = fd.get("operations", {})
+    exp = fd.get("expenses", {})
+    exit_data = fd.get("exit", {})
+    phys = fd.get("physical", {})
+
+    purchase_price = _decimal_to_float(prop.purchase_price) or acq.get("purchasePrice") or 0
+    total_units = prop.total_units or 0
+    total_sf = prop.total_sf or 0
+    avg_unit_size = round(total_sf / total_units) if total_sf and total_units else 0
+    loan_amount = fin.get("loanAmount") or 0
+    total_invested = acq.get("totalAcquisitionBudget") or purchase_price
+    noi = _decimal_to_float(prop.noi) or ops.get("noiYear1") or 0
+    cap_rate = _decimal_to_float(prop.cap_rate) or 0
+    occupancy = _decimal_to_float(prop.occupancy_rate) or ops.get("occupancy") or 0
+    avg_rent = _decimal_to_float(prop.avg_rent_per_unit) or ops.get("avgRentPerUnit") or 0
+    rent_per_sf = _decimal_to_float(prop.avg_rent_per_sf) or ops.get("avgRentPerSf") or 0
+    irr = ret.get("lpIrr") or 0
+    moic = ret.get("lpMoic") or 0
+    interest_rate = fin.get("interestRate") or 0
+
+    # Derive property class from year_built
+    year_built = prop.year_built or 0
+    if year_built >= 2015:
+        property_class = "A"
+    elif year_built >= 1990:
+        property_class = "B"
+    else:
+        property_class = "C"
+
+    # Map submarket to Phoenix submarket enum values
+    submarket = prop.submarket or prop.city or "Phoenix Central"
+    submarket_map = {
+        "Scottsdale": "Scottsdale",
+        "West Tempe": "Tempe",
+        "Tempe": "Tempe",
+        "East Mesa": "Mesa",
+        "West Mesa": "Mesa",
+        "Mesa": "Mesa",
+        "Gilbert": "Gilbert",
+        "Chandler": "Chandler",
+        "Central Phoenix": "Phoenix Central",
+        "North Phoenix": "Phoenix North",
+        "West Phoenix": "Phoenix West",
+        "Glendale": "Phoenix West",
+        "Peoria": "Phoenix West",
+        "Surprise": "Phoenix West",
+        "Avondale": "Phoenix West",
+        "Queen Creek": "Gilbert",
+        "Paradise Valley": "Scottsdale",
+    }
+    # Try submarket first, then city, then default
+    frontend_submarket = submarket_map.get(submarket)
+    if not frontend_submarket:
+        frontend_submarket = submarket_map.get(prop.city, "Phoenix Central")
+
+    # Calculate monthly values
+    monthly_revenue = round(avg_rent * total_units) if avg_rent and total_units else 0
+    total_expenses = exp.get("realEstateTaxes") or 0
+    for key in ["utilities", "management", "repairs", "payroll", "marketing"]:
+        val = exp.get(key)
+        if val:
+            total_expenses += abs(val)
+
+    # Acquisition date from deal initial contact or default
+    acq_date = "2024-01-15"
+    if prop.acquisition_date:
+        acq_date = prop.acquisition_date.isoformat()
+
+    closing_costs = acq.get("closingCosts") or round(purchase_price * 0.02, 2)
+    acquisition_fee = acq.get("acquisitionFee") or 0
+    # If acquisitionFee is a rate (< 1), convert to dollar amount
+    if isinstance(acquisition_fee, (int, float)) and acquisition_fee < 1:
+        acquisition_fee = round(purchase_price * acquisition_fee, 2)
+
+    ltv = fin.get("ltv") or (round(loan_amount / purchase_price, 3) if purchase_price and loan_amount else 0)
+    loan_term = fin.get("loanTermMonths")
+    if loan_term:
+        loan_term_years = round(loan_term / 12)
+    else:
+        loan_term_years = 5
+
+    amort = fin.get("amortizationMonths") or 360
+    # Approximate monthly payment
+    if loan_amount and interest_rate:
+        monthly_rate = interest_rate / 12
+        if monthly_rate > 0 and amort > 0:
+            monthly_payment = round(loan_amount * monthly_rate * (1 + monthly_rate) ** amort / ((1 + monthly_rate) ** amort - 1), 2)
+        else:
+            monthly_payment = 0
+    else:
+        monthly_payment = 0
+
+    return {
+        "id": str(prop.id),
+        "name": prop.name,
+        "address": {
+            "street": prop.address or prop.name,
+            "city": prop.city,
+            "state": prop.state,
+            "zip": prop.zip_code,
+            "latitude": float(prop.latitude) if prop.latitude else 33.45,
+            "longitude": float(prop.longitude) if prop.longitude else -112.07,
+            "submarket": frontend_submarket,
+        },
+        "propertyDetails": {
+            "units": total_units,
+            "squareFeet": total_sf,
+            "averageUnitSize": avg_unit_size,
+            "yearBuilt": year_built,
+            "propertyClass": property_class,
+            "assetType": prop.building_type or "Garden",
+            "amenities": list(prop.amenities.keys()) if prop.amenities and isinstance(prop.amenities, dict) else (prop.amenities if isinstance(prop.amenities, list) else []),
+        },
+        "acquisition": {
+            "date": acq_date,
+            "purchasePrice": purchase_price,
+            "pricePerUnit": round(purchase_price / total_units, 2) if total_units else 0,
+            "closingCosts": closing_costs,
+            "acquisitionFee": acquisition_fee,
+            "totalInvested": total_invested,
+        },
+        "financing": {
+            "loanAmount": loan_amount,
+            "loanToValue": ltv,
+            "interestRate": interest_rate,
+            "loanTerm": loan_term_years,
+            "amortization": amort // 12 if amort else 30,
+            "monthlyPayment": monthly_payment,
+            "lender": "Institutional Lender",
+            "originationDate": acq_date,
+            "maturityDate": "2029-01-15",
+        },
+        "valuation": {
+            "currentValue": _decimal_to_float(prop.current_value) or purchase_price,
+            "lastAppraisalDate": acq_date,
+            "capRate": cap_rate,
+            "appreciationSinceAcquisition": 0,
+        },
+        "operations": {
+            "occupancy": occupancy,
+            "averageRent": avg_rent,
+            "rentPerSqft": rent_per_sf,
+            "monthlyRevenue": monthly_revenue,
+            "otherIncome": ops.get("otherIncomeYear1") or 0,
+            "monthlyExpenses": {
+                "propertyTax": abs(exp.get("realEstateTaxes") or 0) / 12,
+                "insurance": abs(exp.get("insurance") or 0) / 12,
+                "utilities": abs(exp.get("utilities") or 0) / 12,
+                "management": abs(exp.get("management") or 0) / 12,
+                "repairs": abs(exp.get("repairs") or 0) / 12,
+                "payroll": abs(exp.get("payroll") or 0) / 12,
+                "marketing": abs(exp.get("marketing") or 0) / 12,
+                "other": abs(exp.get("contractServices") or 0) / 12,
+                "total": total_expenses / 12,
+            },
+            "noi": noi,
+            "operatingExpenseRatio": round(total_expenses / (monthly_revenue * 12), 2) if monthly_revenue else 0,
+        },
+        "performance": {
+            "cashOnCashReturn": ret.get("cashOnCashYear1") or 0,
+            "irr": irr,
+            "equityMultiple": moic,
+            "totalReturnDollars": round((moic - 1) * (total_invested - loan_amount), 2) if moic and total_invested else 0,
+            "totalReturnPercent": round((moic - 1) * 100, 2) if moic else 0,
+        },
+        "images": {
+            "main": "",
+            "gallery": [],
+        },
+    }
+
+
+@router.get("/dashboard")
+async def list_properties_dashboard(
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List all properties in the nested frontend format.
+    Returns { properties: [...], total: N } matching the frontend Property type.
+    """
+    items = await property_crud.get_multi_filtered(
+        db, skip=0, limit=200, order_by="name", order_desc=False,
+    )
+    total = await property_crud.count_filtered(db)
+    properties = [_to_frontend_property(p) for p in items]
+    return {"properties": properties, "total": total}
+
+
+@router.get("/dashboard/{property_id}")
+async def get_property_dashboard(
+    property_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get a single property in the nested frontend format.
+    """
+    prop = await property_crud.get(db, property_id)
+    if not prop:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Property {property_id} not found",
+        )
+    return _to_frontend_property(prop)
+
+
+@router.get("/summary")
+async def get_portfolio_summary(
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get portfolio-level summary statistics.
+    Returns PropertySummaryStats matching the frontend type.
+    """
+    items = await property_crud.get_multi_filtered(
+        db, skip=0, limit=200, order_by="name", order_desc=False,
+    )
+
+    if not items:
+        return {
+            "totalProperties": 0, "totalUnits": 0, "totalValue": 0,
+            "totalInvested": 0, "totalNOI": 0, "averageOccupancy": 0,
+            "averageCapRate": 0, "portfolioCashOnCash": 0, "portfolioIRR": 0,
+        }
+
+    total_properties = len(items)
+    total_units = sum(p.total_units or 0 for p in items)
+    total_value = sum(float(p.current_value or 0) for p in items)
+
+    # Use financial_data for invested amounts and returns
+    total_invested = 0
+    total_noi = 0
+    occ_sum = 0
+    cap_sum = 0
+    occ_count = 0
+    cap_count = 0
+    irr_weighted = 0
+    coc_weighted = 0
+    equity_sum = 0
+
+    for p in items:
+        fd = p.financial_data or {}
+        acq = fd.get("acquisition", {})
+        ret = fd.get("returns", {})
+
+        invested = acq.get("totalAcquisitionBudget") or float(p.purchase_price or 0)
+        total_invested += invested
+        total_noi += float(p.noi or 0)
+
+        if p.occupancy_rate:
+            occ_sum += float(p.occupancy_rate)
+            occ_count += 1
+        if p.cap_rate:
+            cap_sum += float(p.cap_rate)
+            cap_count += 1
+
+        irr = ret.get("lpIrr") or 0
+        coc = ret.get("cashOnCashYear1") or 0
+        loan = fd.get("financing", {}).get("loanAmount") or 0
+        equity = invested - loan if invested and loan else invested
+        if equity > 0:
+            irr_weighted += irr * equity
+            coc_weighted += coc * equity
+            equity_sum += equity
+
+    return {
+        "totalProperties": total_properties,
+        "totalUnits": total_units,
+        "totalValue": round(total_value, 2),
+        "totalInvested": round(total_invested, 2),
+        "totalNOI": round(total_noi, 2),
+        "averageOccupancy": round(occ_sum / occ_count, 2) if occ_count else 0,
+        "averageCapRate": round(cap_sum / cap_count, 4) if cap_count else 0,
+        "portfolioCashOnCash": round(coc_weighted / equity_sum, 4) if equity_sum else 0,
+        "portfolioIRR": round(irr_weighted / equity_sum, 4) if equity_sum else 0,
+    }
 
 
 @router.get("/", response_model=PropertyListResponse)

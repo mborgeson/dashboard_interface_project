@@ -185,7 +185,7 @@ async def test_get_user_unauthenticated(client, db_session):
 async def test_create_user(client, db_session, admin_auth_headers):
     """Test creating a new user (admin only)."""
     new_user = {
-        "email": "newuser@brcapital.com",
+        "email": "newuser@bandrcapital.com",
         "password": "SecurePassword123!",
         "full_name": "New Test User",
         "role": "analyst",
@@ -203,7 +203,7 @@ async def test_create_user(client, db_session, admin_auth_headers):
     data = response.json()
 
     assert "id" in data
-    assert data["email"] == "newuser@brcapital.com"
+    assert data["email"] == "newuser@bandrcapital.com"
     assert data["full_name"] == "New Test User"
     assert data["role"] == "analyst"
     # Password should not be in response
@@ -215,7 +215,7 @@ async def test_create_user(client, db_session, admin_auth_headers):
 async def test_create_user_duplicate_email(client, db_session, admin_auth_headers):
     """Test creating a user with duplicate email fails."""
     duplicate_user = {
-        "email": "admin@brcapital.com",  # Already exists in demo data
+        "email": "admin@bandrcapital.com",  # Already exists in demo data
         "password": "SecurePassword123!",
         "full_name": "Duplicate User",
         "role": "analyst",
@@ -236,7 +236,7 @@ async def test_create_user_duplicate_email(client, db_session, admin_auth_header
 async def test_create_user_missing_required_fields(client, db_session, admin_auth_headers):
     """Test creating a user with missing required fields fails validation."""
     incomplete_user = {
-        "email": "incomplete@brcapital.com",
+        "email": "incomplete@bandrcapital.com",
         # Missing password, full_name, role
     }
 
@@ -255,7 +255,7 @@ async def test_create_user_missing_required_fields(client, db_session, admin_aut
 async def test_create_user_non_admin(client, db_session, auth_headers):
     """Test that non-admin users cannot create users."""
     new_user = {
-        "email": "newuser2@brcapital.com",
+        "email": "newuser2@bandrcapital.com",
         "password": "SecurePassword123!",
         "full_name": "New Test User",
         "role": "analyst",

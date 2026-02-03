@@ -4,59 +4,47 @@
   "realtime_memories": [
     {
       "type": "claude_response",
-      "content": "All 6 steps of extraction pipeline complete: (1) cell mapping validated, (2) single file test, (3) mapping gaps checked, (4) batch extraction 28 files → 30,394 values across 26 properties (run ID: 184f52e2), (5) frontend wired to real data, (6) scheduler/monitor enabled.",
+      "content": "Extraction pipeline: 28 Excel files → 26 properties, 30,394 values across 11 categories. Scheduler runs twice daily (cron: 0 2,14 * * *), file monitor polls SharePoint every 30 min. Config: EXTRACTION_SCHEDULE_ENABLED=true, FILE_MONITOR_ENABLED=true in backend/.env. Initialized in app/main.py lifespan. [Investment Name] is a template placeholder, not real data.",
       "added_at": "2026-02-02T11:46:37.112423",
-      "source": "realtime_capture"
+      "source": "consolidated"
     },
     {
       "type": "claude_response",
-      "content": "VITE_API_URL fix: Shell env had VITE_API_URL=http://localhost:8000 (without /api/v1). Fixed src/lib/config.ts to always append /api/v1 to base URL. src/lib/api.ts and feature hooks now import API_URL from config.ts as single source of truth.",
+      "content": "Frontend API config: src/lib/config.ts appends /api/v1 to base URL (VITE_API_URL). src/lib/api.ts and feature hooks import API_URL from config.ts as single source of truth.",
       "added_at": "2026-02-02T11:02:37.435461",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Scheduler config: Extraction runs twice daily (cron: 0 2,14 * * * Phoenix). File monitor polls SharePoint every 30 min with auto-extract on change. Both initialized in app/main.py lifespan. Env vars in backend/.env: EXTRACTION_SCHEDULE_ENABLED=true, FILE_MONITOR_ENABLED=true.",
-      "added_at": "2026-02-02T11:46:37.112423",
-      "source": "realtime_capture"
+      "source": "consolidated"
     },
     {
       "type": "claude_response",
       "content": "User preference: Be extremely clear and explicit about what actions the user needs to take. Don't assume context — state clearly if no action is needed. User prefers directness over hedging.",
       "added_at": "2026-02-02T11:13:15.728937",
-      "source": "realtime_capture"
+      "source": "consolidated"
     },
     {
       "type": "claude_response",
-      "content": "28 files extracted → 26 unique properties because 2 files produced no ExtractedValue rows (likely empty property name cells). Each property has exactly 1,169 fields across 11 categories. [Investment Name] is template placeholder, not a real property.",
-      "added_at": "2026-02-02T11:02:37.435461",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Consolidated 10 → 5 memories. Removed task notifications, truncated summaries, and duplicate context. Kept: project completion status, technical fixes, config decisions, user preferences, and data exp",
-      "added_at": "2026-02-02T11:47:53.327987",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "What are next steps?",
-      "added_at": "2026-02-02T11:47:53.328024",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Here's what I see as the natural follow-ups, ordered by impact:\n\n**Data Quality**\n- High error rates in extracted data: many properties have 300-600+ errors out of 1,169 fields. For example, `[Investm",
+      "content": "Data quality: many properties have 300-600+ errors out of 1,169 fields. Dashboard pages wired to real API data (completed). Extraction page was done first.",
       "added_at": "2026-02-02T11:51:03.842894",
+      "source": "consolidated"
+    },
+    {
+      "type": "claude_response",
+      "content": "Installed skills: agent-browser (vercel-labs), dashboard-creator (I-Onlabs/claude-code-skills).",
+      "added_at": "2026-02-02T16:41:30.391367",
+      "source": "consolidated"
+    },
+    {
+      "type": "claude_response",
+      "content": "Memory consolidated: 10 entries → 5. Removed noise (skill install commands, \"claude\" typo, CLI help response) and merged related entries. All signal preserved.",
+      "added_at": "2026-02-02T16:48:39.479116",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "Let's start with the below task and work on wiring up real data to all of the pages on the dashboard: Frontend Integration - The extraction page is wired to real data, but the rest of the dashboard (d",
-      "added_at": "2026-02-02T11:51:03.842943",
+      "content": "I want to install the claude-code-cli skill here, but I think I may have already installed it. The command is follows: \"skilz install SpillwaveSolutions/using-claude-code-cli-agent-skill/using-claude-",
+      "added_at": "2026-02-02T16:48:39.479289",
       "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:50:12.455355",
-  "updated_at": "2026-02-02T11:51:03.842945"
+  "updated_at": "2026-02-02T16:48:39.479295"
 }

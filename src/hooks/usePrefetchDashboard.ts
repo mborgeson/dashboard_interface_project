@@ -115,7 +115,7 @@ export function usePrefetchDashboard() {
     // Prefetch properties list - core dashboard data
     queryClient.prefetchQuery({
       queryKey: propertyKeys.lists(),
-      queryFn: () => get('/properties'),
+      queryFn: () => get('/properties/dashboard'),
       staleTime: 5 * 60 * 1000, // 5 minutes
     });
   }, [queryClient]);

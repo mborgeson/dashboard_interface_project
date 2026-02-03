@@ -8,68 +8,31 @@
     },
     {
       "type": "user_preference",
-      "content": "conda env: /home/mattb/miniconda3/envs/dashboard-backend. Backend port 8000, Frontend port 5173. Git: stash apply over pop, don't push unless asked. User prefers validation/testing before new features. No agent swarms for sequential dependent tasks. Be extremely clear about what actions user needs to take; state clearly if no action needed. User prefers directness over hedging.",
-      "added_at": "2026-02-02T12:45:00.000000",
+      "content": "conda env: /home/mattb/miniconda3/envs/dashboard-backend. Backend port 8000, Frontend port 5173. Git: stash apply over pop, don't push unless asked. User prefers validation/testing before new features. No agent swarms for sequential dependent tasks. Be extremely clear about what actions user needs to take; state clearly if no action needed. User prefers directness over hedging. Dashboard purpose: comprehensive deal intelligence platform tracking ALL deals pursued (not just owned). Two currently owned deals: Cabana on 99th (Glendale, AZ) and Tempe Metro (Tempe, AZ). '4) Closed Deals' = currently owned, '5) Realized Deals' = sold/disposed. Do NOT expand extraction filter to older UW Model versions — different layouts would produce errors. Future task: group models by version for separate extraction.",
+      "added_at": "2026-02-02T16:55:00.000000",
       "source": "consolidated"
     },
     {
       "type": "tech_decision",
-      "content": "pydantic-settings 2.x: CORS_ORIGINS must be JSON array. Single .env in project root, symlinked from backend/.env. Shell env var SHAREPOINT_SITE_URL overrides .env with truncated value - MUST unset shell var before running extraction. DB: PostgreSQL localhost:5432/dashboard_interface_data (dev: SQLite dashboard.db). Cell reference file: Underwriting_Dashboard_Cell_References.xlsx in project root. VITE_API_URL fix: src/lib/config.ts always appends /api/v1 to base URL; api.ts imports API_URL from config.ts as single source of truth.",
-      "added_at": "2026-02-02T12:45:00.000000",
+      "content": "pydantic-settings 2.x: CORS_ORIGINS must be JSON array. Single .env in project root, symlinked from backend/.env. Shell env var SHAREPOINT_SITE_URL overrides .env with truncated value - MUST unset shell var before running extraction. DB: PostgreSQL localhost:5432/dashboard_interface_data (NOT SQLite — dashboard.db is 0 bytes). Cell reference file: Underwriting_Dashboard_Cell_References.xlsx in project root. VITE_API_URL fix: src/lib/config.ts always appends /api/v1 to base URL; api.ts imports API_URL from config.ts as single source of truth. Email domain: bandrcapital.com (NOT brcapital.com).",
+      "added_at": "2026-02-02T16:55:00.000000",
       "source": "consolidated"
     },
     {
       "type": "extraction_status",
-      "content": "EXTRACTION COMPLETE (2026-02-02): 28/28 files extracted, 0 failures, 52.8s total. 26 unique properties (2 files had empty property names). Avg success rate 67.1%, avg 771 real values per file. Extraction API: 18 endpoints. Filters: FILE_PATTERN=.*UW.*Model.*vCurrent.*, CUTOFF_DATE=2024-07-15. 28 files pass (24 dead, 4 initial_review), 253 skipped. Scheduler: twice daily (cron 0 2,14 * * *), file monitor polls SharePoint every 30 min. Both in app/main.py lifespan.",
-      "added_at": "2026-02-02T12:45:00.000000",
+      "content": "EXTRACTION COMPLETE (2026-02-02): 28/28 files extracted, 0 failures, 52.8s total. 26 unique properties with extraction data + 3 monitored files with no extraction data (Casitas at San Marcos, Cortland Arrowhead Summit, Town Center Apartments). Avg success rate 67.1%, avg 771 real values per file. 1,169 fields per property across 11 categories. Extraction API: 18 endpoints. Filters: FILE_PATTERN=.*UW.*Model.*vCurrent.*, CUTOFF_DATE=2024-07-15. 28 files pass (23 dead, 5 initial_review), 253 skipped. Scheduler: twice daily (cron 0 2,14 * * *), file monitor polls SharePoint every 30 min. Both in app/main.py lifespan. extracted_values columns: id, extraction_run_id, property_id, property_name, field_name, field_category, sheet_name, cell_address, value_text, value_numeric, value_date, is_error, error_category, source_file, created_at, updated_at.",
+      "added_at": "2026-02-02T16:55:00.000000",
       "source": "consolidated"
     },
     {
       "type": "current_status",
-      "content": "ALL PAGES WIRED TO REAL DATA (2026-02-02): Phase 1: seed_database.py populates 35 properties, 20 deals, 66 transactions, 40 documents, 5 report templates, 6 queued reports, 4 distribution schedules, 2 users. Phase 2: Removed mock imports from TransactionsPage, DashboardMain, DocumentsPage, useDocuments, ReportTemplates, ReportQueue, Distribution, CustomReportBuilder, useMarketData, MarketPage, usePrefetch, usePrefetchDashboard, useGlobalSearch, TransactionsTab. All use API hooks (*WithMockFallback pattern). Phase 3: TypeScript clean, Vite build succeeds, all API endpoints verified. Remaining mock imports only in src/hooks/api/*.ts (fallback pattern), interest-rates page, and ReportSettings (config object).",
-      "added_at": "2026-02-02T12:45:00.000000",
+      "content": "DATA FOUNDATION REBUILT FROM EXTRACTION (2026-02-02). Previous fabricated seed data replaced with real extraction-derived data. Phase 1 (seed script rewrite): 30 properties (28 from monitored_files + 2 manual closed deals), 30 deals with correct stages (23 dead, 5 initial_review, 2 closed), 28 documents (UW model files), 2 transactions (closed deals only), 29,225 extracted_values linked to properties via property_id. financial_data JSON column stores nested frontend fields (acquisition, financing, returns, operations, expenses, exit, physical). Phase 2 (API transformation): _to_frontend_property() converts flat DB rows to nested Property TypeScript interface. New endpoints: GET /properties/dashboard (nested list), GET /properties/dashboard/{id} (nested single), GET /properties/summary (portfolio stats). Frontend API client updated to use /properties/dashboard. Phase 3 (email fix): brcapital.com→bandrcapital.com across 16 files (backend source, config, tests, frontend, docs). Phase 4 (DB model): Added latitude, longitude, building_type, financial_data columns to Property model + alembic migration 8e6fdd43a452. TypeScript clean, Vite build succeeds. User about to review dashboard with real data.",
+      "added_at": "2026-02-02T16:55:00.000000",
       "source": "consolidated"
     }
   ],
   "manual_memories": [],
-  "realtime_memories": [
-    {
-      "type": "claude_response",
-      "content": "Consolidated 10 realtime memories + 5 existing → 5 clean memories. Removed noise (task notifications, truncated summaries, HMR debug notes), merged user preference and tech decision updates into exist",
-      "added_at": "2026-02-02T12:45:32.621315",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a13a7f9</task-id> <status>completed</status> <summary>Agent \"Explore DB models and schemas\" completed</summary> <result>Perfect! Now let me provide you with a comprehensiv",
-      "added_at": "2026-02-02T12:45:32.622849",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "That's the last background exploration agent from earlier completing. All its findings were already incorporated. Memory cleanup is done and everything is wrapped up.",
-      "added_at": "2026-02-02T12:45:38.808400",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ad322fb</task-id> <status>completed</status> <summary>Agent \"Create database seed script\" completed</summary> <result>The script runs successfully and is idempotent. Here ",
-      "added_at": "2026-02-02T12:45:38.808480",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "All background agents from the earlier session have now reported completion. Everything was already incorporated into the finished work. Nothing further needed.",
-      "added_at": "2026-02-02T12:46:06.295715",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Can you please run a git commit and push command to memorialize all of the updates since the previous git commit and push?",
-      "added_at": "2026-02-02T12:46:06.295751",
-      "source": "realtime_capture"
-    }
-  ],
+  "realtime_memories": [],
   "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-02-02T12:46:06.295754"
+  "updated_at": "2026-02-02T16:55:00.000000"
 }

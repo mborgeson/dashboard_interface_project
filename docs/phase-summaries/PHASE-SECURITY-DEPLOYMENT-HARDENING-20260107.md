@@ -38,9 +38,9 @@ CORS_ORIGINS: list[str] = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
     # Production origins
-    "https://dashboard.brcapital.com",
-    "https://app.brcapital.com",
-    "https://brcapital.com",
+    "https://dashboard.bandrcapital.com",
+    "https://app.bandrcapital.com",
+    "https://bandrcapital.com",
 ]
 ```
 

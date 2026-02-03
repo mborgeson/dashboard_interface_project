@@ -36,12 +36,12 @@ def _get_demo_users() -> dict:
 
     # Demo users for development/testing only
     return {
-        "admin@brcapital.com": {
+        "admin@bandrcapital.com": {
             "password": "admin123",
             "id": 1,
             "role": "admin",
         },
-        "analyst@brcapital.com": {
+        "analyst@bandrcapital.com": {
             "password": "analyst123",
             "id": 2,
             "role": "analyst",
@@ -221,6 +221,6 @@ async def get_current_user(
     # Fallback for demo users (no DB record)
     return {
         "id": int(user_id),
-        "email": payload.get("email", "demo@brcapital.com"),
+        "email": payload.get("email", "demo@bandrcapital.com"),
         "role": payload.get("role", "viewer"),
     }

@@ -24,7 +24,7 @@ export interface PropertyFiltersParams {
  * Fetch all properties from the API
  */
 export async function fetchProperties(filters?: PropertyFiltersParams): Promise<PropertiesResponse> {
-  const response = await apiClient.get<PropertiesResponse>('/properties', {
+  const response = await apiClient.get<PropertiesResponse>('/properties/dashboard', {
     params: filters as Record<string, string | number | boolean | undefined>,
   });
 
@@ -41,7 +41,7 @@ export async function fetchProperties(filters?: PropertyFiltersParams): Promise<
  * Fetch a single property by ID
  */
 export async function fetchPropertyById(id: string): Promise<Property> {
-  const response = await apiClient.get<Property>(`/properties/${id}`);
+  const response = await apiClient.get<Property>(`/properties/dashboard/${id}`);
   return transformPropertyDates(response);
 }
 

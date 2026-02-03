@@ -217,7 +217,7 @@ jobs:
     if: needs.pre-deploy-checks.outputs.environment == 'staging'
     environment:
       name: staging
-      url: https://staging-api.brcapital.com
+      url: https://staging-api.bandrcapital.com
 
     steps:
       - uses: actions/checkout@v4
@@ -236,7 +236,7 @@ jobs:
       - name: Run smoke tests
         run: |
           echo "Running smoke tests against staging..."
-          # curl -f https://staging-api.brcapital.com/health || exit 1
+          # curl -f https://staging-api.bandrcapital.com/health || exit 1
 
       - name: Notify deployment
         if: always()
@@ -254,7 +254,7 @@ jobs:
     if: needs.pre-deploy-checks.outputs.environment == 'production'
     environment:
       name: production
-      url: https://api.brcapital.com
+      url: https://api.bandrcapital.com
 
     steps:
       - uses: actions/checkout@v4
@@ -272,7 +272,7 @@ jobs:
       - name: Run production smoke tests
         run: |
           echo "Running smoke tests against production..."
-          # curl -f https://api.brcapital.com/health || exit 1
+          # curl -f https://api.bandrcapital.com/health || exit 1
 
       - name: Create release
         if: startsWith(github.ref, 'refs/tags/v')

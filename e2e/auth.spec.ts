@@ -14,7 +14,7 @@ test.describe('Authentication', () => {
     test('should login with valid demo credentials', async ({ request }) => {
       const response = await request.post(`${API_BASE}/auth/login`, {
         form: {
-          username: 'admin@brcapital.com',
+          username: 'admin@bandrcapital.com',
           password: 'admin123',
         },
       });
@@ -41,7 +41,7 @@ test.describe('Authentication', () => {
     test('should login with analyst credentials', async ({ request }) => {
       const response = await request.post(`${API_BASE}/auth/login`, {
         form: {
-          username: 'analyst@brcapital.com',
+          username: 'analyst@bandrcapital.com',
           password: 'analyst123',
         },
       });
@@ -60,7 +60,7 @@ test.describe('Authentication', () => {
     test('should reject invalid credentials', async ({ request }) => {
       const response = await request.post(`${API_BASE}/auth/login`, {
         form: {
-          username: 'invalid@brcapital.com',
+          username: 'invalid@bandrcapital.com',
           password: 'wrongpassword',
         },
       });
@@ -93,7 +93,7 @@ test.describe('Authentication', () => {
       // First login to get tokens
       const loginResponse = await request.post(`${API_BASE}/auth/login`, {
         form: {
-          username: 'admin@brcapital.com',
+          username: 'admin@bandrcapital.com',
           password: 'admin123',
         },
       });
@@ -133,7 +133,7 @@ test.describe('Authentication', () => {
       // Login first
       const loginResponse = await request.post(`${API_BASE}/auth/login`, {
         form: {
-          username: 'admin@brcapital.com',
+          username: 'admin@bandrcapital.com',
           password: 'admin123',
         },
       });
@@ -180,7 +180,7 @@ test.describe('Authentication', () => {
       // Login first
       const loginResponse = await request.post(`${API_BASE}/auth/login`, {
         form: {
-          username: 'admin@brcapital.com',
+          username: 'admin@bandrcapital.com',
           password: 'admin123',
         },
       });

@@ -34,7 +34,7 @@ router = APIRouter()
 DEMO_USERS = [
     {
         "id": 1,
-        "email": "admin@brcapital.com",
+        "email": "admin@bandrcapital.com",
         "full_name": "Admin User",
         "role": "admin",
         "department": "Executive",
@@ -46,7 +46,7 @@ DEMO_USERS = [
     },
     {
         "id": 2,
-        "email": "analyst@brcapital.com",
+        "email": "analyst@bandrcapital.com",
         "full_name": "Investment Analyst",
         "role": "analyst",
         "department": "Acquisitions",
@@ -58,7 +58,7 @@ DEMO_USERS = [
     },
     {
         "id": 3,
-        "email": "viewer@brcapital.com",
+        "email": "viewer@bandrcapital.com",
         "full_name": "Portfolio Viewer",
         "role": "viewer",
         "department": "Asset Management",

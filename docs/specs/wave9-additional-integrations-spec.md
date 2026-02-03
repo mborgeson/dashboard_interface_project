@@ -103,7 +103,7 @@ Authorization: Bearer <token>
       "user": {
         "id": 1,
         "name": "John Smith",
-        "email": "john@brcapital.com",
+        "email": "john@bandrcapital.com",
         "avatar_url": "https://..."
       },
       "metadata": {

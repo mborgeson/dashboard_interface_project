@@ -173,7 +173,7 @@ def generate_user_data() -> list[dict]:
 
     users = [
         {
-            "email": "admin@brcapital.com",
+            "email": "admin@bandrcapital.com",
             "hashed_password": default_password,
             "full_name": "Admin User",
             "role": "admin",
@@ -182,7 +182,7 @@ def generate_user_data() -> list[dict]:
             "department": "Executive",
         },
         {
-            "email": "john.smith@brcapital.com",
+            "email": "john.smith@bandrcapital.com",
             "hashed_password": default_password,
             "full_name": "John Smith",
             "role": "analyst",
@@ -191,7 +191,7 @@ def generate_user_data() -> list[dict]:
             "department": "Acquisitions",
         },
         {
-            "email": "jane.doe@brcapital.com",
+            "email": "jane.doe@bandrcapital.com",
             "hashed_password": default_password,
             "full_name": "Jane Doe",
             "role": "analyst",
@@ -200,7 +200,7 @@ def generate_user_data() -> list[dict]:
             "department": "Underwriting",
         },
         {
-            "email": "mike.johnson@brcapital.com",
+            "email": "mike.johnson@bandrcapital.com",
             "hashed_password": default_password,
             "full_name": "Mike Johnson",
             "role": "analyst",
@@ -209,7 +209,7 @@ def generate_user_data() -> list[dict]:
             "department": "Asset Management",
         },
         {
-            "email": "sarah.wilson@brcapital.com",
+            "email": "sarah.wilson@bandrcapital.com",
             "hashed_password": default_password,
             "full_name": "Sarah Wilson",
             "role": "admin",
@@ -218,7 +218,7 @@ def generate_user_data() -> list[dict]:
             "department": "Executive",
         },
         {
-            "email": "demo@brcapital.com",
+            "email": "demo@bandrcapital.com",
             "hashed_password": default_password,
             "full_name": "Demo User",
             "role": "viewer",
@@ -336,7 +336,7 @@ def main():
     if "--help" in sys.argv:
         print(__doc__)
         print("\nDefault credentials for seeded users:")
-        print("  Email: admin@brcapital.com (or any seeded email)")
+        print("  Email: admin@bandrcapital.com (or any seeded email)")
         print("  Password: Password123!")
         return
 

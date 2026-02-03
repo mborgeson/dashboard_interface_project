@@ -35,8 +35,17 @@ class Property(Base, TimestampMixin, SoftDeleteMixin):
     county: Mapped[str | None] = mapped_column(String(100), nullable=True)
     market: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     submarket: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    latitude: Mapped[Decimal | None] = mapped_column(
+        Numeric(10, 6),
+        nullable=True,
+    )
+    longitude: Mapped[Decimal | None] = mapped_column(
+        Numeric(10, 6),
+        nullable=True,
+    )
 
     # Physical Characteristics
+    building_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     year_built: Mapped[int | None] = mapped_column(Integer, nullable=True)
     year_renovated: Mapped[int | None] = mapped_column(Integer, nullable=True)
     total_units: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -80,6 +89,9 @@ class Property(Base, TimestampMixin, SoftDeleteMixin):
         Numeric(5, 3),
         nullable=True,
     )
+
+    # Extended Financial Data (JSON blob for nested frontend fields)
+    financial_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Additional Data
     description: Mapped[str | None] = mapped_column(Text, nullable=True)

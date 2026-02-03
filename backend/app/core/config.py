@@ -53,9 +53,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
         # Production origins - also set via CORS_ORIGINS env var for flexibility
-        "https://dashboard.brcapital.com",
-        "https://app.brcapital.com",
-        "https://brcapital.com",
+        "https://dashboard.bandrcapital.com",
+        "https://app.bandrcapital.com",
+        "https://bandrcapital.com",
     ]
 
     @field_validator("CORS_ORIGINS", mode="before")

@@ -1,16 +1,13 @@
 """
-Seed the database with realistic multifamily real estate data.
+Seed the database from real extraction data.
 
-Populates properties, deals, transactions, documents, report templates,
-queued reports, distribution schedules, and users using property names
-derived from the extracted_values table.
+Queries extracted_values and monitored_files tables to populate properties,
+deals, documents, and transactions with real UW Model data.
 
 Usage:
     cd backend && python scripts/seed_database.py
 """
 
-import json
-import random
 import sys
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -20,6 +17,8 @@ from pathlib import Path
 backend_dir = str(Path(__file__).resolve().parent.parent)
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
+
+from sqlalchemy import text
 
 from app.db.base import Base
 from app.db.session import SessionLocal, sync_engine
@@ -40,688 +39,741 @@ from app.models import (
 from app.models.transaction import Transaction
 
 # ---------------------------------------------------------------------------
-# Deduplicated property data from extraction table
+# Two manually-defined closed deals (not in extraction data)
 # ---------------------------------------------------------------------------
-
-# Map of canonical property name -> city (extracted from parenthetical suffixes
-# or defaulted to a suitable Phoenix MSA city)
-PROPERTY_DATA = {
-    "454 W Brown Road": "Mesa",
-    "505 West": "Tempe",
-    "Acacia Pointe": "Glendale",
-    "Alante at the Islands": "Chandler",
-    "Alta Surprise": "Surprise",
-    "Alta Vista Village": "Phoenix",
-    "Ardella on 28th": "Phoenix",
-    "Artisan at Downtown Chandler": "Chandler",
-    "Aura at Midtown": "Phoenix",
-    "Be Mesa": "Mesa",
-    "Bingham Block": "Phoenix",
-    "Broadstone 7th Street": "Phoenix",
-    "Broadstone Portland": "Phoenix",
-    "Buenas Paradise Valley": "Phoenix",
-    "Cantala": "Glendale",
-    "Cimarron": "Mesa",
-    "Citra": "Phoenix",
-    "Copper Point Apartments": "Mesa",
-    "Coral Point": "Mesa",
-    "Cortland Arrowhead Summit": "Glendale",
-    "Emparrado": "Mesa",
-    "Estrella Gateway": "Avondale",
-    "Fringe Mountain View": "Phoenix",
-    "Glen 91": "Glendale",
-    "Harmony at Surprise": "Surprise",
-    "Haven Townhomes at P83": "Peoria",
-    "Hayden Park": "Scottsdale",
-    "Jade Ridge": "Phoenix",
-    "La Paloma": "Tempe",
-    "Monterra": "Phoenix",
-    "North Country Club": "Mesa",
-    "Park on Bell": "Phoenix",
-    "Town Center Apartments": "Tempe",
-    "Tresa at Arrowhead": "Glendale",
-    "Urban 148": "Phoenix",
-}
-
-# Submarket mapping by city
-SUBMARKET_MAP = {
-    "Phoenix": [
-        "Phoenix - Central",
-        "Phoenix - North",
-        "Phoenix - Camelback Corridor",
-        "Phoenix - Arcadia",
-        "Phoenix - Midtown",
-    ],
-    "Tempe": ["Tempe - ASU Area", "Tempe - South", "Tempe - Downtown"],
-    "Mesa": ["Mesa - East", "Mesa - West", "Mesa - Downtown"],
-    "Chandler": ["Chandler - Downtown", "Chandler - South"],
-    "Glendale": ["Glendale - West", "Glendale - Downtown"],
-    "Scottsdale": ["Scottsdale - South", "Scottsdale - Old Town"],
-    "Surprise": ["Surprise - West Valley"],
-    "Avondale": ["Avondale - West Valley"],
-    "Peoria": ["Peoria - P83 District"],
-}
-
-# Realistic Phoenix MSA zip codes by city
-ZIP_CODES = {
-    "Phoenix": ["85003", "85004", "85006", "85012", "85013", "85014", "85016", "85018"],
-    "Tempe": ["85281", "85282", "85283", "85284"],
-    "Mesa": ["85201", "85202", "85204", "85210", "85213"],
-    "Chandler": ["85224", "85225", "85226", "85248"],
-    "Glendale": ["85301", "85302", "85304", "85306"],
-    "Scottsdale": ["85251", "85254", "85257"],
-    "Surprise": ["85374", "85378", "85379"],
-    "Avondale": ["85323", "85392"],
-    "Peoria": ["85345", "85381", "85382"],
-}
-
-# Street name fragments for generating addresses
-STREET_NAMES = [
-    "N Central Ave",
-    "E Camelback Rd",
-    "W Indian School Rd",
-    "S Mill Ave",
-    "E University Dr",
-    "N Scottsdale Rd",
-    "W Bell Rd",
-    "E McDowell Rd",
-    "N 7th St",
-    "W Glendale Ave",
-    "E Baseline Rd",
-    "N Hayden Rd",
-    "W Thomas Rd",
-    "E Broadway Rd",
-    "S Price Rd",
-    "N Litchfield Rd",
-    "W Peoria Ave",
-    "E Southern Ave",
-    "N 44th St",
-    "W Thunderbird Rd",
+CLOSED_DEALS = [
+    {
+        "name": "Cabana on 99th",
+        "city": "Glendale",
+        "state": "AZ",
+        "zip_code": "85305",
+        "county": "Maricopa",
+        "market": "Phoenix",
+        "submarket": "Glendale",
+        "property_type": "multifamily",
+        "building_type": "Garden",
+        "total_units": 120,
+        "year_built": 1985,
+        "purchase_price": Decimal("12500000"),
+        "latitude": Decimal("33.5131"),
+        "longitude": Decimal("-112.2358"),
+    },
+    {
+        "name": "Tempe Metro",
+        "city": "Tempe",
+        "state": "AZ",
+        "zip_code": "85281",
+        "county": "Maricopa",
+        "market": "Phoenix",
+        "submarket": "Tempe",
+        "property_type": "multifamily",
+        "building_type": "Garden",
+        "total_units": 200,
+        "year_built": 1990,
+        "purchase_price": Decimal("28000000"),
+        "latitude": Decimal("33.4255"),
+        "longitude": Decimal("-111.9400"),
+    },
 ]
 
-random.seed(42)  # Reproducible output
+# Deal stage mapping from monitored_files stages
+STAGE_MAP = {
+    "dead": DealStage.DEAD,
+    "initial_review": DealStage.INITIAL_REVIEW,
+    "underwriting": DealStage.UNDERWRITING,
+    "closed": DealStage.CLOSED,
+}
 
 
-def random_date(start: date, end: date) -> date:
-    """Return a random date between start and end inclusive."""
-    delta = (end - start).days
-    return start + timedelta(days=random.randint(0, delta))
+def safe_numeric(val_text, val_numeric, default=None):
+    """Extract a numeric value, preferring value_numeric."""
+    if val_numeric is not None:
+        return float(val_numeric)
+    if val_text is not None:
+        try:
+            return float(val_text)
+        except (ValueError, TypeError):
+            return default
+    return default
 
 
-def random_decimal(low: float, high: float, precision: int = 2) -> Decimal:
-    """Return a random Decimal between low and high."""
-    val = random.uniform(low, high)
-    return Decimal(str(round(val, precision)))
+def safe_text(val_text, default=None):
+    """Extract a text value."""
+    if val_text and str(val_text).strip():
+        return str(val_text).strip()
+    return default
+
+
+def safe_int(val_text, val_numeric, default=None):
+    """Extract an integer value."""
+    v = safe_numeric(val_text, val_numeric)
+    if v is not None:
+        return int(round(v))
+    return default
+
+
+def safe_zip(val_text, val_numeric):
+    """Extract zip code, stripping .0 suffix from numeric values."""
+    v = safe_numeric(val_text, val_numeric)
+    if v is not None:
+        return str(int(v))
+    if val_text:
+        return str(val_text).replace(".0", "").strip()
+    return "00000"
+
+
+def get_extracted_fields(session, property_name: str) -> dict:
+    """Query all non-error extracted values for a property, return as dict."""
+    rows = session.execute(
+        text("""
+            SELECT field_name, value_text, value_numeric
+            FROM extracted_values
+            WHERE property_name = :pname AND is_error = false
+        """),
+        {"pname": property_name},
+    ).fetchall()
+    fields = {}
+    for field_name, value_text, value_numeric in rows:
+        fields[field_name] = {"text": value_text, "numeric": value_numeric}
+    return fields
+
+
+def field_num(fields: dict, key: str, default=None):
+    """Get numeric value from extracted fields dict."""
+    f = fields.get(key)
+    if f is None:
+        return default
+    return safe_numeric(f["text"], f["numeric"], default)
+
+
+def field_text(fields: dict, key: str, default=None):
+    """Get text value from extracted fields dict."""
+    f = fields.get(key)
+    if f is None:
+        return default
+    return safe_text(f["text"], default)
+
+
+def field_int(fields: dict, key: str, default=None):
+    """Get integer value from extracted fields dict."""
+    f = fields.get(key)
+    if f is None:
+        return default
+    return safe_int(f["text"], f["numeric"], default)
+
+
+def parse_city_from_deal_name(deal_name: str) -> tuple[str, str, str]:
+    """
+    Parse 'Deal Name (City, ST)' into (name, city, state).
+    E.g., '505 West (Tempe, AZ)' -> ('505 West', 'Tempe', 'AZ')
+    """
+    if "(" in deal_name and ")" in deal_name:
+        name_part = deal_name.split("(")[0].strip()
+        location = deal_name.split("(")[1].rstrip(")")
+        parts = [p.strip() for p in location.split(",")]
+        city = parts[0] if parts else ""
+        state = parts[1] if len(parts) > 1 else "AZ"
+        return name_part, city, state
+    return deal_name, "", "AZ"
 
 
 # ---------------------------------------------------------------------------
-# Seed functions
+# Seeding functions
 # ---------------------------------------------------------------------------
 
 
-def seed_users(db):
-    """Create two users: admin and analyst."""
-    print("  Seeding users...")
+def clear_data(session):
+    """Clear existing fabricated data while preserving extraction tables."""
+    print("Clearing existing data...")
+    # Order matters due to foreign keys
+    session.execute(text("DELETE FROM transactions"))
+    session.execute(text("DELETE FROM deals"))
+    session.execute(text("DELETE FROM documents"))
+    session.execute(text("DELETE FROM distribution_schedules"))
+    session.execute(text("DELETE FROM queued_reports"))
+    session.execute(text("DELETE FROM report_templates"))
+    session.execute(text("DELETE FROM properties"))
+    # Don't delete users - just update them
+    session.commit()
+    print("  Cleared: transactions, deals, documents, distribution_schedules,")
+    print("           queued_reports, report_templates, properties")
+
+
+def seed_properties_from_extraction(session) -> dict[str, int]:
+    """
+    Create property records from extracted_values data.
+    Returns mapping of deal_name -> property_id.
+    """
+    print("\nSeeding properties from extraction data...")
+
+    # Get all monitored files with deal names (deduplicated)
+    monitored = session.execute(
+        text("""
+            SELECT DISTINCT ON (deal_name) deal_name, deal_stage, file_name,
+                   file_path, size_bytes, modified_date, first_seen
+            FROM monitored_files
+            WHERE deal_name IS NOT NULL AND deal_name <> ''
+            ORDER BY deal_name, modified_date DESC
+        """)
+    ).fetchall()
+
+    property_map = {}  # deal_name -> property_id
+    count = 0
+
+    for mf in monitored:
+        deal_name = mf[0]
+        deal_stage = mf[1]
+
+        # Get extracted fields for this property
+        fields = get_extracted_fields(session, deal_name)
+
+        # Parse city/state from deal name as fallback
+        _, name_city, name_state = parse_city_from_deal_name(deal_name)
+
+        # Get values from extraction (with fallbacks)
+        city = field_text(fields, "PROPERTY_CITY", name_city or "Phoenix")
+        state = field_text(fields, "PROPERTY_STATE", name_state or "AZ")
+
+        # PROPERTY_ADDRESS sometimes contains year_built instead of address
+        raw_address = field_text(fields, "PROPERTY_ADDRESS", "")
+        try:
+            float(raw_address)
+            # It's a number (like year_built bleeding in), use deal name as address
+            address = deal_name.split("(")[0].strip()
+        except (ValueError, TypeError):
+            address = raw_address if raw_address else deal_name.split("(")[0].strip()
+
+        zip_code = safe_zip(
+            fields.get("PROPERTY_ZIP", {}).get("text") if fields.get("PROPERTY_ZIP") else None,
+            fields.get("PROPERTY_ZIP", {}).get("numeric") if fields.get("PROPERTY_ZIP") else None,
+        )
+
+        total_units = field_int(fields, "TOTAL_UNITS")
+        avg_sf = field_num(fields, "AVG_SQUARE_FEET")
+        total_sf = int(avg_sf * total_units) if avg_sf and total_units else None
+        purchase_price = field_num(fields, "PURCHASE_PRICE")
+        noi_raw = field_num(fields, "NET_OPERATING_INCOME")
+        cap_rate = field_num(fields, "CAP_RATE")
+        vacancy_rate = field_num(fields, "VACANCY_LOSS_YEAR_1_RATE")
+        occupancy = round((1 - vacancy_rate) * 100, 2) if vacancy_rate is not None else None
+
+        # Build financial_data JSON for frontend nested fields
+        financial_data = {
+            "acquisition": {
+                "purchasePrice": purchase_price,
+                "totalAcquisitionBudget": field_num(fields, "TOTAL_ACQUISITION_BUDGET"),
+                "closingCosts": field_num(fields, "EQUITY_CLOSING_COSTS_EXPENSES"),
+                "acquisitionFee": field_num(fields, "ACQUISITION_FEE"),
+                "pricePerUnit": round(purchase_price / total_units, 2) if purchase_price and total_units else None,
+            },
+            "financing": {
+                "loanAmount": field_num(fields, "LOAN_AMOUNT"),
+                "ltv": round(field_num(fields, "LOAN_AMOUNT", 0) / purchase_price, 3) if purchase_price and field_num(fields, "LOAN_AMOUNT") else None,
+                "interestRate": field_num(fields, "SENIOR_INTEREST_RATE"),
+                "loanTermMonths": field_int(fields, "LOAN_TERM_MONTHS"),
+                "amortizationMonths": field_int(fields, "AMORTIZATION_MONTHS"),
+                "annualDebtService": field_num(fields, "ANNUAL_DEBT_SERVICE"),
+                "debtServiceYear1": field_num(fields, "SENIOR_LOAN_DEBT_SERVICE_YEAR_1"),
+            },
+            "returns": {
+                "lpIrr": field_num(fields, "LP_RETURNS_IRR"),
+                "lpMoic": field_num(fields, "LP_RETURNS_MOIC"),
+                "leveredIrr": field_num(fields, "LEVERED_RETURNS_IRR"),
+                "leveredMoic": field_num(fields, "LEVERED_RETURNS_MOIC"),
+                "cashOnCashYear1": field_num(fields, "EQUITY_CASH_ON_CASH_EXCLUDING_PROJECTLEVEL_FEES_YEAR_1"),
+                "cashOnCashYear2": field_num(fields, "EQUITY_CASH_ON_CASH_EXCLUDING_PROJECTLEVEL_FEES_YEAR_2"),
+                "cashOnCashYear3": field_num(fields, "EQUITY_CASH_ON_CASH_EXCLUDING_PROJECTLEVEL_FEES_YEAR_3"),
+            },
+            "operations": {
+                "vacancyRate": vacancy_rate,
+                "occupancy": occupancy,
+                "avgRentPerUnit": field_num(fields, "AVERAGE_RENT_PER_UNIT_INPLACE"),
+                "avgRentPerSf": field_num(fields, "AVERAGE_RENT_PER_SF_INPLACE"),
+                "totalOperatingExpenses": field_num(fields, "TOTAL_OPERATING_EXPENSES"),
+                "noiYear1": field_num(fields, "NET_OPERATING_INCOME_YEAR_1"),
+                "totalRevenueYear1": field_num(fields, "GROSS_POTENTIAL_REVENUE_YEAR_1"),
+                "netRentalIncomeYear1": field_num(fields, "NET_RENTAL_INCOME_YEAR_1"),
+                "otherIncomeYear1": field_num(fields, "TOTAL_OTHER_INCOME_YEAR_1"),
+            },
+            "expenses": {
+                "realEstateTaxes": field_num(fields, "REAL_ESTATE_TAXES_YEAR_1"),
+                "insurance": field_num(fields, "INSURANCE_EXPENSE_GROWTH_RATE_YEAR_1"),
+                "utilities": field_num(fields, "UTILITIES_YEAR_1"),
+                "management": field_num(fields, "PROPERTY_MANAGEMENT_FEE_YEAR_1"),
+                "managementRate": field_num(fields, "PROPERTY_MANAGEMENT_FEE_RATE"),
+                "repairs": field_num(fields, "REPAIRS_AND_MAINTENANCE_YEAR_1"),
+                "payroll": field_num(fields, "STAFFING_PAYROLL_YEAR_1"),
+                "marketing": field_num(fields, "ADVERTISING_LEASING_AND_MARKETING_YEAR_1"),
+                "contractServices": field_num(fields, "CONTRACT_SERVICES_YEAR_1"),
+                "adminLegalSecurity": field_num(fields, "ADMIN_LEGAL_AND_SECURITY_YEAR_1"),
+                "reserves": field_num(fields, "RESERVES_FOR_REPLACEMENT_YEAR_1"),
+            },
+            "exit": {
+                "exitCapRate": field_num(fields, "EXIT_CAP_RATE"),
+                "exitPeriodMonths": field_int(fields, "EXIT_PERIOD_MONTHS"),
+                "holdPeriodYears": round(field_num(fields, "EXIT_PERIOD_MONTHS", 60) / 12, 1),
+            },
+            "physical": {
+                "numberOfBuildings": field_int(fields, "NUMBER_OF_BUILDINGS"),
+                "stories": field_int(fields, "STORIES"),
+                "landArea": field_num(fields, "LAND_AREA"),
+            },
+        }
+
+        prop = Property(
+            name=deal_name,
+            property_type="multifamily",
+            address=address,
+            city=city,
+            state=state,
+            zip_code=zip_code,
+            county=field_text(fields, "COUNTY", "Maricopa"),
+            market=field_text(fields, "MARKET", "Phoenix"),
+            submarket=field_text(fields, "SUBMARKET"),
+            latitude=Decimal(str(field_num(fields, "PROPERTY_LATITUDE", 33.45))),
+            longitude=Decimal(str(field_num(fields, "PROPERTY_LONGITUDE", -112.07))),
+            building_type=field_text(fields, "BUILDING_TYPE", "Garden"),
+            year_built=field_int(fields, "YEAR_BUILT"),
+            total_units=total_units,
+            total_sf=total_sf,
+            lot_size_acres=Decimal(str(field_num(fields, "LAND_AREA"))) if field_num(fields, "LAND_AREA") else None,
+            purchase_price=Decimal(str(round(purchase_price, 2))) if purchase_price else None,
+            current_value=Decimal(str(round(purchase_price, 2))) if purchase_price else None,
+            occupancy_rate=Decimal(str(occupancy)) if occupancy else None,
+            avg_rent_per_unit=Decimal(str(round(field_num(fields, "AVERAGE_RENT_PER_UNIT_INPLACE", 0), 2))) if field_num(fields, "AVERAGE_RENT_PER_UNIT_INPLACE") else None,
+            avg_rent_per_sf=Decimal(str(round(field_num(fields, "AVERAGE_RENT_PER_SF_INPLACE", 0), 2))) if field_num(fields, "AVERAGE_RENT_PER_SF_INPLACE") else None,
+            noi=Decimal(str(round(noi_raw, 2))) if noi_raw else None,
+            cap_rate=Decimal(str(round(cap_rate, 4))) if cap_rate else None,
+            data_source="extraction",
+            financial_data=financial_data,
+        )
+        session.add(prop)
+        session.flush()  # Get the ID
+        property_map[deal_name] = prop.id
+        count += 1
+
+        if fields:
+            print(f"  {count}. {deal_name} → id={prop.id} ({len(fields)} fields)")
+        else:
+            print(f"  {count}. {deal_name} → id={prop.id} (no extraction data)")
+
+    # Add closed deals (not in extraction)
+    for cd in CLOSED_DEALS:
+        prop = Property(
+            name=f"{cd['name']} ({cd['city']}, {cd['state']})",
+            property_type=cd["property_type"],
+            address=cd["name"],
+            city=cd["city"],
+            state=cd["state"],
+            zip_code=cd["zip_code"],
+            county=cd["county"],
+            market=cd["market"],
+            submarket=cd["submarket"],
+            building_type=cd["building_type"],
+            total_units=cd["total_units"],
+            year_built=cd["year_built"],
+            purchase_price=cd["purchase_price"],
+            current_value=cd["purchase_price"],
+            latitude=cd["latitude"],
+            longitude=cd["longitude"],
+            data_source="manual",
+        )
+        session.add(prop)
+        session.flush()
+        full_name = f"{cd['name']} ({cd['city']}, {cd['state']})"
+        property_map[full_name] = prop.id
+        count += 1
+        print(f"  {count}. {full_name} → id={prop.id} (closed deal, manual entry)")
+
+    session.commit()
+    print(f"\n  Total properties created: {count}")
+    return property_map
+
+
+def seed_deals(session, property_map: dict[str, int]):
+    """Create deal records from monitored_files data."""
+    print("\nSeeding deals...")
+
+    # Get monitored files data
+    monitored = session.execute(
+        text("""
+            SELECT DISTINCT ON (deal_name) deal_name, deal_stage, first_seen
+            FROM monitored_files
+            WHERE deal_name IS NOT NULL AND deal_name <> ''
+            ORDER BY deal_name, modified_date DESC
+        """)
+    ).fetchall()
+
+    count = 0
+    for mf in monitored:
+        deal_name = mf[0]
+        deal_stage_str = mf[1]
+        first_seen = mf[2]
+
+        prop_id = property_map.get(deal_name)
+        stage = STAGE_MAP.get(deal_stage_str, DealStage.LEAD)
+
+        # Get financial metrics from extracted data
+        fields = get_extracted_fields(session, deal_name)
+
+        irr = field_num(fields, "LP_RETURNS_IRR")
+        moic = field_num(fields, "LP_RETURNS_MOIC")
+        purchase_price = field_num(fields, "PURCHASE_PRICE")
+        exit_months = field_num(fields, "EXIT_PERIOD_MONTHS")
+
+        # Calculate deal score (0-100) based on IRR and MOIC
+        deal_score = None
+        if irr is not None and moic is not None:
+            irr_score = min(irr / 0.25 * 50, 50)  # 25% IRR = 50 points
+            moic_score = min((moic - 1) / 1.5 * 50, 50)  # 2.5x MOIC = 50 points
+            deal_score = int(round(irr_score + moic_score))
+
+        deal = Deal(
+            name=deal_name,
+            deal_type="acquisition",
+            stage=stage,
+            stage_order=0,
+            property_id=prop_id,
+            asking_price=Decimal(str(round(purchase_price, 2))) if purchase_price else None,
+            projected_irr=Decimal(str(round(irr, 4))) if irr is not None else None,
+            projected_coc=None,  # CoC extracted as raw $ not rate; stored in financial_data
+            projected_equity_multiple=Decimal(str(round(moic, 2))) if moic is not None else None,
+            hold_period_years=int(round(exit_months / 12)) if exit_months else 5,
+            initial_contact_date=first_seen.date() if first_seen else None,
+            source="Broker",
+            priority="medium",
+            deal_score=deal_score,
+        )
+        session.add(deal)
+        count += 1
+
+    # Add closed deals
+    for cd in CLOSED_DEALS:
+        full_name = f"{cd['name']} ({cd['city']}, {cd['state']})"
+        prop_id = property_map.get(full_name)
+        deal = Deal(
+            name=full_name,
+            deal_type="acquisition",
+            stage=DealStage.CLOSED,
+            stage_order=0,
+            property_id=prop_id,
+            asking_price=cd["purchase_price"],
+            final_price=cd["purchase_price"],
+            source="Off-Market",
+            priority="high",
+            actual_close_date=date(2024, 6, 15) if cd["name"] == "Cabana on 99th" else date(2024, 9, 1),
+            deal_score=75,
+        )
+        session.add(deal)
+        count += 1
+
+    session.commit()
+    print(f"  Created {count} deals")
+
+
+def seed_documents(session, property_map: dict[str, int]):
+    """Create document records from monitored_files."""
+    print("\nSeeding documents...")
+
+    monitored = session.execute(
+        text("""
+            SELECT DISTINCT ON (deal_name) deal_name, file_name, file_path,
+                   size_bytes, modified_date
+            FROM monitored_files
+            WHERE deal_name IS NOT NULL AND deal_name <> ''
+            ORDER BY deal_name, modified_date DESC
+        """)
+    ).fetchall()
+
+    count = 0
+    for mf in monitored:
+        deal_name = mf[0]
+        file_name = mf[1]
+        file_path = mf[2]
+        size_bytes = mf[3] or 0
+        modified_date = mf[4] or datetime.now(UTC)
+
+        prop_id = property_map.get(deal_name)
+
+        doc = Document(
+            name=file_name or f"{deal_name} UW Model",
+            type="financial",
+            property_id=str(prop_id) if prop_id else None,
+            property_name=deal_name,
+            size=size_bytes,
+            uploaded_at=modified_date,
+            uploaded_by="matt@bandrcapital.com",
+            description=f"Underwriting model for {deal_name}",
+            url=file_path,
+            file_path=file_path,
+            mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        session.add(doc)
+        count += 1
+
+    session.commit()
+    print(f"  Created {count} documents")
+
+
+def seed_transactions(session, property_map: dict[str, int]):
+    """Create transactions ONLY for closed deals."""
+    print("\nSeeding transactions (closed deals only)...")
+
+    count = 0
+    for cd in CLOSED_DEALS:
+        full_name = f"{cd['name']} ({cd['city']}, {cd['state']})"
+        prop_id = property_map.get(full_name)
+
+        # Acquisition transaction
+        tx = Transaction(
+            property_id=prop_id,
+            property_name=full_name,
+            type="acquisition",
+            category="Purchase",
+            amount=cd["purchase_price"],
+            date=date(2024, 6, 15) if cd["name"] == "Cabana on 99th" else date(2024, 9, 1),
+            description=f"Acquisition of {full_name}",
+        )
+        session.add(tx)
+        count += 1
+
+    session.commit()
+    print(f"  Created {count} transactions")
+
+
+def seed_users(session):
+    """Create or update user accounts with correct email domain."""
+    print("\nSeeding users...")
+
+    # Check if users exist
+    existing = session.execute(text("SELECT id, email FROM users")).fetchall()
+    if existing:
+        # Update email domain
+        session.execute(
+            text("UPDATE users SET email = REPLACE(email, 'brcapital.com', 'bandrcapital.com') WHERE email LIKE '%brcapital.com%'")
+        )
+        session.commit()
+        print("  Updated existing user email domains")
+        return
+
+    from app.core.security import get_password_hash
+
     users = [
         User(
-            email="matt@brcapital.com",
-            hashed_password="hashed_placeholder",
-            full_name="Matt Brennan",
+            email="matt@bandrcapital.com",
+            full_name="Matt Brogan",
+            hashed_password=get_password_hash("admin123"),
             role="admin",
             is_active=True,
             is_verified=True,
-            department="Acquisitions",
         ),
         User(
-            email="sarah@brcapital.com",
-            hashed_password="hashed_placeholder",
+            email="sarah@bandrcapital.com",
             full_name="Sarah Chen",
+            hashed_password=get_password_hash("user123"),
             role="analyst",
             is_active=True,
             is_verified=True,
-            department="Asset Management",
         ),
     ]
-    db.add_all(users)
-    db.commit()
-    print(f"    Created {len(users)} users.")
-    return users
+    session.add_all(users)
+    session.commit()
+    print(f"  Created {len(users)} users")
 
 
-def seed_properties(db):
-    """Create properties from the deduplicated extraction data."""
-    print("  Seeding properties...")
-    properties = []
-    for name, city in PROPERTY_DATA.items():
-        units = random.randint(100, 400)
-        avg_sf_per_unit = random.randint(750, 1050)
-        total_sf = units * avg_sf_per_unit
-        avg_rent = random_decimal(1200, 2100)
-        occupancy = random_decimal(92.0, 97.0)
-        annual_revenue = float(avg_rent) * units * 12
-        noi = Decimal(str(round(annual_revenue * random.uniform(0.50, 0.60), 2)))
-        purchase_price = random_decimal(15_000_000, 85_000_000)
-        cap_rate = (noi / purchase_price * 100).quantize(Decimal("0.001"))
-        # Clamp cap rate to realistic range
-        if cap_rate < Decimal("4.0"):
-            cap_rate = random_decimal(4.5, 5.5, 3)
-        elif cap_rate > Decimal("7.0"):
-            cap_rate = random_decimal(5.5, 6.5, 3)
-        appreciation = random_decimal(1.05, 1.20)
-        current_value = (purchase_price * appreciation).quantize(Decimal("0.01"))
+def seed_report_templates(session):
+    """Create report templates."""
+    print("\nSeeding report templates...")
 
-        acq_date = random_date(date(2020, 1, 1), date(2024, 6, 30))
-        year_built = random.randint(1985, 2023)
-        submarkets = SUBMARKET_MAP.get(city, [f"{city}"])
-        zips = ZIP_CODES.get(city, ["85001"])
-        address_num = random.randint(100, 9999)
-        street = random.choice(STREET_NAMES)
-
-        prop = Property(
-            name=name,
-            property_type="multifamily",
-            address=f"{address_num} {street}",
-            city=city,
-            state="AZ",
-            zip_code=random.choice(zips),
-            county="Maricopa",
-            market="Phoenix MSA",
-            submarket=random.choice(submarkets),
-            year_built=year_built,
-            total_units=units,
-            total_sf=total_sf,
-            purchase_price=purchase_price,
-            current_value=current_value,
-            acquisition_date=acq_date,
-            occupancy_rate=occupancy,
-            avg_rent_per_unit=avg_rent,
-            noi=noi,
-            cap_rate=cap_rate,
-        )
-        properties.append(prop)
-
-    db.add_all(properties)
-    db.commit()
-    print(f"    Created {len(properties)} properties.")
-    return properties
-
-
-def seed_deals(db, properties):
-    """Create ~20 deals distributed across pipeline stages."""
-    print("  Seeding deals...")
-    stages = list(DealStage)
-    sources = ["Broker", "Off-market", "Auction", "Direct", "JV Partner"]
-    priorities = ["low", "medium", "high", "urgent"]
-
-    # Pick a subset of properties for deals
-    deal_props = random.sample(properties, min(20, len(properties)))
-    deals = []
-    for i, prop in enumerate(deal_props):
-        stage = stages[i % len(stages)]
-        asking = prop.purchase_price * random_decimal(0.95, 1.10)
-        offer = asking * random_decimal(0.90, 1.00)
-        hold = random.randint(3, 7)
-        irr = random_decimal(12.0, 22.0, 3)
-        coc = random_decimal(6.0, 12.0, 3)
-        em = random_decimal(1.50, 2.50)
-
-        suffix_map = {
-            DealStage.LEAD: "Lead",
-            DealStage.INITIAL_REVIEW: "Review",
-            DealStage.UNDERWRITING: "Underwriting",
-            DealStage.DUE_DILIGENCE: "Due Diligence",
-            DealStage.LOI_SUBMITTED: "LOI",
-            DealStage.UNDER_CONTRACT: "Contract",
-            DealStage.CLOSED: "Acquisition",
-            DealStage.DEAD: "Passed",
-        }
-
-        deal = Deal(
-            name=f"{prop.name} {suffix_map.get(stage, 'Acquisition')}",
-            deal_type="acquisition",
-            stage=stage,
-            stage_order=i,
-            property_id=prop.id,
-            asking_price=asking.quantize(Decimal("0.01")),
-            offer_price=offer.quantize(Decimal("0.01")),
-            projected_irr=irr,
-            projected_coc=coc,
-            projected_equity_multiple=em,
-            hold_period_years=hold,
-            source=random.choice(sources),
-            priority=random.choice(priorities),
-            initial_contact_date=random_date(date(2023, 1, 1), date(2024, 12, 31)),
-            notes=f"Potential {prop.total_units}-unit acquisition in {prop.city}.",
-        )
-        deals.append(deal)
-
-    db.add_all(deals)
-    db.commit()
-    print(f"    Created {len(deals)} deals.")
-    return deals
-
-
-def seed_transactions(db, properties):
-    """Create ~60 transactions: acquisitions, distributions, capex, refinances."""
-    print("  Seeding transactions...")
-    transactions = []
-
-    for prop in properties:
-        # 1) Acquisition transaction matching property purchase
-        transactions.append(
-            Transaction(
-                property_id=prop.id,
-                property_name=prop.name,
-                type="acquisition",
-                category="Purchase",
-                amount=prop.purchase_price or Decimal("0"),
-                date=prop.acquisition_date or date(2022, 1, 1),
-                description=f"Acquisition of {prop.name}, {prop.total_units} units in {prop.city}, AZ.",
-            )
-        )
-
-    # Pick a subset for quarterly distributions (2 quarters each)
-    dist_props = random.sample(properties, min(10, len(properties)))
-    for prop in dist_props:
-        base_date = prop.acquisition_date or date(2022, 6, 1)
-        for q in range(1, 3):
-            dist_date = base_date + timedelta(days=90 * q)
-            dist_amount = random_decimal(50_000, 250_000)
-            transactions.append(
-                Transaction(
-                    property_id=prop.id,
-                    property_name=prop.name,
-                    type="distribution",
-                    category="Quarterly Distribution",
-                    amount=dist_amount,
-                    date=dist_date,
-                    description=f"Q{q} distribution for {prop.name}.",
-                )
-            )
-
-    # Capital improvements on a handful of properties
-    capex_props = random.sample(properties, min(8, len(properties)))
-    capex_categories = [
-        ("Unit Renovation", 500_000, 2_000_000),
-        ("Exterior Improvements", 200_000, 800_000),
-        ("Common Area Upgrades", 100_000, 500_000),
-        ("HVAC Replacement", 150_000, 600_000),
-        ("Roof Replacement", 250_000, 900_000),
-    ]
-    for prop in capex_props:
-        cat_name, lo, hi = random.choice(capex_categories)
-        capex_date = random_date(date(2021, 1, 1), date(2024, 12, 31))
-        transactions.append(
-            Transaction(
-                property_id=prop.id,
-                property_name=prop.name,
-                type="capital_improvement",
-                category=cat_name,
-                amount=random_decimal(lo, hi),
-                date=capex_date,
-                description=f"{cat_name} at {prop.name}.",
-            )
-        )
-
-    # A couple of refinances
-    refi_props = random.sample(properties, min(3, len(properties)))
-    for prop in refi_props:
-        refi_date = random_date(date(2022, 6, 1), date(2024, 12, 31))
-        refi_amount = (prop.purchase_price or Decimal("30000000")) * random_decimal(
-            0.60, 0.75
-        )
-        transactions.append(
-            Transaction(
-                property_id=prop.id,
-                property_name=prop.name,
-                type="refinance",
-                category="Refinance",
-                amount=refi_amount.quantize(Decimal("0.01")),
-                date=refi_date,
-                description=f"Refinance of {prop.name} loan.",
-            )
-        )
-
-    db.add_all(transactions)
-    db.commit()
-    print(f"    Created {len(transactions)} transactions.")
-    return transactions
-
-
-def seed_documents(db, properties):
-    """Create ~40 documents across property types."""
-    print("  Seeding documents...")
-    doc_templates = [
-        ("financial", "Q{q} Financial Report - {name}", ["financial", "quarterly"]),
-        ("lease", "Lease Agreement - {name}", ["lease", "legal"]),
-        ("legal", "Purchase Agreement - {name}", ["legal", "acquisition"]),
-        ("due_diligence", "Phase I ESA - {name}", ["environmental", "due-diligence"]),
-        ("due_diligence", "Property Inspection Report - {name}", ["inspection", "due-diligence"]),
-        ("financial", "Rent Roll - {name}", ["rent-roll", "financial"]),
-        ("financial", "T-12 Operating Statement - {name}", ["t-12", "financial"]),
-        ("legal", "Title Report - {name}", ["title", "legal"]),
-    ]
-
-    documents = []
-    doc_props = random.sample(properties, min(20, len(properties)))
-    for prop in doc_props:
-        # 2 documents per selected property
-        chosen = random.sample(doc_templates, min(2, len(doc_templates)))
-        for doc_type, name_tpl, tags in chosen:
-            q = random.randint(1, 4)
-            doc_name = name_tpl.format(q=q, name=prop.name)
-            uploaded = datetime(
-                random.randint(2022, 2024),
-                random.randint(1, 12),
-                random.randint(1, 28),
-                random.randint(8, 17),
-                random.randint(0, 59),
-                tzinfo=UTC,
-            )
-            documents.append(
-                Document(
-                    name=doc_name,
-                    type=doc_type,
-                    property_id=str(prop.id),
-                    property_name=prop.name,
-                    size=random.randint(50_000, 15_000_000),
-                    uploaded_at=uploaded,
-                    uploaded_by=random.choice(
-                        ["matt@brcapital.com", "sarah@brcapital.com"]
-                    ),
-                    description=f"{doc_type.replace('_', ' ').title()} document for {prop.name}.",
-                    tags=tags,
-                )
-            )
-
-    db.add_all(documents)
-    db.commit()
-    print(f"    Created {len(documents)} documents.")
-    return documents
-
-
-def seed_report_templates(db):
-    """Create 5 report templates."""
-    print("  Seeding report templates...")
     templates = [
         ReportTemplate(
-            name="Executive Portfolio Summary",
-            description="High-level overview of portfolio performance, key metrics, and investment highlights.",
-            category=ReportCategory.EXECUTIVE,
-            sections=[
-                "Portfolio Overview",
-                "Key Metrics",
-                "Performance Summary",
-                "Market Outlook",
-            ],
-            export_formats=["pdf", "pptx"],
+            name="Property Performance Summary",
+            description="Comprehensive performance metrics for individual properties including NOI, occupancy, and returns.",
+            category=ReportCategory.FINANCIAL,
+            sections=["executive_summary", "financial_performance", "operations", "market_comparison"],
+            export_formats=[ReportFormat.PDF, ReportFormat.EXCEL],
             is_default=True,
-            created_by="matt@brcapital.com",
+            created_by="matt@bandrcapital.com",
         ),
         ReportTemplate(
-            name="Financial Performance Report",
-            description="Detailed financial analysis including NOI, cash flow, and return metrics.",
-            category=ReportCategory.FINANCIAL,
-            sections=[
-                "Income Statement",
-                "Cash Flow Analysis",
-                "NOI Trends",
-                "Debt Service Coverage",
-                "Return Metrics",
-            ],
-            export_formats=["pdf", "excel"],
+            name="Portfolio Overview",
+            description="High-level portfolio summary with aggregate metrics across all properties.",
+            category=ReportCategory.PORTFOLIO,
+            sections=["portfolio_summary", "property_breakdown", "performance_trends"],
+            export_formats=[ReportFormat.PDF, ReportFormat.EXCEL, ReportFormat.PPTX],
             is_default=True,
-            created_by="sarah@brcapital.com",
+            created_by="matt@bandrcapital.com",
+        ),
+        ReportTemplate(
+            name="Deal Pipeline Report",
+            description="Current deal pipeline status with stage distribution and projected returns.",
+            category=ReportCategory.EXECUTIVE,
+            sections=["pipeline_overview", "stage_analysis", "deal_details", "projected_returns"],
+            export_formats=[ReportFormat.PDF, ReportFormat.EXCEL],
+            is_default=False,
+            created_by="matt@bandrcapital.com",
         ),
         ReportTemplate(
             name="Market Analysis Report",
-            description="Phoenix MSA market conditions, rent trends, and supply pipeline.",
+            description="Phoenix MSA market data including rent trends, supply, employment, and economic indicators.",
             category=ReportCategory.MARKET,
-            sections=[
-                "Market Overview",
-                "Rent Trends",
-                "Occupancy Trends",
-                "Supply Pipeline",
-                "Demographic Data",
-            ],
-            export_formats=["pdf"],
-            is_default=False,
-            created_by="matt@brcapital.com",
+            sections=["market_overview", "rent_trends", "supply_pipeline", "economic_data"],
+            export_formats=[ReportFormat.PDF],
+            is_default=True,
+            created_by="matt@bandrcapital.com",
         ),
         ReportTemplate(
-            name="Portfolio Allocation Report",
-            description="Asset allocation, geographic distribution, and diversification analysis.",
-            category=ReportCategory.PORTFOLIO,
-            sections=[
-                "Asset Allocation",
-                "Geographic Distribution",
-                "Vintage Diversification",
-                "Risk Analysis",
-            ],
-            export_formats=["pdf", "excel", "pptx"],
+            name="Investor Distribution Report",
+            description="Quarterly investor distribution calculations and waterfall analysis.",
+            category=ReportCategory.FINANCIAL,
+            sections=["distribution_summary", "waterfall_analysis", "investor_returns"],
+            export_formats=[ReportFormat.PDF, ReportFormat.EXCEL],
             is_default=False,
-            created_by="matt@brcapital.com",
-        ),
-        ReportTemplate(
-            name="Custom Deal Pipeline Report",
-            description="Current deal pipeline status with projected returns and timelines.",
-            category=ReportCategory.CUSTOM,
-            sections=[
-                "Pipeline Summary",
-                "Stage Breakdown",
-                "Projected Returns",
-                "Timeline",
-            ],
-            export_formats=["pdf", "excel"],
-            is_default=False,
-            created_by="sarah@brcapital.com",
+            created_by="matt@bandrcapital.com",
         ),
     ]
-    db.add_all(templates)
-    db.commit()
-    print(f"    Created {len(templates)} report templates.")
+    session.add_all(templates)
+    session.commit()
+    print(f"  Created {len(templates)} report templates")
     return templates
 
 
-def seed_queued_reports(db, templates):
-    """Create 6 queued reports in various statuses."""
-    print("  Seeding queued reports...")
+def seed_queued_reports(session):
+    """Create sample queued reports."""
+    print("\nSeeding queued reports...")
+
+    # Get actual template IDs
+    templates = session.execute(text("SELECT id, name FROM report_templates ORDER BY id")).fetchall()
+    if not templates:
+        print("  No templates found, skipping queued reports")
+        return
+    tid_map = {t[1]: t[0] for t in templates}
+    perf_id = tid_map.get("Property Performance Summary", templates[0][0])
+    pipeline_id = tid_map.get("Deal Pipeline Report", templates[2][0] if len(templates) > 2 else templates[0][0])
+
     now = datetime.now(UTC)
-    queued = [
+    reports = [
         QueuedReport(
-            name="Q4 2024 Executive Summary",
-            template_id=templates[0].id,
+            template_id=perf_id,
+            name="Q4 2025 Portfolio Overview",
             status=ReportStatus.COMPLETED,
-            progress=100,
-            format=ReportFormat.PDF,
-            requested_by="matt@brcapital.com",
-            requested_at=now - timedelta(days=5),
-            completed_at=now - timedelta(days=5, hours=-1),
-            file_size="2.4 MB",
-            download_url="/api/v1/reports/downloads/q4-2024-exec-summary.pdf",
+            requested_by="matt@bandrcapital.com",
+            requested_at=now - timedelta(days=7),
+            completed_at=now - timedelta(days=7, hours=-1),
         ),
         QueuedReport(
-            name="January 2025 Financial Report",
-            template_id=templates[1].id,
+            template_id=pipeline_id,
+            name="January 2026 Deal Pipeline",
             status=ReportStatus.COMPLETED,
-            progress=100,
-            format=ReportFormat.EXCEL,
-            requested_by="sarah@brcapital.com",
-            requested_at=now - timedelta(days=3),
-            completed_at=now - timedelta(days=3, hours=-1),
-            file_size="5.1 MB",
-            download_url="/api/v1/reports/downloads/jan-2025-financial.xlsx",
+            requested_by="matt@bandrcapital.com",
+            requested_at=now - timedelta(days=2),
+            completed_at=now - timedelta(days=2, hours=-1),
         ),
         QueuedReport(
-            name="Phoenix MSA Market Analysis",
-            template_id=templates[2].id,
-            status=ReportStatus.GENERATING,
-            progress=65,
-            format=ReportFormat.PDF,
-            requested_by="matt@brcapital.com",
-            requested_at=now - timedelta(hours=2),
-        ),
-        QueuedReport(
-            name="Portfolio Allocation Q1 2025",
-            template_id=templates[3].id,
+            template_id=perf_id,
+            name="Cabana on 99th Performance",
             status=ReportStatus.PENDING,
-            progress=0,
-            format=ReportFormat.PPTX,
-            requested_by="matt@brcapital.com",
-            requested_at=now - timedelta(hours=1),
-        ),
-        QueuedReport(
-            name="Deal Pipeline - February 2025",
-            template_id=templates[4].id,
-            status=ReportStatus.PENDING,
-            progress=0,
-            format=ReportFormat.PDF,
-            requested_by="sarah@brcapital.com",
-            requested_at=now - timedelta(minutes=30),
-        ),
-        QueuedReport(
-            name="Year-End 2024 Financial Report",
-            template_id=templates[1].id,
-            status=ReportStatus.FAILED,
-            progress=42,
-            format=ReportFormat.PDF,
-            requested_by="matt@brcapital.com",
-            requested_at=now - timedelta(days=10),
-            error="Timeout: data aggregation exceeded 120s limit.",
+            requested_by="matt@bandrcapital.com",
+            requested_at=now,
         ),
     ]
-    db.add_all(queued)
-    db.commit()
-    print(f"    Created {len(queued)} queued reports.")
-    return queued
+    session.add_all(reports)
+    session.commit()
+    print(f"  Created {len(reports)} queued reports")
 
 
-def seed_distribution_schedules(db, templates):
-    """Create 4 distribution schedules."""
-    print("  Seeding distribution schedules...")
-    now = datetime.now(UTC)
+def seed_distribution_schedules(session):
+    """Create distribution schedules for closed deals."""
+    print("\nSeeding distribution schedules...")
+
+    # Get actual template IDs
+    templates = session.execute(text("SELECT id, name FROM report_templates ORDER BY id")).fetchall()
+    tid_map = {t[1]: t[0] for t in templates}
+    investor_tid = tid_map.get("Investor Distribution Report", templates[-1][0] if templates else 1)
+    portfolio_tid = tid_map.get("Portfolio Overview", templates[1][0] if len(templates) > 1 else 1)
+    pipeline_tid = tid_map.get("Deal Pipeline Report", templates[2][0] if len(templates) > 2 else 1)
+
     schedules = [
         DistributionSchedule(
-            name="Weekly Executive Summary",
-            template_id=templates[0].id,
-            recipients=[
-                "matt@brcapital.com",
-                "investors@brcapital.com",
-            ],
-            frequency=ScheduleFrequency.WEEKLY,
-            day_of_week=1,  # Monday
-            time="08:00",
-            format=ReportFormat.PDF,
-            is_active=True,
-            next_scheduled=now + timedelta(days=(7 - now.weekday()) % 7 or 7),
-        ),
-        DistributionSchedule(
-            name="Monthly Financial Report",
-            template_id=templates[1].id,
-            recipients=[
-                "matt@brcapital.com",
-                "sarah@brcapital.com",
-                "accounting@brcapital.com",
-            ],
-            frequency=ScheduleFrequency.MONTHLY,
-            day_of_month=1,
-            time="06:00",
-            format=ReportFormat.EXCEL,
-            is_active=True,
-            next_scheduled=datetime(now.year, now.month % 12 + 1, 1, 6, 0, tzinfo=UTC),
-        ),
-        DistributionSchedule(
-            name="Quarterly Market Report",
-            template_id=templates[2].id,
-            recipients=[
-                "matt@brcapital.com",
-                "research@brcapital.com",
-            ],
+            name="Cabana on 99th Quarterly Distribution",
             frequency=ScheduleFrequency.QUARTERLY,
-            day_of_month=15,
-            time="09:00",
-            format=ReportFormat.PDF,
+            template_id=investor_tid,
+            recipients=["investors@bandrcapital.com", "accounting@bandrcapital.com"],
+            next_scheduled=datetime(2026, 4, 1, tzinfo=UTC),
             is_active=True,
-            next_scheduled=datetime(2025, 4, 15, 9, 0, tzinfo=UTC),
+            time="08:00",
         ),
         DistributionSchedule(
-            name="Daily Deal Pipeline Update",
-            template_id=templates[4].id,
-            recipients=[
-                "matt@brcapital.com",
-                "sarah@brcapital.com",
-            ],
-            frequency=ScheduleFrequency.DAILY,
-            time="07:30",
-            format=ReportFormat.PDF,
-            is_active=False,
-            next_scheduled=now + timedelta(days=1),
+            name="Tempe Metro Quarterly Distribution",
+            frequency=ScheduleFrequency.QUARTERLY,
+            template_id=investor_tid,
+            recipients=["investors@bandrcapital.com", "accounting@bandrcapital.com"],
+            next_scheduled=datetime(2026, 4, 1, tzinfo=UTC),
+            is_active=True,
+            time="08:00",
+        ),
+        DistributionSchedule(
+            name="Monthly Portfolio Summary",
+            frequency=ScheduleFrequency.MONTHLY,
+            template_id=portfolio_tid,
+            recipients=["matt@bandrcapital.com"],
+            next_scheduled=datetime(2026, 3, 1, tzinfo=UTC),
+            is_active=True,
+            time="07:00",
+        ),
+        DistributionSchedule(
+            name="Weekly Deal Pipeline Update",
+            frequency=ScheduleFrequency.WEEKLY,
+            template_id=pipeline_tid,
+            recipients=["matt@bandrcapital.com", "sarah@bandrcapital.com"],
+            next_scheduled=datetime(2026, 2, 10, tzinfo=UTC),
+            is_active=True,
+            time="09:00",
         ),
     ]
-    db.add_all(schedules)
-    db.commit()
-    print(f"    Created {len(schedules)} distribution schedules.")
-    return schedules
+    session.add_all(schedules)
+    session.commit()
+    print(f"  Created {len(schedules)} distribution schedules")
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
+def link_extracted_values_to_properties(session, property_map: dict[str, int]):
+    """Update extracted_values.property_id to point to properties table."""
+    print("\nLinking extracted_values to properties...")
+
+    count = 0
+    for deal_name, prop_id in property_map.items():
+        result = session.execute(
+            text("UPDATE extracted_values SET property_id = :pid WHERE property_name = :pname"),
+            {"pid": prop_id, "pname": deal_name},
+        )
+        if result.rowcount > 0:
+            count += result.rowcount
+
+    session.commit()
+    print(f"  Linked {count} extracted values to {len(property_map)} properties")
 
 
 def main():
+    """Run all seed functions."""
     print("=" * 60)
-    print("  Database Seed Script")
+    print("Seeding database from extraction data")
     print("=" * 60)
 
-    # Create tables if they do not exist
-    print("\nEnsuring tables exist...")
-    Base.metadata.create_all(bind=sync_engine)
-    print("  Done.")
+    with SessionLocal() as session:
+        clear_data(session)
+        seed_users(session)
+        property_map = seed_properties_from_extraction(session)
+        seed_deals(session, property_map)
+        seed_documents(session, property_map)
+        seed_transactions(session, property_map)
+        seed_report_templates(session)
+        seed_queued_reports(session)
+        seed_distribution_schedules(session)
+        link_extracted_values_to_properties(session, property_map)
 
-    db = SessionLocal()
-    try:
-        # Idempotency check: skip if data already present
-        existing_properties = db.query(Property).count()
-        if existing_properties > 0:
-            print(
-                f"\nDatabase already contains {existing_properties} properties. "
-                "Skipping seed to avoid duplicates."
-            )
-            print("To re-seed, truncate the tables first.\n")
-            return
-
-        print("\nSeeding database with realistic data...\n")
-
-        users = seed_users(db)
-        properties = seed_properties(db)
-        deals = seed_deals(db, properties)
-        transactions = seed_transactions(db, properties)
-        documents = seed_documents(db, properties)
-        templates = seed_report_templates(db)
-        queued = seed_queued_reports(db, templates)
-        schedules = seed_distribution_schedules(db, templates)
-
-        print("\n" + "=" * 60)
-        print("  Seed Summary")
-        print("=" * 60)
-        print(f"  Users:                  {len(users)}")
-        print(f"  Properties:             {len(properties)}")
-        print(f"  Deals:                  {len(deals)}")
-        print(f"  Transactions:           {len(transactions)}")
-        print(f"  Documents:              {len(documents)}")
-        print(f"  Report Templates:       {len(templates)}")
-        print(f"  Queued Reports:         {len(queued)}")
-        print(f"  Distribution Schedules: {len(schedules)}")
-        print("=" * 60)
-        print("  Seeding complete!\n")
-
-    except Exception as e:
-        db.rollback()
-        print(f"\nError during seeding: {e}")
-        raise
-    finally:
-        db.close()
+    print("\n" + "=" * 60)
+    print("Database seeding complete!")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
