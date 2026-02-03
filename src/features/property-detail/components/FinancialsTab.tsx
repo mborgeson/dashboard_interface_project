@@ -89,11 +89,11 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Lender</div>
-              <div className="text-lg font-semibold">{property.financing.lender}</div>
+              <div className="text-lg font-semibold">{property.financing.lender || '--'}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Maturity Date</div>
-              <div className="text-lg font-semibold">{formatDate(property.financing.maturityDate)}</div>
+              <div className="text-lg font-semibold">{property.financing.maturityDate ? formatDate(property.financing.maturityDate) : '--'}</div>
             </div>
           </div>
         </CardContent>

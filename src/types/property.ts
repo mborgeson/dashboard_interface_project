@@ -77,9 +77,9 @@ export interface Property {
     loanTerm: number;
     amortization: number;
     monthlyPayment: number;
-    lender: string;
+    lender: string | null;
     originationDate: Date;
-    maturityDate: Date;
+    maturityDate: Date | null;
   };
   valuation: {
     currentValue: number;

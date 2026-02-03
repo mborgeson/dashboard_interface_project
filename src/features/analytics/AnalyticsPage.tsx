@@ -42,6 +42,9 @@ export function AnalyticsPage() {
       (sum, p) => sum + (p.acquisition.totalInvested - p.financing.loanAmount),
       0
     );
+    if (totalEquity === 0) {
+      return { irr: 0, cashOnCash: 0, equityMultiple: 0, avgDSCR: 0 };
+    }
     const weightedIRR = properties.reduce(
       (sum, p) => sum + p.performance.leveredIrr * (p.acquisition.totalInvested - p.financing.loanAmount),
       0

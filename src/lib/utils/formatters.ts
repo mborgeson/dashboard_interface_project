@@ -45,9 +45,10 @@ export function formatNumber(value: number): string {
  * @returns Formatted date string
  */
 export function formatDate(
-  date: Date,
+  date: Date | null | undefined,
   format: 'short' | 'medium' | 'long' = 'medium'
 ): string {
+  if (!date) return '--';
   const optionsMap: Record<string, Intl.DateTimeFormatOptions> = {
     short: { month: 'numeric', day: 'numeric', year: '2-digit' },
     medium: { month: 'short', day: 'numeric', year: 'numeric' },
