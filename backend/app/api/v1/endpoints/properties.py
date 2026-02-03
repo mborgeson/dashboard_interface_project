@@ -2,7 +2,6 @@
 Property endpoints for CRUD operations, analytics, and dashboard views.
 """
 
-from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -48,8 +47,6 @@ def _to_frontend_property(prop: Property) -> dict:
     ret = fd.get("returns", {})
     ops = fd.get("operations", {})
     exp = fd.get("expenses", {})
-    exit_data = fd.get("exit", {})
-    phys = fd.get("physical", {})
 
     purchase_price = _decimal_to_float(prop.purchase_price) or acq.get("purchasePrice") or 0
     total_units = prop.total_units or 0
@@ -122,10 +119,7 @@ def _to_frontend_property(prop: Property) -> dict:
 
     ltv = fin.get("ltv") or (round(loan_amount / purchase_price, 3) if purchase_price and loan_amount else 0)
     loan_term = fin.get("loanTermMonths")
-    if loan_term:
-        loan_term_years = round(loan_term / 12)
-    else:
-        loan_term_years = 5
+    loan_term_years = round(loan_term / 12) if loan_term else 5
 
     amort = fin.get("amortizationMonths") or 360
     # Approximate monthly payment

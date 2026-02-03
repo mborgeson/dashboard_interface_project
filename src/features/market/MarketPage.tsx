@@ -81,7 +81,7 @@ export function MarketPage() {
       </div>
 
       {/* Phoenix MSA Overview */}
-      <MarketOverview overview={msaOverview} />
+      {msaOverview && <MarketOverview overview={msaOverview} />}
 
       {/* Economic Indicators */}
       <EconomicIndicators
