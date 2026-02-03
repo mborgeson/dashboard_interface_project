@@ -176,40 +176,52 @@ def _build_operations_by_year(fd: dict) -> list[dict]:
     for yr_str in sorted(ops_by_year.keys(), key=int):
         yr_data = ops_by_year[yr_str]
         yr_exp = yr_data.get("expenses", {})
-        years.append({
-            "year": int(yr_str),
-            "grossPotentialRevenue": yr_data.get("grossPotentialRevenue") or 0,
-            "lossToLease": abs(yr_data.get("lossToLease") or 0),
-            "vacancyLoss": abs(yr_data.get("vacancyLoss") or 0),
-            "badDebts": abs(yr_data.get("badDebts") or 0),
-            "concessions": abs(yr_data.get("concessions") or 0),
-            "otherLoss": abs(yr_data.get("otherLoss") or 0),
-            "netRentalIncome": yr_data.get("netRentalIncome") or 0,
-            "otherIncome": yr_data.get("otherIncome") or 0,
-            "laundryIncome": yr_data.get("laundryIncome") or 0,
-            "parkingIncome": yr_data.get("parkingIncome") or 0,
-            "petIncome": yr_data.get("petIncome") or 0,
-            "storageIncome": yr_data.get("storageIncome") or 0,
-            "utilityIncome": yr_data.get("utilityIncome") or 0,
-            "otherMiscIncome": yr_data.get("otherMiscIncome") or 0,
-            "effectiveGrossIncome": yr_data.get("effectiveGrossIncome") or 0,
-            "noi": yr_data.get("noi") or 0,
-            "totalOperatingExpenses": abs(yr_data.get("totalOperatingExpenses") or 0),
-            "expenses": {
-                "realEstateTaxes": abs(yr_exp.get("realEstateTaxes") or 0),
-                "propertyInsurance": abs(yr_exp.get("propertyInsurance") or 0),
-                "staffingPayroll": abs(yr_exp.get("staffingPayroll") or 0),
-                "propertyManagementFee": abs(yr_exp.get("propertyManagementFee") or 0),
-                "repairsAndMaintenance": abs(yr_exp.get("repairsAndMaintenance") or 0),
-                "turnover": abs(yr_exp.get("turnover") or 0),
-                "contractServices": abs(yr_exp.get("contractServices") or 0),
-                "reservesForReplacement": abs(yr_exp.get("reservesForReplacement") or 0),
-                "adminLegalSecurity": abs(yr_exp.get("adminLegalSecurity") or 0),
-                "advertisingLeasingMarketing": abs(yr_exp.get("advertisingLeasingMarketing") or 0),
-                "otherExpenses": abs(yr_exp.get("otherExpenses") or 0),
-                "utilities": abs(yr_exp.get("utilities") or 0),
-            },
-        })
+        years.append(
+            {
+                "year": int(yr_str),
+                "grossPotentialRevenue": yr_data.get("grossPotentialRevenue") or 0,
+                "lossToLease": abs(yr_data.get("lossToLease") or 0),
+                "vacancyLoss": abs(yr_data.get("vacancyLoss") or 0),
+                "badDebts": abs(yr_data.get("badDebts") or 0),
+                "concessions": abs(yr_data.get("concessions") or 0),
+                "otherLoss": abs(yr_data.get("otherLoss") or 0),
+                "netRentalIncome": yr_data.get("netRentalIncome") or 0,
+                "otherIncome": yr_data.get("otherIncome") or 0,
+                "laundryIncome": yr_data.get("laundryIncome") or 0,
+                "parkingIncome": yr_data.get("parkingIncome") or 0,
+                "petIncome": yr_data.get("petIncome") or 0,
+                "storageIncome": yr_data.get("storageIncome") or 0,
+                "utilityIncome": yr_data.get("utilityIncome") or 0,
+                "otherMiscIncome": yr_data.get("otherMiscIncome") or 0,
+                "effectiveGrossIncome": yr_data.get("effectiveGrossIncome") or 0,
+                "noi": yr_data.get("noi") or 0,
+                "totalOperatingExpenses": abs(
+                    yr_data.get("totalOperatingExpenses") or 0
+                ),
+                "expenses": {
+                    "realEstateTaxes": abs(yr_exp.get("realEstateTaxes") or 0),
+                    "propertyInsurance": abs(yr_exp.get("propertyInsurance") or 0),
+                    "staffingPayroll": abs(yr_exp.get("staffingPayroll") or 0),
+                    "propertyManagementFee": abs(
+                        yr_exp.get("propertyManagementFee") or 0
+                    ),
+                    "repairsAndMaintenance": abs(
+                        yr_exp.get("repairsAndMaintenance") or 0
+                    ),
+                    "turnover": abs(yr_exp.get("turnover") or 0),
+                    "contractServices": abs(yr_exp.get("contractServices") or 0),
+                    "reservesForReplacement": abs(
+                        yr_exp.get("reservesForReplacement") or 0
+                    ),
+                    "adminLegalSecurity": abs(yr_exp.get("adminLegalSecurity") or 0),
+                    "advertisingLeasingMarketing": abs(
+                        yr_exp.get("advertisingLeasingMarketing") or 0
+                    ),
+                    "otherExpenses": abs(yr_exp.get("otherExpenses") or 0),
+                    "utilities": abs(yr_exp.get("utilities") or 0),
+                },
+            }
+        )
     return years
 
 
@@ -267,7 +279,6 @@ def _to_frontend_property(prop: Property) -> dict:
     name_city = ""
     name_state = ""
     if prop.name and "(" in prop.name:
-
         m = re.search(r"\(([^,]+),\s*([A-Z]{2})\)", prop.name)
         if m:
             name_city = m.group(1).strip()
@@ -292,9 +303,17 @@ def _to_frontend_property(prop: Property) -> dict:
 
     # Sum ALL 11 expense line items for total
     _expense_keys = [
-        "realEstateTaxes", "otherExpenses", "insurance", "payroll",
-        "management", "repairs", "turnover", "contractServices",
-        "reserves", "adminLegalSecurity", "marketing",
+        "realEstateTaxes",
+        "otherExpenses",
+        "insurance",
+        "payroll",
+        "management",
+        "repairs",
+        "turnover",
+        "contractServices",
+        "reserves",
+        "adminLegalSecurity",
+        "marketing",
     ]
     total_expenses = 0
     for key in _expense_keys:
@@ -317,11 +336,20 @@ def _to_frontend_property(prop: Property) -> dict:
     unlevered_moic = ret.get("unleveredMoic")  # None if not extracted
 
     # Return breakdown values
-    total_equity_commitment = ret.get("totalEquityCommitment") or (
-        acq.get("totalAcquisitionBudget") or purchase_price
-    ) - loan_amount if loan_amount else (acq.get("totalAcquisitionBudget") or purchase_price)
-    total_cash_flows_to_equity = ret.get("totalCashFlowsToEquity") or ret.get("lpCashflowInflow") or 0
-    net_cash_flows_to_equity = (total_cash_flows_to_equity - total_equity_commitment) if total_cash_flows_to_equity is not None else 0
+    total_equity_commitment = (
+        ret.get("totalEquityCommitment")
+        or (acq.get("totalAcquisitionBudget") or purchase_price) - loan_amount
+        if loan_amount
+        else (acq.get("totalAcquisitionBudget") or purchase_price)
+    )
+    total_cash_flows_to_equity = (
+        ret.get("totalCashFlowsToEquity") or ret.get("lpCashflowInflow") or 0
+    )
+    net_cash_flows_to_equity = (
+        (total_cash_flows_to_equity - total_equity_commitment)
+        if total_cash_flows_to_equity is not None
+        else 0
+    )
 
     # Basis per unit metrics (from exit section or derived)
     total_basis_per_unit_close = (
@@ -334,14 +362,12 @@ def _to_frontend_property(prop: Property) -> dict:
         or ret.get("seniorLoanBasisPerUnitClose")
         or (round(loan_amount / total_units, 2) if total_units and loan_amount else 0)
     )
-    total_basis_per_unit_exit = (
-        exit_data.get("basisPerUnitAtExit")
-        or ret.get("totalBasisPerUnitExit")
+    total_basis_per_unit_exit = exit_data.get("basisPerUnitAtExit") or ret.get(
+        "totalBasisPerUnitExit"
     )  # None if not available
-    senior_loan_basis_per_unit_exit = (
-        exit_data.get("seniorDebtBasisPerUnitAtExit")
-        or ret.get("seniorLoanBasisPerUnitExit")
-    )  # None if not available
+    senior_loan_basis_per_unit_exit = exit_data.get(
+        "seniorDebtBasisPerUnitAtExit"
+    ) or ret.get("seniorLoanBasisPerUnitExit")  # None if not available
 
     # Acquisition date from deal initial contact or default
     acq_date = "2024-01-15"
@@ -414,7 +440,8 @@ def _to_frontend_property(prop: Property) -> dict:
             "softCosts": acq.get("softCosts") or 0,
             "lenderClosingCosts": acq.get("lenderClosingCosts") or 0,
             "equityClosingCosts": acq.get("equityClosingCosts") or 0,
-            "totalAcquisitionBudget": acq.get("totalAcquisitionBudget") or total_invested,
+            "totalAcquisitionBudget": acq.get("totalAcquisitionBudget")
+            or total_invested,
         },
         "financing": {
             "loanAmount": loan_amount,
@@ -425,7 +452,9 @@ def _to_frontend_property(prop: Property) -> dict:
             "monthlyPayment": monthly_payment,
             "lender": fin.get("lender") or fin.get("lenderName") or None,
             "originationDate": acq_date,
-            "maturityDate": fin.get("maturityDate") or fin.get("loanMaturityDate") or None,
+            "maturityDate": fin.get("maturityDate")
+            or fin.get("loanMaturityDate")
+            or None,
         },
         "valuation": {
             "currentValue": _decimal_to_float(prop.current_value) or purchase_price,

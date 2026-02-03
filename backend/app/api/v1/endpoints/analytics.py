@@ -109,11 +109,13 @@ async def get_dashboard_metrics(
     week_start = datetime.now(UTC) - timedelta(days=7)
     active_review_result = await db.execute(
         select(func.count(Deal.id)).where(
-            Deal.stage.in_([
-                DealStage.UNDERWRITING,
-                DealStage.DUE_DILIGENCE,
-                DealStage.LOI_SUBMITTED,
-            ]),
+            Deal.stage.in_(
+                [
+                    DealStage.UNDERWRITING,
+                    DealStage.DUE_DILIGENCE,
+                    DealStage.LOI_SUBMITTED,
+                ]
+            ),
             Deal.stage_updated_at >= week_start,
         )
     )
@@ -153,7 +155,9 @@ async def get_dashboard_metrics(
     recent_activity = []
     for deal in recent_deals:
         stage_val = deal.stage.value if deal.stage else ""
-        stage_display = _stage_display_map.get(stage_val, stage_val.replace("_", " ").title())
+        stage_display = _stage_display_map.get(
+            stage_val, stage_val.replace("_", " ").title()
+        )
         recent_activity.append(
             {
                 "type": "deal_update",
@@ -664,7 +668,8 @@ async def get_deal_pipeline_analytics(
     # realized -> realized (no backend enum yet, always 0 from DB)
     funnel = {
         "dead": raw_funnel.get("dead", 0),
-        "initial_review": raw_funnel.get("lead", 0) + raw_funnel.get("initial_review", 0),
+        "initial_review": raw_funnel.get("lead", 0)
+        + raw_funnel.get("initial_review", 0),
         "active_review": (
             raw_funnel.get("underwriting", 0)
             + raw_funnel.get("due_diligence", 0)
@@ -742,15 +747,11 @@ async def get_deal_pipeline_analytics(
         "initial_to_active": calc_conversion(
             initial_review + past_initial, past_initial
         ),
-        "active_to_contract": calc_conversion(
-            active_review + past_active, past_active
-        ),
+        "active_to_contract": calc_conversion(active_review + past_active, past_active),
         "contract_to_close": calc_conversion(
             under_contract + past_contract, past_contract
         ),
-        "close_to_realized": calc_conversion(
-            closed + past_closed, past_closed
-        ),
+        "close_to_realized": calc_conversion(closed + past_closed, past_closed),
         "overall": calc_conversion(total_deals - dead, closed + realized)
         if (total_deals - dead) > 0
         else 0.0,

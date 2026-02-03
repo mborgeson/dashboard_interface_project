@@ -47,16 +47,18 @@ async def _enrich_deals_with_extraction(
 
     # Fetch needed extraction fields in one query
     needed_fields = [
-        "TOTAL_UNITS", "AVERAGE_UNIT_SF", "CURRENT_OWNER",
-        "LAST_SALE_PRICE_PER_UNIT", "LAST_SALE_DATE",
-        "T12_RETURN_ON_COST", "LP_RETURNS_IRR", "LP_RETURNS_MOIC",
+        "TOTAL_UNITS",
+        "AVERAGE_UNIT_SF",
+        "CURRENT_OWNER",
+        "LAST_SALE_PRICE_PER_UNIT",
+        "LAST_SALE_DATE",
+        "T12_RETURN_ON_COST",
+        "LP_RETURNS_IRR",
+        "LP_RETURNS_MOIC",
     ]
-    stmt = (
-        select(ExtractedValue)
-        .where(
-            ExtractedValue.property_id.in_(prop_ids),
-            ExtractedValue.field_name.in_(needed_fields),
-        )
+    stmt = select(ExtractedValue).where(
+        ExtractedValue.property_id.in_(prop_ids),
+        ExtractedValue.field_name.in_(needed_fields),
     )
     result = await db.execute(stmt)
     rows = result.scalars().all()
@@ -67,7 +69,9 @@ async def _enrich_deals_with_extraction(
         lookup.setdefault(row.property_id, {})[row.field_name] = row
 
     # Also fetch equity commitment from property financial_data
-    prop_stmt = select(Property.id, Property.financial_data).where(Property.id.in_(prop_ids))
+    prop_stmt = select(Property.id, Property.financial_data).where(
+        Property.id.in_(prop_ids)
+    )
     prop_result = await db.execute(prop_stmt)
     prop_map = dict(prop_result.all())
 
