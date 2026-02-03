@@ -3,7 +3,7 @@ UnderwritingModel - Parent entity linking property/deal to underwriting data.
 """
 
 from datetime import datetime
-from enum import Enum as PyEnum
+from enum import StrEnum as PyEnum
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from app.models.underwriting.unit_mix import UnitMix
 
 
-class UnderwritingStatus(str, PyEnum):
+class UnderwritingStatus(PyEnum):
     """Status of the underwriting model."""
 
     DRAFT = "draft"

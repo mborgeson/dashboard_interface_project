@@ -2,8 +2,8 @@
 Report template and queued report models for the reporting suite.
 """
 
-import enum
 from datetime import datetime
+from enum import StrEnum
 
 from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -12,7 +12,7 @@ from app.db.base import Base
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class ReportCategory(str, enum.Enum):
+class ReportCategory(StrEnum):
     """Report template categories."""
 
     EXECUTIVE = "executive"
@@ -22,7 +22,7 @@ class ReportCategory(str, enum.Enum):
     CUSTOM = "custom"
 
 
-class ReportFormat(str, enum.Enum):
+class ReportFormat(StrEnum):
     """Report export formats."""
 
     PDF = "pdf"
@@ -30,7 +30,7 @@ class ReportFormat(str, enum.Enum):
     PPTX = "pptx"
 
 
-class ReportStatus(str, enum.Enum):
+class ReportStatus(StrEnum):
     """Queued report status."""
 
     PENDING = "pending"
@@ -39,7 +39,7 @@ class ReportStatus(str, enum.Enum):
     FAILED = "failed"
 
 
-class ScheduleFrequency(str, enum.Enum):
+class ScheduleFrequency(StrEnum):
     """Distribution schedule frequency."""
 
     DAILY = "daily"

@@ -66,7 +66,7 @@ function transformPropertyDates(property: Property): Property {
     financing: {
       ...property.financing,
       originationDate: new Date(property.financing.originationDate),
-      maturityDate: new Date(property.financing.maturityDate),
+      maturityDate: property.financing.maturityDate ? new Date(property.financing.maturityDate) : null,
     },
     valuation: {
       ...property.valuation,

@@ -9,14 +9,14 @@ import asyncio
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from enum import Enum
+from enum import Enum, StrEnum
 from heapq import heappop, heappush
 from typing import Any
 
 from loguru import logger
 
 
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     """Job execution status."""
 
     PENDING = "pending"

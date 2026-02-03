@@ -4,7 +4,7 @@ Deal model for tracking investment opportunities through the pipeline.
 
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from enum import Enum as PyEnum
+from enum import StrEnum as PyEnum
 
 from sqlalchemy import (
     JSON,
@@ -23,7 +23,7 @@ from app.db.base import Base
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class DealStage(str, PyEnum):
+class DealStage(PyEnum):
     """Deal pipeline stages for Kanban board."""
 
     LEAD = "lead"

@@ -3,14 +3,14 @@ Reporting schemas for API request/response validation.
 """
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import Field
 
 from .base import BaseSchema
 
 
-class ReportCategorySchema(str, Enum):
+class ReportCategorySchema(StrEnum):
     """Report template categories."""
 
     EXECUTIVE = "executive"
@@ -20,7 +20,7 @@ class ReportCategorySchema(str, Enum):
     CUSTOM = "custom"
 
 
-class ReportFormatSchema(str, Enum):
+class ReportFormatSchema(StrEnum):
     """Report export formats."""
 
     PDF = "pdf"
@@ -28,7 +28,7 @@ class ReportFormatSchema(str, Enum):
     PPTX = "pptx"
 
 
-class ReportStatusSchema(str, Enum):
+class ReportStatusSchema(StrEnum):
     """Queued report status."""
 
     PENDING = "pending"
@@ -37,7 +37,7 @@ class ReportStatusSchema(str, Enum):
     FAILED = "failed"
 
 
-class ScheduleFrequencySchema(str, Enum):
+class ScheduleFrequencySchema(StrEnum):
     """Distribution schedule frequency."""
 
     DAILY = "daily"

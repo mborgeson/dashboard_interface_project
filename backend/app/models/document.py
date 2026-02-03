@@ -3,7 +3,7 @@ Document model for storing property-related documents and files.
 """
 
 from datetime import datetime
-from enum import Enum as PyEnum
+from enum import StrEnum as PyEnum
 
 from sqlalchemy import (
     JSON,
@@ -18,7 +18,7 @@ from app.db.base import Base
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class DocumentType(str, PyEnum):
+class DocumentType(PyEnum):
     """Document type categories."""
 
     LEASE = "lease"

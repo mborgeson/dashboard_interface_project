@@ -6,12 +6,12 @@ Defines the data structures for workflow definitions and instances.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from uuid import uuid4
 
 
-class WorkflowStatus(str, Enum):
+class WorkflowStatus(StrEnum):
     """Workflow instance status."""
 
     DRAFT = "draft"
@@ -23,7 +23,7 @@ class WorkflowStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-class StepStatus(str, Enum):
+class StepStatus(StrEnum):
     """Workflow step status."""
 
     PENDING = "pending"
@@ -34,7 +34,7 @@ class StepStatus(str, Enum):
     WAITING = "waiting"  # Waiting for approval or external event
 
 
-class StepType(str, Enum):
+class StepType(StrEnum):
     """Types of workflow steps."""
 
     ACTION = "action"  # Execute an action

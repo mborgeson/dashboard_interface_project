@@ -1,4 +1,4 @@
-export type { Property, PhoenixSubmarket, PropertySummaryStats } from './property';
+export type { Property, PhoenixSubmarket, PropertySummaryStats, OperatingYear, OperatingYearExpenses } from './property';
 export type { Transaction, TransactionType } from './transaction';
 export type { MarketData, EconomicIndicator } from './market';
 export type {

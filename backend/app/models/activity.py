@@ -2,7 +2,7 @@
 Activity models for tracking user interactions with properties and deals.
 """
 
-from enum import Enum as PyEnum
+from enum import StrEnum as PyEnum
 
 from sqlalchemy import Enum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
@@ -11,7 +11,7 @@ from app.db.base import Base
 from app.models.base import TimestampMixin
 
 
-class ActivityType(str, PyEnum):
+class ActivityType(PyEnum):
     """Types of activities that can be tracked."""
 
     VIEW = "view"

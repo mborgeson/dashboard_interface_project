@@ -14,7 +14,7 @@ Filter criteria:
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 import structlog
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from app.core.config import Settings
 
 
-class SkipReason(str, Enum):
+class SkipReason(StrEnum):
     """Reasons why a file might be skipped during filtering."""
 
     PATTERN_MISMATCH = "filename_pattern_mismatch"

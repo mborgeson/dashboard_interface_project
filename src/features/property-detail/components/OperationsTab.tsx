@@ -1,5 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import type { Property, OperatingYear } from '@/types';
+import type { Property, OperatingYear, OperatingYearExpenses } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
 
@@ -7,8 +7,12 @@ interface OperationsTabProps {
   property: Property;
 }
 
+// Type helpers for safe indexing
+type NumericKeysOf<T> = { [K in keyof T]: T[K] extends number ? K : never }[keyof T];
+type OperatingYearNumericKey = NumericKeysOf<OperatingYear>;
+
 // Expense line item labels and keys
-const EXPENSE_LINE_ITEMS: { label: string; key: keyof OperatingYear['expenses']; color: string }[] = [
+const EXPENSE_LINE_ITEMS: { label: string; key: keyof OperatingYearExpenses; color: string }[] = [
   { label: 'Real Estate Taxes', key: 'realEstateTaxes', color: '#3B82F6' },
   { label: 'Property Insurance', key: 'propertyInsurance', color: '#8B5CF6' },
   { label: 'Staffing/Payroll', key: 'staffingPayroll', color: '#06B6D4' },
@@ -24,7 +28,7 @@ const EXPENSE_LINE_ITEMS: { label: string; key: keyof OperatingYear['expenses'];
 ];
 
 // Revenue loss items (subtracted from GPR)
-const REVENUE_LOSS_ITEMS: { label: string; key: keyof OperatingYear }[] = [
+const REVENUE_LOSS_ITEMS: { label: string; key: OperatingYearNumericKey }[] = [
   { label: 'Less: Loss to Lease', key: 'lossToLease' },
   { label: 'Less: Vacancy Loss', key: 'vacancyLoss' },
   { label: 'Less: Bad Debts', key: 'badDebts' },
@@ -33,7 +37,7 @@ const REVENUE_LOSS_ITEMS: { label: string; key: keyof OperatingYear }[] = [
 ];
 
 // Other income subcategories
-const OTHER_INCOME_ITEMS: { label: string; key: keyof OperatingYear }[] = [
+const OTHER_INCOME_ITEMS: { label: string; key: OperatingYearNumericKey }[] = [
   { label: 'Laundry Income', key: 'laundryIncome' },
   { label: 'Parking Income', key: 'parkingIncome' },
   { label: 'Pet Income', key: 'petIncome' },
@@ -107,7 +111,9 @@ export function OperationsTab({ property }: OperationsTabProps) {
   const hasMultiYear = years.length > 0;
 
   // Year 1 expense data for pie chart (from the first year or fallback to operations.expenses)
-  const yr1Expenses = hasMultiYear ? years[0].expenses : property.operations.expenses;
+  const yr1Expenses: OperatingYearExpenses = hasMultiYear
+    ? years[0].expenses
+    : property.operations.expenses;
   const expenseChartData = EXPENSE_LINE_ITEMS
     .map((item) => ({
       name: item.label,

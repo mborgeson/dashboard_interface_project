@@ -9,14 +9,14 @@ import contextlib
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from uuid import uuid4
 
 from loguru import logger
 
 
-class ScheduleInterval(str, Enum):
+class ScheduleInterval(StrEnum):
     """Common schedule intervals."""
 
     MINUTE = "minute"

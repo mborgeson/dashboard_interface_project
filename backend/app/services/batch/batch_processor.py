@@ -8,7 +8,7 @@ import asyncio
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Generic, TypeVar
 from uuid import uuid4
 
@@ -18,7 +18,7 @@ T = TypeVar("T")
 R = TypeVar("R")
 
 
-class BatchStatus(str, Enum):
+class BatchStatus(StrEnum):
     """Batch processing status."""
 
     PENDING = "pending"

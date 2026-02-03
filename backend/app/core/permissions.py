@@ -9,7 +9,7 @@ This module provides:
 """
 
 from collections.abc import Callable
-from enum import Enum
+from enum import StrEnum
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -23,7 +23,7 @@ from app.db.session import get_db
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-class Role(str, Enum):
+class Role(StrEnum):
     """
     User roles with hierarchical permissions.
 

@@ -2,12 +2,12 @@
 Activity schemas for API request/response validation.
 """
 
-from enum import Enum
+from enum import StrEnum
 
 from .base import BaseSchema, TimestampSchema
 
 
-class ActivityType(str, Enum):
+class ActivityType(StrEnum):
     """Types of activities that can be tracked."""
 
     VIEW = "view"
