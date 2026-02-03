@@ -267,14 +267,12 @@ async def test_deal_pipeline_funnel_stages(client, db_session):
 
     funnel = data.get("funnel", {})
     expected_stages = [
-        "leads",
+        "dead",
         "initial_review",
-        "underwriting",
-        "due_diligence",
-        "loi_submitted",
+        "active_review",
         "under_contract",
         "closed",
-        "dead",
+        "realized",
     ]
     for stage in expected_stages:
         assert stage in funnel
@@ -294,7 +292,7 @@ async def test_deal_pipeline_conversion_rates(client, db_session):
     data = response.json()
 
     rates = data.get("conversion_rates", {})
-    assert "lead_to_review" in rates
+    assert "initial_to_active" in rates
     assert "overall" in rates
 
 
