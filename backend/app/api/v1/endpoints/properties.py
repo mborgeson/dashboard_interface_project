@@ -425,9 +425,9 @@ def _to_frontend_property(prop: Property) -> dict:
             "loanTerm": loan_term_years,
             "amortization": amort // 12 if amort else 30,
             "monthlyPayment": monthly_payment,
-            "lender": "Institutional Lender",
+            "lender": fin.get("lender") or fin.get("lenderName") or None,
             "originationDate": acq_date,
-            "maturityDate": "2029-01-15",
+            "maturityDate": fin.get("maturityDate") or fin.get("loanMaturityDate") or None,
         },
         "valuation": {
             "currentValue": _decimal_to_float(prop.current_value) or purchase_price,

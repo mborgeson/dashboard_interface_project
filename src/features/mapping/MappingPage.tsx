@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import { MapPin, Maximize2, Layers, Loader2 } from 'lucide-react';
+import { MapPin, Maximize2, Layers, Loader2, Info } from 'lucide-react';
 import type { Property } from '@/types';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { useMapFilters } from './hooks/useMapFilters';
@@ -68,6 +68,8 @@ export function MappingPage() {
   const {
     filters,
     filteredProperties,
+    mappableProperties,
+    excludedCoordinateCount,
     clusteringEnabled,
     valueRange,
     togglePropertyClass,
@@ -149,7 +151,7 @@ export function MappingPage() {
       clusterGroupRef.current = clusterGroup;
 
       // Add markers to cluster group
-      filteredProperties.forEach(property => {
+      mappableProperties.forEach(property => {
         if (property.address.latitude && property.address.longitude) {
           const marker = L.marker(
             [property.address.latitude, property.address.longitude],
@@ -200,7 +202,7 @@ export function MappingPage() {
       const layerGroup = L.layerGroup();
       markersLayerRef.current = layerGroup;
 
-      filteredProperties.forEach(property => {
+      mappableProperties.forEach(property => {
         if (property.address.latitude && property.address.longitude) {
           const marker = L.marker(
             [property.address.latitude, property.address.longitude],
@@ -245,14 +247,14 @@ export function MappingPage() {
 
       layerGroup.addTo(map);
     }
-  }, [filteredProperties, clusteringEnabled]);
+  }, [mappableProperties, clusteringEnabled]);
 
   // Zoom to fit all properties
   const handleZoomToFit = () => {
-    if (!mapInstanceRef.current || filteredProperties.length === 0) return;
+    if (!mapInstanceRef.current || mappableProperties.length === 0) return;
 
     const bounds = L.latLngBounds(
-      filteredProperties
+      mappableProperties
         .filter(p => p.address.latitude && p.address.longitude)
         .map(p => [p.address.latitude, p.address.longitude] as L.LatLngExpression)
     );
@@ -296,6 +298,16 @@ export function MappingPage() {
     <div className="relative h-[calc(100vh-64px)]">
       {/* Map Container */}
       <div ref={mapContainerRef} className="w-full h-full" />
+
+      {/* Missing coordinates banner */}
+      {excludedCoordinateCount > 0 && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
+          <Info className="w-4 h-4 flex-shrink-0" />
+          <span>
+            {excludedCoordinateCount} {excludedCoordinateCount === 1 ? 'property' : 'properties'} hidden — missing coordinates
+          </span>
+        </div>
+      )}
 
       {/* Filter Panel */}
       <MapFilterPanel

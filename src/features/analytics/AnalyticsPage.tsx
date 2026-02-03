@@ -56,12 +56,14 @@ export function AnalyticsPage() {
     ) / totalEquity;
 
     // Calculate average DSCR (Debt Service Coverage Ratio)
-    const avgDSCR = properties.reduce((sum, p) => {
-      const annualNOI = p.operations.noi;
-      const annualDebtService = p.financing.monthlyPayment * 12;
-      const dscr = annualNOI / annualDebtService;
-      return sum + dscr;
-    }, 0) / properties.length;
+    const propertiesWithDebt = properties.filter(p => p.financing.monthlyPayment > 0);
+    const avgDSCR = propertiesWithDebt.length > 0
+      ? propertiesWithDebt.reduce((sum, p) => {
+          const annualNOI = p.operations.noi;
+          const annualDebtService = p.financing.monthlyPayment * 12;
+          return sum + (annualNOI / annualDebtService);
+        }, 0) / propertiesWithDebt.length
+      : 0;
 
     return {
       irr: weightedIRR,

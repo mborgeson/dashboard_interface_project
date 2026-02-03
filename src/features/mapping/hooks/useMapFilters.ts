@@ -1,6 +1,16 @@
 import { useState, useMemo } from 'react';
 import type { Property, PhoenixSubmarket } from '@/types';
 
+// Phoenix city center fallback coordinates used by the backend for missing lat/lng
+const FALLBACK_LAT = 33.45;
+const FALLBACK_LNG = -112.07;
+
+function hasValidCoordinates(property: Property): boolean {
+  const { latitude, longitude } = property.address;
+  if (!latitude || !longitude) return false;
+  return !(latitude === FALLBACK_LAT && longitude === FALLBACK_LNG);
+}
+
 export interface MapFilters {
   propertyClasses: Set<'A' | 'B' | 'C'>;
   submarkets: Set<PhoenixSubmarket>;
@@ -76,6 +86,20 @@ export function useMapFilters(properties: Property[]) {
     });
   }, [properties, filters]);
 
+  // Separate filtered properties into mappable (valid coords) and excluded (fallback/missing coords)
+  const { mappableProperties, excludedCoordinateCount } = useMemo(() => {
+    const mappable: Property[] = [];
+    let excluded = 0;
+    for (const property of filteredProperties) {
+      if (hasValidCoordinates(property)) {
+        mappable.push(property);
+      } else {
+        excluded++;
+      }
+    }
+    return { mappableProperties: mappable, excludedCoordinateCount: excluded };
+  }, [filteredProperties]);
+
   const togglePropertyClass = (propertyClass: 'A' | 'B' | 'C') => {
     setFilters(prev => {
       const newClasses = new Set(prev.propertyClasses);
@@ -119,6 +143,8 @@ export function useMapFilters(properties: Property[]) {
   return {
     filters,
     filteredProperties,
+    mappableProperties,
+    excludedCoordinateCount,
     clusteringEnabled,
     valueRange,
     togglePropertyClass,

@@ -104,15 +104,20 @@ async def get_dashboard_metrics(
     )
     low_occupancy_count = low_occupancy_count_result.scalar() or 0
 
-    # Query deals entering due diligence this week
+    # Query deals entering active review this week
+    # (active_review maps to underwriting, due_diligence, loi_submitted backend stages)
     week_start = datetime.now(UTC) - timedelta(days=7)
-    dd_deals_result = await db.execute(
+    active_review_result = await db.execute(
         select(func.count(Deal.id)).where(
-            Deal.stage == DealStage.DUE_DILIGENCE,
+            Deal.stage.in_([
+                DealStage.UNDERWRITING,
+                DealStage.DUE_DILIGENCE,
+                DealStage.LOI_SUBMITTED,
+            ]),
             Deal.stage_updated_at >= week_start,
         )
     )
-    dd_deals_count = dd_deals_result.scalar() or 0
+    active_review_count = active_review_result.scalar() or 0
 
     # Query recent deal activity (last 10 stage changes)
     recent_deals_result = await db.execute(
@@ -132,10 +137,23 @@ async def get_dashboard_metrics(
     )
     recent_properties = recent_properties_result.fetchall()
 
+    # Map backend stage values to frontend display labels
+    _stage_display_map = {
+        "lead": "Initial UW and Review",
+        "initial_review": "Initial UW and Review",
+        "underwriting": "Active UW and Review",
+        "due_diligence": "Active UW and Review",
+        "loi_submitted": "Active UW and Review",
+        "under_contract": "Deals Under Contract",
+        "closed": "Closed Deals",
+        "dead": "Dead Deals",
+    }
+
     # Build recent activity list
     recent_activity = []
     for deal in recent_deals:
-        stage_display = deal.stage.value.replace("_", " ").title() if deal.stage else ""
+        stage_val = deal.stage.value if deal.stage else ""
+        stage_display = _stage_display_map.get(stage_val, stage_val.replace("_", " ").title())
         recent_activity.append(
             {
                 "type": "deal_update",
@@ -187,14 +205,14 @@ async def get_dashboard_metrics(
                 },
                 {
                     "type": "info",
-                    "message": "2 deals entering due diligence this week",
+                    "message": "2 deals entering active review this week",
                     "count": 2,
                 },
             ],
             "recent_activity": [
                 {
                     "type": "deal_update",
-                    "message": "Phoenix Multifamily moved to Underwriting",
+                    "message": "Phoenix Multifamily moved to Active UW and Review",
                     "timestamp": "2024-12-05T14:30:00Z",
                 },
                 {
@@ -215,12 +233,12 @@ async def get_dashboard_metrics(
                 "count": low_occupancy_count,
             }
         )
-    if dd_deals_count > 0:
+    if active_review_count > 0:
         alerts.append(
             {
                 "type": "info",
-                "message": f"{dd_deals_count} deals entering due diligence this week",
-                "count": dd_deals_count,
+                "message": f"{active_review_count} deals entering active review this week",
+                "count": active_review_count,
             }
         )
 
@@ -631,11 +649,31 @@ async def get_deal_pipeline_analytics(
     )
     funnel_rows = funnel_result.fetchall()
 
-    # Build funnel dict
-    funnel = {stage.value: 0 for stage in DealStage}
+    # Build raw funnel dict from backend enum values
+    raw_funnel = {stage.value: 0 for stage in DealStage}
     for row in funnel_rows:
         stage_value = row.stage.value if hasattr(row.stage, "value") else str(row.stage)
-        funnel[stage_value] = row.count
+        raw_funnel[stage_value] = row.count
+
+    # Map backend stages to the 6 frontend stages:
+    # lead + initial_review -> initial_review
+    # underwriting + due_diligence + loi_submitted -> active_review
+    # under_contract -> under_contract
+    # closed -> closed
+    # dead -> dead
+    # realized -> realized (no backend enum yet, always 0 from DB)
+    funnel = {
+        "dead": raw_funnel.get("dead", 0),
+        "initial_review": raw_funnel.get("lead", 0) + raw_funnel.get("initial_review", 0),
+        "active_review": (
+            raw_funnel.get("underwriting", 0)
+            + raw_funnel.get("due_diligence", 0)
+            + raw_funnel.get("loi_submitted", 0)
+        ),
+        "under_contract": raw_funnel.get("under_contract", 0),
+        "closed": raw_funnel.get("closed", 0),
+        "realized": 0,
+    }
 
     # Check if we have any deals
     total_deals = sum(funnel.values())
@@ -645,29 +683,32 @@ async def get_deal_pipeline_analytics(
         return {
             "time_period": time_period,
             "funnel": {
-                "leads": 45,
+                "dead": 12,
                 "initial_review": 28,
-                "underwriting": 15,
-                "due_diligence": 8,
-                "loi_submitted": 4,
+                "active_review": 23,
                 "under_contract": 2,
                 "closed": 5,
-                "dead": 12,
+                "realized": 3,
+            },
+            "funnel_labels": {
+                "dead": "Dead Deals",
+                "initial_review": "Initial UW and Review",
+                "active_review": "Active UW and Review",
+                "under_contract": "Deals Under Contract",
+                "closed": "Closed Deals",
+                "realized": "Realized Deals",
             },
             "conversion_rates": {
-                "lead_to_review": 62.2,
-                "review_to_underwriting": 53.6,
-                "underwriting_to_dd": 53.3,
-                "dd_to_loi": 50.0,
-                "loi_to_contract": 50.0,
+                "initial_to_active": 82.1,
+                "active_to_contract": 8.7,
                 "contract_to_close": 71.4,
+                "close_to_realized": 60.0,
                 "overall": 11.1,
             },
             "cycle_times_days": {
-                "avg_lead_to_close": 95,
-                "avg_underwriting": 14,
-                "avg_due_diligence": 28,
-                "avg_loi_to_close": 45,
+                "avg_initial_to_close": 95,
+                "avg_active_review": 42,
+                "avg_contract_to_close": 45,
             },
             "volume": {
                 "total_reviewed": 73,
@@ -678,64 +719,51 @@ async def get_deal_pipeline_analytics(
             },
         }
 
-    # Calculate conversion rates (deals that moved past each stage)
-    # Count cumulative deals that reached each stage or beyond
+    # Calculate conversion rates using the 6 frontend stages
     def calc_conversion(from_count: int, to_count: int) -> float:
         if from_count == 0:
             return 0.0
         return round((to_count / from_count) * 100, 1)
 
-    leads = funnel.get("lead", 0)
-    initial_review = funnel.get("initial_review", 0)
-    underwriting = funnel.get("underwriting", 0)
-    due_diligence = funnel.get("due_diligence", 0)
-    loi_submitted = funnel.get("loi_submitted", 0)
-    under_contract = funnel.get("under_contract", 0)
-    closed = funnel.get("closed", 0)
-    dead = funnel.get("dead", 0)
+    initial_review = funnel["initial_review"]
+    active_review = funnel["active_review"]
+    under_contract = funnel["under_contract"]
+    closed = funnel["closed"]
+    realized = funnel["realized"]
+    dead = funnel["dead"]
 
-    # Cumulative counts for conversion calculation
-    # (deals currently in or past each stage, excluding dead)
-    past_lead = (
-        initial_review
-        + underwriting
-        + due_diligence
-        + loi_submitted
-        + under_contract
-        + closed
-    )
-    past_review = underwriting + due_diligence + loi_submitted + under_contract + closed
-    past_underwriting = due_diligence + loi_submitted + under_contract + closed
-    past_dd = loi_submitted + under_contract + closed
-    past_loi = under_contract + closed
-    past_contract = closed
+    # Cumulative counts: deals currently in or past each stage (excluding dead)
+    past_initial = active_review + under_contract + closed + realized
+    past_active = under_contract + closed + realized
+    past_contract = closed + realized
+    past_closed = realized
 
     conversion_rates = {
-        "lead_to_review": calc_conversion(leads + past_lead, past_lead),
-        "review_to_underwriting": calc_conversion(
-            initial_review + past_review, past_review
+        "initial_to_active": calc_conversion(
+            initial_review + past_initial, past_initial
         ),
-        "underwriting_to_dd": calc_conversion(
-            underwriting + past_underwriting, past_underwriting
+        "active_to_contract": calc_conversion(
+            active_review + past_active, past_active
         ),
-        "dd_to_loi": calc_conversion(due_diligence + past_dd, past_dd),
-        "loi_to_contract": calc_conversion(loi_submitted + past_loi, past_loi),
         "contract_to_close": calc_conversion(
             under_contract + past_contract, past_contract
         ),
-        "overall": calc_conversion(total_deals - dead, closed)
+        "close_to_realized": calc_conversion(
+            closed + past_closed, past_closed
+        ),
+        "overall": calc_conversion(total_deals - dead, closed + realized)
         if (total_deals - dead) > 0
         else 0.0,
     }
 
-    # Query volume metrics
+    # Query volume metrics (exclude dead deals from "reviewed")
     volume_result = await db.execute(
         select(
             func.count(Deal.id).label("total_reviewed"),
             func.coalesce(func.sum(Deal.asking_price), 0).label("total_value_reviewed"),
         ).where(
             Deal.created_at >= period_start,
-            Deal.stage != DealStage.LEAD,  # Exclude raw leads from "reviewed"
+            Deal.stage != DealStage.DEAD,
         )
     )
     volume_row = volume_result.fetchone()
@@ -761,15 +789,22 @@ async def get_deal_pipeline_analytics(
     # Cycle time calculations would need tracking of stage transition timestamps
     # For now, returning placeholder values (would need stage history tracking)
     cycle_times = {
-        "avg_lead_to_close": None,  # Would need stage transition history
-        "avg_underwriting": None,
-        "avg_due_diligence": None,
-        "avg_loi_to_close": None,
+        "avg_initial_to_close": None,  # Would need stage transition history
+        "avg_active_review": None,
+        "avg_contract_to_close": None,
     }
 
     return {
         "time_period": time_period,
         "funnel": funnel,
+        "funnel_labels": {
+            "dead": "Dead Deals",
+            "initial_review": "Initial UW and Review",
+            "active_review": "Active UW and Review",
+            "under_contract": "Deals Under Contract",
+            "closed": "Closed Deals",
+            "realized": "Realized Deals",
+        },
         "conversion_rates": conversion_rates,
         "cycle_times_days": cycle_times,
         "volume": {
