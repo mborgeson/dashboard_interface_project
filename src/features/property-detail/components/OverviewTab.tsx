@@ -51,7 +51,7 @@ export function OverviewTab({ property }: OverviewTabProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Occupancy</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">T12 Occupancy</CardTitle>
             <Users className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>

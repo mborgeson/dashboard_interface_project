@@ -30,14 +30,21 @@ export function MapFilterPanel({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const submarkets: PhoenixSubmarket[] = [
-    'Scottsdale',
     'Tempe',
-    'Mesa',
-    'Gilbert',
+    'East Valley',
+    'Downtown Phoenix',
+    'North Phoenix',
+    'Deer Valley',
     'Chandler',
-    'Phoenix Central',
-    'Phoenix North',
-    'Phoenix West',
+    'Gilbert',
+    'Old Town Scottsdale',
+    'North West Valley',
+    'South West Valley',
+    'South Phoenix',
+    'North Scottsdale',
+    'West Maricopa County',
+    'Camelback',
+    'Southeast Valley',
   ];
 
   if (isCollapsed) {

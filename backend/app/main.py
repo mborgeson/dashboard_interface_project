@@ -23,11 +23,11 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.middleware.rate_limiter import RateLimitMiddleware
+from app.services.extraction.monitor_scheduler import get_monitor_scheduler
 from app.services.extraction.scheduler import (
     get_extraction_scheduler,
     run_scheduled_extraction,
 )
-from app.services.extraction.monitor_scheduler import get_monitor_scheduler
 from app.services.monitoring import MetricsMiddleware, get_metrics_manager
 
 

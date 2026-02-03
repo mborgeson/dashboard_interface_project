@@ -25,11 +25,13 @@ export function DashboardMain() {
   const totalUnits = properties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
   const totalValue = properties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
   const totalNOI = properties.reduce((sum, p) => sum + p.operations.noi, 0);
-  const avgOccupancy = totalProperties > 0
-    ? properties.reduce((sum, p) => sum + p.operations.occupancy, 0) / totalProperties
+  const propertiesWithOccupancy = properties.filter(p => p.operations.occupancy > 0);
+  const avgOccupancy = propertiesWithOccupancy.length > 0
+    ? propertiesWithOccupancy.reduce((sum, p) => sum + p.operations.occupancy, 0) / propertiesWithOccupancy.length
     : 0;
-  const avgCapRate = totalProperties > 0
-    ? properties.reduce((sum, p) => sum + p.valuation.capRate, 0) / totalProperties
+  const propertiesWithCapRate = properties.filter(p => p.valuation.capRate > 0);
+  const avgCapRate = propertiesWithCapRate.length > 0
+    ? propertiesWithCapRate.reduce((sum, p) => sum + p.valuation.capRate, 0) / propertiesWithCapRate.length
     : 0;
 
   const recentTransactions = [...allTransactions]
@@ -110,10 +112,6 @@ export function DashboardMain() {
             <div className="p-3 bg-primary-50 rounded-lg">
               <DollarSign className="w-6 h-6 text-primary-500" />
             </div>
-            <div className="flex items-center gap-1 text-sm text-green-600">
-              <TrendingUp className="w-4 h-4" />
-              +12.4%
-            </div>
           </div>
           <div className="text-hero-stat text-neutral-900">
             {formatCurrency(totalValue, true)}
@@ -139,10 +137,6 @@ export function DashboardMain() {
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-green-50 rounded-lg">
               <TrendingUp className="w-6 h-6 text-green-600" />
-            </div>
-            <div className="flex items-center gap-1 text-sm text-green-600">
-              <TrendingUp className="w-4 h-4" />
-              +8.2%
             </div>
           </div>
           <div className="text-hero-stat text-neutral-900">
@@ -173,7 +167,7 @@ export function DashboardMain() {
           </h2>
           <div className="space-y-3">
             {properties
-              .sort((a, b) => b.performance.irr - a.performance.irr)
+              .sort((a, b) => b.performance.leveredIrr - a.performance.leveredIrr)
               .slice(0, 5)
               .map((property) => (
                 <div
@@ -191,7 +185,7 @@ export function DashboardMain() {
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-green-600">
-                      {formatPercent(property.performance.irr)}
+                      {formatPercent(property.performance.leveredIrr)}
                     </div>
                     <div className="text-sm text-neutral-600">IRR</div>
                   </div>
@@ -291,7 +285,7 @@ export function DashboardMain() {
         {/* Portfolio Performance Chart */}
         <Card className="p-6 shadow-card">
           <h2 className="text-card-title text-neutral-800 font-semibold mb-4">
-            12-Month Performance Trend
+            Top Properties by NOI
           </h2>
           <PortfolioPerformanceChart properties={properties} />
         </Card>
@@ -320,7 +314,6 @@ export function DashboardMain() {
           className="shadow-card"
           showChart={true}
           showTable={false}
-          limit={5}
         />
       </div>
 

@@ -2,6 +2,7 @@
 Property endpoints for CRUD operations, analytics, and dashboard views.
 """
 
+import re
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -51,6 +52,167 @@ def _clean_str(val: str | None, default: str = "") -> str:
     return default if _is_placeholder(val) else (val or default)
 
 
+# Authoritative CoStar Submarket Cluster mapping by property name
+# Source: docs/Dashboard Project - Basic Deal Info.xlsx
+_PROPERTY_COSTAR_CLUSTER: dict[str, str] = {
+    "505 West": "Tempe",
+    "Acacia Pointe": "North West Valley",
+    "Alante at the Islands": "Gilbert",
+    "Alta Surprise": "North West Valley",
+    "Alta Vista Village": "South West Valley",
+    "Artisan at Downtown Chandler": "Chandler",
+    "Be Mesa": "East Valley",
+    "Bingham Blocks": "North West Valley",
+    "Broadstone 7th Street": "Downtown Phoenix",
+    "Broadstone Portland": "Downtown Phoenix",
+    "Buenas Paradise Valley": "North Phoenix",
+    "Cantala": "Deer Valley",
+    "Casitas at San Marcos": "Chandler",
+    "Cimarron": "East Valley",
+    "Copper Point Apartments": "East Valley",
+    "Cortland Arrowhead Summit": "Deer Valley",
+    "Estrella Gateway": "South West Valley",
+    "Fringe Mountain View": "North Phoenix",
+    "Glen 91": "South West Valley",
+    "GLEN 91": "South West Valley",
+    "Harmony at Surprise": "North West Valley",
+    "Haven Townhomes at P83": "Deer Valley",
+    "Hayden Park": "Old Town Scottsdale",
+    "Jade Ridge": "Deer Valley",
+    "La Paloma": "Tempe",
+    "454 West Brown": "East Valley",
+    "Park on Bell": "Deer Valley",
+    "Emparrado": "East Valley",
+    "Tempe Metro": "Tempe",
+    "Cabana on 99th": "South West Valley",
+    "Town Center Apartments": "East Valley",
+}
+
+# Fallback: map extracted submarket names to CoStar clusters
+_SUBMARKET_CLUSTER_MAP: dict[str, str] = {
+    "West Tempe": "Tempe",
+    "Tempe": "Tempe",
+    "Apache": "Tempe",
+    "Mesa": "East Valley",
+    "Central Mesa": "East Valley",
+    "Downtown Mesa": "East Valley",
+    "Country Club": "East Valley",
+    "Scottsdale": "Old Town Scottsdale",
+    "South Scottsdale": "Old Town Scottsdale",
+    "Deer Valley": "Deer Valley",
+    "Arrowhead": "Deer Valley",
+    "Roosevelt Row": "Downtown Phoenix",
+    "Uptown Phoenix": "Downtown Phoenix",
+    "North Phoenix": "North Phoenix",
+    "Paradise Valley North": "North Phoenix",
+    "South Peoria": "North West Valley",
+    "South Surprise": "North West Valley",
+    "Westside": "South West Valley",
+    "Crystal Gardens": "South West Valley",
+    "Downtown Chandler": "Chandler",
+    "North Chandler": "Chandler",
+    "The Islands": "Gilbert",
+    "Gilbert": "Gilbert",
+    "Queen Creek": "East Valley",
+}
+
+# Fallback: map city to CoStar cluster
+_CITY_CLUSTER_MAP: dict[str, str] = {
+    "Tempe": "Tempe",
+    "Mesa": "East Valley",
+    "Chandler": "Chandler",
+    "Gilbert": "Gilbert",
+    "Scottsdale": "Old Town Scottsdale",
+    "Phoenix": "North Phoenix",
+    "Glendale": "North West Valley",
+    "Peoria": "Deer Valley",
+    "Surprise": "North West Valley",
+    "Avondale": "South West Valley",
+    "Queen Creek": "East Valley",
+    "Goodyear": "South West Valley",
+    "Buckeye": "South West Valley",
+    "Paradise Valley": "North Phoenix",
+}
+
+
+def _get_costar_submarket(
+    prop_name: str | None, submarket: str | None, city: str | None
+) -> str:
+    """
+    Resolve CoStar Submarket Cluster for a property.
+    Priority: exact property name match > extracted submarket > city > default.
+    """
+    if prop_name:
+        # Try matching by the short name (before the city parenthetical)
+        short_name = prop_name.split("(")[0].strip()
+        cluster = _PROPERTY_COSTAR_CLUSTER.get(short_name)
+        if cluster:
+            return cluster
+        # Also try full name
+        cluster = _PROPERTY_COSTAR_CLUSTER.get(prop_name)
+        if cluster:
+            return cluster
+
+    if submarket and not _is_placeholder(submarket):
+        cluster = _SUBMARKET_CLUSTER_MAP.get(submarket)
+        if cluster:
+            return cluster
+
+    if city:
+        cluster = _CITY_CLUSTER_MAP.get(city)
+        if cluster:
+            return cluster
+
+    return "North Phoenix"
+
+
+def _build_operations_by_year(fd: dict) -> list[dict]:
+    """Build multi-year operations array from operationsByYear in financial_data."""
+    ops_by_year = fd.get("operationsByYear", {})
+    if not ops_by_year:
+        return []
+
+    years = []
+    for yr_str in sorted(ops_by_year.keys(), key=int):
+        yr_data = ops_by_year[yr_str]
+        yr_exp = yr_data.get("expenses", {})
+        years.append({
+            "year": int(yr_str),
+            "grossPotentialRevenue": yr_data.get("grossPotentialRevenue") or 0,
+            "lossToLease": abs(yr_data.get("lossToLease") or 0),
+            "vacancyLoss": abs(yr_data.get("vacancyLoss") or 0),
+            "badDebts": abs(yr_data.get("badDebts") or 0),
+            "concessions": abs(yr_data.get("concessions") or 0),
+            "otherLoss": abs(yr_data.get("otherLoss") or 0),
+            "netRentalIncome": yr_data.get("netRentalIncome") or 0,
+            "otherIncome": yr_data.get("otherIncome") or 0,
+            "laundryIncome": yr_data.get("laundryIncome") or 0,
+            "parkingIncome": yr_data.get("parkingIncome") or 0,
+            "petIncome": yr_data.get("petIncome") or 0,
+            "storageIncome": yr_data.get("storageIncome") or 0,
+            "utilityIncome": yr_data.get("utilityIncome") or 0,
+            "otherMiscIncome": yr_data.get("otherMiscIncome") or 0,
+            "effectiveGrossIncome": yr_data.get("effectiveGrossIncome") or 0,
+            "noi": yr_data.get("noi") or 0,
+            "totalOperatingExpenses": abs(yr_data.get("totalOperatingExpenses") or 0),
+            "expenses": {
+                "realEstateTaxes": abs(yr_exp.get("realEstateTaxes") or 0),
+                "propertyInsurance": abs(yr_exp.get("propertyInsurance") or 0),
+                "staffingPayroll": abs(yr_exp.get("staffingPayroll") or 0),
+                "propertyManagementFee": abs(yr_exp.get("propertyManagementFee") or 0),
+                "repairsAndMaintenance": abs(yr_exp.get("repairsAndMaintenance") or 0),
+                "turnover": abs(yr_exp.get("turnover") or 0),
+                "contractServices": abs(yr_exp.get("contractServices") or 0),
+                "reservesForReplacement": abs(yr_exp.get("reservesForReplacement") or 0),
+                "adminLegalSecurity": abs(yr_exp.get("adminLegalSecurity") or 0),
+                "advertisingLeasingMarketing": abs(yr_exp.get("advertisingLeasingMarketing") or 0),
+                "otherExpenses": abs(yr_exp.get("otherExpenses") or 0),
+                "utilities": abs(yr_exp.get("utilities") or 0),
+            },
+        })
+    return years
+
+
 def _to_frontend_property(prop: Property) -> dict:
     """
     Transform a flat Property DB model into the nested structure
@@ -81,7 +243,9 @@ def _to_frontend_property(prop: Property) -> dict:
     if not cap_rate and annual_noi and purchase_price:
         cap_rate = round(annual_noi / purchase_price, 4)
 
-    occupancy = _decimal_to_float(prop.occupancy_rate) or ops.get("occupancy") or 0
+    raw_occupancy = _decimal_to_float(prop.occupancy_rate) or ops.get("occupancy") or 0
+    # Normalize to 0-1 scale (DB stores as whole percent e.g. 93.0)
+    occupancy = raw_occupancy / 100 if raw_occupancy > 1 else raw_occupancy
     avg_rent = (
         _decimal_to_float(prop.avg_rent_per_unit) or ops.get("avgRentPerUnit") or 0
     )
@@ -105,7 +269,6 @@ def _to_frontend_property(prop: Property) -> dict:
     name_city = ""
     name_state = ""
     if prop.name and "(" in prop.name:
-        import re
 
         m = re.search(r"\(([^,]+),\s*([A-Z]{2})\)", prop.name)
         if m:
@@ -121,39 +284,66 @@ def _to_frontend_property(prop: Property) -> dict:
     )
     clean_building_type = _clean_str(prop.building_type, "Garden")
 
-    # Map submarket to Phoenix submarket enum values
-    submarket = prop.submarket or clean_city or "Phoenix Central"
-    submarket_map = {
-        "Scottsdale": "Scottsdale",
-        "West Tempe": "Tempe",
-        "Tempe": "Tempe",
-        "East Mesa": "Mesa",
-        "West Mesa": "Mesa",
-        "Mesa": "Mesa",
-        "Gilbert": "Gilbert",
-        "Chandler": "Chandler",
-        "Central Phoenix": "Phoenix Central",
-        "North Phoenix": "Phoenix North",
-        "West Phoenix": "Phoenix West",
-        "Glendale": "Phoenix West",
-        "Peoria": "Phoenix West",
-        "Surprise": "Phoenix West",
-        "Avondale": "Phoenix West",
-        "Queen Creek": "Gilbert",
-        "Paradise Valley": "Scottsdale",
-    }
-    # Try submarket first, then city, then default
-    frontend_submarket = submarket_map.get(submarket)
-    if not frontend_submarket:
-        frontend_submarket = submarket_map.get(prop.city, "Phoenix Central")
+    # Map to CoStar Submarket Cluster using authoritative property-level mapping
+    # Source: CoStar submarket data (docs/Dashboard Project - Basic Deal Info.xlsx)
+    _property_submarket = _get_costar_submarket(prop.name, prop.submarket, prop.city)
+    frontend_submarket = _property_submarket
 
     # Calculate monthly values
     monthly_revenue = round(avg_rent * total_units) if avg_rent and total_units else 0
-    total_expenses = exp.get("realEstateTaxes") or 0
-    for key in ["utilities", "management", "repairs", "payroll", "marketing"]:
+
+    # Sum ALL 11 expense line items for total
+    _expense_keys = [
+        "realEstateTaxes", "otherExpenses", "insurance", "payroll",
+        "management", "repairs", "turnover", "contractServices",
+        "reserves", "adminLegalSecurity", "marketing",
+    ]
+    total_expenses = 0
+    for key in _expense_keys:
         val = exp.get(key)
         if val:
             total_expenses += abs(val)
+
+    # Exit / investment metrics from financial_data
+    exit_data = fd.get("exit", {})
+    hold_period_years = exit_data.get("holdPeriodYears") or (
+        round((exit_data.get("exitPeriodMonths") or 60) / 12, 1)
+    )
+    exit_cap_rate = exit_data.get("exitCapRate") or 0
+
+    # Levered / unlevered returns (from extraction if available, LP returns as proxy)
+    levered_irr = ret.get("leveredIrr") or ret.get("lpIrr") or 0
+    levered_moic = ret.get("leveredMoic") or ret.get("lpMoic") or 0
+    # unlevered values may be None in extraction — keep as None for frontend to show "--"
+    unlevered_irr = ret.get("unleveredIrr")  # None if not extracted
+    unlevered_moic = ret.get("unleveredMoic")  # None if not extracted
+
+    # Return breakdown values
+    total_equity_commitment = ret.get("totalEquityCommitment") or (
+        acq.get("totalAcquisitionBudget") or purchase_price
+    ) - loan_amount if loan_amount else (acq.get("totalAcquisitionBudget") or purchase_price)
+    total_cash_flows_to_equity = ret.get("totalCashFlowsToEquity") or ret.get("lpCashflowInflow") or 0
+    net_cash_flows_to_equity = (total_cash_flows_to_equity - total_equity_commitment) if total_cash_flows_to_equity is not None else 0
+
+    # Basis per unit metrics (from exit section or derived)
+    total_basis_per_unit_close = (
+        exit_data.get("basisPerUnitAtClose")
+        or ret.get("totalBasisPerUnitClose")
+        or (round(purchase_price / total_units, 2) if total_units else 0)
+    )
+    senior_loan_basis_per_unit_close = (
+        exit_data.get("seniorDebtBasisPerUnitAtClose")
+        or ret.get("seniorLoanBasisPerUnitClose")
+        or (round(loan_amount / total_units, 2) if total_units and loan_amount else 0)
+    )
+    total_basis_per_unit_exit = (
+        exit_data.get("basisPerUnitAtExit")
+        or ret.get("totalBasisPerUnitExit")
+    )  # None if not available
+    senior_loan_basis_per_unit_exit = (
+        exit_data.get("seniorDebtBasisPerUnitAtExit")
+        or ret.get("seniorLoanBasisPerUnitExit")
+    )  # None if not available
 
     # Acquisition date from deal initial contact or default
     acq_date = "2024-01-15"
@@ -221,6 +411,12 @@ def _to_frontend_property(prop: Property) -> dict:
             "closingCosts": closing_costs,
             "acquisitionFee": acquisition_fee,
             "totalInvested": total_invested,
+            "landAndAcquisitionCosts": acq.get("landAndAcquisitionCosts") or 0,
+            "hardCosts": acq.get("hardCosts") or 0,
+            "softCosts": acq.get("softCosts") or 0,
+            "lenderClosingCosts": acq.get("lenderClosingCosts") or 0,
+            "equityClosingCosts": acq.get("equityClosingCosts") or 0,
+            "totalAcquisitionBudget": acq.get("totalAcquisitionBudget") or total_invested,
         },
         "financing": {
             "loanAmount": loan_amount,
@@ -245,30 +441,45 @@ def _to_frontend_property(prop: Property) -> dict:
             "rentPerSqft": rent_per_sf,
             "monthlyRevenue": monthly_revenue,
             "otherIncome": ops.get("otherIncomeYear1") or 0,
-            "monthlyExpenses": {
-                "propertyTax": abs(exp.get("realEstateTaxes") or 0) / 12,
-                "insurance": abs(exp.get("insurance") or 0) / 12,
-                "utilities": abs(exp.get("utilities") or 0) / 12,
-                "management": abs(exp.get("management") or 0) / 12,
-                "repairs": abs(exp.get("repairs") or 0) / 12,
-                "payroll": abs(exp.get("payroll") or 0) / 12,
-                "marketing": abs(exp.get("marketing") or 0) / 12,
-                "other": abs(exp.get("contractServices") or 0) / 12,
-                "total": total_expenses / 12,
+            "expenses": {
+                "realEstateTaxes": abs(exp.get("realEstateTaxes") or 0),
+                "otherExpenses": abs(exp.get("otherExpenses") or 0),
+                "propertyInsurance": abs(exp.get("insurance") or 0),
+                "staffingPayroll": abs(exp.get("payroll") or 0),
+                "propertyManagementFee": abs(exp.get("management") or 0),
+                "repairsAndMaintenance": abs(exp.get("repairs") or 0),
+                "turnover": abs(exp.get("turnover") or 0),
+                "contractServices": abs(exp.get("contractServices") or 0),
+                "reservesForReplacement": abs(exp.get("reserves") or 0),
+                "adminLegalSecurity": abs(exp.get("adminLegalSecurity") or 0),
+                "advertisingLeasingMarketing": abs(exp.get("marketing") or 0),
+                "total": total_expenses,
             },
             "noi": annual_noi,
             "operatingExpenseRatio": round(total_expenses / (monthly_revenue * 12), 2)
             if monthly_revenue
             else 0,
+            "grossPotentialRevenue": ops.get("totalRevenueYear1") or 0,
+            "netRentalIncome": ops.get("netRentalIncomeYear1") or 0,
+            "otherIncomeAnnual": ops.get("otherIncomeYear1") or 0,
+            "vacancyLoss": abs(ops.get("vacancyLossYear1") or 0),
+            "concessions": abs(ops.get("concessionsYear1") or 0),
         },
+        "operationsByYear": _build_operations_by_year(fd),
         "performance": {
-            "cashOnCashReturn": ret.get("cashOnCashYear1") or 0,
-            "irr": irr,
-            "equityMultiple": moic,
-            "totalReturnDollars": round((moic - 1) * (total_invested - loan_amount), 2)
-            if moic and total_invested
-            else 0,
-            "totalReturnPercent": round((moic - 1) * 100, 2) if moic else 0,
+            "leveredIrr": levered_irr,
+            "leveredMoic": levered_moic,
+            "unleveredIrr": unlevered_irr,
+            "unleveredMoic": unlevered_moic,
+            "totalEquityCommitment": total_equity_commitment,
+            "totalCashFlowsToEquity": total_cash_flows_to_equity,
+            "netCashFlowsToEquity": net_cash_flows_to_equity,
+            "holdPeriodYears": hold_period_years,
+            "exitCapRate": exit_cap_rate,
+            "totalBasisPerUnitClose": total_basis_per_unit_close,
+            "seniorLoanBasisPerUnitClose": senior_loan_basis_per_unit_close,
+            "totalBasisPerUnitExit": total_basis_per_unit_exit,
+            "seniorLoanBasisPerUnitExit": senior_loan_basis_per_unit_exit,
         },
         "images": {
             "main": "",
@@ -365,13 +576,21 @@ async def get_portfolio_summary(
 
         invested = acq.get("totalAcquisitionBudget") or float(p.purchase_price or 0)
         total_invested += invested
-        total_noi += float(p.noi or 0)
+
+        # NOI in DB is annual per-unit — multiply by units for total
+        noi_per_unit = float(p.noi or 0)
+        units = p.total_units or 0
+        annual_noi = noi_per_unit * units if noi_per_unit and units else 0
+        total_noi += annual_noi
 
         if p.occupancy_rate:
             occ_sum += float(p.occupancy_rate)
             occ_count += 1
-        if p.cap_rate:
-            cap_sum += float(p.cap_rate)
+
+        # Compute cap rate from annual NOI / purchase price
+        pp = float(p.purchase_price or 0)
+        if annual_noi > 0 and pp > 0:
+            cap_sum += annual_noi / pp
             cap_count += 1
 
         irr = ret.get("lpIrr") or 0
@@ -389,7 +608,7 @@ async def get_portfolio_summary(
         "totalValue": round(total_value, 2),
         "totalInvested": round(total_invested, 2),
         "totalNOI": round(total_noi, 2),
-        "averageOccupancy": round(occ_sum / occ_count, 2) if occ_count else 0,
+        "averageOccupancy": round(occ_sum / occ_count / 100, 4) if occ_count else 0,
         "averageCapRate": round(cap_sum / cap_count, 4) if cap_count else 0,
         "portfolioCashOnCash": round(coc_weighted / equity_sum, 4) if equity_sum else 0,
         "portfolioIRR": round(irr_weighted / equity_sum, 4) if equity_sum else 0,
@@ -584,14 +803,18 @@ async def get_property_analytics(
 
     # Get current property metrics
     current_rent = _decimal_to_float(property_obj.avg_rent_per_unit)
-    current_occupancy = _decimal_to_float(property_obj.occupancy_rate)
+    raw_occ = _decimal_to_float(property_obj.occupancy_rate)
+    current_occupancy = raw_occ / 100 if raw_occ and raw_occ > 1 else raw_occ
     current_cap_rate = _decimal_to_float(property_obj.cap_rate)
     current_noi = _decimal_to_float(property_obj.noi)
 
     # Get market averages
     market_avg_rent = _decimal_to_float(market_row.avg_rent) if market_row else None
+    raw_market_occ = _decimal_to_float(market_row.avg_occupancy) if market_row else None
     market_avg_occupancy = (
-        _decimal_to_float(market_row.avg_occupancy) if market_row else None
+        raw_market_occ / 100
+        if raw_market_occ and raw_market_occ > 1
+        else raw_market_occ
     )
     market_avg_cap_rate = (
         _decimal_to_float(market_row.avg_cap_rate) if market_row else None
@@ -682,7 +905,6 @@ async def get_property_activities(
         description="Filter by activity type: view, edit, comment, status_change, document_upload",
     ),
     db: AsyncSession = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
 ):
     """
     Get activity history for a property.
@@ -749,12 +971,8 @@ async def get_property_activities(
             )
         )
 
-    logger.info(
-        f"User {current_user.email} retrieved {len(items)} activities for property {property_id}"
-    )
-
     return PropertyActivityListResponse(
-        items=items,
+        activities=items,
         total=total,
         page=skip // limit + 1 if limit > 0 else 1,
         page_size=limit,

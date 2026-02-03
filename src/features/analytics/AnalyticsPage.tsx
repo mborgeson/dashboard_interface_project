@@ -18,7 +18,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { KPICard } from './components/KPICard';
-import { PerformanceCharts } from './components/PerformanceCharts';
 import { DistributionCharts } from './components/DistributionCharts';
 import { ComparisonCharts } from './components/ComparisonCharts';
 import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
@@ -44,15 +43,15 @@ export function AnalyticsPage() {
       0
     );
     const weightedIRR = properties.reduce(
-      (sum, p) => sum + p.performance.irr * (p.acquisition.totalInvested - p.financing.loanAmount),
+      (sum, p) => sum + p.performance.leveredIrr * (p.acquisition.totalInvested - p.financing.loanAmount),
       0
     ) / totalEquity;
     const weightedCashOnCash = properties.reduce(
-      (sum, p) => sum + p.performance.cashOnCashReturn * (p.acquisition.totalInvested - p.financing.loanAmount),
+      (sum, p) => sum + p.performance.unleveredIrr * (p.acquisition.totalInvested - p.financing.loanAmount),
       0
     ) / totalEquity;
     const weightedEquityMultiple = properties.reduce(
-      (sum, p) => sum + p.performance.equityMultiple * (p.acquisition.totalInvested - p.financing.loanAmount),
+      (sum, p) => sum + p.performance.leveredMoic * (p.acquisition.totalInvested - p.financing.loanAmount),
       0
     ) / totalEquity;
 
@@ -72,46 +71,17 @@ export function AnalyticsPage() {
     };
   }, [properties]);
 
-  // Generate NOI trend data (last 12 months)
-  const noiTrendData = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonth = new Date().getMonth();
-
-    return months.map((month, idx) => {
-      // Calculate month offset from current
-      const monthOffset = idx - currentMonth;
-      const portfolioNOI = properties.reduce((sum, p) => sum + p.operations.noi, 0);
-
-      // Add some realistic variation (+/-5%)
-      const variation = 1 + (Math.sin(monthOffset * 0.5) * 0.05);
-      const monthlyNOI = (portfolioNOI / 12) * variation;
-
-      return {
-        month,
-        noi: Math.round(monthlyNOI),
-      };
-    });
+  // Current portfolio NOI (no historical time-series data available)
+  const portfolioNOI = useMemo(() => {
+    return properties.reduce((sum, p) => sum + p.operations.noi, 0);
   }, [properties]);
 
-  // Generate occupancy trend data (last 12 months)
-  const occupancyTrendData = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonth = new Date().getMonth();
-    const avgOccupancy = properties.length > 0
-      ? properties.reduce((sum, p) => sum + p.operations.occupancy, 0) / properties.length
-      : 0;
-
-    return months.map((month, idx) => {
-      const monthOffset = idx - currentMonth;
-      // Slight seasonal variation
-      const variation = Math.sin(monthOffset * 0.3) * 0.02;
-
-      return {
-        month,
-        occupancy: Math.min(0.99, Math.max(0.88, avgOccupancy + variation)),
-      };
-    });
+  // Current average occupancy (no historical time-series data available)
+  const avgOccupancy = useMemo(() => {
+    if (properties.length === 0) return 0;
+    return properties.reduce((sum, p) => sum + p.operations.occupancy, 0) / properties.length;
   }, [properties]);
+
 
   // Value by property class
   const valueByClass = useMemo(() => {
@@ -143,8 +113,8 @@ export function AnalyticsPage() {
   const propertyPerformance = useMemo(() => {
     return properties.map(p => ({
       name: p.name,
-      irr: p.performance.irr,
-      cashOnCash: p.performance.cashOnCashReturn,
+      irr: p.performance.leveredIrr,
+      cashOnCash: p.performance.unleveredIrr,
       capRate: p.valuation.capRate,
     }));
   }, [properties]);
@@ -164,7 +134,7 @@ export function AnalyticsPage() {
       return {
         name: p.name,
         risk: riskScore,
-        return: p.performance.irr,
+        return: p.performance.leveredIrr,
         size: p.valuation.currentValue,
       };
     });
@@ -186,12 +156,12 @@ export function AnalyticsPage() {
             bVal = b.name;
             break;
           case 'irr':
-            aVal = a.performance.irr;
-            bVal = b.performance.irr;
+            aVal = a.performance.leveredIrr;
+            bVal = b.performance.leveredIrr;
             break;
           case 'cashOnCash':
-            aVal = a.performance.cashOnCashReturn;
-            bVal = b.performance.cashOnCashReturn;
+            aVal = a.performance.unleveredIrr;
+            bVal = b.performance.unleveredIrr;
             break;
           case 'capRate':
             aVal = a.valuation.capRate;
@@ -245,8 +215,8 @@ export function AnalyticsPage() {
   const getBestWorst = (key: string) => {
     const values = properties.map(p => {
       switch (key) {
-        case 'irr': return p.performance.irr;
-        case 'cashOnCash': return p.performance.cashOnCashReturn;
+        case 'irr': return p.performance.leveredIrr;
+        case 'cashOnCash': return p.performance.unleveredIrr;
         case 'occupancy': return p.operations.occupancy;
         default: return 0;
       }
@@ -361,21 +331,18 @@ export function AnalyticsPage() {
           title="Portfolio IRR"
           value={portfolioKPIs.irr}
           format="percentage"
-          trend={5.2}
           description="Weighted average internal rate of return"
         />
         <KPICard
           title="Cash-on-Cash Return"
           value={portfolioKPIs.cashOnCash}
           format="percentage"
-          trend={3.1}
           description="Weighted average annual cash return"
         />
         <KPICard
           title="Equity Multiple"
           value={portfolioKPIs.equityMultiple}
           format="decimal"
-          trend={2.8}
           description="Total return multiple on invested capital"
         />
         <KPICard
@@ -386,10 +353,29 @@ export function AnalyticsPage() {
         />
       </div>
 
-      {/* Performance Charts */}
+      {/* Portfolio Summary */}
       <div>
-        <h2 className="text-section-title text-primary-500 mb-4">Performance Trends</h2>
-        <PerformanceCharts noiData={noiTrendData} occupancyData={occupancyTrendData} />
+        <h2 className="text-section-title text-primary-500 mb-4">Portfolio Summary</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-lg border border-neutral-200 p-6">
+            <h3 className="text-sm font-medium text-neutral-600 mb-2">Total Annual Portfolio NOI</h3>
+            <p className="text-3xl font-bold text-primary-700">
+              ${(portfolioNOI / 1000000).toFixed(2)}M
+            </p>
+            <p className="text-xs text-neutral-500 mt-1">
+              Based on current extraction data across {properties.filter(p => p.operations.noi > 0).length} properties
+            </p>
+          </div>
+          <div className="bg-white rounded-lg border border-neutral-200 p-6">
+            <h3 className="text-sm font-medium text-neutral-600 mb-2">Average Portfolio Occupancy</h3>
+            <p className="text-3xl font-bold text-primary-700">
+              {(avgOccupancy * 100).toFixed(1)}%
+            </p>
+            <p className="text-xs text-neutral-500 mt-1">
+              Based on current extraction data across {properties.filter(p => p.operations.occupancy > 0).length} properties
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Distribution Charts */}
@@ -471,11 +457,11 @@ export function AnalyticsPage() {
                       </span>
                     </TableCell>
                     <TableCell className="text-neutral-600">{property.address.submarket}</TableCell>
-                    <TableCell className={`text-right ${highlightCell(property.performance.irr, 'irr')}`}>
-                      {formatPercentage(property.performance.irr)}
+                    <TableCell className={`text-right ${highlightCell(property.performance.leveredIrr, 'irr')}`}>
+                      {formatPercentage(property.performance.leveredIrr)}
                     </TableCell>
-                    <TableCell className={`text-right ${highlightCell(property.performance.cashOnCashReturn, 'cashOnCash')}`}>
-                      {formatPercentage(property.performance.cashOnCashReturn)}
+                    <TableCell className={`text-right ${highlightCell(property.performance.unleveredIrr, 'cashOnCash')}`}>
+                      {formatPercentage(property.performance.unleveredIrr)}
                     </TableCell>
                     <TableCell className="text-right">
                       {formatPercentage(property.valuation.capRate)}

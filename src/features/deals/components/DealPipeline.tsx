@@ -7,12 +7,12 @@ interface DealPipelineProps {
 }
 
 const PIPELINE_STAGES: DealStage[] = [
-  'lead',
-  'underwriting',
-  'loi',
-  'due_diligence',
-  'closing',
-  'closed_won',
+  'dead',
+  'initial_review',
+  'active_review',
+  'under_contract',
+  'closed',
+  'realized',
 ];
 
 export function DealPipeline({ dealsByStage }: DealPipelineProps) {
@@ -81,28 +81,6 @@ export function DealPipeline({ dealsByStage }: DealPipelineProps) {
           );
         })}
       </div>
-
-      {/* Lost Deals Section */}
-      {dealsByStage.closed_lost.length > 0 && (
-        <div className="border-t border-neutral-200">
-          <div className="p-4 bg-neutral-50">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold text-neutral-900">
-                Closed Lost
-              </div>
-              <div className="text-xs text-neutral-600">
-                {dealsByStage.closed_lost.length}{' '}
-                {dealsByStage.closed_lost.length === 1 ? 'deal' : 'deals'}
-              </div>
-            </div>
-            <div className="grid grid-cols-6 gap-3">
-              {dealsByStage.closed_lost.map((deal) => (
-                <DealCard key={deal.id} deal={deal} />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

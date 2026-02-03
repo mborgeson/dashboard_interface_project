@@ -12,6 +12,9 @@ on:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
 
+permissions:
+  contents: read
+
 env:
   PYTHON_VERSION: "3.12"
 

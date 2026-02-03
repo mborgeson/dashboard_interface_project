@@ -12,7 +12,7 @@ export const mockProperties: Property[] = [
       zip: '85251',
       latitude: 33.4952,
       longitude: -111.926,
-      submarket: 'Scottsdale',
+      submarket: 'Old Town Scottsdale',
     },
     propertyDetails: {
       units: 180,
@@ -104,7 +104,7 @@ export const mockProperties: Property[] = [
       zip: '85257',
       latitude: 33.4651,
       longitude: -111.8966,
-      submarket: 'Scottsdale',
+      submarket: 'Old Town Scottsdale',
     },
     propertyDetails: {
       units: 120,
@@ -352,7 +352,7 @@ export const mockProperties: Property[] = [
       zip: '85202',
       latitude: 33.3838,
       longitude: -111.8678,
-      submarket: 'Mesa',
+      submarket: 'East Valley',
     },
     propertyDetails: {
       units: 220,
@@ -440,7 +440,7 @@ export const mockProperties: Property[] = [
       zip: '85210',
       latitude: 33.3967,
       longitude: -111.8314,
-      submarket: 'Mesa',
+      submarket: 'East Valley',
     },
     propertyDetails: {
       units: 96,
@@ -848,7 +848,7 @@ export const mockProperties: Property[] = [
       zip: '85004',
       latitude: 33.4633,
       longitude: -112.0740,
-      submarket: 'Phoenix Central',
+      submarket: 'Downtown Phoenix',
     },
     propertyDetails: {
       units: 72,
@@ -928,7 +928,7 @@ export const mockProperties: Property[] = [
       zip: '85004',
       latitude: 33.4548,
       longitude: -112.0627,
-      submarket: 'Phoenix Central',
+      submarket: 'Downtown Phoenix',
     },
     propertyDetails: {
       units: 64,

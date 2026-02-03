@@ -30,6 +30,9 @@ on:
       - 'postcss.config.js'
       - '.github/workflows/frontend-ci.yml'
 
+permissions:
+  contents: read
+
 env:
   NODE_VERSION: "20"
 

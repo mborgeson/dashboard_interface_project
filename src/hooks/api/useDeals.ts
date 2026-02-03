@@ -42,21 +42,31 @@ interface BackendDealResponse {
   priority: string | null;
   created_at: string;
   updated_at: string;
+  // Enrichment fields from extraction data
+  total_units: number | null;
+  avg_unit_sf: number | null;
+  current_owner: string | null;
+  last_sale_price_per_unit: number | null;
+  last_sale_date: string | null;
+  t12_return_on_cost: number | null;
+  levered_irr: number | null;
+  levered_moic: number | null;
+  total_equity_commitment: number | null;
 }
 
 /** Map backend stage names to frontend DealStage */
 function mapBackendStage(stage: string): Deal['stage'] {
   const stageMap: Record<string, Deal['stage']> = {
-    lead: 'lead',
-    initial_review: 'underwriting',
-    underwriting: 'underwriting',
-    loi_submitted: 'loi',
-    due_diligence: 'due_diligence',
-    under_contract: 'closing',
-    closed: 'closed_won',
-    dead: 'closed_lost',
+    lead: 'initial_review',
+    initial_review: 'initial_review',
+    underwriting: 'active_review',
+    loi_submitted: 'under_contract',
+    due_diligence: 'under_contract',
+    under_contract: 'under_contract',
+    closed: 'closed',
+    dead: 'dead',
   };
-  return stageMap[stage] ?? 'lead';
+  return stageMap[stage] ?? 'initial_review';
 }
 
 /** Parse city and state from deal name like "505 West (Tempe, AZ)" */
@@ -87,7 +97,15 @@ function transformBackendDeal(d: BackendDealResponse): Deal {
     totalDaysInPipeline: daysInPipeline,
     assignee: '',
     propertyType: d.deal_type || 'acquisition',
-    units: 0,
+    units: d.total_units ?? 0,
+    avgUnitSf: d.avg_unit_sf ?? 0,
+    currentOwner: d.current_owner ?? '',
+    lastSalePricePerUnit: d.last_sale_price_per_unit ?? 0,
+    lastSaleDate: d.last_sale_date ?? '',
+    t12ReturnOnCost: d.t12_return_on_cost ?? 0,
+    leveredIrr: d.levered_irr ?? 0,
+    leveredMoic: d.levered_moic ?? 0,
+    totalEquityCommitment: d.total_equity_commitment ?? 0,
     createdAt: created,
     timeline: [],
     notes: d.notes ?? undefined,
@@ -143,7 +161,7 @@ export function useDealsWithMockFallback(
     queryKey: dealKeys.lists(),
     queryFn: async (): Promise<DealsWithFallbackResponse> => {
       // Backend returns { items: [...], total, page, page_size }
-      const response = await get<{ items: BackendDealResponse[]; total: number }>('/deals', { page_size: 200 });
+      const response = await get<{ items: BackendDealResponse[]; total: number }>('/deals', { page_size: 100 });
       return {
         deals: response.items?.map(transformBackendDeal) ?? [],
         total: response.total ?? 0,
@@ -175,7 +193,7 @@ export function useKanbanBoardWithMockFallback(
 
       // Transform API response — backend stages use different names than frontend
       const frontendStages: DealStageApi[] = [
-        'lead', 'underwriting', 'loi', 'due_diligence', 'closing', 'closed_won', 'closed_lost',
+        'dead', 'initial_review', 'active_review', 'under_contract', 'closed', 'realized',
       ];
       const stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
       for (const fs of frontendStages) {
@@ -368,13 +386,12 @@ export function useDealActivitiesApi(
 
 // Local types for pipeline and stats responses
 interface DealPipelineResponse {
-  lead: DealApiResponse[];
-  underwriting: DealApiResponse[];
-  loi: DealApiResponse[];
-  due_diligence: DealApiResponse[];
-  closing: DealApiResponse[];
-  closed_won: DealApiResponse[];
-  closed_lost: DealApiResponse[];
+  dead: DealApiResponse[];
+  initial_review: DealApiResponse[];
+  active_review: DealApiResponse[];
+  under_contract: DealApiResponse[];
+  closed: DealApiResponse[];
+  realized: DealApiResponse[];
 }
 
 interface DealStatsResponse {

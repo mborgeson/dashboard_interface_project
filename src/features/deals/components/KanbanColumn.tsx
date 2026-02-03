@@ -23,23 +23,21 @@ interface KanbanColumnProps {
 }
 
 const STAGE_ICONS: Record<DealStage, string> = {
-  lead: '🎯',
-  underwriting: '📊',
-  loi: '📝',
-  due_diligence: '🔍',
-  closing: '🤝',
-  closed_won: '🏆',
-  closed_lost: '❌',
+  dead: '❌',
+  initial_review: '📊',
+  active_review: '🔍',
+  under_contract: '📝',
+  closed: '🏆',
+  realized: '💰',
 };
 
 const STAGE_BG_COLORS: Record<DealStage, string> = {
-  lead: 'bg-slate-50 border-t-slate-400',
-  underwriting: 'bg-blue-50 border-t-blue-400',
-  loi: 'bg-purple-50 border-t-purple-400',
-  due_diligence: 'bg-amber-50 border-t-amber-400',
-  closing: 'bg-orange-50 border-t-orange-400',
-  closed_won: 'bg-green-50 border-t-green-400',
-  closed_lost: 'bg-red-50 border-t-red-400',
+  dead: 'bg-red-50 border-t-red-400',
+  initial_review: 'bg-blue-50 border-t-blue-400',
+  active_review: 'bg-purple-50 border-t-purple-400',
+  under_contract: 'bg-orange-50 border-t-orange-400',
+  closed: 'bg-green-50 border-t-green-400',
+  realized: 'bg-emerald-50 border-t-emerald-400',
 };
 
 // Currency formatter instance - created once, reused

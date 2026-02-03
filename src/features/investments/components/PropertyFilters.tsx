@@ -69,12 +69,21 @@ export function PropertyFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Submarkets</SelectItem>
-            <SelectItem value="Scottsdale">Scottsdale</SelectItem>
             <SelectItem value="Tempe">Tempe</SelectItem>
-            <SelectItem value="Mesa">Mesa</SelectItem>
-            <SelectItem value="Gilbert">Gilbert</SelectItem>
+            <SelectItem value="East Valley">East Valley</SelectItem>
+            <SelectItem value="Downtown Phoenix">Downtown Phoenix</SelectItem>
+            <SelectItem value="North Phoenix">North Phoenix</SelectItem>
+            <SelectItem value="Deer Valley">Deer Valley</SelectItem>
             <SelectItem value="Chandler">Chandler</SelectItem>
-            <SelectItem value="Phoenix Central">Phoenix Central</SelectItem>
+            <SelectItem value="Gilbert">Gilbert</SelectItem>
+            <SelectItem value="Old Town Scottsdale">Old Town Scottsdale</SelectItem>
+            <SelectItem value="North West Valley">North West Valley</SelectItem>
+            <SelectItem value="South West Valley">South West Valley</SelectItem>
+            <SelectItem value="South Phoenix">South Phoenix</SelectItem>
+            <SelectItem value="North Scottsdale">North Scottsdale</SelectItem>
+            <SelectItem value="West Maricopa County">West Maricopa County</SelectItem>
+            <SelectItem value="Camelback">Camelback</SelectItem>
+            <SelectItem value="Southeast Valley">Southeast Valley</SelectItem>
           </SelectContent>
         </Select>
 

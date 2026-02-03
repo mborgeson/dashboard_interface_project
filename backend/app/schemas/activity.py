@@ -56,7 +56,7 @@ class PropertyActivityResponse(PropertyActivityBase, TimestampSchema):
 class PropertyActivityListResponse(BaseSchema):
     """Paginated list of property activities."""
 
-    items: list[PropertyActivityResponse]
+    activities: list[PropertyActivityResponse]
     total: int
     page: int = 1
     page_size: int = 50

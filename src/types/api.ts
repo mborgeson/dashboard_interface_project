@@ -171,13 +171,12 @@ export interface PropertyUpdateInput extends Partial<PropertyCreateInput> {
 // ============================================================================
 
 export type DealStageApi =
-  | 'lead'
-  | 'underwriting'
-  | 'loi'
-  | 'due_diligence'
-  | 'closing'
-  | 'closed_won'
-  | 'closed_lost';
+  | 'dead'
+  | 'initial_review'
+  | 'active_review'
+  | 'under_contract'
+  | 'closed'
+  | 'realized';
 
 export interface DealFilters extends PaginationParams, SortParams {
   stage?: DealStageApi;

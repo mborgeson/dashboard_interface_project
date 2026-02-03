@@ -20,32 +20,47 @@ const DEFAULT_FILTERS: DealFilters = {
 };
 
 export function useDeals(initialDeals: Deal[]) {
-  const [deals, setDeals] = useState<Deal[]>(initialDeals);
+  // Track local stage overrides from drag-and-drop (keyed by deal ID)
+  const [stageOverrides, setStageOverrides] = useState<Record<string, { stage: DealStage; timeline: Deal['timeline'] }>>({});
   const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
+
+  // Merge API data with any local drag-and-drop overrides
+  const deals = useMemo(() => {
+    return initialDeals.map(deal => {
+      const override = stageOverrides[deal.id];
+      if (override) {
+        return {
+          ...deal,
+          stage: override.stage,
+          daysInStage: 0,
+          timeline: override.timeline,
+        };
+      }
+      return deal;
+    });
+  }, [initialDeals, stageOverrides]);
 
   // Update deal stage (for Kanban drag-and-drop)
   const updateDealStage = (dealId: string, newStage: DealStage, oldStage: DealStage) => {
-    setDeals((prevDeals) =>
-      prevDeals.map((deal) =>
-        deal.id === dealId
-          ? {
-              ...deal,
-              stage: newStage,
-              daysInStage: 0, // Reset days in stage when moved
-              timeline: [
-                ...deal.timeline,
-                {
-                  id: `${deal.id}-${Date.now()}`,
-                  date: new Date(),
-                  stage: newStage,
-                  description: `Moved from ${oldStage.replace('_', ' ')} to ${newStage.replace('_', ' ')}`,
-                  user: 'Current User', // Would come from auth context in production
-                },
-              ],
-            }
-          : deal
-      )
-    );
+    const deal = deals.find(d => d.id === dealId);
+    if (!deal) return;
+
+    setStageOverrides(prev => ({
+      ...prev,
+      [dealId]: {
+        stage: newStage,
+        timeline: [
+          ...deal.timeline,
+          {
+            id: `${deal.id}-${Date.now()}`,
+            date: new Date(),
+            stage: newStage,
+            description: `Moved from ${oldStage.replace('_', ' ')} to ${newStage.replace('_', ' ')}`,
+            user: 'Current User',
+          },
+        ],
+      },
+    }));
   };
 
   // Get unique values for filter options
@@ -102,7 +117,7 @@ export function useDeals(initialDeals: Deal[]) {
         const matchesProperty = deal.propertyName.toLowerCase().includes(query);
         const matchesCity = deal.address.city.toLowerCase().includes(query);
         const matchesAssignee = deal.assignee.toLowerCase().includes(query);
-        
+
         if (!matchesProperty && !matchesCity && !matchesAssignee) {
           return false;
         }
@@ -115,13 +130,12 @@ export function useDeals(initialDeals: Deal[]) {
   // Group deals by stage
   const dealsByStage = useMemo(() => {
     const grouped: Record<DealStage, Deal[]> = {
-      lead: [],
-      underwriting: [],
-      loi: [],
-      due_diligence: [],
-      closing: [],
-      closed_won: [],
-      closed_lost: [],
+      dead: [],
+      initial_review: [],
+      active_review: [],
+      under_contract: [],
+      closed: [],
+      realized: [],
     };
 
     filteredDeals.forEach((deal) => {
@@ -131,37 +145,38 @@ export function useDeals(initialDeals: Deal[]) {
     return grouped;
   }, [filteredDeals]);
 
-  // Calculate metrics
+  // Calculate metrics from filtered deals
   const metrics = useMemo(() => {
-    const activeDeals = filteredDeals.filter(
-      (d) => d.stage !== 'closed_won' && d.stage !== 'closed_lost'
+    const pipelineDeals = filteredDeals.filter(
+      (d) => d.stage !== 'closed' && d.stage !== 'realized' && d.stage !== 'dead'
     );
-    const closedWon = filteredDeals.filter((d) => d.stage === 'closed_won');
-    const closedLost = filteredDeals.filter((d) => d.stage === 'closed_lost');
-    
-    const totalPipelineValue = activeDeals.reduce(
+    const closedDeals = filteredDeals.filter((d) => d.stage === 'closed');
+    const realizedDeals = filteredDeals.filter((d) => d.stage === 'realized');
+    const deadDeals = filteredDeals.filter((d) => d.stage === 'dead');
+
+    const totalPipelineValue = filteredDeals.reduce(
       (sum, deal) => sum + deal.value,
       0
     );
 
     const avgDaysInPipeline =
-      activeDeals.length > 0
+      pipelineDeals.length > 0
         ? Math.round(
-            activeDeals.reduce((sum, deal) => sum + deal.totalDaysInPipeline, 0) /
-              activeDeals.length
+            pipelineDeals.reduce((sum, deal) => sum + deal.totalDaysInPipeline, 0) /
+              pipelineDeals.length
           )
         : 0;
 
-    const totalClosed = closedWon.length + closedLost.length;
-    const winRate = totalClosed > 0 ? closedWon.length / totalClosed : 0;
+    const totalCompleted = closedDeals.length + realizedDeals.length + deadDeals.length;
+    const winRate = totalCompleted > 0 ? (closedDeals.length + realizedDeals.length) / totalCompleted : 0;
 
     return {
-      activeDealsCount: activeDeals.length,
+      activeDealsCount: filteredDeals.length,
       pipelineValue: totalPipelineValue,
       avgDaysInPipeline,
       winRate,
-      closedWonCount: closedWon.length,
-      closedLostCount: closedLost.length,
+      closedWonCount: closedDeals.length + realizedDeals.length,
+      closedLostCount: deadDeals.length,
     };
   }, [filteredDeals]);
 

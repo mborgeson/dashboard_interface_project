@@ -119,8 +119,8 @@ export function InvestmentsPage() {
           bVal = b.operations.noi;
           break;
         case 'irr':
-          aVal = a.performance.irr;
-          bVal = b.performance.irr;
+          aVal = a.performance.leveredIrr;
+          bVal = b.performance.leveredIrr;
           break;
         case 'units':
           aVal = a.propertyDetails.units;
@@ -174,8 +174,8 @@ export function InvestmentsPage() {
           bVal = b.valuation.currentValue;
           break;
         case 'irr':
-          aVal = a.performance.irr;
-          bVal = b.performance.irr;
+          aVal = a.performance.leveredIrr;
+          bVal = b.performance.leveredIrr;
           break;
         default:
           return 0;

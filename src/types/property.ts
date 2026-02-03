@@ -1,3 +1,40 @@
+export interface OperatingYearExpenses {
+  realEstateTaxes: number;
+  propertyInsurance: number;
+  staffingPayroll: number;
+  propertyManagementFee: number;
+  repairsAndMaintenance: number;
+  turnover: number;
+  contractServices: number;
+  reservesForReplacement: number;
+  adminLegalSecurity: number;
+  advertisingLeasingMarketing: number;
+  otherExpenses: number;
+  utilities: number;
+}
+
+export interface OperatingYear {
+  year: number;
+  grossPotentialRevenue: number;
+  lossToLease: number;
+  vacancyLoss: number;
+  badDebts: number;
+  concessions: number;
+  otherLoss: number;
+  netRentalIncome: number;
+  otherIncome: number;
+  laundryIncome: number;
+  parkingIncome: number;
+  petIncome: number;
+  storageIncome: number;
+  utilityIncome: number;
+  otherMiscIncome: number;
+  effectiveGrossIncome: number;
+  noi: number;
+  totalOperatingExpenses: number;
+  expenses: OperatingYearExpenses;
+}
+
 export interface Property {
   id: string;
   name: string;
@@ -26,6 +63,12 @@ export interface Property {
     closingCosts: number;
     acquisitionFee: number;
     totalInvested: number;
+    landAndAcquisitionCosts: number;
+    hardCosts: number;
+    softCosts: number;
+    lenderClosingCosts: number;
+    equityClosingCosts: number;
+    totalAcquisitionBudget: number;
   };
   financing: {
     loanAmount: number;
@@ -50,26 +93,43 @@ export interface Property {
     rentPerSqft: number;
     monthlyRevenue: number;
     otherIncome: number;
-    monthlyExpenses: {
-      propertyTax: number;
-      insurance: number;
-      utilities: number;
-      management: number;
-      repairs: number;
-      payroll: number;
-      marketing: number;
-      other: number;
+    expenses: {
+      realEstateTaxes: number;
+      otherExpenses: number;
+      propertyInsurance: number;
+      staffingPayroll: number;
+      propertyManagementFee: number;
+      repairsAndMaintenance: number;
+      turnover: number;
+      contractServices: number;
+      reservesForReplacement: number;
+      adminLegalSecurity: number;
+      advertisingLeasingMarketing: number;
       total: number;
     };
     noi: number;
     operatingExpenseRatio: number;
+    grossPotentialRevenue: number;
+    netRentalIncome: number;
+    otherIncomeAnnual: number;
+    vacancyLoss: number;
+    concessions: number;
   };
+  operationsByYear: OperatingYear[];
   performance: {
-    cashOnCashReturn: number;
-    irr: number;
-    equityMultiple: number;
-    totalReturnDollars: number;
-    totalReturnPercent: number;
+    leveredIrr: number;
+    leveredMoic: number;
+    unleveredIrr: number | null;
+    unleveredMoic: number | null;
+    totalEquityCommitment: number;
+    totalCashFlowsToEquity: number;
+    netCashFlowsToEquity: number;
+    holdPeriodYears: number;
+    exitCapRate: number;
+    totalBasisPerUnitClose: number;
+    seniorLoanBasisPerUnitClose: number;
+    totalBasisPerUnitExit: number | null;
+    seniorLoanBasisPerUnitExit: number | null;
   };
   images: {
     main: string;
@@ -78,14 +138,21 @@ export interface Property {
 }
 
 export type PhoenixSubmarket =
-  | 'Scottsdale'
   | 'Tempe'
-  | 'Mesa'
-  | 'Gilbert'
+  | 'East Valley'
+  | 'South West Valley'
+  | 'Downtown Phoenix'
+  | 'North Phoenix'
+  | 'Deer Valley'
   | 'Chandler'
-  | 'Phoenix Central'
-  | 'Phoenix North'
-  | 'Phoenix West';
+  | 'North Scottsdale'
+  | 'Gilbert'
+  | 'Old Town Scottsdale'
+  | 'North West Valley'
+  | 'South Phoenix'
+  | 'West Maricopa County'
+  | 'Camelback'
+  | 'Southeast Valley';
 
 export interface PropertySummaryStats {
   totalProperties: number;

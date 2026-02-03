@@ -22,7 +22,6 @@ from app.extraction.cell_mapping import CellMapping, CellMappingParser
 from app.extraction.error_handler import ErrorCategory, ErrorHandler
 from app.extraction.extractor import ExcelDataExtractor
 
-
 # Paths
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "uw_models"
 EXPECTED_VALUES_FILE = Path(__file__).parent.parent / "fixtures" / "expected_values.json"

@@ -29,12 +29,12 @@ interface KanbanBoardProps {
 }
 
 const PIPELINE_STAGES: DealStage[] = [
-  'lead',
-  'underwriting',
-  'loi',
-  'due_diligence',
-  'closing',
-  'closed_won',
+  'dead',
+  'initial_review',
+  'active_review',
+  'under_contract',
+  'closed',
+  'realized',
 ];
 
 // Validate stage transitions (prevent skipping stages or going backwards)
@@ -48,7 +48,7 @@ function isValidTransition(from: DealStage, _to: DealStage): boolean {
   // return toIndex === fromIndex + 1 || to === 'closed_lost';
 
   // For now, allow any transition except from closed states
-  if (from === 'closed_won' || from === 'closed_lost') {
+  if (from === 'realized') {
     return false;
   }
   return true;
@@ -112,7 +112,7 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
     // Determine the new stage - could be a column or another deal in a column
     let newStage: DealStage;
 
-    if (PIPELINE_STAGES.includes(over.id as DealStage) || over.id === 'closed_lost') {
+    if (PIPELINE_STAGES.includes(over.id as DealStage)) {
       // Dropped on a column
       newStage = over.id as DealStage;
     } else {
@@ -153,7 +153,7 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
   // Memoize stage totals to avoid recalculation on every render
   const stageTotals = useMemo(() => {
     const totals: Record<DealStage, number> = {} as Record<DealStage, number>;
-    for (const stage of [...PIPELINE_STAGES, 'closed_lost'] as DealStage[]) {
+    for (const stage of PIPELINE_STAGES) {
       totals[stage] = dealsByStage[stage]?.reduce((sum, deal) => sum + deal.value, 0) ?? 0;
     }
     return totals;
@@ -161,7 +161,7 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
 
   // Memoized total pipeline value
   const totalPipelineValue = useMemo(() => {
-    return PIPELINE_STAGES.filter(s => s !== 'closed_won')
+    return PIPELINE_STAGES
       .reduce((sum, stage) => sum + stageTotals[stage], 0);
   }, [stageTotals]);
 
@@ -216,28 +216,6 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
         </DragOverlay>
       </DndContext>
 
-      {/* Lost Deals Section */}
-      {dealsByStage.closed_lost.length > 0 && (
-        <div className="border-t border-neutral-200">
-          <div className="p-4 bg-red-50">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold text-red-800">
-                Closed Lost
-              </div>
-              <div className="text-xs text-red-600">
-                {dealsByStage.closed_lost.length}{' '}
-                {dealsByStage.closed_lost.length === 1 ? 'deal' : 'deals'} • {' '}
-                {formatCurrency(stageTotals.closed_lost)}
-              </div>
-            </div>
-            <div className="grid grid-cols-6 gap-3">
-              {dealsByStage.closed_lost.map((deal) => (
-                <DealCard key={deal.id} deal={deal} />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

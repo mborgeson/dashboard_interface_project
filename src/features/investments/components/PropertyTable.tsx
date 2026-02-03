@@ -87,7 +87,7 @@ const PropertyRow = memo(function PropertyRow({
         </TableCell>
         <TableCell className="text-right">
           <span className="font-semibold text-green-600">
-            {formatPercent(property.performance.irr)}
+            {formatPercent(property.performance.leveredIrr)}
           </span>
         </TableCell>
       </TableRow>
@@ -119,9 +119,9 @@ const PropertyRow = memo(function PropertyRow({
                   <p className="mt-1 text-sm">
                     Cap Rate: {formatPercent(property.valuation.capRate)}
                     <br />
-                    CoC Return: {formatPercent(property.performance.cashOnCashReturn)}
+                    IRR (Levered): {formatPercent(property.performance.leveredIrr)}
                     <br />
-                    Equity Multiple: {property.performance.equityMultiple.toFixed(2)}x
+                    MOIC (Levered): {property.performance.leveredMoic.toFixed(2)}x
                   </p>
                 </div>
                 <div>

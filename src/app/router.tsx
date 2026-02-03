@@ -5,7 +5,6 @@ import {
   AnalyticsPage,
   InvestmentsPage,
   PropertyDetailPage,
-  TransactionsPage,
   MappingPage,
   DealsPage,
   MarketPage,
@@ -58,14 +57,6 @@ const router = createBrowserRouter(
           element: (
             <LazyRoute>
               <PropertyDetailPage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'transactions',
-          element: (
-            <LazyRoute>
-              <TransactionsPage />
             </LazyRoute>
           ),
         },

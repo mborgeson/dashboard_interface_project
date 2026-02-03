@@ -7,6 +7,11 @@ interface FinancialsTabProps {
   property: Property;
 }
 
+function formatRate(value: number, decimals: number = 2): string {
+  // Format a decimal rate (e.g. 0.0487) as a percent string with specified decimals
+  return `${(value * 100).toFixed(decimals)}%`;
+}
+
 export function FinancialsTab({ property }: FinancialsTabProps) {
   return (
     <div className="p-6 space-y-6">
@@ -25,24 +30,24 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
               <div className="text-lg font-semibold">{formatDate(property.acquisition.date)}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600 mb-1">Purchase Price</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.purchasePrice)}</div>
+              <div className="text-sm text-gray-600 mb-1">Hard Costs</div>
+              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.hardCosts)}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600 mb-1">Price Per Unit</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.pricePerUnit)}</div>
+              <div className="text-sm text-gray-600 mb-1">Soft Costs</div>
+              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.softCosts)}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600 mb-1">Closing Costs</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.closingCosts)}</div>
+              <div className="text-sm text-gray-600 mb-1">Lender Closing Costs</div>
+              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.lenderClosingCosts)}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600 mb-1">Acquisition Fee</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.acquisitionFee)}</div>
+              <div className="text-sm text-gray-600 mb-1">Equity Closing Costs</div>
+              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.equityClosingCosts)}</div>
             </div>
             <div className="bg-primary-50 p-4 rounded-lg">
-              <div className="text-sm text-primary-600 mb-1">Total Invested</div>
-              <div className="text-xl font-bold text-primary-900">{formatCurrency(property.acquisition.totalInvested)}</div>
+              <div className="text-sm text-primary-600 mb-1">Total Acquisition Budget</div>
+              <div className="text-xl font-bold text-primary-900">{formatCurrency(property.acquisition.totalAcquisitionBudget)}</div>
             </div>
           </div>
         </CardContent>
@@ -68,7 +73,7 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Interest Rate</div>
-              <div className="text-lg font-semibold">{formatPercent(property.financing.interestRate)}</div>
+              <div className="text-lg font-semibold">{formatRate(property.financing.interestRate)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Loan Term</div>
@@ -79,7 +84,7 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
               <div className="text-lg font-semibold">{property.financing.amortization} years</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600 mb-1">Monthly Payment</div>
+              <div className="text-sm text-gray-600 mb-1">Monthly Payment (Fully-Amortized)</div>
               <div className="text-lg font-semibold">{formatCurrency(property.financing.monthlyPayment)}</div>
             </div>
             <div>

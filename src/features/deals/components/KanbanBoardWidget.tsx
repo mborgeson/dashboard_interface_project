@@ -37,16 +37,16 @@ interface KanbanBoardWidgetProps {
 }
 
 const PIPELINE_STAGES: DealStageApi[] = [
-  'lead',
-  'underwriting',
-  'loi',
-  'due_diligence',
-  'closing',
-  'closed_won',
+  'dead',
+  'initial_review',
+  'active_review',
+  'under_contract',
+  'closed',
+  'realized',
 ];
 
 function isValidTransition(from: DealStage): boolean {
-  if (from === 'closed_won' || from === 'closed_lost') {
+  if (from === 'realized') {
     return false;
   }
   return true;
@@ -145,7 +145,7 @@ export function KanbanBoardWidget({
     // Determine the new stage
     let newStage: DealStageApi;
 
-    if ([...PIPELINE_STAGES, 'closed_lost'].includes(over.id as DealStageApi)) {
+    if (PIPELINE_STAGES.includes(over.id as DealStageApi)) {
       newStage = over.id as DealStageApi;
     } else {
       const overStage = findStageByDealId(over.id as string);
@@ -192,7 +192,7 @@ export function KanbanBoardWidget({
 
   const getTotalPipelineValue = useCallback(() => {
     if (!stages) return 0;
-    return PIPELINE_STAGES.filter(s => s !== 'closed_won')
+    return PIPELINE_STAGES
       .reduce((sum, stage) => sum + (stages[stage]?.totalValue || 0), 0);
   }, [stages]);
 
@@ -211,8 +211,6 @@ export function KanbanBoardWidget({
       </div>
     );
   }
-
-  const closedLostDeals = data.stages.closed_lost?.deals || [];
 
   return (
     <div className={cn('bg-white rounded-lg border border-neutral-200 shadow-card', className)}>
@@ -268,31 +266,6 @@ export function KanbanBoardWidget({
         </DragOverlay>
       </DndContext>
 
-      {/* Lost Deals Section */}
-      {closedLostDeals.length > 0 && (
-        <div className="border-t border-neutral-200">
-          <div className="p-4 bg-red-50">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold text-red-800">Closed Lost</div>
-              <div className="text-xs text-red-600">
-                {closedLostDeals.length}{' '}
-                {closedLostDeals.length === 1 ? 'deal' : 'deals'} •{' '}
-                {formatCurrency(data.stages.closed_lost?.totalValue || 0)}
-              </div>
-            </div>
-            <div className="grid grid-cols-6 gap-3">
-              {closedLostDeals.map((deal) => (
-                <DealCard
-                  key={deal.id}
-                  deal={deal}
-                  compact={viewMode === 'compact'}
-                  onClick={onDealClick}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

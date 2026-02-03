@@ -22,7 +22,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Property, User
 from app.models.activity import ActivityType, PropertyActivity
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

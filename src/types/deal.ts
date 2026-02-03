@@ -1,11 +1,10 @@
-export type DealStage = 
-  | 'lead' 
-  | 'underwriting' 
-  | 'loi' 
-  | 'due_diligence' 
-  | 'closing' 
-  | 'closed_won' 
-  | 'closed_lost';
+export type DealStage =
+  | 'dead'
+  | 'initial_review'
+  | 'active_review'
+  | 'under_contract'
+  | 'closed'
+  | 'realized';
 
 export interface DealTimelineEvent {
   id: string;
@@ -31,27 +30,33 @@ export interface Deal {
   assignee: string;
   propertyType: string;
   units: number;
+  avgUnitSf: number;
+  currentOwner: string;
+  lastSalePricePerUnit: number;
+  lastSaleDate: string;
+  t12ReturnOnCost: number;
+  leveredIrr: number;
+  leveredMoic: number;
+  totalEquityCommitment: number;
   createdAt: Date;
   timeline: DealTimelineEvent[];
   notes?: string;
 }
 
 export const DEAL_STAGE_LABELS: Record<DealStage, string> = {
-  lead: 'Lead',
-  underwriting: 'Underwriting',
-  loi: 'LOI',
-  due_diligence: 'Due Diligence',
-  closing: 'Closing',
-  closed_won: 'Closed Won',
-  closed_lost: 'Closed Lost',
+  dead: 'Dead Deals',
+  initial_review: 'Initial UW and Review',
+  active_review: 'Active UW and Review',
+  under_contract: 'Deals Under Contract',
+  closed: 'Closed Deals',
+  realized: 'Realized Deals',
 };
 
 export const DEAL_STAGE_COLORS: Record<DealStage, string> = {
-  lead: 'bg-neutral-100 text-neutral-700 border-neutral-300',
-  underwriting: 'bg-blue-100 text-blue-700 border-blue-300',
-  loi: 'bg-purple-100 text-purple-700 border-purple-300',
-  due_diligence: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-  closing: 'bg-orange-100 text-orange-700 border-orange-300',
-  closed_won: 'bg-green-100 text-green-700 border-green-300',
-  closed_lost: 'bg-red-100 text-red-700 border-red-300',
+  dead: 'bg-red-100 text-red-700 border-red-300',
+  initial_review: 'bg-blue-100 text-blue-700 border-blue-300',
+  active_review: 'bg-purple-100 text-purple-700 border-purple-300',
+  under_contract: 'bg-orange-100 text-orange-700 border-orange-300',
+  closed: 'bg-green-100 text-green-700 border-green-300',
+  realized: 'bg-emerald-100 text-emerald-700 border-emerald-300',
 };

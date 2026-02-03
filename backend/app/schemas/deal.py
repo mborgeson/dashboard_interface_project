@@ -152,6 +152,17 @@ class DealResponse(DealBase, TimestampSchema):
 
     stage_updated_at: datetime | None = None
 
+    # Enrichment fields from extraction data
+    total_units: int | None = None
+    avg_unit_sf: float | None = None
+    current_owner: str | None = None
+    last_sale_price_per_unit: float | None = None
+    last_sale_date: str | None = None
+    t12_return_on_cost: float | None = None
+    levered_irr: float | None = None
+    levered_moic: float | None = None
+    total_equity_commitment: float | None = None
+
 
 class DealListResponse(BaseSchema):
     """Paginated list of deals."""

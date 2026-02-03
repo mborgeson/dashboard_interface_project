@@ -81,7 +81,7 @@ export function PropertyDetailPanel({ property, onClose }: PropertyDetailPanelPr
           <div className="flex justify-between items-center">
             <span className="text-sm text-neutral-600">IRR</span>
             <span className="text-sm font-semibold text-primary-700">
-              {formatPercent(property.performance.irr)}
+              {formatPercent(property.performance.leveredIrr)}
             </span>
           </div>
         </div>

@@ -65,7 +65,7 @@ const mockDeals: DealForComparison[] = [
     address: { street: '4500 S Power Rd', city: 'Mesa', state: 'AZ' },
     value: 35800000,
     capRate: 5.5,
-    stage: 'loi' as DealStage,
+    stage: 'under_contract' as DealStage,
     daysInStage: 9,
     totalDaysInPipeline: 42,
     assignee: 'David Park',

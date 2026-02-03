@@ -13,9 +13,6 @@ export const InvestmentsPage = lazy(() =>
 export const PropertyDetailPage = lazy(() =>
   import('@/features/property-detail').then(m => ({ default: m.PropertyDetailPage }))
 );
-export const TransactionsPage = lazy(() =>
-  import('@/features/transactions').then(m => ({ default: m.TransactionsPage }))
-);
 export const MappingPage = lazy(() =>
   import('@/features/mapping').then(m => ({ default: m.MappingPage }))
 );
@@ -53,7 +50,6 @@ export const ROUTES = {
   HOME: '/',
   INVESTMENTS: '/investments',
   PROPERTY_DETAIL: '/properties/:id',
-  TRANSACTIONS: '/transactions',
   DEALS: '/deals',
   DEALS_COMPARE: '/deals/compare',
   ANALYTICS: '/analytics',

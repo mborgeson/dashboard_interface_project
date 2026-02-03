@@ -20,7 +20,6 @@ from app.extraction.cell_mapping import CellMapping, CellMappingParser
 from app.extraction.error_handler import ErrorCategory, ErrorHandler
 from app.extraction.extractor import BatchProcessor, ExcelDataExtractor
 
-
 # Paths
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "uw_models"
 BACKEND_DIR = Path(__file__).parent.parent.parent
@@ -70,7 +69,7 @@ class TestExtractionCompleteness:
             )
 
         # All mapped fields should be in result (either value or NaN)
-        for field_name in sample_mappings.keys():
+        for field_name in sample_mappings:
             assert field_name in result, f"Field {field_name} not in extraction result"
 
     def test_extraction_metadata_present(

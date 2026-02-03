@@ -130,13 +130,22 @@ const CLASS_COLORS = {
   'Class C': '#10b981', // green-500
 };
 
-const SUBMARKET_COLORS = {
-  Scottsdale: '#2A3F54',
+const SUBMARKET_COLORS: Record<string, string> = {
   Tempe: '#E74C3C',
-  Mesa: '#10b981',
-  Gilbert: '#f59e0b',
+  'East Valley': '#10b981',
+  'Downtown Phoenix': '#ec4899',
+  'North Phoenix': '#2A3F54',
+  'Deer Valley': '#3b82f6',
   Chandler: '#8b5cf6',
-  'Phoenix Central': '#ec4899',
+  Gilbert: '#f59e0b',
+  'Old Town Scottsdale': '#f97316',
+  'North West Valley': '#06b6d4',
+  'South West Valley': '#84cc16',
+  'South Phoenix': '#a855f7',
+  'North Scottsdale': '#14b8a6',
+  'West Maricopa County': '#78716c',
+  Camelback: '#e11d48',
+  'Southeast Valley': '#0ea5e9',
 };
 
 export function PropertyDistributionChart({ type = 'class', properties }: PropertyDistributionChartProps) {

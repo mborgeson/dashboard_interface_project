@@ -30,9 +30,93 @@ from app.schemas.deal import (
     DealUpdate,
     KanbanBoardResponse,
 )
+from app.models.extraction import ExtractedValue
 from app.services import get_websocket_manager
 
 router = APIRouter()
+
+
+async def _enrich_deals_with_extraction(
+    db: AsyncSession, deal_responses: list[DealResponse]
+) -> list[DealResponse]:
+    """Add extraction-derived fields (units, owner, IRR, etc.) to deal responses."""
+    # Collect property IDs
+    prop_ids = [d.property_id for d in deal_responses if d.property_id]
+    if not prop_ids:
+        return deal_responses
+
+    # Fetch needed extraction fields in one query
+    needed_fields = [
+        "TOTAL_UNITS", "AVERAGE_UNIT_SF", "CURRENT_OWNER",
+        "LAST_SALE_PRICE_PER_UNIT", "LAST_SALE_DATE",
+        "T12_RETURN_ON_COST", "LP_RETURNS_IRR", "LP_RETURNS_MOIC",
+    ]
+    stmt = (
+        select(ExtractedValue)
+        .where(
+            ExtractedValue.property_id.in_(prop_ids),
+            ExtractedValue.field_name.in_(needed_fields),
+        )
+    )
+    result = await db.execute(stmt)
+    rows = result.scalars().all()
+
+    # Build lookup: {property_id: {field_name: row}}
+    lookup: dict[int, dict[str, ExtractedValue]] = {}
+    for row in rows:
+        lookup.setdefault(row.property_id, {})[row.field_name] = row
+
+    # Also fetch equity commitment from property financial_data
+    prop_stmt = select(Property.id, Property.financial_data).where(Property.id.in_(prop_ids))
+    prop_result = await db.execute(prop_stmt)
+    prop_map = {pid: fd for pid, fd in prop_result.all()}
+
+    for deal in deal_responses:
+        if not deal.property_id:
+            continue
+        fields = lookup.get(deal.property_id, {})
+
+        ev = fields.get("TOTAL_UNITS")
+        if ev and ev.value_numeric is not None:
+            deal.total_units = int(ev.value_numeric)
+
+        ev = fields.get("AVERAGE_UNIT_SF")
+        if ev and ev.value_numeric is not None:
+            deal.avg_unit_sf = float(ev.value_numeric)
+
+        ev = fields.get("CURRENT_OWNER")
+        if ev and ev.value_text:
+            deal.current_owner = ev.value_text
+
+        ev = fields.get("LAST_SALE_PRICE_PER_UNIT")
+        if ev and ev.value_numeric is not None:
+            deal.last_sale_price_per_unit = float(ev.value_numeric)
+
+        ev = fields.get("LAST_SALE_DATE")
+        if ev and ev.value_text:
+            deal.last_sale_date = ev.value_text
+
+        ev = fields.get("T12_RETURN_ON_COST")
+        if ev and ev.value_numeric is not None:
+            deal.t12_return_on_cost = float(ev.value_numeric)
+
+        ev = fields.get("LP_RETURNS_IRR")
+        if ev and ev.value_numeric is not None:
+            deal.levered_irr = float(ev.value_numeric)
+
+        ev = fields.get("LP_RETURNS_MOIC")
+        if ev and ev.value_numeric is not None:
+            deal.levered_moic = float(ev.value_numeric)
+
+        # Equity commitment from property financial_data
+        fd = prop_map.get(deal.property_id)
+        if fd and isinstance(fd, dict):
+            ret = fd.get("returns", {})
+            ec = ret.get("totalEquityCommitment")
+            if ec is not None:
+                deal.total_equity_commitment = float(ec)
+
+    return deal_responses
 
 
 @router.get("/", response_model=DealListResponse)
@@ -75,8 +159,12 @@ async def list_deals(
         assigned_user_id=assigned_user_id,
     )
 
+    # Convert ORM items to Pydantic, then enrich with extraction data
+    deal_responses = [DealResponse.model_validate(item) for item in items]
+    enriched = await _enrich_deals_with_extraction(db, deal_responses)
+
     return DealListResponse(
-        items=items,
+        items=enriched,
         total=total,
         page=page,
         page_size=page_size,
@@ -100,8 +188,18 @@ async def get_kanban_board(
         assigned_user_id=assigned_user_id,
     )
 
+    # Enrich all deals across stages with extraction data
+    all_responses: list[DealResponse] = []
+    stage_response_map: dict[str, list[DealResponse]] = {}
+    for stage_name, deals_list in kanban_data["stages"].items():
+        responses = [DealResponse.model_validate(d) for d in deals_list]
+        stage_response_map[stage_name] = responses
+        all_responses.extend(responses)
+
+    await _enrich_deals_with_extraction(db, all_responses)
+
     return KanbanBoardResponse(
-        stages=kanban_data["stages"],
+        stages=stage_response_map,
         total_deals=kanban_data["total_deals"],
         stage_counts=kanban_data["stage_counts"],
     )

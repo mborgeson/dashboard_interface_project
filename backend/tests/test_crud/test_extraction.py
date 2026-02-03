@@ -34,7 +34,6 @@ from app.crud.extraction import ExtractedValueCRUD, ExtractionRunCRUD
 from app.db.base import Base
 from app.models.extraction import ExtractedValue, ExtractionRun
 
-
 # ============================================================================
 # Sync Database Setup
 # ============================================================================

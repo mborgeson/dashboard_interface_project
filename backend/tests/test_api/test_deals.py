@@ -492,7 +492,7 @@ async def test_compare_deals_too_few(client, test_deal, auth_headers):
 @pytest.mark.asyncio
 async def test_compare_deals_too_many(client, auth_headers, db_session, test_user):
     """Test 400 when comparing more than 10 deals."""
-    from app.models import Deal, DealStage
+    from app.models import Deal
 
     # Create 11 deals
     deals = []

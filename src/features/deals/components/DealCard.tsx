@@ -32,11 +32,11 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 
 // Progress stages constant - defined outside component
 const PROGRESS_STAGES: Deal['stage'][] = [
-  'lead',
-  'underwriting',
-  'loi',
-  'due_diligence',
-  'closing',
+  'initial_review',
+  'active_review',
+  'under_contract',
+  'closed',
+  'realized',
 ];
 
 export const DealCard = memo(function DealCard({ deal, isDragging = false, compact = false, onClick }: DealCardProps) {
@@ -145,7 +145,7 @@ export const DealCard = memo(function DealCard({ deal, isDragging = false, compa
       </div>
 
       {/* Progress Bar */}
-      {!['closed_won', 'closed_lost'].includes(deal.stage) && (
+      {!['realized', 'dead'].includes(deal.stage) && (
         <div className="mb-3">
           <div className="flex items-center justify-between text-xs text-neutral-600 mb-1">
             <span>Progress</span>

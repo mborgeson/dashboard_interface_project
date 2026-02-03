@@ -243,6 +243,9 @@ export function MarketTrendsWidget({
           Last {periodMonths} months • Phoenix MSA
         </div>
       </div>
+      <div className="mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+        Static reference data — not connected to live market feeds. Integration with third-party data sources is planned.
+      </div>
     </Card>
   );
 }

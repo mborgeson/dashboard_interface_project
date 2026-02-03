@@ -20,8 +20,7 @@ if backend_dir not in sys.path:
 
 from sqlalchemy import text
 
-from app.db.base import Base
-from app.db.session import SessionLocal, sync_engine
+from app.db.session import SessionLocal
 from app.models import (
     Deal,
     DealStage,
@@ -262,6 +261,11 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
             "acquisition": {
                 "purchasePrice": purchase_price,
                 "totalAcquisitionBudget": field_num(fields, "TOTAL_ACQUISITION_BUDGET"),
+                "landAndAcquisitionCosts": field_num(fields, "TOTAL_LAND_AND_ACQUISITION_COSTS"),
+                "hardCosts": field_num(fields, "TOTAL_HARD_COSTS"),
+                "softCosts": field_num(fields, "TOTAL_SOFT_COSTS"),
+                "lenderClosingCosts": field_num(fields, "TOTAL_LENDER_CLOSING_COSTS"),
+                "equityClosingCosts": field_num(fields, "TOTAL_EQUITY_CLOSING_COSTS"),
                 "closingCosts": field_num(fields, "EQUITY_CLOSING_COSTS_EXPENSES"),
                 "acquisitionFee": field_num(fields, "ACQUISITION_FEE"),
                 "pricePerUnit": round(purchase_price / total_units, 2) if purchase_price and total_units else None,
@@ -280,9 +284,13 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
                 "lpMoic": field_num(fields, "LP_RETURNS_MOIC"),
                 "leveredIrr": field_num(fields, "LEVERED_RETURNS_IRR"),
                 "leveredMoic": field_num(fields, "LEVERED_RETURNS_MOIC"),
-                "cashOnCashYear1": field_num(fields, "EQUITY_CASH_ON_CASH_EXCLUDING_PROJECTLEVEL_FEES_YEAR_1"),
-                "cashOnCashYear2": field_num(fields, "EQUITY_CASH_ON_CASH_EXCLUDING_PROJECTLEVEL_FEES_YEAR_2"),
-                "cashOnCashYear3": field_num(fields, "EQUITY_CASH_ON_CASH_EXCLUDING_PROJECTLEVEL_FEES_YEAR_3"),
+                "cashOnCashYear1": field_num(fields, "LP_RETURNS_PREREFI_CASH_ON_CASH"),
+                "cashOnCashYear2": field_num(fields, "LP_RETURNS_POSTREFI_CASH_ON_CASH"),
+                "cashOnCashYear3": field_num(fields, "LP_RETURNS_AVG_REFI_CASH_ON_CASH"),
+                "unleveredIrr": field_num(fields, "UNLEVERED_RETURNS_IRR"),
+                "unleveredMoic": field_num(fields, "UNLEVERED_RETURNS_MOIC"),
+                "lpCashflowInflow": field_num(fields, "LP_CASHFLOW_INFLOW_RETURN_TOTAL"),
+                "totalEquityCommitment": field_num(fields, "EQUITY_LP_CAPITAL"),
             },
             "operations": {
                 "vacancyRate": vacancy_rate,
@@ -294,10 +302,49 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
                 "totalRevenueYear1": field_num(fields, "GROSS_POTENTIAL_REVENUE_YEAR_1"),
                 "netRentalIncomeYear1": field_num(fields, "NET_RENTAL_INCOME_YEAR_1"),
                 "otherIncomeYear1": field_num(fields, "TOTAL_OTHER_INCOME_YEAR_1"),
+                "vacancyLossYear1": field_num(fields, "VACANCY_LOSS_YEAR_1"),
+                "concessionsYear1": field_num(fields, "CONCESSIONS_YEAR_1"),
+            },
+            # Multi-year operations data (years 1-5)
+            "operationsByYear": {
+                str(yr): {
+                    "grossPotentialRevenue": field_num(fields, f"GROSS_POTENTIAL_REVENUE_YEAR_{yr}"),
+                    "lossToLease": field_num(fields, f"LOSS_TO_LEASE_YEAR_{yr}"),
+                    "vacancyLoss": field_num(fields, f"VACANCY_LOSS_YEAR_{yr}"),
+                    "badDebts": field_num(fields, f"BAD_DEBTS_YEAR_{yr}"),
+                    "concessions": field_num(fields, f"CONCESSIONS_YEAR_{yr}"),
+                    "otherLoss": field_num(fields, f"OTHER_LOSS_YEAR_{yr}"),
+                    "netRentalIncome": field_num(fields, f"NET_RENTAL_INCOME_YEAR_{yr}"),
+                    "otherIncome": field_num(fields, f"TOTAL_OTHER_INCOME_YEAR_{yr}"),
+                    "laundryIncome": field_num(fields, f"LAUNDRY_INCOME_YEAR_{yr}"),
+                    "parkingIncome": field_num(fields, f"PARKING_INCOME_YEAR_{yr}"),
+                    "petIncome": field_num(fields, f"PET_INCOME_YEAR_{yr}"),
+                    "storageIncome": field_num(fields, f"STORAGE_INCOME_YEAR_{yr}"),
+                    "utilityIncome": field_num(fields, f"UTILITY_INCOME_YEAR_{yr}"),
+                    "otherMiscIncome": field_num(fields, f"OTHER_MISC_INCOME_YEAR_{yr}"),
+                    "effectiveGrossIncome": field_num(fields, f"EFFECTIVE_GROSS_INCOME_YEAR_{yr}"),
+                    "totalOperatingExpenses": field_num(fields, f"TOTAL_OPERATING_EXPENSES_YEAR_{yr}"),
+                    "noi": field_num(fields, f"NET_OPERATING_INCOME_YEAR_{yr}"),
+                    "expenses": {
+                        "realEstateTaxes": field_num(fields, f"REAL_ESTATE_TAXES_YEAR_{yr}"),
+                        "propertyInsurance": field_num(fields, f"PROPERTY_INSURANCE_YEAR_{yr}"),
+                        "staffingPayroll": field_num(fields, f"STAFFING_PAYROLL_YEAR_{yr}"),
+                        "propertyManagementFee": field_num(fields, f"PROPERTY_MANAGEMENT_FEE_YEAR_{yr}"),
+                        "repairsAndMaintenance": field_num(fields, f"REPAIRS_AND_MAINTENANCE_YEAR_{yr}"),
+                        "turnover": field_num(fields, f"TURNOVER_YEAR_{yr}"),
+                        "contractServices": field_num(fields, f"CONTRACT_SERVICES_YEAR_{yr}"),
+                        "reservesForReplacement": field_num(fields, f"RESERVES_FOR_REPLACEMENT_YEAR_{yr}"),
+                        "adminLegalSecurity": field_num(fields, f"ADMIN_LEGAL_AND_SECURITY_YEAR_{yr}"),
+                        "advertisingLeasingMarketing": field_num(fields, f"ADVERTISING_LEASING_AND_MARKETING_YEAR_{yr}"),
+                        "otherExpenses": field_num(fields, f"OTHER_EXPENSES_YEAR_{yr}"),
+                        "utilities": field_num(fields, f"UTILITIES_YEAR_{yr}"),
+                    },
+                }
+                for yr in range(1, 6)
             },
             "expenses": {
                 "realEstateTaxes": field_num(fields, "REAL_ESTATE_TAXES_YEAR_1"),
-                "insurance": field_num(fields, "INSURANCE_EXPENSE_GROWTH_RATE_YEAR_1"),
+                "insurance": field_num(fields, "INSURANCE_PREMIUM"),
                 "utilities": field_num(fields, "UTILITIES_YEAR_1"),
                 "management": field_num(fields, "PROPERTY_MANAGEMENT_FEE_YEAR_1"),
                 "managementRate": field_num(fields, "PROPERTY_MANAGEMENT_FEE_RATE"),
@@ -307,11 +354,17 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
                 "contractServices": field_num(fields, "CONTRACT_SERVICES_YEAR_1"),
                 "adminLegalSecurity": field_num(fields, "ADMIN_LEGAL_AND_SECURITY_YEAR_1"),
                 "reserves": field_num(fields, "RESERVES_FOR_REPLACEMENT_YEAR_1"),
+                "turnover": field_num(fields, "TURNOVER_YEAR_1"),
+                "otherExpenses": field_num(fields, "OTHER_EXPENSES_YEAR_1"),
             },
             "exit": {
                 "exitCapRate": field_num(fields, "EXIT_CAP_RATE"),
                 "exitPeriodMonths": field_int(fields, "EXIT_PERIOD_MONTHS"),
                 "holdPeriodYears": round(field_num(fields, "EXIT_PERIOD_MONTHS", 60) / 12, 1),
+                "basisPerUnitAtClose": field_num(fields, "BASIS_UNIT_AT_CLOSE"),
+                "basisPerUnitAtExit": field_num(fields, "BASIS_UNIT_AT_EXIT"),
+                "seniorDebtBasisPerUnitAtClose": field_num(fields, "SENIOR_DEBT_BASIS_UNIT_AT_CLOSE"),
+                "seniorDebtBasisPerUnitAtExit": field_num(fields, "SENIOR_DEBT_BASIS_UNIT_AT_EXIT"),
             },
             "physical": {
                 "numberOfBuildings": field_int(fields, "NUMBER_OF_BUILDINGS"),

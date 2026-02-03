@@ -16,7 +16,6 @@ import pytest
 
 from app.extraction.cell_mapping import CellMapping, CellMappingParser
 
-
 # Paths
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "uw_models"
 BACKEND_DIR = Path(__file__).parent.parent.parent
@@ -153,7 +152,7 @@ class TestCellMappingAccuracy:
         valid_pattern = re.compile(r"^[A-Z0-9][A-Z0-9_]*$")
 
         invalid_names = []
-        for field_name in mappings.keys():
+        for field_name in mappings:
             if not valid_pattern.match(field_name):
                 invalid_names.append(field_name)
 

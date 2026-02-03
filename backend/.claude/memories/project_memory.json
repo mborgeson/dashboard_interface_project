@@ -4,41 +4,53 @@
   "realtime_memories": [
     {
       "type": "claude_response",
-      "content": "Extraction pipeline: 28 Excel files → 26 properties, 30,394 values across 11 categories. Scheduler runs twice daily (cron: 0 2,14 * * *), file monitor polls SharePoint every 30 min. Config: EXTRACTION_SCHEDULE_ENABLED=true, FILE_MONITOR_ENABLED=true in backend/.env. Initialized in app/main.py lifespan. [Investment Name] is a template placeholder, not real data. Data quality: many properties have 300-600+ errors out of 1,169 fields.",
-      "added_at": "2026-02-02T11:46:37.112423",
-      "source": "consolidated"
-    },
-    {
-      "type": "claude_response",
-      "content": "Frontend API config: src/lib/config.ts appends /api/v1 to base URL (VITE_API_URL). src/lib/api.ts and feature hooks import API_URL from config.ts as single source of truth.",
-      "added_at": "2026-02-02T11:02:37.435461",
-      "source": "consolidated"
-    },
-    {
-      "type": "claude_response",
-      "content": "User preference: Be extremely clear and explicit about what actions the user needs to take. Don't assume context — state clearly if no action is needed. User prefers directness over hedging.",
+      "content": "User preference: Be extremely clear and explicit about what actions the user needs to take. Don't assume context — state clearly if no action is needed. User prefers directness over hedging. User wants parallel agent swarms for multi-page reviews.",
       "added_at": "2026-02-02T11:13:15.728937",
       "source": "consolidated"
     },
     {
       "type": "claude_response",
-      "content": "Dashboard pages wired to real API data (completed). Extraction page done first. All 14 properties updated with real street addresses and coordinates (replacing placeholders). Installed skills: agent-browser, dashboard-creator, using-claude-code-cli.",
-      "added_at": "2026-02-02T20:32:04.875687",
+      "content": "Architecture: Frontend (Vite/React) on port 5173, Backend (FastAPI/uvicorn) on port 8000. Frontend API config: src/lib/config.ts appends /api/v1 to base URL (VITE_API_URL). Property detail subpages are tabs within /properties/:id (not separate routes) — accessed via 'View Full Details' from /investments. Standalone Transactions page REMOVED (merged into Investments property detail Transactions tab).",
+      "added_at": "2026-02-03T06:40:00.000000",
       "source": "consolidated"
     },
     {
-      "type": "message",
-      "content": "Property addresses with coordinates provided by user for 14 properties (Alante at the Islands, Alta Surprise, etc.) — stored in database with real lat/long values.",
-      "added_at": "2026-02-02T20:32:04.875729",
+      "type": "claude_response",
+      "content": "Extraction pipeline: 28 Excel files -> 26 properties (30 seeded), 30,394 values across 11 categories. Data quality issues: many properties have 300-600+ errors out of 1,169 fields. LEVERED/UNLEVERED IRR/MOIC extraction cells return NULL for all 88 properties — LP_RETURNS_IRR/MOIC used as fallback (IRR 0.12-0.23). BASIS_UNIT_AT_EXIT only 11/88 have values. Real estate taxes for some properties exceed gross revenue — extraction mapping error. effectiveGrossIncome extraction returns null for all properties.",
+      "added_at": "2026-02-03T06:40:00.000000",
       "source": "consolidated"
     },
     {
+      "type": "claude_response",
+      "content": "Key type changes (property.ts): performance uses leveredIrr/leveredMoic/unleveredIrr(nullable)/unleveredMoic(nullable). operations.expenses is object with 12 named categories + total. acquisition has 6 budget category fields. operationsByYear: OperatingYear[] with OperatingYearExpenses and 9 additional fields (lossToLease, badDebts, otherLoss, laundryIncome, parkingIncome, petIncome, storageIncome, utilityIncome, otherMiscIncome, effectiveGrossIncome). totalBasisPerUnitExit and seniorLoanBasisPerUnitExit are number|null.",
+      "added_at": "2026-02-03T06:40:00.000000",
+      "source": "consolidated"
+    },
+    {
+      "type": "claude_response",
+      "content": "CHECKPOINT Feb 3 2026 — ALL Investments + Transactions + Deals tasks COMPLETE (Tasks 12-17):\n\n[Task 12] FinancialsTab: Removed 'Purchase Price' and 'Land and Acquisition Costs' from Acquisition Details to fix double-counting.\n\n[Task 13] OperationsTab complete rewrite: Added 9 missing line items to full pipeline (seed_database.py -> properties.py _build_operations_by_year -> property.ts OperatingYear -> OperationsTab.tsx). Revenue/loss section: Loss to Lease, Vacancy Loss, Bad Debts, Concessions, Other Loss. Other Income breakdown: Laundry, Parking, Pet, Storage, Utility, Other Misc. Effective Gross Income subtotal. Improved pie chart: donut style with Legend, paddingAngle, white stroke, shadow tooltip. CashflowRow skips all-zero rows. Expense total calculated from individual line items.\n\n[Task 14] Performance metrics fixed: Backend fallback logic (leveredIrr = ret.leveredIrr or ret.lpIrr) now working after re-seed. API returns leveredIrr=0.1704, leveredMoic=1.8029, totalBasisPerUnitExit=24.0, seniorLoanBasisPerUnitExit=12.0. unleveredIrr/Moic remain null (no extraction data).\n\n[Task 15] Standalone Transactions page removed: Deleted /transactions route from router.tsx, routes.ts, Sidebar.tsx, GlobalSearch.tsx. Property-detail TransactionsTab remains.\n\n[Task 16] Deals Timeline cards updated with 9 new metrics: Unit Count, Avg Unit SF, Current Owner, Last Sale $/Unit, Last Sale Date, T12 Return-on-Cost, Levered IRR, Levered MOIC, Total Equity Commitment, Deal Value. Backend enrichment: _enrich_deals_with_extraction() in deals.py queries extracted_values + property financial_data. New fields on DealResponse schema. Both /deals/ and /deals/kanban endpoints enriched. 25/30 deals have extraction data.\n\n[Task 17] Deal stages changed from 7 old stages (lead/underwriting/loi/due_diligence/closing/closed_won/closed_lost) to 6 SharePoint stages: dead, initial_review, active_review, under_contract, closed, realized. Labels: Dead Deals, Initial UW and Review, Active UW and Review, Deals Under Contract, Closed Deals, Realized Deals. Updated: deal.ts types/labels/colors, api.ts DealStageApi, useDeals.ts mapBackendStage, DealFilters, DealPipeline, KanbanBoard, KanbanBoardWidget, KanbanColumn, DealCard, DealDetailModal. Removed all 'Closed Lost' sections. Fixed metric cards to compute from filteredDeals (not unfiltered).",
+      "added_at": "2026-02-03T09:55:00.000000",
+      "source": "checkpoint"
+    },
+    {
+      "type": "claude_response",
+      "content": "Files modified in this session:\n- backend/app/api/v1/endpoints/deals.py (added _enrich_deals_with_extraction, enriched list+kanban endpoints)\n- backend/app/schemas/deal.py (added 9 enrichment fields to DealResponse)\n- backend/scripts/seed_database.py (added 9 operationsByYear fields)\n- backend/app/api/v1/endpoints/properties.py (updated _build_operations_by_year with new fields)\n- src/types/deal.ts (new 6-stage DealStage, new Deal fields, updated labels/colors)\n- src/types/api.ts (new DealStageApi matching 6 stages)\n- src/types/property.ts (added 9 fields to OperatingYear)\n- src/hooks/api/useDeals.ts (new stage mapping, new BackendDealResponse fields, updated transform)\n- src/features/deals/hooks/useDeals.ts (new stage grouping, fixed metrics from filteredDeals)\n- src/features/deals/components/DealTimeline.tsx (complete rewrite with 9 metrics)\n- src/features/deals/components/DealFilters.tsx (new 6 stages)\n- src/features/deals/components/DealPipeline.tsx (new stages, removed closed_lost section)\n- src/features/deals/components/KanbanBoard.tsx (new stages, removed closed_lost)\n- src/features/deals/components/KanbanBoardWidget.tsx (new stages, removed closed_lost)\n- src/features/deals/components/KanbanColumn.tsx (new stage icons/colors)\n- src/features/deals/components/DealCard.tsx (new stage progress)\n- src/features/deals/components/DealDetailModal.tsx (new stage colors)\n- src/features/property-detail/components/FinancialsTab.tsx (removed Purchase Price, Land and Acquisition Costs)\n- src/features/property-detail/components/OperationsTab.tsx (complete rewrite)\n- src/app/router.tsx (removed TransactionsPage route)\n- src/app/routes.ts (removed TransactionsPage lazy import, TRANSACTIONS route)\n- src/app/layout/Sidebar.tsx (removed Transactions nav item)\n- src/components/GlobalSearch.tsx (removed Transactions search entry)\n\nNext pages to review: Analytics, Market, Mapping, Dashboard.",
+      "added_at": "2026-02-03T09:55:00.000000",
+      "source": "checkpoint"
+    },
+    {
+      "type": "claude_response",
+      "content": "The checkpoint has been saved. Here's where things stand:\n\n**All Tasks 12-17: COMPLETE**\n- Task 12: FinancialsTab double-counting fix\n- Task 13: OperationsTab rewrite with 9 new line items\n- Task 14: ",
+      "added_at": "2026-02-03T09:58:35.167464",
+      "source": "realtime_capture"
+    },
+    {
       "type": "message",
-      "content": "claude mcp add playwright npx @playwright/mcp@latest",
-      "added_at": "2026-02-02T20:36:23.246471",
+      "content": "Can you please run a git commit/push command. Once you finish with that can you please produce easy to use instructions for restoring our latest conversation so we can pick up with the remaining dashb",
+      "added_at": "2026-02-03T09:58:35.167512",
       "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:50:12.455355",
-  "updated_at": "2026-02-02T20:36:23.246502"
+  "updated_at": "2026-02-03T09:58:35.167514"
 }

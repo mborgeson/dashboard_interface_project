@@ -83,7 +83,7 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
               <span>IRR</span>
             </div>
             <p className="text-sm font-semibold text-green-600">
-              {formatPercent(property.performance.irr)}
+              {formatPercent(property.performance.leveredIrr)}
             </p>
           </div>
 

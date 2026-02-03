@@ -33,7 +33,6 @@ from app.db.session import get_sync_db
 from app.main import app
 from app.models.extraction import ExtractedValue, ExtractionRun
 
-
 # ============================================================================
 # Sync Database Setup for Extraction Tests
 # ============================================================================

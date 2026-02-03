@@ -1,29 +1,30 @@
 import { useMemo } from 'react';
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
+  Cell,
 } from 'recharts';
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
 import type { Property } from '@/types';
 
 interface PortfolioPerformanceChartProps {
   properties: Property[];
 }
 
-interface MonthlyData {
-  month: string;
-  portfolioValue: number;
+interface PropertyMetric {
+  name: string;
   noi: number;
+  occupancy: number;
+  capRate: number;
 }
 
 interface TooltipPayload {
-  payload: MonthlyData;
+  payload: PropertyMetric;
   value: number;
 }
 
@@ -32,23 +33,23 @@ interface CustomTooltipProps {
   payload?: TooltipPayload[];
 }
 
-// Pre-defined variance values to avoid Math.random() during render (simulates +/- 2% variance)
-const PORTFOLIO_VARIANCE = [0.99, 1.02, 0.98, 1.01, 1.00, 0.99, 1.02, 0.98, 1.01, 1.00, 0.99, 1.02];
-const NOI_VARIANCE = [0.98, 1.02, 0.99, 1.03, 0.97, 1.01, 0.99, 1.02, 0.98, 1.01, 0.99, 1.00];
-
 function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (active && payload && payload.length) {
+    const data = payload[0].payload;
     return (
       <div className="bg-white p-4 border border-neutral-200 rounded-lg shadow-lg">
         <p className="text-sm font-semibold text-neutral-900 mb-2">
-          {payload[0].payload.month}
+          {data.name}
         </p>
         <div className="space-y-1">
-          <p className="text-sm text-primary-500">
-            Portfolio: {formatCurrency(payload[0].value, true)}
+          <p className="text-sm text-neutral-700">
+            Annual NOI: {formatCurrency(data.noi, true)}
           </p>
-          <p className="text-sm text-accent-500">
-            Monthly NOI: {formatCurrency(payload[1].value, true)}
+          <p className="text-sm text-neutral-700">
+            Occupancy: {formatPercent(data.occupancy)}
+          </p>
+          <p className="text-sm text-neutral-700">
+            Cap Rate: {formatPercent(data.capRate)}
           </p>
         </div>
       </div>
@@ -58,43 +59,19 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 }
 
 export function PortfolioPerformanceChart({ properties }: PortfolioPerformanceChartProps) {
-  // Generate 12 months of mock historical data based on current values
-  const chartData = useMemo<MonthlyData[]>(() => {
-    if (properties.length === 0) {
-      return [];
-    }
+  const chartData = useMemo<PropertyMetric[]>(() => {
+    if (properties.length === 0) return [];
 
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-
-    const currentValue = properties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
-    const currentNOI = properties.reduce((sum, p) => sum + p.operations.noi, 0);
-
-    // Generate data for last 12 months with realistic growth trend
-    return months.map((month, index) => {
-      // Simulate 1% monthly growth in portfolio value
-      const monthsAgo = 11 - index;
-      const growthFactor = Math.pow(1.01, monthsAgo);
-      const baseValue = currentValue / growthFactor;
-
-      // Use pre-defined variance values (+/- 2%)
-      const variance = PORTFOLIO_VARIANCE[index];
-      const portfolioValue = baseValue * variance;
-
-      // NOI grows at similar rate but with different variance
-      const noiGrowthFactor = Math.pow(1.008, monthsAgo);
-      const baseNOI = (currentNOI / 12) / noiGrowthFactor;
-      const noiVariance = NOI_VARIANCE[index];
-      const noi = baseNOI * noiVariance;
-
-      return {
-        month,
-        portfolioValue: Math.round(portfolioValue),
-        noi: Math.round(noi),
-      };
-    });
+    return properties
+      .filter(p => p.operations.noi > 0)
+      .sort((a, b) => b.operations.noi - a.operations.noi)
+      .slice(0, 10)
+      .map(p => ({
+        name: p.name.length > 20 ? p.name.substring(0, 18) + '...' : p.name,
+        noi: p.operations.noi,
+        occupancy: p.operations.occupancy,
+        capRate: p.valuation.capRate,
+      }));
   }, [properties]);
 
   if (chartData.length === 0) {
@@ -108,56 +85,41 @@ export function PortfolioPerformanceChart({ properties }: PortfolioPerformanceCh
   return (
     <div className="w-full h-[400px]">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart
+        <BarChart
           data={chartData}
-          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          layout="vertical"
+          margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={true} vertical={false} />
           <XAxis
-            dataKey="month"
+            type="number"
             stroke="#6b7280"
-            style={{ fontSize: '0.875rem' }}
-          />
-          <YAxis
-            yAxisId="left"
-            stroke="#2A3F54"
-            style={{ fontSize: '0.875rem' }}
+            style={{ fontSize: '0.75rem' }}
             tickFormatter={(value) => formatCurrency(value, true)}
           />
           <YAxis
-            yAxisId="right"
-            orientation="right"
-            stroke="#E74C3C"
-            style={{ fontSize: '0.875rem' }}
-            tickFormatter={(value) => formatCurrency(value, true)}
+            type="category"
+            dataKey="name"
+            stroke="#6b7280"
+            style={{ fontSize: '0.75rem' }}
+            tickLine={false}
+            axisLine={false}
+            width={115}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend
-            wrapperStyle={{ fontSize: '0.875rem' }}
-            iconType="line"
-          />
-          <Line
-            yAxisId="left"
-            type="monotone"
-            dataKey="portfolioValue"
-            stroke="#2A3F54"
-            strokeWidth={2}
-            dot={{ fill: '#2A3F54', r: 4 }}
-            activeDot={{ r: 6 }}
-            name="Portfolio Value"
-          />
-          <Line
-            yAxisId="right"
-            type="monotone"
-            dataKey="noi"
-            stroke="#E74C3C"
-            strokeWidth={2}
-            dot={{ fill: '#E74C3C', r: 4 }}
-            activeDot={{ r: 6 }}
-            name="Monthly NOI"
-          />
-        </LineChart>
+          <Bar dataKey="noi" name="Annual NOI" radius={[0, 4, 4, 0]}>
+            {chartData.map((_, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={index < 3 ? '#10b981' : index < 7 ? '#3b82f6' : '#6b7280'}
+              />
+            ))}
+          </Bar>
+        </BarChart>
       </ResponsiveContainer>
+      <p className="text-xs text-neutral-500 text-center mt-2">
+        Top properties by annual NOI from extraction data
+      </p>
     </div>
   );
 }

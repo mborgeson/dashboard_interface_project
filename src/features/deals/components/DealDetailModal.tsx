@@ -24,13 +24,12 @@ interface DealDetailModalProps {
 }
 
 const stageColors: Record<string, string> = {
-  lead: 'bg-slate-100 text-slate-800',
-  underwriting: 'bg-blue-100 text-blue-800',
-  loi: 'bg-purple-100 text-purple-800',
-  due_diligence: 'bg-orange-100 text-orange-800',
-  closing: 'bg-yellow-100 text-yellow-800',
-  closed_won: 'bg-green-100 text-green-800',
-  closed_lost: 'bg-red-100 text-red-800',
+  dead: 'bg-red-100 text-red-800',
+  initial_review: 'bg-blue-100 text-blue-800',
+  active_review: 'bg-purple-100 text-purple-800',
+  under_contract: 'bg-orange-100 text-orange-800',
+  closed: 'bg-green-100 text-green-800',
+  realized: 'bg-emerald-100 text-emerald-800',
 };
 
 function formatCurrency(value: number): string {

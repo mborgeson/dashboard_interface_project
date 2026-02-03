@@ -75,13 +75,6 @@ const quickActions: QuickAction[] = [
     icon: BarChart3,
     description: 'Performance analytics',
   },
-  {
-    id: 'transactions',
-    label: 'Transactions',
-    path: '/transactions',
-    icon: DollarSign,
-    description: 'Financial transactions',
-  },
 ];
 
 export function GlobalSearch() {
