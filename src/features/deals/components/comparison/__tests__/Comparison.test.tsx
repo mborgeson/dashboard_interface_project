@@ -43,7 +43,7 @@ const mockDeals: DealForComparison[] = [
     address: { street: '2850 W Camelback Rd', city: 'Phoenix', state: 'AZ' },
     value: 42500000,
     capRate: 5.2,
-    stage: 'underwriting' as DealStage,
+    stage: 'active_review' as DealStage,
     daysInStage: 18,
     totalDaysInPipeline: 25,
     assignee: 'Sarah Chen',
@@ -87,7 +87,7 @@ const mockDeals: DealForComparison[] = [
     address: { street: '950 S Rural Rd', city: 'Tempe', state: 'AZ' },
     value: 52300000,
     capRate: 5.1,
-    stage: 'due_diligence' as DealStage,
+    stage: 'closed' as DealStage,
     daysInStage: 28,
     totalDaysInPipeline: 82,
     assignee: 'Emily Rodriguez',
@@ -148,9 +148,9 @@ describe('ComparisonTable', () => {
     it('shows pipeline stage for each deal', () => {
       render(<ComparisonTable deals={mockDeals} />);
 
-      expect(screen.getByText('Underwriting')).toBeInTheDocument();
-      expect(screen.getByText('LOI')).toBeInTheDocument();
-      expect(screen.getByText('Due Diligence')).toBeInTheDocument();
+      expect(screen.getByText('Active UW and Review')).toBeInTheDocument();
+      expect(screen.getByText('Deals Under Contract')).toBeInTheDocument();
+      expect(screen.getByText('Closed Deals')).toBeInTheDocument();
     });
 
     it('shows empty state when no deals provided', () => {

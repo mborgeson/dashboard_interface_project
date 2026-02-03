@@ -252,8 +252,6 @@ def _to_frontend_property(prop: Property) -> dict:
     rent_per_sf = (
         _decimal_to_float(prop.avg_rent_per_sf) or ops.get("avgRentPerSf") or 0
     )
-    irr = ret.get("lpIrr") or 0
-    moic = ret.get("lpMoic") or 0
     interest_rate = fin.get("interestRate") or 0
 
     # Derive property class from year_built

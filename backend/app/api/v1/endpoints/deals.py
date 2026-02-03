@@ -15,6 +15,7 @@ from app.crud.crud_activity import watchlist as watchlist_crud
 from app.db.session import get_db
 from app.models import Property
 from app.models.deal import DealStage
+from app.models.extraction import ExtractedValue
 from app.schemas.activity import WatchlistToggleResponse
 from app.schemas.comparison import (
     ComparisonSummary,
@@ -30,7 +31,6 @@ from app.schemas.deal import (
     DealUpdate,
     KanbanBoardResponse,
 )
-from app.models.extraction import ExtractedValue
 from app.services import get_websocket_manager
 
 router = APIRouter()
@@ -69,7 +69,7 @@ async def _enrich_deals_with_extraction(
     # Also fetch equity commitment from property financial_data
     prop_stmt = select(Property.id, Property.financial_data).where(Property.id.in_(prop_ids))
     prop_result = await db.execute(prop_stmt)
-    prop_map = {pid: fd for pid, fd in prop_result.all()}
+    prop_map = dict(prop_result.all())
 
     for deal in deal_responses:
         if not deal.property_id:
