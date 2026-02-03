@@ -1,8 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get } from '@/lib/api';
-import { USE_MOCK_DATA, IS_DEV } from '@/lib/config';
-import { mockDeals } from '@/data/mockDeals';
 import type { Deal } from '@/types/deal';
 
 // ============================================================================
@@ -52,32 +50,6 @@ export const dealComparisonKeys = {
   comparison: (ids: string[]) => [...dealComparisonKeys.all, 'compare', ids.sort().join(',')] as const,
 };
 
-// ============================================================================
-// Mock Data Helpers
-// ============================================================================
-
-/**
- * Generate mock comparison metrics for a deal
- */
-function generateMockComparisonMetrics(deal: Deal): DealForComparison {
-  // Generate realistic mock metrics based on deal value and cap rate
-  const estimatedNoi = deal.value * (deal.capRate / 100);
-  const avgSqftPerUnit = 850; // Average assumption
-  const totalSf = deal.units * avgSqftPerUnit;
-  const pricePerSqft = totalSf > 0 ? deal.value / totalSf : 0;
-
-  return {
-    ...deal,
-    noi: estimatedNoi,
-    pricePerSqft,
-    totalSf,
-    projectedIrr: 0.12 + Math.random() * 0.08, // 12-20% range
-    cashOnCash: 0.06 + Math.random() * 0.06, // 6-12% range
-    equityMultiple: 1.5 + Math.random() * 1.0, // 1.5-2.5x range
-    occupancyRate: 0.90 + Math.random() * 0.08, // 90-98% range
-  };
-}
-
 /**
  * Transform API deal response to DealForComparison
  */
@@ -124,7 +96,7 @@ function transformDealFromApi(apiDeal: DealForComparison): DealForComparison {
 
 /**
  * Hook to fetch deal comparison data with mock data fallback
- * Falls back to mock data if API is unavailable or USE_MOCK_DATA is true
+ * Errors propagate to React Query error state
  */
 export function useDealComparisonWithMockFallback(
   dealIds: string[],
@@ -133,45 +105,15 @@ export function useDealComparisonWithMockFallback(
   return useQuery({
     queryKey: dealComparisonKeys.comparison(dealIds),
     queryFn: async (): Promise<DealComparisonWithFallbackResponse> => {
-      if (USE_MOCK_DATA || dealIds.length === 0) {
-        // Return mock data for development/testing
-        const deals = mockDeals
-          .filter((deal) => dealIds.includes(deal.id))
-          .map(generateMockComparisonMetrics);
+      const response = await get<DealComparisonApiResponse>('/deals/compare', {
+        ids: dealIds.join(','),
+      });
 
-        return {
-          deals,
-          comparisonDate: new Date(),
-          generatedAt: new Date(),
-        };
-      }
-
-      try {
-        const response = await get<DealComparisonApiResponse>('/deals/compare', {
-          ids: dealIds.join(','),
-        });
-
-        return {
-          deals: response.deals?.map(transformDealFromApi) ?? [],
-          comparisonDate: new Date(response.comparisonDate),
-          generatedAt: new Date(response.generatedAt),
-        };
-      } catch (error) {
-        // Fall back to mock data if API fails in development
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock comparison data:', error);
-          const deals = mockDeals
-            .filter((deal) => dealIds.includes(deal.id))
-            .map(generateMockComparisonMetrics);
-
-          return {
-            deals,
-            comparisonDate: new Date(),
-            generatedAt: new Date(),
-          };
-        }
-        throw error;
-      }
+      return {
+        deals: response.deals?.map(transformDealFromApi) ?? [],
+        comparisonDate: new Date(response.comparisonDate),
+        generatedAt: new Date(response.generatedAt),
+      };
     },
     enabled: dealIds.length >= 2,
     staleTime: 1000 * 60 * 5, // 5 minutes

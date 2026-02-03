@@ -36,6 +36,21 @@ def _decimal_to_float(value: Decimal | None) -> float | None:
     return float(value) if value is not None else None
 
 
+def _is_placeholder(val: str | None) -> bool:
+    """Check if a string is a bracket placeholder like [Year Built] or 'Zip Code'."""
+    if not val:
+        return True
+    val = val.strip()
+    if val.startswith("[") and val.endswith("]"):
+        return True
+    return val in ("Zip Code", "00000", "[County]", "[Market (MSA)]", "[Submarket]")
+
+
+def _clean_str(val: str | None, default: str = "") -> str:
+    """Return val if it's real data, otherwise default."""
+    return default if _is_placeholder(val) else (val or default)
+
+
 def _to_frontend_property(prop: Property) -> dict:
     """
     Transform a flat Property DB model into the nested structure
@@ -56,8 +71,16 @@ def _to_frontend_property(prop: Property) -> dict:
     avg_unit_size = round(total_sf / total_units) if total_sf and total_units else 0
     loan_amount = fin.get("loanAmount") or 0
     total_invested = acq.get("totalAcquisitionBudget") or purchase_price
-    noi = _decimal_to_float(prop.noi) or ops.get("noiYear1") or 0
+
+    # NOI in DB is annual per-unit — multiply by units for total annual NOI
+    noi_per_unit = _decimal_to_float(prop.noi) or ops.get("noiYear1") or 0
+    annual_noi = noi_per_unit * total_units if noi_per_unit and total_units else 0
+
+    # Cap rate = annual NOI / purchase price
     cap_rate = _decimal_to_float(prop.cap_rate) or 0
+    if not cap_rate and annual_noi and purchase_price:
+        cap_rate = round(annual_noi / purchase_price, 4)
+
     occupancy = _decimal_to_float(prop.occupancy_rate) or ops.get("occupancy") or 0
     avg_rent = (
         _decimal_to_float(prop.avg_rent_per_unit) or ops.get("avgRentPerUnit") or 0
@@ -78,8 +101,28 @@ def _to_frontend_property(prop: Property) -> dict:
     else:
         property_class = "C"
 
+    # Parse city from deal name as fallback (format: "Name (City, ST)")
+    name_city = ""
+    name_state = ""
+    if prop.name and "(" in prop.name:
+        import re
+
+        m = re.search(r"\(([^,]+),\s*([A-Z]{2})\)", prop.name)
+        if m:
+            name_city = m.group(1).strip()
+            name_state = m.group(2).strip()
+
+    # Clean placeholder values — use deal name parsing as fallback
+    clean_city = _clean_str(prop.city, name_city or "Phoenix")
+    clean_state = _clean_str(prop.state, name_state or "AZ")
+    clean_zip = _clean_str(prop.zip_code, "")
+    clean_address = _clean_str(
+        prop.address, prop.name.split("(")[0].strip() if prop.name else ""
+    )
+    clean_building_type = _clean_str(prop.building_type, "Garden")
+
     # Map submarket to Phoenix submarket enum values
-    submarket = prop.submarket or prop.city or "Phoenix Central"
+    submarket = prop.submarket or clean_city or "Phoenix Central"
     submarket_map = {
         "Scottsdale": "Scottsdale",
         "West Tempe": "Tempe",
@@ -150,10 +193,10 @@ def _to_frontend_property(prop: Property) -> dict:
         "id": str(prop.id),
         "name": prop.name,
         "address": {
-            "street": prop.address or prop.name,
-            "city": prop.city,
-            "state": prop.state,
-            "zip": prop.zip_code,
+            "street": clean_address,
+            "city": clean_city,
+            "state": clean_state,
+            "zip": clean_zip,
             "latitude": float(prop.latitude) if prop.latitude else 33.45,
             "longitude": float(prop.longitude) if prop.longitude else -112.07,
             "submarket": frontend_submarket,
@@ -164,7 +207,7 @@ def _to_frontend_property(prop: Property) -> dict:
             "averageUnitSize": avg_unit_size,
             "yearBuilt": year_built,
             "propertyClass": property_class,
-            "assetType": prop.building_type or "Garden",
+            "assetType": clean_building_type,
             "amenities": list(prop.amenities.keys())
             if prop.amenities and isinstance(prop.amenities, dict)
             else (prop.amenities if isinstance(prop.amenities, list) else []),
@@ -213,7 +256,7 @@ def _to_frontend_property(prop: Property) -> dict:
                 "other": abs(exp.get("contractServices") or 0) / 12,
                 "total": total_expenses / 12,
             },
-            "noi": noi,
+            "noi": annual_noi,
             "operatingExpenseRatio": round(total_expenses / (monthly_revenue * 12), 2)
             if monthly_revenue
             else 0,

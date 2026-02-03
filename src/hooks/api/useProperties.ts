@@ -11,7 +11,6 @@ import {
   type PropertyFiltersParams,
 } from '@/lib/api/properties';
 import { get, post, put, del } from '@/lib/api';
-import { mockProperties } from '@/data/mockProperties';
 import type { Property, PropertySummaryStats } from '@/types';
 import type {
   PropertyFilters,
@@ -20,9 +19,6 @@ import type {
   PropertyCreateInput,
   PropertyUpdateInput,
 } from '@/types/api';
-
-// Check if we should use mock data (for development/testing)
-const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
 
 // ============================================================================
 // Query Key Factory
@@ -43,33 +39,13 @@ export const propertyKeys = {
 
 /**
  * Hook to fetch all properties
- * Falls back to mock data if API is unavailable or USE_MOCK_DATA is true
+ * Errors propagate to React Query error state
  */
 export function useProperties(filters?: PropertyFiltersParams) {
   return useQuery({
     queryKey: propertyKeys.list(filters),
     queryFn: async () => {
-      if (USE_MOCK_DATA) {
-        // Return mock data for development/testing
-        return {
-          properties: mockProperties,
-          total: mockProperties.length,
-        };
-      }
-
-      try {
-        return await fetchProperties(filters);
-      } catch (error) {
-        // Fall back to mock data if API fails in development
-        if (import.meta.env.DEV) {
-          console.warn('API unavailable, falling back to mock data:', error);
-          return {
-            properties: mockProperties,
-            total: mockProperties.length,
-          };
-        }
-        throw error;
-      }
+      return await fetchProperties(filters);
     },
     staleTime: 1000 * 60 * 10, // 10 min - property data is relatively stable, rarely changes mid-session
   });
@@ -100,28 +76,7 @@ export function useProperty(id: string | undefined) {
         throw new Error('Property ID is required');
       }
 
-      if (USE_MOCK_DATA) {
-        const property = mockProperties.find((p) => p.id === id);
-        if (!property) {
-          throw new Error('Property not found');
-        }
-        return property;
-      }
-
-      try {
-        return await fetchPropertyById(id);
-      } catch (error) {
-        // Fall back to mock data if API fails in development
-        if (import.meta.env.DEV) {
-          console.warn('API unavailable, falling back to mock data:', error);
-          const property = mockProperties.find((p) => p.id === id);
-          if (!property) {
-            throw new Error('Property not found');
-          }
-          return property;
-        }
-        throw error;
-      }
+      return await fetchPropertyById(id);
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 10, // 10 min - individual property details are stable within a session
@@ -150,20 +105,7 @@ export function usePortfolioSummary() {
   return useQuery({
     queryKey: propertyKeys.summary(),
     queryFn: async () => {
-      if (USE_MOCK_DATA) {
-        return calculateSummaryFromProperties(mockProperties);
-      }
-
-      try {
-        return await fetchPortfolioSummary();
-      } catch (error) {
-        // Fall back to calculating from mock data if API fails
-        if (import.meta.env.DEV) {
-          console.warn('API unavailable, calculating summary from mock data:', error);
-          return calculateSummaryFromProperties(mockProperties);
-        }
-        throw error;
-      }
+      return await fetchPortfolioSummary();
     },
     staleTime: 1000 * 60 * 10, // 10 min - portfolio summary aggregates are stable, no need to refetch frequently
   });
@@ -280,55 +222,6 @@ export function usePrefetchNextPage() {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * Calculate portfolio summary from properties array
- * Used when API summary endpoint is unavailable
- */
-function calculateSummaryFromProperties(properties: Property[]): PropertySummaryStats {
-  const totalProperties = properties.length;
-  const totalUnits = properties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
-  const totalValue = properties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
-  const totalInvested = properties.reduce((sum, p) => sum + p.acquisition.totalInvested, 0);
-  const totalNOI = properties.reduce((sum, p) => sum + p.operations.noi, 0);
-  const averageOccupancy =
-    properties.reduce((sum, p) => sum + p.operations.occupancy, 0) / totalProperties;
-  const averageCapRate =
-    properties.reduce((sum, p) => sum + p.valuation.capRate, 0) / totalProperties;
-
-  // Calculate weighted portfolio returns
-  const totalEquity = properties.reduce(
-    (sum, p) => sum + (p.acquisition.totalInvested - p.financing.loanAmount),
-    0
-  );
-  const portfolioCashOnCash =
-    properties.reduce(
-      (sum, p) =>
-        sum +
-        p.performance.cashOnCashReturn *
-          (p.acquisition.totalInvested - p.financing.loanAmount),
-      0
-    ) / totalEquity;
-  const portfolioIRR =
-    properties.reduce(
-      (sum, p) =>
-        sum +
-        p.performance.irr * (p.acquisition.totalInvested - p.financing.loanAmount),
-      0
-    ) / totalEquity;
-
-  return {
-    totalProperties,
-    totalUnits,
-    totalValue,
-    totalInvested,
-    totalNOI,
-    averageOccupancy,
-    averageCapRate,
-    portfolioCashOnCash,
-    portfolioIRR,
-  };
-}
 
 /**
  * Selector to get just the properties array from the query result

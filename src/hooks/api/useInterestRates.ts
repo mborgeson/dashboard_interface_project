@@ -13,12 +13,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get } from '@/lib/api';
-import { USE_MOCK_DATA, IS_DEV } from '@/lib/config';
 import {
-  mockKeyRates,
-  mockYieldCurve,
-  mockHistoricalRates,
-  mockDataSources,
   mockRateSpreads,
   realEstateLendingContext,
   type KeyRate,
@@ -308,7 +303,7 @@ function transformLendingContextFromApi(
 
 /**
  * Hook to fetch current key interest rates with mock data fallback
- * Falls back to mock data if API is unavailable or USE_MOCK_DATA is true
+ * Errors propagate to React Query error state
  */
 export function useKeyRatesWithMockFallback(
   options?: Omit<UseQueryOptions<KeyRatesWithFallbackResponse>, 'queryKey' | 'queryFn'>
@@ -316,28 +311,8 @@ export function useKeyRatesWithMockFallback(
   return useQuery({
     queryKey: interestRateKeys.current(),
     queryFn: async (): Promise<KeyRatesWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        return {
-          keyRates: mockKeyRates,
-          lastUpdated: new Date(),
-          source: 'mock',
-        };
-      }
-
-      try {
-        const response = await get<KeyRatesApiResponse>('/interest-rates/current');
-        return transformKeyRatesFromApi(response);
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock key rates:', error);
-          return {
-            keyRates: mockKeyRates,
-            lastUpdated: new Date(),
-            source: 'mock',
-          };
-        }
-        throw error;
-      }
+      const response = await get<KeyRatesApiResponse>('/interest-rates/current');
+      return transformKeyRatesFromApi(response);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes - rates don't change frequently
     ...options,
@@ -353,30 +328,8 @@ export function useYieldCurveWithMockFallback(
   return useQuery({
     queryKey: interestRateKeys.yieldCurve(),
     queryFn: async (): Promise<YieldCurveWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        return {
-          yieldCurve: mockYieldCurve,
-          asOfDate: '2025-12-05',
-          lastUpdated: new Date(),
-          source: 'mock',
-        };
-      }
-
-      try {
-        const response = await get<YieldCurveApiResponse>('/interest-rates/yield-curve');
-        return transformYieldCurveFromApi(response);
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock yield curve:', error);
-          return {
-            yieldCurve: mockYieldCurve,
-            asOfDate: '2025-12-05',
-            lastUpdated: new Date(),
-            source: 'mock',
-          };
-        }
-        throw error;
-      }
+      const response = await get<YieldCurveApiResponse>('/interest-rates/yield-curve');
+      return transformYieldCurveFromApi(response);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...options,
@@ -393,36 +346,10 @@ export function useHistoricalRatesWithMockFallback(
   return useQuery({
     queryKey: interestRateKeys.historical(months),
     queryFn: async (): Promise<HistoricalRatesWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        const rates = mockHistoricalRates.slice(-months);
-        return {
-          rates,
-          startDate: rates[0]?.date ?? '',
-          endDate: rates[rates.length - 1]?.date ?? '',
-          lastUpdated: new Date(),
-          source: 'mock',
-        };
-      }
-
-      try {
-        const response = await get<HistoricalRatesApiResponse>('/interest-rates/historical', {
-          months,
-        });
-        return transformHistoricalRatesFromApi(response);
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock historical rates:', error);
-          const rates = mockHistoricalRates.slice(-months);
-          return {
-            rates,
-            startDate: rates[0]?.date ?? '',
-            endDate: rates[rates.length - 1]?.date ?? '',
-            lastUpdated: new Date(),
-            source: 'mock',
-          };
-        }
-        throw error;
-      }
+      const response = await get<HistoricalRatesApiResponse>('/interest-rates/historical', {
+        months,
+      });
+      return transformHistoricalRatesFromApi(response);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...options,
@@ -438,20 +365,8 @@ export function useDataSourcesWithMockFallback(
   return useQuery({
     queryKey: interestRateKeys.dataSources(),
     queryFn: async (): Promise<DataSourcesWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        return { sources: mockDataSources };
-      }
-
-      try {
-        const response = await get<DataSourcesApiResponse>('/interest-rates/data-sources');
-        return transformDataSourcesFromApi(response);
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock data sources:', error);
-          return { sources: mockDataSources };
-        }
-        throw error;
-      }
+      const response = await get<DataSourcesApiResponse>('/interest-rates/data-sources');
+      return transformDataSourcesFromApi(response);
     },
     staleTime: 1000 * 60 * 60, // 1 hour - data sources rarely change
     ...options,
@@ -468,28 +383,8 @@ export function useRateSpreadsWithMockFallback(
   return useQuery({
     queryKey: interestRateKeys.spreads(months),
     queryFn: async (): Promise<RateSpreadsWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        return {
-          spreads: mockRateSpreads,
-          lastUpdated: new Date(),
-          source: 'mock',
-        };
-      }
-
-      try {
-        const response = await get<RateSpreadsApiResponse>('/interest-rates/spreads', { months });
-        return transformRateSpreadsFromApi(response);
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock rate spreads:', error);
-          return {
-            spreads: mockRateSpreads,
-            lastUpdated: new Date(),
-            source: 'mock',
-          };
-        }
-        throw error;
-      }
+      const response = await get<RateSpreadsApiResponse>('/interest-rates/spreads', { months });
+      return transformRateSpreadsFromApi(response);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...options,
@@ -505,28 +400,8 @@ export function useLendingContextWithMockFallback(
   return useQuery({
     queryKey: interestRateKeys.lendingContext(),
     queryFn: async (): Promise<LendingContextWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        return {
-          typicalSpreads: realEstateLendingContext.typicalSpreads,
-          currentIndicativeRates: realEstateLendingContext.currentIndicativeRates,
-          lastUpdated: new Date(),
-        };
-      }
-
-      try {
-        const response = await get<LendingContextApiResponse>('/interest-rates/lending-context');
-        return transformLendingContextFromApi(response);
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock lending context:', error);
-          return {
-            typicalSpreads: realEstateLendingContext.typicalSpreads,
-            currentIndicativeRates: realEstateLendingContext.currentIndicativeRates,
-            lastUpdated: new Date(),
-          };
-        }
-        throw error;
-      }
+      const response = await get<LendingContextApiResponse>('/interest-rates/lending-context');
+      return transformLendingContextFromApi(response);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...options,
@@ -638,13 +513,6 @@ export function usePrefetchKeyRates() {
     queryClient.prefetchQuery({
       queryKey: interestRateKeys.current(),
       queryFn: async () => {
-        if (USE_MOCK_DATA) {
-          return {
-            keyRates: mockKeyRates,
-            lastUpdated: new Date(),
-            source: 'mock',
-          };
-        }
         const response = await get<KeyRatesApiResponse>('/interest-rates/current');
         return transformKeyRatesFromApi(response);
       },
@@ -664,14 +532,6 @@ export function usePrefetchYieldCurve() {
     queryClient.prefetchQuery({
       queryKey: interestRateKeys.yieldCurve(),
       queryFn: async () => {
-        if (USE_MOCK_DATA) {
-          return {
-            yieldCurve: mockYieldCurve,
-            asOfDate: '2025-12-05',
-            lastUpdated: new Date(),
-            source: 'mock',
-          };
-        }
         const response = await get<YieldCurveApiResponse>('/interest-rates/yield-curve');
         return transformYieldCurveFromApi(response);
       },

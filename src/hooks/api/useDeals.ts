@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get, post, put, patch, del } from '@/lib/api';
-import { USE_MOCK_DATA, IS_DEV } from '@/lib/config';
-import { mockDeals } from '@/data/mockDeals';
 import type { Deal } from '@/types/deal';
 import type {
   DealFilters,
@@ -13,6 +11,88 @@ import type {
   DealStageUpdateInput,
   DealStageApi,
 } from '@/types/api';
+
+// ============================================================================
+// Backend Deal Response (actual API shape)
+// ============================================================================
+
+/** Actual shape returned by GET /deals/ items */
+interface BackendDealResponse {
+  id: number;
+  name: string;
+  deal_type: string;
+  property_id: number | null;
+  assigned_user_id: number | null;
+  stage: string;
+  stage_order: number;
+  asking_price: string | null;
+  offer_price: string | null;
+  final_price: string | null;
+  projected_irr: string | null;
+  projected_coc: string | null;
+  projected_equity_multiple: string | null;
+  hold_period_years: number | null;
+  initial_contact_date: string | null;
+  actual_close_date: string | null;
+  source: string | null;
+  broker_name: string | null;
+  notes: string | null;
+  investment_thesis: string | null;
+  deal_score: number | null;
+  priority: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Map backend stage names to frontend DealStage */
+function mapBackendStage(stage: string): Deal['stage'] {
+  const stageMap: Record<string, Deal['stage']> = {
+    lead: 'lead',
+    initial_review: 'underwriting',
+    underwriting: 'underwriting',
+    loi_submitted: 'loi',
+    due_diligence: 'due_diligence',
+    under_contract: 'closing',
+    closed: 'closed_won',
+    dead: 'closed_lost',
+  };
+  return stageMap[stage] ?? 'lead';
+}
+
+/** Parse city and state from deal name like "505 West (Tempe, AZ)" */
+function parseCityState(name: string): { city: string; state: string; propertyName: string } {
+  const match = name.match(/^(.+?)\s*\(([^,]+),\s*([A-Z]{2})\)\s*(?:\(\d{4}\))?$/);
+  if (match) {
+    return { propertyName: match[1].trim(), city: match[2].trim(), state: match[3].trim() };
+  }
+  return { propertyName: name, city: '', state: '' };
+}
+
+/** Transform a backend deal response to the frontend Deal type */
+function transformBackendDeal(d: BackendDealResponse): Deal {
+  const { propertyName, city, state } = parseCityState(d.name);
+  const value = d.asking_price ? parseFloat(d.asking_price) : d.final_price ? parseFloat(d.final_price) : 0;
+  const now = new Date();
+  const created = new Date(d.created_at);
+  const daysInPipeline = Math.max(0, Math.floor((now.getTime() - created.getTime()) / 86400000));
+
+  return {
+    id: String(d.id),
+    propertyName: d.name,
+    address: { street: propertyName, city, state },
+    value,
+    capRate: 0,
+    stage: mapBackendStage(d.stage),
+    daysInStage: daysInPipeline,
+    totalDaysInPipeline: daysInPipeline,
+    assignee: '',
+    propertyType: d.deal_type || 'acquisition',
+    units: 0,
+    createdAt: created,
+    timeline: [],
+    notes: d.notes ?? undefined,
+  };
+}
 
 // ============================================================================
 // Query Key Factory
@@ -41,7 +121,7 @@ export interface KanbanFilters {
 }
 
 // ============================================================================
-// Query Hooks (with mock data fallback for development)
+// Query Hooks
 // ============================================================================
 
 /**
@@ -54,7 +134,7 @@ export interface DealsWithFallbackResponse {
 
 /**
  * Hook to fetch all deals with mock data fallback
- * Falls back to mock data if API is unavailable or USE_MOCK_DATA is true
+ * Errors propagate to React Query error state
  */
 export function useDealsWithMockFallback(
   options?: Omit<UseQueryOptions<DealsWithFallbackResponse>, 'queryKey' | 'queryFn'>
@@ -62,138 +142,23 @@ export function useDealsWithMockFallback(
   return useQuery({
     queryKey: dealKeys.lists(),
     queryFn: async (): Promise<DealsWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        // Return mock data for development/testing
-        return {
-          deals: mockDeals,
-          total: mockDeals.length,
-        };
-      }
-
-      try {
-        const response = await get<DealListResponse>('/deals');
-        // Transform API response to Deal[] format
-        // DealListResponse is PaginatedResponse<DealApiResponse> with 'data' property
-        return {
-          deals: response.data?.map(transformDealFromApi) ?? mockDeals,
-          total: response.total ?? mockDeals.length,
-        };
-      } catch (error) {
-        // Fall back to mock data if API fails in development
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock deals:', error);
-          return {
-            deals: mockDeals,
-            total: mockDeals.length,
-          };
-        }
-        throw error;
-      }
+      // Backend returns { items: [...], total, page, page_size }
+      const response = await get<{ items: BackendDealResponse[]; total: number }>('/deals', { page_size: 200 });
+      return {
+        deals: response.items?.map(transformBackendDeal) ?? [],
+        total: response.total ?? 0,
+      };
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...options,
   });
 }
 
-/**
- * Transform API deal response to local Deal type
- * API response uses camelCase properties
- */
-function transformDealFromApi(apiDeal: DealApiResponse): Deal {
-  return {
-    id: apiDeal.id,
-    propertyName: apiDeal.propertyName || '',
-    address: {
-      street: apiDeal.address?.street || '',
-      city: apiDeal.address?.city || '',
-      state: apiDeal.address?.state || '',
-    },
-    value: apiDeal.value || 0,
-    capRate: apiDeal.capRate || 0,
-    stage: apiDeal.stage as Deal['stage'],
-    daysInStage: apiDeal.daysInStage || 0,
-    totalDaysInPipeline: apiDeal.totalDaysInPipeline || 0,
-    assignee: apiDeal.assignee || '',
-    propertyType: apiDeal.propertyType || '',
-    units: apiDeal.units || 0,
-    createdAt: new Date(apiDeal.createdAt || Date.now()),
-    timeline: (apiDeal.timeline || []).map((event) => ({
-      id: event.id,
-      date: new Date(event.date),
-      stage: event.stage as Deal['stage'],
-      description: event.description,
-      user: event.user,
-    })),
-    notes: apiDeal.notes,
-  };
-}
+
 
 /**
- * Transform deal timeline events to activities format
- */
-function transformTimelineToActivities(deal: Deal): DealActivity[] {
-  return deal.timeline.map((event) => ({
-    id: event.id,
-    dealId: deal.id,
-    type: 'stage_change' as const,
-    description: event.description,
-    user: event.user || 'System',
-    timestamp: event.date,
-    metadata: { stage: event.stage },
-  }));
-}
-
-/**
- * Build mock Kanban board from deals
- */
-function buildMockKanbanBoard(
-  deals: Deal[],
-  filters?: KanbanFilters
-): KanbanBoardWithFallbackResponse {
-  let filtered = [...deals];
-
-  if (filters?.dealType) {
-    filtered = filtered.filter((d) => d.propertyType === filters.dealType);
-  }
-  if (filters?.assignedUserId) {
-    // Mock filtering by assignee name (in real app would filter by ID)
-    filtered = filtered.filter((d) => d.assignee.includes(String(filters.assignedUserId)));
-  }
-
-  const stages: DealStageApi[] = [
-    'lead',
-    'underwriting',
-    'loi',
-    'due_diligence',
-    'closing',
-    'closed_won',
-    'closed_lost',
-  ];
-
-  const stagesData: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
-  const stageCounts: Record<DealStageApi, number> = {} as never;
-
-  for (const stage of stages) {
-    const stageDeals = filtered.filter((d) => d.stage === stage);
-    const totalValue = stageDeals.reduce((sum, d) => sum + d.value, 0);
-    stagesData[stage] = {
-      deals: stageDeals,
-      count: stageDeals.length,
-      totalValue,
-    };
-    stageCounts[stage] = stageDeals.length;
-  }
-
-  return {
-    stages: stagesData,
-    totalDeals: filtered.length,
-    stageCounts,
-  };
-}
-
-/**
- * Hook to fetch Kanban board with mock data fallback
- * Falls back to mock data if API is unavailable or USE_MOCK_DATA is true
+ * Hook to fetch Kanban board data
+ * Errors propagate to React Query error state
  */
 export function useKanbanBoardWithMockFallback(
   filters?: KanbanFilters,
@@ -202,39 +167,40 @@ export function useKanbanBoardWithMockFallback(
   return useQuery({
     queryKey: dealKeys.kanban(filters),
     queryFn: async (): Promise<KanbanBoardWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        return buildMockKanbanBoard(mockDeals, filters);
+      const params: Record<string, unknown> = {};
+      if (filters?.dealType) params.deal_type = filters.dealType;
+      if (filters?.assignedUserId) params.assigned_user_id = filters.assignedUserId;
+
+      const response = await get<KanbanBoardApiResponse>('/deals/kanban', params);
+
+      // Transform API response — backend stages use different names than frontend
+      const frontendStages: DealStageApi[] = [
+        'lead', 'underwriting', 'loi', 'due_diligence', 'closing', 'closed_won', 'closed_lost',
+      ];
+      const stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
+      for (const fs of frontendStages) {
+        stages[fs] = { deals: [], count: 0, totalValue: 0 };
       }
 
-      try {
-        const params: Record<string, unknown> = {};
-        if (filters?.dealType) params.deal_type = filters.dealType;
-        if (filters?.assignedUserId) params.assigned_user_id = filters.assignedUserId;
-
-        const response = await get<KanbanBoardApiResponse>('/deals/kanban', params);
-
-        // Transform API response to local format
-        const stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
-        for (const [stage, data] of Object.entries(response.stages)) {
-          stages[stage as DealStageApi] = {
-            deals: data.deals.map(transformDealFromApi),
-            count: data.count,
-            totalValue: data.totalValue,
-          };
-        }
-
-        return {
-          stages,
-          totalDeals: response.total_deals,
-          stageCounts: response.stage_counts,
-        };
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock kanban board:', error);
-          return buildMockKanbanBoard(mockDeals, filters);
-        }
-        throw error;
+      // Map backend stages to frontend stages and transform deals
+      for (const [backendStage, data] of Object.entries(response.stages)) {
+        const frontendStage = mapBackendStage(backendStage);
+        const deals = (data.deals as unknown as BackendDealResponse[]).map(transformBackendDeal);
+        stages[frontendStage].deals.push(...deals);
+        stages[frontendStage].count += data.count;
+        stages[frontendStage].totalValue += data.totalValue;
       }
+
+      const stageCounts: Record<string, number> = {};
+      for (const [stage, data] of Object.entries(stages)) {
+        stageCounts[stage] = data.count;
+      }
+
+      return {
+        stages,
+        totalDeals: response.total_deals,
+        stageCounts,
+      };
     },
     staleTime: 1000 * 60 * 2, // 2 minutes - kanban should be more responsive
     ...options,
@@ -252,47 +218,19 @@ export function useDealActivitiesWithMockFallback(
   return useQuery({
     queryKey: dealKeys.activities(dealId),
     queryFn: async (): Promise<DealActivitiesWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        const deal = mockDeals.find((d) => d.id === dealId);
-        if (!deal) {
-          return { activities: [], total: 0 };
-        }
-        const activities = transformTimelineToActivities(deal);
-        return {
-          activities: activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
-          total: activities.length,
-        };
-      }
-
-      try {
-        const response = await get<DealActivitiesApiResponse>(`/deals/${dealId}/activities`);
-        return {
-          activities: response.activities.map((a) => ({
-            id: a.id,
-            dealId: a.deal_id,
-            type: a.type,
-            description: a.description,
-            user: a.user,
-            timestamp: new Date(a.timestamp),
-            metadata: a.metadata,
-          })),
-          total: response.total,
-        };
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock activities:', error);
-          const deal = mockDeals.find((d) => d.id === dealId);
-          if (!deal) {
-            return { activities: [], total: 0 };
-          }
-          const activities = transformTimelineToActivities(deal);
-          return {
-            activities: activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
-            total: activities.length,
-          };
-        }
-        throw error;
-      }
+      const response = await get<DealActivitiesApiResponse>(`/deals/${dealId}/activities`);
+      return {
+        activities: response.activities.map((a) => ({
+          id: a.id,
+          dealId: a.deal_id,
+          type: a.type,
+          description: a.description,
+          user: a.user,
+          timestamp: new Date(a.timestamp),
+          metadata: a.metadata,
+        })),
+        total: response.total,
+      };
     },
     enabled: !!dealId,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -335,7 +273,7 @@ export function useDeal(
 
 /**
  * Hook to fetch a single deal with mock data fallback
- * Falls back to mock data if API is unavailable or USE_MOCK_DATA is true
+ * Errors propagate to React Query error state
  */
 export function useDealWithMockFallback(
   id: string | null,
@@ -346,22 +284,8 @@ export function useDealWithMockFallback(
     queryFn: async (): Promise<Deal | null> => {
       if (!id) return null;
 
-      if (USE_MOCK_DATA) {
-        const deal = mockDeals.find((d) => d.id === id);
-        return deal ?? null;
-      }
-
-      try {
-        const response = await get<DealApiResponse>(`/deals/${id}`);
-        return transformDealFromApi(response);
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock deal:', error);
-          const deal = mockDeals.find((d) => d.id === id);
-          return deal ?? null;
-        }
-        throw error;
-      }
+      const response = await get<BackendDealResponse>(`/deals/${id}`);
+      return transformBackendDeal(response);
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5, // 5 minutes

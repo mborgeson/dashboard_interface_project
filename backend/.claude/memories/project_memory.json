@@ -4,7 +4,7 @@
   "realtime_memories": [
     {
       "type": "claude_response",
-      "content": "Extraction pipeline: 28 Excel files → 26 properties, 30,394 values across 11 categories. Scheduler runs twice daily (cron: 0 2,14 * * *), file monitor polls SharePoint every 30 min. Config: EXTRACTION_SCHEDULE_ENABLED=true, FILE_MONITOR_ENABLED=true in backend/.env. Initialized in app/main.py lifespan. [Investment Name] is a template placeholder, not real data.",
+      "content": "Extraction pipeline: 28 Excel files → 26 properties, 30,394 values across 11 categories. Scheduler runs twice daily (cron: 0 2,14 * * *), file monitor polls SharePoint every 30 min. Config: EXTRACTION_SCHEDULE_ENABLED=true, FILE_MONITOR_ENABLED=true in backend/.env. Initialized in app/main.py lifespan. [Investment Name] is a template placeholder, not real data. Data quality: many properties have 300-600+ errors out of 1,169 fields.",
       "added_at": "2026-02-02T11:46:37.112423",
       "source": "consolidated"
     },
@@ -22,29 +22,23 @@
     },
     {
       "type": "claude_response",
-      "content": "Data quality: many properties have 300-600+ errors out of 1,169 fields. Dashboard pages wired to real API data (completed). Extraction page was done first.",
-      "added_at": "2026-02-02T11:51:03.842894",
+      "content": "Dashboard pages wired to real API data (completed). Extraction page done first. All 14 properties updated with real street addresses and coordinates (replacing placeholders). Installed skills: agent-browser, dashboard-creator, using-claude-code-cli.",
+      "added_at": "2026-02-02T20:32:04.875687",
       "source": "consolidated"
-    },
-    {
-      "type": "claude_response",
-      "content": "Installed skills: agent-browser (vercel-labs), dashboard-creator (I-Onlabs/claude-code-skills).",
-      "added_at": "2026-02-02T16:41:30.391367",
-      "source": "consolidated"
-    },
-    {
-      "type": "claude_response",
-      "content": "Memory consolidated: 10 entries → 5. Removed noise (skill install commands, \"claude\" typo, CLI help response) and merged related entries. All signal preserved.",
-      "added_at": "2026-02-02T16:48:39.479116",
-      "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "I want to install the claude-code-cli skill here, but I think I may have already installed it. The command is follows: \"skilz install SpillwaveSolutions/using-claude-code-cli-agent-skill/using-claude-",
-      "added_at": "2026-02-02T16:48:39.479289",
+      "content": "Property addresses with coordinates provided by user for 14 properties (Alante at the Islands, Alta Surprise, etc.) — stored in database with real lat/long values.",
+      "added_at": "2026-02-02T20:32:04.875729",
+      "source": "consolidated"
+    },
+    {
+      "type": "message",
+      "content": "claude mcp add playwright npx @playwright/mcp@latest",
+      "added_at": "2026-02-02T20:36:23.246471",
       "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:50:12.455355",
-  "updated_at": "2026-02-02T16:48:39.479295"
+  "updated_at": "2026-02-02T20:36:23.246502"
 }

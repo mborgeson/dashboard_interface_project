@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get, post, put, patch, del } from '@/lib/api';
-import { USE_MOCK_DATA, IS_DEV } from '@/lib/config';
-import { mockTransactions } from '@/data/mockTransactions';
 import type { Transaction, TransactionType } from '@/types';
 
 // ============================================================================
@@ -127,7 +125,7 @@ export interface TransactionsWithFallbackResponse {
 
 /**
  * Hook to fetch all transactions with mock data fallback
- * Falls back to mock data if API is unavailable or USE_MOCK_DATA is true
+ * Errors propagate to React Query error state
  */
 export function useTransactionsWithMockFallback(
   filters?: TransactionFilters,
@@ -136,66 +134,11 @@ export function useTransactionsWithMockFallback(
   return useQuery({
     queryKey: transactionKeys.list(filters || {}),
     queryFn: async (): Promise<TransactionsWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        // Apply filters to mock data
-        let filtered = [...mockTransactions];
-
-        if (filters?.type) {
-          filtered = filtered.filter((t) => t.type === filters.type);
-        }
-        if (filters?.property_id) {
-          filtered = filtered.filter((t) => t.propertyId === `prop-${String(filters.property_id).padStart(3, '0')}`);
-        }
-        if (filters?.category) {
-          filtered = filtered.filter((t) => t.category === filters.category);
-        }
-        if (filters?.date_from) {
-          const fromDate = new Date(filters.date_from);
-          filtered = filtered.filter((t) => t.date >= fromDate);
-        }
-        if (filters?.date_to) {
-          const toDate = new Date(filters.date_to);
-          filtered = filtered.filter((t) => t.date <= toDate);
-        }
-
-        // Sort
-        const sortBy = filters?.sort_by || 'date';
-        const sortDesc = filters?.sort_order !== 'asc';
-        filtered.sort((a, b) => {
-          const aVal = sortBy === 'date' ? a.date.getTime() : sortBy === 'amount' ? a.amount : 0;
-          const bVal = sortBy === 'date' ? b.date.getTime() : sortBy === 'amount' ? b.amount : 0;
-          return sortDesc ? bVal - aVal : aVal - bVal;
-        });
-
-        // Paginate
-        const page = filters?.page || 1;
-        const pageSize = filters?.page_size || 20;
-        const start = (page - 1) * pageSize;
-        const paginated = filtered.slice(start, start + pageSize);
-
-        return {
-          transactions: paginated,
-          total: filtered.length,
-        };
-      }
-
-      try {
-        const response = await get<TransactionListResponse>('/transactions', filters as Record<string, unknown>);
-        return {
-          transactions: response.items?.map(transformTransactionFromApi) ?? [],
-          total: response.total ?? 0,
-        };
-      } catch (error) {
-        // Fall back to mock data if API fails in development
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock transactions:', error);
-          return {
-            transactions: mockTransactions,
-            total: mockTransactions.length,
-          };
-        }
-        throw error;
-      }
+      const response = await get<TransactionListResponse>('/transactions', filters as Record<string, unknown>);
+      return {
+        transactions: response.items?.map(transformTransactionFromApi) ?? [],
+        total: response.total ?? 0,
+      };
     },
     staleTime: 1000 * 60 * 7, // 7 min - transactions change more than properties but less than real-time data
     ...options,

@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get, post, put, del } from '@/lib/api';
-import { USE_MOCK_DATA, IS_DEV } from '@/lib/config';
-import { mockDocuments } from '@/data/mockDocuments';
 import type { Document, DocumentType, DocumentStats, DocumentFilters } from '@/types/document';
 
 // ============================================================================
@@ -132,7 +130,7 @@ export interface DocumentsWithFallbackResponse {
 
 /**
  * Hook to fetch all documents with mock data fallback
- * Falls back to mock data if API is unavailable or USE_MOCK_DATA is true
+ * Errors propagate to React Query error state
  */
 export function useDocumentsWithMockFallback(
   filters?: Partial<DocumentFilters>,
@@ -141,77 +139,19 @@ export function useDocumentsWithMockFallback(
   return useQuery({
     queryKey: documentKeys.list(filters || {}),
     queryFn: async (): Promise<DocumentsWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        // Apply client-side filtering to mock data
-        let filtered = [...mockDocuments];
+      const params: Record<string, unknown> = {};
+      if (filters?.type && filters.type !== 'all') params.type = filters.type;
+      if (filters?.propertyId && filters.propertyId !== 'all')
+        params.property_id = filters.propertyId;
+      if (filters?.searchTerm) params.search = filters.searchTerm;
+      if (filters?.dateRange && filters.dateRange !== 'all')
+        params.date_range = filters.dateRange;
 
-        if (filters?.type && filters.type !== 'all') {
-          filtered = filtered.filter((d) => d.type === filters.type);
-        }
-        if (filters?.propertyId && filters.propertyId !== 'all') {
-          filtered = filtered.filter((d) => d.propertyId === filters.propertyId);
-        }
-        if (filters?.searchTerm) {
-          const term = filters.searchTerm.toLowerCase();
-          filtered = filtered.filter(
-            (d) =>
-              d.name.toLowerCase().includes(term) ||
-              d.description?.toLowerCase().includes(term)
-          );
-        }
-        if (filters?.dateRange && filters.dateRange !== 'all') {
-          const now = new Date();
-          let cutoff: Date;
-          switch (filters.dateRange) {
-            case '7days':
-              cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-              break;
-            case '30days':
-              cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-              break;
-            case '90days':
-              cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-              break;
-            case '1year':
-              cutoff = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-              break;
-            default:
-              cutoff = new Date(0);
-          }
-          filtered = filtered.filter((d) => d.uploadedAt >= cutoff);
-        }
-
-        return {
-          documents: filtered,
-          total: filtered.length,
-        };
-      }
-
-      try {
-        const params: Record<string, unknown> = {};
-        if (filters?.type && filters.type !== 'all') params.type = filters.type;
-        if (filters?.propertyId && filters.propertyId !== 'all')
-          params.property_id = filters.propertyId;
-        if (filters?.searchTerm) params.search = filters.searchTerm;
-        if (filters?.dateRange && filters.dateRange !== 'all')
-          params.date_range = filters.dateRange;
-
-        const response = await get<DocumentListApiResponse>('/documents', params);
-        return {
-          documents: response.items?.map(transformDocumentFromApi) ?? [],
-          total: response.total ?? 0,
-        };
-      } catch (error) {
-        // Fall back to mock data if API fails in development
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock documents:', error);
-          return {
-            documents: mockDocuments,
-            total: mockDocuments.length,
-          };
-        }
-        throw error;
-      }
+      const response = await get<DocumentListApiResponse>('/documents', params);
+      return {
+        documents: response.items?.map(transformDocumentFromApi) ?? [],
+        total: response.total ?? 0,
+      };
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...options,
@@ -227,73 +167,8 @@ export function useDocumentStatsWithMockFallback(
   return useQuery({
     queryKey: documentKeys.stats(),
     queryFn: async (): Promise<DocumentStats> => {
-      if (USE_MOCK_DATA) {
-        // Calculate stats from mock data
-        const byType: Record<DocumentType, number> = {
-          lease: 0,
-          financial: 0,
-          legal: 0,
-          due_diligence: 0,
-          photo: 0,
-          other: 0,
-        };
-
-        let totalSize = 0;
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        let recentUploads = 0;
-
-        for (const doc of mockDocuments) {
-          byType[doc.type]++;
-          totalSize += doc.size;
-          if (doc.uploadedAt >= thirtyDaysAgo) {
-            recentUploads++;
-          }
-        }
-
-        return {
-          totalDocuments: mockDocuments.length,
-          totalSize,
-          byType,
-          recentUploads,
-        };
-      }
-
-      try {
-        const response = await get<DocumentStatsApiResponse>('/documents/stats');
-        return transformStatsFromApi(response);
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, calculating stats from mock data:', error);
-          // Return mock stats (same calculation as above)
-          const byType: Record<DocumentType, number> = {
-            lease: 0,
-            financial: 0,
-            legal: 0,
-            due_diligence: 0,
-            photo: 0,
-            other: 0,
-          };
-          let totalSize = 0;
-          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-          let recentUploads = 0;
-
-          for (const doc of mockDocuments) {
-            byType[doc.type]++;
-            totalSize += doc.size;
-            if (doc.uploadedAt >= thirtyDaysAgo) {
-              recentUploads++;
-            }
-          }
-
-          return {
-            totalDocuments: mockDocuments.length,
-            totalSize,
-            byType,
-            recentUploads,
-          };
-        }
-        throw error;
-      }
+      const response = await get<DocumentStatsApiResponse>('/documents/stats');
+      return transformStatsFromApi(response);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...options,

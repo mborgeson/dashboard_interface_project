@@ -1,12 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get, post, put, del } from '@/lib/api';
-import { USE_MOCK_DATA, IS_DEV } from '@/lib/config';
 import {
-  mockReportTemplates,
-  mockQueuedReports,
-  mockDistributionSchedules,
-  mockReportWidgets,
   type ReportTemplate,
   type QueuedReport,
   type DistributionSchedule,
@@ -322,54 +317,14 @@ export function useReportTemplatesWithMockFallback(
   return useQuery({
     queryKey: reportingKeys.templateList(filters),
     queryFn: async (): Promise<TemplatesWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        let filtered = [...mockReportTemplates];
-
-        if (filters.category) {
-          filtered = filtered.filter((t) => t.category === filters.category);
-        }
-        if (filters.is_default !== undefined) {
-          filtered = filtered.filter((t) => t.isDefault === filters.is_default);
-        }
-        if (filters.search) {
-          const search = filters.search.toLowerCase();
-          filtered = filtered.filter(
-            (t) =>
-              t.name.toLowerCase().includes(search) ||
-              t.description.toLowerCase().includes(search)
-          );
-        }
-
-        const page = filters.page || 1;
-        const pageSize = filters.page_size || 20;
-        const start = (page - 1) * pageSize;
-        const paginated = filtered.slice(start, start + pageSize);
-
-        return {
-          templates: paginated,
-          total: filtered.length,
-        };
-      }
-
-      try {
-        const response = await get<ReportTemplateListApiResponse>(
-          '/reporting/templates',
-          filters as Record<string, unknown>
-        );
-        return {
-          templates: response.items.map(transformTemplateFromApi),
-          total: response.total,
-        };
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock templates:', error);
-          return {
-            templates: mockReportTemplates,
-            total: mockReportTemplates.length,
-          };
-        }
-        throw error;
-      }
+      const response = await get<ReportTemplateListApiResponse>(
+        '/reporting/templates',
+        filters as Record<string, unknown>
+      );
+      return {
+        templates: response.items.map(transformTemplateFromApi),
+        total: response.total,
+      };
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...options,
@@ -386,46 +341,14 @@ export function useQueuedReportsWithMockFallback(
   return useQuery({
     queryKey: reportingKeys.queueList(filters),
     queryFn: async (): Promise<QueuedReportsWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        let filtered = [...mockQueuedReports];
-
-        if (filters.status) {
-          filtered = filtered.filter((r) => r.status === filters.status);
-        }
-        if (filters.template_id) {
-          filtered = filtered.filter((r) => r.templateId === String(filters.template_id));
-        }
-
-        const page = filters.page || 1;
-        const pageSize = filters.page_size || 20;
-        const start = (page - 1) * pageSize;
-        const paginated = filtered.slice(start, start + pageSize);
-
-        return {
-          reports: paginated,
-          total: filtered.length,
-        };
-      }
-
-      try {
-        const response = await get<QueuedReportListApiResponse>(
-          '/reporting/queue',
-          filters as Record<string, unknown>
-        );
-        return {
-          reports: response.items.map(transformQueuedFromApi),
-          total: response.total,
-        };
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock queued reports:', error);
-          return {
-            reports: mockQueuedReports,
-            total: mockQueuedReports.length,
-          };
-        }
-        throw error;
-      }
+      const response = await get<QueuedReportListApiResponse>(
+        '/reporting/queue',
+        filters as Record<string, unknown>
+      );
+      return {
+        reports: response.items.map(transformQueuedFromApi),
+        total: response.total,
+      };
     },
     staleTime: 1000 * 30, // 30 seconds - queue changes more frequently
     ...options,
@@ -442,41 +365,14 @@ export function useDistributionSchedulesWithMockFallback(
   return useQuery({
     queryKey: reportingKeys.scheduleList(filters),
     queryFn: async (): Promise<SchedulesWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        let filtered = [...mockDistributionSchedules];
-
-        if (filters.active_only) {
-          filtered = filtered.filter((s) => s.isActive);
-        }
-        if (filters.template_id) {
-          filtered = filtered.filter((s) => s.templateId === String(filters.template_id));
-        }
-
-        return {
-          schedules: filtered,
-          total: filtered.length,
-        };
-      }
-
-      try {
-        const response = await get<DistributionScheduleListApiResponse>(
-          '/reporting/schedules',
-          filters as Record<string, unknown>
-        );
-        return {
-          schedules: response.items.map(transformScheduleFromApi),
-          total: response.total,
-        };
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock schedules:', error);
-          return {
-            schedules: mockDistributionSchedules,
-            total: mockDistributionSchedules.length,
-          };
-        }
-        throw error;
-      }
+      const response = await get<DistributionScheduleListApiResponse>(
+        '/reporting/schedules',
+        filters as Record<string, unknown>
+      );
+      return {
+        schedules: response.items.map(transformScheduleFromApi),
+        total: response.total,
+      };
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...options,
@@ -493,34 +389,12 @@ export function useReportWidgetsWithMockFallback(
   return useQuery({
     queryKey: reportingKeys.widgets(widgetType),
     queryFn: async (): Promise<WidgetsWithFallbackResponse> => {
-      if (USE_MOCK_DATA) {
-        let filtered = [...mockReportWidgets];
-        if (widgetType) {
-          filtered = filtered.filter((w) => w.type === widgetType);
-        }
-        return {
-          widgets: filtered,
-          total: filtered.length,
-        };
-      }
-
-      try {
-        const params = widgetType ? { widget_type: widgetType } : {};
-        const response = await get<ReportWidgetListApiResponse>('/reporting/widgets', params);
-        return {
-          widgets: response.widgets.map(transformWidgetFromApi),
-          total: response.total,
-        };
-      } catch (error) {
-        if (IS_DEV) {
-          console.warn('API unavailable, falling back to mock widgets:', error);
-          return {
-            widgets: mockReportWidgets,
-            total: mockReportWidgets.length,
-          };
-        }
-        throw error;
-      }
+      const params = widgetType ? { widget_type: widgetType } : {};
+      const response = await get<ReportWidgetListApiResponse>('/reporting/widgets', params);
+      return {
+        widgets: response.widgets.map(transformWidgetFromApi),
+        total: response.total,
+      };
     },
     staleTime: 1000 * 60 * 30, // 30 minutes - widgets rarely change
     ...options,
@@ -545,13 +419,6 @@ export function useGenerateReportWithMockFallback() {
       format: ReportFormat;
       parameters?: Record<string, unknown>;
     }): Promise<MockGenerateReportResponse> => {
-      if (USE_MOCK_DATA) {
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        const id = `queue-${Date.now()}`;
-        return { id, status: 'pending' };
-      }
-
       const response = await post<GenerateReportResponse, GenerateReportRequest>(
         '/reporting/generate',
         {
@@ -580,33 +447,10 @@ export function useQueuedReportWithMockFallback(
   id: string | null,
   options?: { refetchInterval?: number }
 ) {
-  const progressRef = { current: 0 };
-
   return useQuery({
     queryKey: ['reporting', 'queue', id],
     queryFn: async (): Promise<QueuedReport | null> => {
       if (!id) return null;
-
-      if (USE_MOCK_DATA) {
-        // Simulate progress
-        progressRef.current = Math.min(progressRef.current + 25, 100);
-        const isComplete = progressRef.current >= 100;
-
-        return {
-          id,
-          name: 'Generated Report',
-          templateId: 'exec-summary',
-          templateName: 'Executive Summary',
-          status: isComplete ? 'completed' : 'generating',
-          progress: progressRef.current,
-          requestedBy: 'Current User',
-          requestedAt: new Date().toISOString(),
-          completedAt: isComplete ? new Date().toISOString() : undefined,
-          format: 'pdf',
-          fileSize: isComplete ? '2.4 MB' : undefined,
-          downloadUrl: isComplete ? '/mock-report.pdf' : undefined,
-        };
-      }
 
       const response = await get<QueuedReportApiResponse>(`/reporting/queue/${id}`);
       return {
@@ -863,35 +707,6 @@ export function usePrefetchReportTemplates() {
     queryClient.prefetchQuery({
       queryKey: reportingKeys.templateList(filters),
       queryFn: async () => {
-        if (USE_MOCK_DATA) {
-          let filtered = [...mockReportTemplates];
-
-          if (filters.category) {
-            filtered = filtered.filter((t) => t.category === filters.category);
-          }
-          if (filters.is_default !== undefined) {
-            filtered = filtered.filter((t) => t.isDefault === filters.is_default);
-          }
-          if (filters.search) {
-            const search = filters.search.toLowerCase();
-            filtered = filtered.filter(
-              (t) =>
-                t.name.toLowerCase().includes(search) ||
-                t.description.toLowerCase().includes(search)
-            );
-          }
-
-          const page = filters.page || 1;
-          const pageSize = filters.page_size || 20;
-          const start = (page - 1) * pageSize;
-          const paginated = filtered.slice(start, start + pageSize);
-
-          return {
-            templates: paginated,
-            total: filtered.length,
-          };
-        }
-
         const response = await get<ReportTemplateListApiResponse>(
           '/reporting/templates',
           filters as Record<string, unknown>
@@ -917,17 +732,6 @@ export function usePrefetchReportWidgets() {
     queryClient.prefetchQuery({
       queryKey: reportingKeys.widgets(widgetType),
       queryFn: async () => {
-        if (USE_MOCK_DATA) {
-          let filtered = [...mockReportWidgets];
-          if (widgetType) {
-            filtered = filtered.filter((w) => w.type === widgetType);
-          }
-          return {
-            widgets: filtered,
-            total: filtered.length,
-          };
-        }
-
         const params = widgetType ? { widget_type: widgetType } : {};
         const response = await get<ReportWidgetListApiResponse>('/reporting/widgets', params);
         return {
