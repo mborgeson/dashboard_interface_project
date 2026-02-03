@@ -9,18 +9,11 @@ import {
   type PropertyActivityType,
 } from '../usePropertyActivities';
 import * as api from '@/lib/api';
-import * as config from '@/lib/config';
 
-// Mock the API and config modules
+// Mock the API module
 vi.mock('@/lib/api', () => ({
   get: vi.fn(),
   post: vi.fn(),
-}));
-
-vi.mock('@/lib/config', () => ({
-  USE_MOCK_DATA: false,
-  IS_DEV: true,
-  WS_URL: 'ws://localhost:8000',
 }));
 
 // Create a wrapper with QueryClient
@@ -68,80 +61,13 @@ describe('usePropertyActivitiesWithMockFallback', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(config).USE_MOCK_DATA = false;
-    vi.mocked(config).IS_DEV = true;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe('with mock data enabled', () => {
-    beforeEach(() => {
-      vi.mocked(config).USE_MOCK_DATA = true;
-    });
-
-    it('returns mock data when USE_MOCK_DATA is true', async () => {
-      const { result } = renderHook(
-        () => usePropertyActivitiesWithMockFallback('prop-123'),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.data).toBeDefined();
-      expect(result.current.data?.activities).toBeDefined();
-      expect(result.current.data?.activities.length).toBeGreaterThan(0);
-
-      // API should not be called when using mock data
-      expect(mockGet).not.toHaveBeenCalled();
-    });
-
-    it('filters mock data by activity types', async () => {
-      const activityTypes: PropertyActivityType[] = ['view'];
-
-      const { result } = renderHook(
-        () => usePropertyActivitiesWithMockFallback('prop-123', { activityTypes }),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      // All returned activities should be of type 'view'
-      const activities = result.current.data?.activities ?? [];
-      activities.forEach((activity) => {
-        expect(activity.type).toBe('view');
-      });
-    });
-
-    it('sorts activities by timestamp descending', async () => {
-      const { result } = renderHook(
-        () => usePropertyActivitiesWithMockFallback('prop-123'),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      const activities = result.current.data?.activities ?? [];
-      for (let i = 1; i < activities.length; i++) {
-        expect(activities[i - 1].timestamp.getTime()).toBeGreaterThanOrEqual(
-          activities[i].timestamp.getTime()
-        );
-      }
-    });
-  });
-
   describe('with API data', () => {
-    beforeEach(() => {
-      vi.mocked(config).USE_MOCK_DATA = false;
-    });
-
     it('fetches data from API', async () => {
       const mockApiResponse = {
         activities: [
@@ -243,6 +169,51 @@ describe('usePropertyActivitiesWithMockFallback', () => {
       expect(activity?.timestamp).toBeInstanceOf(Date);
     });
 
+    it('sorts activities by timestamp descending', async () => {
+      const mockApiResponse = {
+        activities: [
+          {
+            id: 'act-1',
+            property_id: 'prop-123',
+            type: 'view' as PropertyActivityType,
+            description: 'First',
+            user_name: 'User A',
+            timestamp: '2024-01-15T10:00:00Z',
+            metadata: {},
+          },
+          {
+            id: 'act-2',
+            property_id: 'prop-123',
+            type: 'edit' as PropertyActivityType,
+            description: 'Second',
+            user_name: 'User B',
+            timestamp: '2024-01-16T10:00:00Z',
+            metadata: {},
+          },
+        ],
+        total: 2,
+      };
+
+      mockGet.mockResolvedValue(mockApiResponse);
+
+      const { result } = renderHook(
+        () => usePropertyActivitiesWithMockFallback('prop-123'),
+        { wrapper: createWrapper() }
+      );
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const activities = result.current.data?.activities ?? [];
+      expect(activities.length).toBe(2);
+      for (let i = 1; i < activities.length; i++) {
+        expect(activities[i - 1].timestamp.getTime()).toBeGreaterThanOrEqual(
+          activities[i].timestamp.getTime()
+        );
+      }
+    });
+
     it('passes activity types filter to API', async () => {
       mockGet.mockResolvedValue({ activities: [], total: 0 });
 
@@ -264,30 +235,7 @@ describe('usePropertyActivitiesWithMockFallback', () => {
       );
     });
 
-    it('falls back to mock data on API error in dev mode', async () => {
-      vi.mocked(config).IS_DEV = true;
-      mockGet.mockRejectedValue(new Error('Network error'));
-
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      const { result } = renderHook(
-        () => usePropertyActivitiesWithMockFallback('prop-123'),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      // Should have mock data as fallback
-      expect(result.current.data?.activities).toBeDefined();
-      expect(result.current.data?.activities.length).toBeGreaterThan(0);
-
-      consoleSpy.mockRestore();
-    });
-
-    it('throws error in production mode when API fails', async () => {
-      vi.mocked(config).IS_DEV = false;
+    it('propagates API errors', async () => {
       mockGet.mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(
@@ -316,7 +264,7 @@ describe('usePropertyActivitiesWithMockFallback', () => {
     });
 
     it('is enabled when propertyId is provided', async () => {
-      vi.mocked(config).USE_MOCK_DATA = true;
+      mockGet.mockResolvedValue({ activities: [], total: 0 });
 
       const { result } = renderHook(
         () => usePropertyActivitiesWithMockFallback('prop-123'),
