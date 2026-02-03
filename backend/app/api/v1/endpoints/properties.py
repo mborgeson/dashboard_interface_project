@@ -48,7 +48,9 @@ def _to_frontend_property(prop: Property) -> dict:
     ops = fd.get("operations", {})
     exp = fd.get("expenses", {})
 
-    purchase_price = _decimal_to_float(prop.purchase_price) or acq.get("purchasePrice") or 0
+    purchase_price = (
+        _decimal_to_float(prop.purchase_price) or acq.get("purchasePrice") or 0
+    )
     total_units = prop.total_units or 0
     total_sf = prop.total_sf or 0
     avg_unit_size = round(total_sf / total_units) if total_sf and total_units else 0
@@ -57,8 +59,12 @@ def _to_frontend_property(prop: Property) -> dict:
     noi = _decimal_to_float(prop.noi) or ops.get("noiYear1") or 0
     cap_rate = _decimal_to_float(prop.cap_rate) or 0
     occupancy = _decimal_to_float(prop.occupancy_rate) or ops.get("occupancy") or 0
-    avg_rent = _decimal_to_float(prop.avg_rent_per_unit) or ops.get("avgRentPerUnit") or 0
-    rent_per_sf = _decimal_to_float(prop.avg_rent_per_sf) or ops.get("avgRentPerSf") or 0
+    avg_rent = (
+        _decimal_to_float(prop.avg_rent_per_unit) or ops.get("avgRentPerUnit") or 0
+    )
+    rent_per_sf = (
+        _decimal_to_float(prop.avg_rent_per_sf) or ops.get("avgRentPerSf") or 0
+    )
     irr = ret.get("lpIrr") or 0
     moic = ret.get("lpMoic") or 0
     interest_rate = fin.get("interestRate") or 0
@@ -117,7 +123,9 @@ def _to_frontend_property(prop: Property) -> dict:
     if isinstance(acquisition_fee, (int, float)) and acquisition_fee < 1:
         acquisition_fee = round(purchase_price * acquisition_fee, 2)
 
-    ltv = fin.get("ltv") or (round(loan_amount / purchase_price, 3) if purchase_price and loan_amount else 0)
+    ltv = fin.get("ltv") or (
+        round(loan_amount / purchase_price, 3) if purchase_price and loan_amount else 0
+    )
     loan_term = fin.get("loanTermMonths")
     loan_term_years = round(loan_term / 12) if loan_term else 5
 
@@ -126,7 +134,13 @@ def _to_frontend_property(prop: Property) -> dict:
     if loan_amount and interest_rate:
         monthly_rate = interest_rate / 12
         if monthly_rate > 0 and amort > 0:
-            monthly_payment = round(loan_amount * monthly_rate * (1 + monthly_rate) ** amort / ((1 + monthly_rate) ** amort - 1), 2)
+            monthly_payment = round(
+                loan_amount
+                * monthly_rate
+                * (1 + monthly_rate) ** amort
+                / ((1 + monthly_rate) ** amort - 1),
+                2,
+            )
         else:
             monthly_payment = 0
     else:
@@ -151,12 +165,16 @@ def _to_frontend_property(prop: Property) -> dict:
             "yearBuilt": year_built,
             "propertyClass": property_class,
             "assetType": prop.building_type or "Garden",
-            "amenities": list(prop.amenities.keys()) if prop.amenities and isinstance(prop.amenities, dict) else (prop.amenities if isinstance(prop.amenities, list) else []),
+            "amenities": list(prop.amenities.keys())
+            if prop.amenities and isinstance(prop.amenities, dict)
+            else (prop.amenities if isinstance(prop.amenities, list) else []),
         },
         "acquisition": {
             "date": acq_date,
             "purchasePrice": purchase_price,
-            "pricePerUnit": round(purchase_price / total_units, 2) if total_units else 0,
+            "pricePerUnit": round(purchase_price / total_units, 2)
+            if total_units
+            else 0,
             "closingCosts": closing_costs,
             "acquisitionFee": acquisition_fee,
             "totalInvested": total_invested,
@@ -196,13 +214,17 @@ def _to_frontend_property(prop: Property) -> dict:
                 "total": total_expenses / 12,
             },
             "noi": noi,
-            "operatingExpenseRatio": round(total_expenses / (monthly_revenue * 12), 2) if monthly_revenue else 0,
+            "operatingExpenseRatio": round(total_expenses / (monthly_revenue * 12), 2)
+            if monthly_revenue
+            else 0,
         },
         "performance": {
             "cashOnCashReturn": ret.get("cashOnCashYear1") or 0,
             "irr": irr,
             "equityMultiple": moic,
-            "totalReturnDollars": round((moic - 1) * (total_invested - loan_amount), 2) if moic and total_invested else 0,
+            "totalReturnDollars": round((moic - 1) * (total_invested - loan_amount), 2)
+            if moic and total_invested
+            else 0,
             "totalReturnPercent": round((moic - 1) * 100, 2) if moic else 0,
         },
         "images": {
@@ -221,7 +243,11 @@ async def list_properties_dashboard(
     Returns { properties: [...], total: N } matching the frontend Property type.
     """
     items = await property_crud.get_multi_filtered(
-        db, skip=0, limit=200, order_by="name", order_desc=False,
+        db,
+        skip=0,
+        limit=200,
+        order_by="name",
+        order_desc=False,
     )
     total = await property_crud.count_filtered(db)
     properties = [_to_frontend_property(p) for p in items]
@@ -254,14 +280,24 @@ async def get_portfolio_summary(
     Returns PropertySummaryStats matching the frontend type.
     """
     items = await property_crud.get_multi_filtered(
-        db, skip=0, limit=200, order_by="name", order_desc=False,
+        db,
+        skip=0,
+        limit=200,
+        order_by="name",
+        order_desc=False,
     )
 
     if not items:
         return {
-            "totalProperties": 0, "totalUnits": 0, "totalValue": 0,
-            "totalInvested": 0, "totalNOI": 0, "averageOccupancy": 0,
-            "averageCapRate": 0, "portfolioCashOnCash": 0, "portfolioIRR": 0,
+            "totalProperties": 0,
+            "totalUnits": 0,
+            "totalValue": 0,
+            "totalInvested": 0,
+            "totalNOI": 0,
+            "averageOccupancy": 0,
+            "averageCapRate": 0,
+            "portfolioCashOnCash": 0,
+            "portfolioIRR": 0,
         }
 
     total_properties = len(items)

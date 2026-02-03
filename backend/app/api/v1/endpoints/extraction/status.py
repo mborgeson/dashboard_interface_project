@@ -64,18 +64,12 @@ async def get_extraction_status(
     last_completed = db.execute(stmt).scalar_one_or_none()
 
     # Build stats
-    total_runs = db.execute(
-        select(func.count(ExtractionRun.id))
-    ).scalar_one()
+    total_runs = db.execute(select(func.count(ExtractionRun.id))).scalar_one()
     successful_runs = db.execute(
-        select(func.count(ExtractionRun.id)).where(
-            ExtractionRun.status == "completed"
-        )
+        select(func.count(ExtractionRun.id)).where(ExtractionRun.status == "completed")
     ).scalar_one()
     failed_runs = db.execute(
-        select(func.count(ExtractionRun.id)).where(
-            ExtractionRun.status == "failed"
-        )
+        select(func.count(ExtractionRun.id)).where(ExtractionRun.status == "failed")
     ).scalar_one()
 
     # Get total properties and fields from latest completed run
@@ -113,7 +107,9 @@ async def get_extraction_status(
 
 @router.get("/history")
 async def get_extraction_history(
-    limit: int = 10, offset: int = 0, page: int | None = None,
+    limit: int = 10,
+    offset: int = 0,
+    page: int | None = None,
     db: Session = Depends(get_sync_db),
 ):
     """
@@ -263,9 +259,7 @@ async def get_property_data(
         )
 
     # Build categories list
-    categories = sorted(
-        {v.field_category for v in values if v.field_category}
-    )
+    categories = sorted({v.field_category for v in values if v.field_category})
 
     # Build value items
     value_items = []
@@ -290,7 +284,9 @@ async def get_property_data(
                 "sheet_name": v.sheet_name or "",
                 "cell_address": v.cell_address or "",
                 "value_text": v.value_text,
-                "value_numeric": float(v.value_numeric) if v.value_numeric is not None else None,
+                "value_numeric": float(v.value_numeric)
+                if v.value_numeric is not None
+                else None,
                 "value_date": v.value_date.isoformat() if v.value_date else None,
                 "data_type": data_type,
                 "is_error": v.is_error,
