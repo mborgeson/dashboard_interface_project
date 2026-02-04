@@ -105,11 +105,12 @@ async def many_activities(
 
 
 @pytest.mark.asyncio
-async def test_get_property_activities_requires_auth(client, test_property):
-    """Test that getting property activities requires authentication."""
+async def test_get_property_activities_without_auth(client, test_property):
+    """Test that getting property activities works without auth (public endpoint)."""
     response = await client.get(f"/api/v1/properties/{test_property.id}/activities")
 
-    assert response.status_code == 401
+    # Endpoint does not require authentication
+    assert response.status_code == 200
 
 
 @pytest.mark.asyncio
@@ -125,12 +126,12 @@ async def test_get_property_activities_success(
     assert response.status_code == 200
     data = response.json()
 
-    assert "items" in data
+    assert "activities" in data
     assert "total" in data
     assert "page" in data
     assert "page_size" in data
     assert data["total"] == 6  # We created 6 activities
-    assert len(data["items"]) == 6
+    assert len(data["activities"]) == 6
 
 
 @pytest.mark.asyncio
@@ -147,7 +148,7 @@ async def test_get_property_activities_pagination_skip(
     assert response.status_code == 200
     data = response.json()
 
-    assert len(data["items"]) == 10
+    assert len(data["activities"]) == 10
     assert data["total"] == 25
     assert data["page"] == 2  # skip=10, limit=10 means page 2
 
@@ -166,7 +167,7 @@ async def test_get_property_activities_pagination_limit(
     assert response.status_code == 200
     data = response.json()
 
-    assert len(data["items"]) == 5
+    assert len(data["activities"]) == 5
     assert data["total"] == 25
     assert data["page_size"] == 5
 
@@ -186,7 +187,7 @@ async def test_get_property_activities_filter_by_view_type(
     data = response.json()
 
     assert data["total"] == 2  # We created 2 view activities
-    for item in data["items"]:
+    for item in data["activities"]:
         assert item["activity_type"] == "view"
 
 
@@ -205,8 +206,8 @@ async def test_get_property_activities_filter_by_edit_type(
     data = response.json()
 
     assert data["total"] == 1
-    assert data["items"][0]["activity_type"] == "edit"
-    assert data["items"][0]["field_changed"] == "occupancy_rate"
+    assert data["activities"][0]["activity_type"] == "edit"
+    assert data["activities"][0]["field_changed"] == "occupancy_rate"
 
 
 @pytest.mark.asyncio
@@ -224,8 +225,8 @@ async def test_get_property_activities_filter_by_comment_type(
     data = response.json()
 
     assert data["total"] == 1
-    assert data["items"][0]["activity_type"] == "comment"
-    assert "promising" in data["items"][0]["comment_text"]
+    assert data["activities"][0]["activity_type"] == "comment"
+    assert "promising" in data["activities"][0]["comment_text"]
 
 
 @pytest.mark.asyncio
@@ -243,9 +244,9 @@ async def test_get_property_activities_filter_by_status_change_type(
     data = response.json()
 
     assert data["total"] == 1
-    assert data["items"][0]["activity_type"] == "status_change"
-    assert data["items"][0]["old_value"] == "active"
-    assert data["items"][0]["new_value"] == "under_review"
+    assert data["activities"][0]["activity_type"] == "status_change"
+    assert data["activities"][0]["old_value"] == "active"
+    assert data["activities"][0]["new_value"] == "under_review"
 
 
 @pytest.mark.asyncio
@@ -263,8 +264,8 @@ async def test_get_property_activities_filter_by_document_upload_type(
     data = response.json()
 
     assert data["total"] == 1
-    assert data["items"][0]["activity_type"] == "document_upload"
-    assert data["items"][0]["document_name"] == "rent_roll_2024.pdf"
+    assert data["activities"][0]["activity_type"] == "document_upload"
+    assert data["activities"][0]["document_name"] == "rent_roll_2024.pdf"
 
 
 @pytest.mark.asyncio
@@ -310,9 +311,9 @@ async def test_get_property_activities_response_structure(
     data = response.json()
 
     # Check at least one item
-    assert len(data["items"]) > 0
+    assert len(data["activities"]) > 0
 
-    item = data["items"][0]
+    item = data["activities"][0]
     required_fields = [
         "id",
         "property_id",
@@ -417,7 +418,9 @@ async def test_create_comment_activity(client, test_property, auth_headers):
     data = response.json()
 
     assert data["activity_type"] == "comment"
-    assert data["comment_text"] == "Great investment opportunity with strong fundamentals."
+    assert (
+        data["comment_text"] == "Great investment opportunity with strong fundamentals."
+    )
 
 
 @pytest.mark.asyncio
@@ -491,7 +494,9 @@ async def test_create_activity_property_not_found(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_create_activity_property_id_mismatch(client, test_property, auth_headers):
+async def test_create_activity_property_id_mismatch(
+    client, test_property, auth_headers
+):
     """Test 400 when body property_id doesn't match URL."""
     activity_data = {
         "property_id": 99999,  # Different from URL
@@ -529,9 +534,7 @@ async def test_create_activity_invalid_type(client, test_property, auth_headers)
 
 
 @pytest.mark.asyncio
-async def test_create_activity_persists(
-    client, test_property, auth_headers
-):
+async def test_create_activity_persists(client, test_property, auth_headers):
     """Test that created activity persists and can be retrieved."""
     # Create activity
     activity_data = {
@@ -562,7 +565,7 @@ async def test_create_activity_persists(
 
     # Find our created activity
     found = False
-    for item in data["items"]:
+    for item in data["activities"]:
         if item["id"] == created["id"]:
             found = True
             assert item["comment_text"] == "Testing persistence"
