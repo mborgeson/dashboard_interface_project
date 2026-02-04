@@ -7,6 +7,7 @@ import { SubmarketComparison } from './components/SubmarketComparison';
 import { MarketHeatmap } from './components/MarketHeatmap';
 import { Download, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ErrorState } from '@/components/ui/error-state';
 import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
 
 // Lazy load ReportWizard modal for code splitting
@@ -24,7 +25,21 @@ export function MarketPage() {
     submarketMetrics,
     sparklineData,
     isLoading,
+    error,
   } = useMarketData();
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="p-6">
+        <ErrorState
+          title="Failed to load market data"
+          description="Unable to fetch market data. Please try again later."
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
   // Show loading state
   if (isLoading) {

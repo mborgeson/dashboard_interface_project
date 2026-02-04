@@ -24,6 +24,15 @@ import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
 
 type DateRange = '30' | '90' | '365' | 'all';
 
+/** Cash-on-Cash Return = (NOI - Annual Debt Service) / Equity */
+function calcCashOnCash(p: { operations: { noi: number }; financing: { monthlyPayment: number; loanAmount: number }; acquisition: { totalInvested: number } }): number {
+  const equity = p.acquisition.totalInvested - p.financing.loanAmount;
+  if (equity <= 0) return 0;
+  const annualDebtService = p.financing.monthlyPayment * 12;
+  const preTaxCashFlow = p.operations.noi - annualDebtService;
+  return preTaxCashFlow / equity;
+}
+
 export function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<DateRange>('365');
   const [showReportWizard, setShowReportWizard] = useState(false);
@@ -66,7 +75,7 @@ export function AnalyticsPage() {
       0
     ) / totalEquity;
     const weightedCashOnCash = properties.reduce(
-      (sum, p) => sum + p.performance.unleveredIrr * (p.acquisition.totalInvested - p.financing.loanAmount),
+      (sum, p) => sum + calcCashOnCash(p) * (p.acquisition.totalInvested - p.financing.loanAmount),
       0
     ) / totalEquity;
     const weightedEquityMultiple = properties.reduce(
@@ -135,7 +144,7 @@ export function AnalyticsPage() {
     return properties.map(p => ({
       name: p.name,
       irr: p.performance.leveredIrr,
-      cashOnCash: p.performance.unleveredIrr,
+      cashOnCash: calcCashOnCash(p),
       capRate: p.valuation.capRate,
     }));
   }, [properties]);
@@ -179,8 +188,8 @@ export function AnalyticsPage() {
             bVal = b.performance.leveredIrr;
             break;
           case 'cashOnCash':
-            aVal = a.performance.unleveredIrr;
-            bVal = b.performance.unleveredIrr;
+            aVal = calcCashOnCash(a);
+            bVal = calcCashOnCash(b);
             break;
           case 'capRate':
             aVal = a.valuation.capRate;
@@ -235,7 +244,7 @@ export function AnalyticsPage() {
     const values = properties.map(p => {
       switch (key) {
         case 'irr': return p.performance.leveredIrr;
-        case 'cashOnCash': return p.performance.unleveredIrr;
+        case 'cashOnCash': return calcCashOnCash(p);
         case 'occupancy': return p.operations.occupancy;
         default: return 0;
       }
@@ -484,8 +493,8 @@ export function AnalyticsPage() {
                     <TableCell className={`text-right ${highlightCell(property.performance.leveredIrr, 'irr')}`}>
                       {formatPercentage(property.performance.leveredIrr)}
                     </TableCell>
-                    <TableCell className={`text-right ${highlightCell(property.performance.unleveredIrr, 'cashOnCash')}`}>
-                      {formatPercentage(property.performance.unleveredIrr)}
+                    <TableCell className={`text-right ${highlightCell(calcCashOnCash(property), 'cashOnCash')}`}>
+                      {formatPercentage(calcCashOnCash(property))}
                     </TableCell>
                     <TableCell className="text-right">
                       {formatPercentage(property.valuation.capRate)}

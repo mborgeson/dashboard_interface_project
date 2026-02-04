@@ -8,6 +8,8 @@ import {
   Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorState } from '@/components/ui/error-state';
 import { ReportTemplates } from './components/ReportTemplates';
 import { CustomReportBuilder } from './components/CustomReportBuilder';
 import { ReportQueue } from './components/ReportQueue';
@@ -136,7 +138,17 @@ export function ReportingSuitePage() {
 
       {/* Tab Content */}
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {renderContent()}
+        <ErrorBoundary
+          fallback={
+            <ErrorState
+              title="Failed to load report content"
+              description="An error occurred while rendering this section. Please try again."
+              onRetry={() => window.location.reload()}
+            />
+          }
+        >
+          {renderContent()}
+        </ErrorBoundary>
       </div>
 
       {/* Report Wizard Dialog - Lazy loaded */}

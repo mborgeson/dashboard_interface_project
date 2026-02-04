@@ -4,6 +4,8 @@ import { ExtractionStatus } from './components/ExtractionStatus';
 import { ExtractionHistory } from './components/ExtractionHistory';
 import { ExtractedPropertyList } from './components/ExtractedPropertyList';
 import { ExtractedPropertyDetail } from './components/ExtractedPropertyDetail';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorState } from '@/components/ui/error-state';
 import type { ExtractionRun } from '@/types/extraction';
 
 export function ExtractionDashboard() {
@@ -61,26 +63,56 @@ export function ExtractionDashboard() {
       </div>
 
       {/* Top Section: Status */}
-      <ExtractionStatus
-        onRunClick={(runId) => setSelectedRunId(runId)}
-      />
+      <ErrorBoundary
+        fallback={
+          <ErrorState
+            title="Failed to load extraction status"
+            description="Unable to display the extraction status. Please try again."
+            onRetry={() => window.location.reload()}
+          />
+        }
+      >
+        <ExtractionStatus
+          onRunClick={(runId) => setSelectedRunId(runId)}
+        />
+      </ErrorBoundary>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Property List - Takes up 2 columns on large screens */}
         <div className="lg:col-span-2">
-          <ExtractedPropertyList
-            runId={selectedRunId}
-            onPropertyClick={handlePropertyClick}
-          />
+          <ErrorBoundary
+            fallback={
+              <ErrorState
+                title="Failed to load properties"
+                description="Unable to display extracted properties. Please try again."
+                onRetry={() => window.location.reload()}
+              />
+            }
+          >
+            <ExtractedPropertyList
+              runId={selectedRunId}
+              onPropertyClick={handlePropertyClick}
+            />
+          </ErrorBoundary>
         </div>
 
         {/* History - Takes up 1 column on large screens */}
         <div className="lg:col-span-1">
-          <ExtractionHistory
-            limit={5}
-            onRunClick={handleRunClick}
-          />
+          <ErrorBoundary
+            fallback={
+              <ErrorState
+                title="Failed to load extraction history"
+                description="Unable to display extraction history. Please try again."
+                onRetry={() => window.location.reload()}
+              />
+            }
+          >
+            <ExtractionHistory
+              limit={5}
+              onRunClick={handleRunClick}
+            />
+          </ErrorBoundary>
         </div>
       </div>
     </div>

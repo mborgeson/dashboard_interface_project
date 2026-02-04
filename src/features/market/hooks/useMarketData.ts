@@ -7,10 +7,11 @@ import {
 
 export function useMarketData() {
   // Fetch from API (with DB → static fallback)
-  const { data: overviewData, isLoading: overviewLoading } = useMarketOverview();
-  const { data: submarketsData, isLoading: submarketsLoading } = useSubmarkets();
-  const { data: trendsData, isLoading: trendsLoading } = useMarketTrends();
+  const { data: overviewData, isLoading: overviewLoading, error: overviewError } = useMarketOverview();
+  const { data: submarketsData, isLoading: submarketsLoading, error: submarketsError } = useSubmarkets();
+  const { data: trendsData, isLoading: trendsLoading, error: trendsError } = useMarketTrends();
   const isLoading = overviewLoading || submarketsLoading || trendsLoading;
+  const error = overviewError || submarketsError || trendsError;
 
   const submarketMetrics = submarketsData?.submarkets ?? [];
   const trends = trendsData?.trends ?? [];
@@ -82,5 +83,6 @@ export function useMarketData() {
     aggregateMetrics,
     sparklineData,
     isLoading,
+    error,
   };
 }

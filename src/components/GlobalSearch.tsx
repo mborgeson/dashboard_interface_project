@@ -18,7 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSearchStore, type SearchResult } from '@/stores/searchStore';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
-import { mockDeals } from '@/data/mockDeals';
+import { useDealsWithMockFallback } from '@/hooks/api/useDeals';
 import { mockDocuments } from '@/data/mockDocuments';
 import { mockTransactions } from '@/data/mockTransactions';
 import { useToast } from '@/hooks/useToast';
@@ -96,6 +96,10 @@ export function GlobalSearch() {
   const { data } = useProperties();
   const properties = selectProperties(data);
 
+  // Fetch deals from API
+  const { data: dealsData } = useDealsWithMockFallback();
+  const deals = dealsData?.deals ?? [];
+
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const { info } = useToast();
@@ -137,7 +141,7 @@ export function GlobalSearch() {
     });
 
     // Configure Fuse.js for deals
-    const dealFuse = new Fuse(mockDeals, {
+    const dealFuse = new Fuse(deals, {
       keys: [
         { name: 'propertyName', weight: 2 },
         { name: 'address.city', weight: 1.5 },
@@ -256,7 +260,7 @@ export function GlobalSearch() {
       ...documentResults,
       ...transactionResults,
     ];
-  }, [debouncedQuery, properties]);
+  }, [debouncedQuery, properties, deals]);
 
   // Use results directly - no need to sync to store
   // The local results are already computed and available for rendering

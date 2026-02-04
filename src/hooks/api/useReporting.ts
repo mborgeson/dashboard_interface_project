@@ -6,10 +6,6 @@ import {
   type QueuedReport,
   type DistributionSchedule,
   type ReportWidget,
-  mockReportTemplates,
-  mockQueuedReports,
-  mockDistributionSchedules,
-  mockReportWidgets,
 } from '@/data/mockReportingData';
 
 // Re-export mock types for component usage
@@ -321,29 +317,14 @@ export function useReportTemplatesWithMockFallback(
   return useQuery({
     queryKey: reportingKeys.templateList(filters),
     queryFn: async (): Promise<TemplatesWithFallbackResponse> => {
-      try {
-        const response = await get<ReportTemplateListApiResponse>(
-          '/reporting/templates',
-          filters as Record<string, unknown>
-        );
-        return {
-          templates: response.items.map(transformTemplateFromApi),
-          total: response.total,
-        };
-      } catch {
-        // Fallback to mock data when API is unreachable
-        let templates = [...mockReportTemplates];
-        if (filters.category) {
-          templates = templates.filter(t => t.category === filters.category);
-        }
-        if (filters.search) {
-          const q = filters.search.toLowerCase();
-          templates = templates.filter(t =>
-            t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
-          );
-        }
-        return { templates, total: templates.length };
-      }
+      const response = await get<ReportTemplateListApiResponse>(
+        '/reporting/templates',
+        filters as Record<string, unknown>
+      );
+      return {
+        templates: response.items.map(transformTemplateFromApi),
+        total: response.total,
+      };
     },
     staleTime: 1000 * 60 * 5,
     ...options,
@@ -360,22 +341,14 @@ export function useQueuedReportsWithMockFallback(
   return useQuery({
     queryKey: reportingKeys.queueList(filters),
     queryFn: async (): Promise<QueuedReportsWithFallbackResponse> => {
-      try {
-        const response = await get<QueuedReportListApiResponse>(
-          '/reporting/queue',
-          filters as Record<string, unknown>
-        );
-        return {
-          reports: response.items.map(transformQueuedFromApi),
-          total: response.total,
-        };
-      } catch {
-        let reports = [...mockQueuedReports];
-        if (filters.status) {
-          reports = reports.filter(r => r.status === filters.status);
-        }
-        return { reports, total: reports.length };
-      }
+      const response = await get<QueuedReportListApiResponse>(
+        '/reporting/queue',
+        filters as Record<string, unknown>
+      );
+      return {
+        reports: response.items.map(transformQueuedFromApi),
+        total: response.total,
+      };
     },
     staleTime: 1000 * 30,
     ...options,
@@ -392,22 +365,14 @@ export function useDistributionSchedulesWithMockFallback(
   return useQuery({
     queryKey: reportingKeys.scheduleList(filters),
     queryFn: async (): Promise<SchedulesWithFallbackResponse> => {
-      try {
-        const response = await get<DistributionScheduleListApiResponse>(
-          '/reporting/schedules',
-          filters as Record<string, unknown>
-        );
-        return {
-          schedules: response.items.map(transformScheduleFromApi),
-          total: response.total,
-        };
-      } catch {
-        let schedules = [...mockDistributionSchedules];
-        if (filters.active_only) {
-          schedules = schedules.filter(s => s.isActive);
-        }
-        return { schedules, total: schedules.length };
-      }
+      const response = await get<DistributionScheduleListApiResponse>(
+        '/reporting/schedules',
+        filters as Record<string, unknown>
+      );
+      return {
+        schedules: response.items.map(transformScheduleFromApi),
+        total: response.total,
+      };
     },
     staleTime: 1000 * 60 * 5,
     ...options,
@@ -424,20 +389,12 @@ export function useReportWidgetsWithMockFallback(
   return useQuery({
     queryKey: reportingKeys.widgets(widgetType),
     queryFn: async (): Promise<WidgetsWithFallbackResponse> => {
-      try {
-        const params = widgetType ? { widget_type: widgetType } : {};
-        const response = await get<ReportWidgetListApiResponse>('/reporting/widgets', params);
-        return {
-          widgets: response.widgets.map(transformWidgetFromApi),
-          total: response.total,
-        };
-      } catch {
-        let widgets = [...mockReportWidgets];
-        if (widgetType) {
-          widgets = widgets.filter(w => w.type === widgetType);
-        }
-        return { widgets, total: widgets.length };
-      }
+      const params = widgetType ? { widget_type: widgetType } : {};
+      const response = await get<ReportWidgetListApiResponse>('/reporting/widgets', params);
+      return {
+        widgets: response.widgets.map(transformWidgetFromApi),
+        total: response.total,
+      };
     },
     staleTime: 1000 * 60 * 30,
     ...options,
