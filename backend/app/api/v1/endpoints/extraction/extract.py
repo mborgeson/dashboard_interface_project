@@ -143,6 +143,8 @@ async def cancel_extraction(
 
     cancelled = ExtractionRunCRUD.cancel(db, run.id)
 
+    if cancelled is None:
+        raise HTTPException(status_code=500, detail="Failed to cancel extraction")
     return {
         "message": "Extraction cancelled",
         "run_id": cancelled.id,

@@ -4,9 +4,10 @@ Analytics endpoints for data visualization and ML predictions.
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -16,8 +17,8 @@ from app.services.ml import get_rent_growth_predictor
 router = APIRouter()
 
 
-def _decimal_to_float(value: Decimal | None) -> float | None:
-    """Convert Decimal to float, returning None if input is None."""
+def _decimal_to_float(value: Any) -> float | None:
+    """Convert Decimal/numeric to float, returning None if input is None."""
     return float(value) if value is not None else None
 
 
@@ -245,8 +246,8 @@ async def get_dashboard_metrics(
             "total_units": prop_row.total_units if prop_row else 0,
             "total_sf": prop_row.total_sf if prop_row else 0,
             "total_value": _decimal_to_float(prop_row.total_value) if prop_row else 0,
-            "avg_occupancy": round(_decimal_to_float(prop_row.avg_occupancy) or 0, 1),
-            "avg_cap_rate": round(_decimal_to_float(prop_row.avg_cap_rate) or 0, 1),
+            "avg_occupancy": round(_decimal_to_float(prop_row.avg_occupancy) or 0, 1) if prop_row else 0,
+            "avg_cap_rate": round(_decimal_to_float(prop_row.avg_cap_rate) or 0, 1) if prop_row else 0,
         },
         "kpis": {
             "ytd_noi_growth": 0.0,  # Would need historical NOI data to calculate
@@ -292,7 +293,7 @@ async def get_portfolio_analytics(
             func.count(Property.id).label("count"),
             func.coalesce(func.sum(Property.current_value), 0).label("value"),
         )
-        .where(*base_filter if base_filter else [True])
+        .where(*base_filter if base_filter else [literal_column("1=1")])
         .group_by(Property.property_type)
     )
     by_type_rows = by_type_result.fetchall()
@@ -312,7 +313,7 @@ async def get_portfolio_analytics(
     # Calculate total value for percentage calculations
     total_value_result = await db.execute(
         select(func.coalesce(func.sum(Property.current_value), 0)).where(
-            *base_filter if base_filter else [True]
+            *base_filter if base_filter else [literal_column("1=1")]
         )
     )
     total_value = (
@@ -321,7 +322,7 @@ async def get_portfolio_analytics(
 
     # Check if we have any data
     total_count_result = await db.execute(
-        select(func.count(Property.id)).where(*base_filter if base_filter else [True])
+        select(func.count(Property.id)).where(*base_filter if base_filter else [literal_column("1=1")])
     )
     total_count = total_count_result.scalar() or 0
 
@@ -380,7 +381,7 @@ async def get_portfolio_analytics(
 
     # Build composition by market
     composition_by_market = {}
-    for row in by_market_rows:
+    for row in by_market_rows:  # type: ignore[assignment]
         if row.market:
             value = _decimal_to_float(row.value) or 0
             composition_by_market[row.market] = {
@@ -395,7 +396,7 @@ async def get_portfolio_analytics(
             func.avg(Property.noi).label("avg_noi"),
             func.avg(Property.occupancy_rate).label("avg_occupancy"),
             func.avg(Property.avg_rent_per_sf).label("avg_rent_psf"),
-        ).where(*base_filter if base_filter else [True])
+        ).where(*base_filter if base_filter else [literal_column("1=1")])
     )
     avg_metrics = avg_metrics_result.fetchone()
 
@@ -499,6 +500,7 @@ async def get_market_data(
         }
 
     # Calculate vacancy rate from occupancy
+    assert metrics_row is not None  # guaranteed by property_count > 0 check above
     avg_occupancy = _decimal_to_float(metrics_row.avg_occupancy) or 0
     vacancy_rate = 100 - avg_occupancy if avg_occupancy > 0 else None
 
@@ -650,7 +652,7 @@ async def get_deal_pipeline_analytics(
     raw_funnel = {stage.value: 0 for stage in DealStage}
     for row in funnel_rows:
         stage_value = row.stage.value if hasattr(row.stage, "value") else str(row.stage)
-        raw_funnel[stage_value] = row.count
+        raw_funnel[stage_value] = row[1]  # count column
 
     # Map backend stages to the 6 frontend stages:
     # lead + initial_review -> initial_review
@@ -777,7 +779,7 @@ async def get_deal_pipeline_analytics(
     total_reviewed = volume_row.total_reviewed if volume_row else 0
     total_value = (
         _decimal_to_float(volume_row.total_value_reviewed) if volume_row else 0
-    )
+    ) or 0
     avg_deal_size = total_value / total_reviewed if total_reviewed > 0 else 0
 
     # Cycle time calculations would need tracking of stage transition timestamps

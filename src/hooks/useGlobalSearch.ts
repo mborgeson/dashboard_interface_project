@@ -22,7 +22,6 @@ export function useGlobalSearch(query: string) {
   const { data } = useProperties();
   const properties = selectProperties(data);
   const { data: txnData } = useTransactionsWithMockFallback();
-  const transactions = txnData?.transactions ?? [];
 
   // Debounce the search query
   useEffect(() => {
@@ -37,6 +36,8 @@ export function useGlobalSearch(query: string) {
     if (!debouncedQuery.trim() || properties.length === 0) {
       return [];
     }
+
+    const transactions = txnData?.transactions ?? [];
 
     // Configure Fuse.js for properties
     const propertyFuse = new Fuse(properties, {
@@ -94,7 +95,7 @@ export function useGlobalSearch(query: string) {
 
     // Limit to top 10 results
     return combined.slice(0, 10);
-  }, [debouncedQuery, properties, transactions]);
+  }, [debouncedQuery, properties, txnData]);
 
   return {
     results,

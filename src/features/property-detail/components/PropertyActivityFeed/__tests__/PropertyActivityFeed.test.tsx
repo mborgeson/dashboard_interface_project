@@ -284,7 +284,7 @@ describe('PropertyActivityFeed', () => {
         // Content should be hidden (Radix handles this with data attributes)
         await waitFor(() => {
           // The collapsible content is controlled by Radix
-          const content = screen.queryByText('John Smith');
+          screen.queryByText('John Smith');
           // Content may still be in DOM but hidden via Radix
           // This is implementation-dependent
         });

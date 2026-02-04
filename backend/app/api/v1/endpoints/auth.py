@@ -209,7 +209,7 @@ async def get_current_user(
     user_id = payload.get("sub")
 
     # Fetch actual user from database
-    db_user = await user_crud.get(db, id=int(user_id))
+    db_user = await user_crud.get(db, id=int(user_id)) if user_id is not None else None
     if db_user:
         return {
             "id": db_user.id,
@@ -220,7 +220,7 @@ async def get_current_user(
 
     # Fallback for demo users (no DB record)
     return {
-        "id": int(user_id),
+        "id": int(user_id) if user_id is not None else 0,
         "email": payload.get("email", "demo@bandrcapital.com"),
         "role": payload.get("role", "viewer"),
     }

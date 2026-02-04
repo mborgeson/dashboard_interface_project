@@ -47,7 +47,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         "/health",
     }
 
-    def __init__(self, app, exclude_paths: set = None):
+    def __init__(self, app, exclude_paths: set[str] | None = None):
         """Initialize middleware with optional custom exclusions."""
         super().__init__(app)
         self.exclude_paths = exclude_paths or self.EXCLUDED_PATHS
@@ -142,7 +142,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             /api/v1/deals/abc-123/documents -> /api/v1/deals/{id}/documents
         """
         parts = path.split("/")
-        normalized = []
+        normalized: list[str] = []
 
         for _, part in enumerate(parts):
             if not part:

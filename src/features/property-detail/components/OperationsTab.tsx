@@ -91,7 +91,7 @@ function CashflowRow({
 }
 
 // Custom pie chart label renderer
-function renderCustomLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: {
+function renderCustomLabel({ cx, cy, midAngle, outerRadius, percent }: {
   cx: number; cy: number; midAngle: number; innerRadius: number; outerRadius: number; percent: number; name: string;
 }) {
   if (percent < 0.05) return null; // Don't show labels for slices < 5%

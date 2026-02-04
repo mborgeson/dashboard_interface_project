@@ -139,7 +139,7 @@ class TaskScheduler:
         self._handlers: dict[str, Callable] = {}
         self._running = False
         self._scheduler_task: asyncio.Task | None = None
-        self._redis_client = None
+        self._redis_client: Any = None
         self._use_redis = False
 
     async def initialize(self, redis_url: str | None = None) -> None:
@@ -151,9 +151,9 @@ class TaskScheduler:
         """
         if redis_url:
             try:
-                from app.services.redis_service import get_redis_client
+                from app.services.redis_service import get_redis_service
 
-                self._redis_client = await get_redis_client()
+                self._redis_client = (await get_redis_service()).client
                 if self._redis_client:
                     self._use_redis = True
                     await self._load_from_redis()

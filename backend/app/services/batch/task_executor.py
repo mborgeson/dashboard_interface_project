@@ -144,6 +144,9 @@ class TaskExecutor:
                     break
 
                 # Try to get a job
+                if self._job_queue is None:
+                    await asyncio.sleep(self._poll_interval)
+                    continue
                 job = await self._job_queue.dequeue()
                 if job:
                     await self._execute_job(job, worker_id)
@@ -167,6 +170,9 @@ class TaskExecutor:
             job: Job to execute
             worker_id: Worker identifier
         """
+        if self._job_queue is None:
+            logger.error("Job queue not initialized")
+            return
         handler = self._handlers.get(job.task_type)
         if not handler:
             logger.error(f"No handler for task type: {job.task_type}")
@@ -284,7 +290,7 @@ async def report_generation_handler(job: Job) -> dict[str, Any]:
         format: Output format (pdf, excel)
         options: Additional report options
     """
-    from app.services.export_service import get_export_service
+    from app.services.export_service import get_excel_service as get_export_service
     from app.services.pdf_service import get_pdf_service
 
     report_type = job.payload.get("report_type")

@@ -7,7 +7,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from loguru import logger
-from sqlalchemy import func, select
+from sqlalchemy import func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import CurrentUser, get_current_user
@@ -586,15 +586,15 @@ async def get_portfolio_summary(
     total_value = sum(float(p.current_value or 0) for p in items)
 
     # Use financial_data for invested amounts and returns
-    total_invested = 0
-    total_noi = 0
-    occ_sum = 0
-    cap_sum = 0
-    occ_count = 0
-    cap_count = 0
-    irr_weighted = 0
-    coc_weighted = 0
-    equity_sum = 0
+    total_invested: float = 0
+    total_noi: float = 0
+    occ_sum: float = 0
+    cap_sum: float = 0
+    occ_count: int = 0
+    cap_count: int = 0
+    irr_weighted: float = 0
+    coc_weighted: float = 0
+    equity_sum: float = 0
 
     for p in items:
         fd = p.financial_data or {}
@@ -696,7 +696,7 @@ async def list_properties(
     )
 
     return PropertyListResponse(
-        items=items,
+        items=items,  # type: ignore[arg-type]
         total=total,
         page=page,
         page_size=page_size,
@@ -824,7 +824,7 @@ async def get_property_analytics(
             func.avg(Property.occupancy_rate).label("avg_occupancy"),
             func.avg(Property.cap_rate).label("avg_cap_rate"),
             func.count(Property.id).label("comp_count"),
-        ).where(*market_comps_filters if market_comps_filters else [True])
+        ).where(*market_comps_filters if market_comps_filters else [literal_column("1=1")])
     )
     market_row = market_comps_result.fetchone()
 

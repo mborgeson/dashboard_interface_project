@@ -13,7 +13,6 @@ import {
   Home,
   BarChart3,
   Map,
-  DollarSign,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchStore, type SearchResult } from '@/stores/searchStore';
@@ -98,15 +97,12 @@ export function GlobalSearch() {
 
   // Fetch deals from API
   const { data: dealsData } = useDealsWithMockFallback();
-  const deals = dealsData?.deals ?? [];
 
   // Fetch documents from API
   const { data: documentsData } = useDocumentsWithMockFallback();
-  const documents = documentsData?.documents ?? [];
 
   // Fetch transactions from API
   const { data: transactionsData } = useTransactionsWithMockFallback();
-  const transactions = transactionsData?.transactions ?? [];
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -134,6 +130,9 @@ export function GlobalSearch() {
     }
 
     const query = debouncedQuery.trim();
+    const deals = dealsData?.deals ?? [];
+    const documents = documentsData?.documents ?? [];
+    const transactions = transactionsData?.transactions ?? [];
 
     // Configure Fuse.js for properties (using API data)
     const propertyFuse = new Fuse(properties, {
@@ -268,7 +267,7 @@ export function GlobalSearch() {
       ...documentResults,
       ...transactionResults,
     ];
-  }, [debouncedQuery, properties, deals, documents, transactions]);
+  }, [debouncedQuery, properties, dealsData, documentsData, transactionsData]);
 
   // Use results directly - no need to sync to store
   // The local results are already computed and available for rendering

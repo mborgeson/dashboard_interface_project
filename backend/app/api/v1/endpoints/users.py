@@ -102,7 +102,7 @@ async def list_users(
     items = filtered[start:end]
 
     return UserListResponse(
-        items=items,
+        items=items,  # type: ignore[arg-type]
         total=total,
         page=page,
         page_size=page_size,
@@ -158,7 +158,7 @@ async def create_user(
             detail="Email already registered",
         )
 
-    new_id = max(u["id"] for u in DEMO_USERS) + 1 if DEMO_USERS else 1
+    new_id = int(max(u["id"] for u in DEMO_USERS)) + 1 if DEMO_USERS else 1  # type: ignore[type-var,call-overload]
 
     # Hash password
     _hashed_password = get_password_hash(user_data.password)  # noqa: F841

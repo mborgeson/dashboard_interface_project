@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Download,
   RefreshCw,
@@ -41,12 +41,12 @@ const formatIcons: Record<string, React.ComponentType<{ className?: string }>> =
 export function ReportQueue() {
   // Fetch queued reports from API (with mock fallback)
   const { data: queueData } = useQueuedReports();
-  const [reports, setReports] = useState<QueuedReport[]>([]);
+  const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<QueuedReport> | null>>({});
 
-  // Sync API data into local state for optimistic updates
-  useEffect(() => {
-    if (queueData?.reports) setReports(queueData.reports);
-  }, [queueData?.reports]);
+  // Derive reports from API data with local optimistic overrides
+  const reports = (queueData?.reports ?? [])
+    .filter(r => localOverrides[r.id] !== null)
+    .map(r => (localOverrides[r.id] ? { ...r, ...localOverrides[r.id] } : r));
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReport, setSelectedReport] = useState<QueuedReport | null>(null);
@@ -60,11 +60,11 @@ export function ReportQueue() {
   });
 
   const handleRetry = (reportId: string) => {
-    setReports(reports.map(r => (r.id === reportId ? { ...r, status: 'pending' as const, progress: 0, error: undefined } : r)));
+    setLocalOverrides(prev => ({ ...prev, [reportId]: { status: 'pending' as const, progress: 0, error: undefined } }));
   };
 
   const handleDelete = (reportId: string) => {
-    setReports(reports.filter(r => r.id !== reportId));
+    setLocalOverrides(prev => ({ ...prev, [reportId]: null }));
   };
 
   const handleDownload = (report: QueuedReport) => {

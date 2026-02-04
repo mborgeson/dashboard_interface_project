@@ -26,7 +26,7 @@ async def geocode_address(
         return None
 
     url = "https://nominatim.openstreetmap.org/search"
-    params = {
+    params: dict[str, str | int] = {
         "q": query,
         "format": "json",
         "limit": 1,

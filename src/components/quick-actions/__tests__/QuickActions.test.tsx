@@ -424,7 +424,7 @@ describe('FloatingActionButton', () => {
 
     // Actions should be hidden
     await waitFor(() => {
-      const addDealLabel = screen.queryByText('Add Deal');
+      screen.queryByText('Add Deal');
       // The labels might still be in DOM but with opacity 0
       // or may be completely removed
     });

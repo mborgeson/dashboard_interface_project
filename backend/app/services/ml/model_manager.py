@@ -139,7 +139,7 @@ class ModelManager:
                 return None
 
             with open(model_path, "rb") as f:
-                model = pickle.load(f)
+                model = pickle.load(f)  # nosec B301 — loading internal ML model files only
 
             # Cache the model
             self._models[cache_key] = model

@@ -268,8 +268,8 @@ class BatchProcessor(Generic[T, R]):
 
         # Filter out None and exceptions
         for result in chunk_results:
-            if result is not None and not isinstance(result, Exception):
-                results.append(result)
+            if result is not None and not isinstance(result, BaseException):
+                results.append(result)  # type: ignore[arg-type]
 
         return results
 

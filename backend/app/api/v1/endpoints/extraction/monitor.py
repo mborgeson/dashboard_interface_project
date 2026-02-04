@@ -90,7 +90,7 @@ async def get_recent_changes(
             FileChangeInfo(
                 file_path=c.file_path,
                 file_name=c.file_name,
-                change_type=c.change_type,
+                change_type=c.change_type,  # type: ignore[arg-type]
                 deal_name=c.deal_name,
                 old_modified_date=c.old_modified_date,
                 new_modified_date=c.new_modified_date,
@@ -136,7 +136,7 @@ async def trigger_monitor_check(db: AsyncSession = Depends(get_db)):
                 FileChangeInfo(
                     file_path=c.file_path,
                     file_name=c.file_name,
-                    change_type=c.change_type,
+                    change_type=c.change_type,  # type: ignore[arg-type]
                     deal_name=c.deal_name,
                     old_modified_date=c.old_modified_date,
                     new_modified_date=c.new_modified_date,

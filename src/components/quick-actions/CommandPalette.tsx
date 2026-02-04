@@ -12,7 +12,6 @@ import {
   GitCompare,
   Map,
   DollarSign,
-  Settings,
   HelpCircle,
   Clock,
   Command as CommandIcon,
@@ -44,6 +43,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   // Reset search when palette opens
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearch('');
     }
   }, [open]);
@@ -183,7 +183,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   ];
 
   // Recent actions as commands
-  const recentCommands: CommandItem[] = recentActions.slice(0, 5).map((action, index) => ({
+  const recentCommands: CommandItem[] = recentActions.slice(0, 5).map((action) => ({
     id: `recent-${action.id}`,
     label: action.label,
     description: `${new Date(action.timestamp).toLocaleTimeString()}`,

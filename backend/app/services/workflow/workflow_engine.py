@@ -47,7 +47,7 @@ class WorkflowEngine:
         self._handler_registry = StepHandlerRegistry()
         self._event_callbacks: dict[str, list[Callable]] = {}
         self._running_tasks: dict[str, asyncio.Task] = {}
-        self._redis_client = None
+        self._redis_client: Any = None
         self._use_redis = False
 
         # Register default actions
@@ -62,9 +62,9 @@ class WorkflowEngine:
         """
         if redis_url:
             try:
-                from app.services.redis_service import get_redis_client
+                from app.services.redis_service import get_redis_service
 
-                self._redis_client = await get_redis_client()
+                self._redis_client = (await get_redis_service()).client
                 if self._redis_client:
                     self._use_redis = True
                     await self._load_from_redis()
@@ -362,7 +362,8 @@ class WorkflowEngine:
                     # Handle error based on step configuration
                     if step.on_error == "skip":
                         execution = instance.get_step_execution(step.id)
-                        execution.status = StepStatus.SKIPPED
+                        if execution is not None:
+                            execution.status = StepStatus.SKIPPED
                     elif (
                         step.on_error == "retry"
                         and result.get("retries", 0) < step.retry_count
@@ -422,6 +423,8 @@ class WorkflowEngine:
     ) -> dict[str, Any]:
         """Execute a single workflow step."""
         execution = instance.get_step_execution(step.id)
+        if execution is None:
+            return {"success": False, "error": f"No execution found for step {step.id}"}
         execution.status = StepStatus.RUNNING
         execution.started_at = datetime.utcnow()
 

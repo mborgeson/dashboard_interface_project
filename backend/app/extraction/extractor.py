@@ -598,7 +598,7 @@ class BatchProcessor:
         file_content = file_info.get("file_content")
 
         # Extract data
-        extracted_data = self.extractor.extract_from_file(file_path, file_content)
+        extracted_data = self.extractor.extract_from_file(str(file_path), file_content)
 
         # Add file metadata
         extracted_data.update(

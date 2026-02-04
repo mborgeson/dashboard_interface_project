@@ -186,7 +186,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         result = await db.execute(query)
         rows = result.all()
 
-        summary = {
+        summary: dict[str, Any] = {
             "total_acquisitions": Decimal("0"),
             "total_dispositions": Decimal("0"),
             "total_capital_improvements": Decimal("0"),

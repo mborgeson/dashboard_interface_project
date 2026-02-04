@@ -3,6 +3,7 @@ Deal endpoints for pipeline management and Kanban board operations.
 """
 
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
@@ -66,14 +67,15 @@ async def _enrich_deals_with_extraction(
     # Build lookup: {property_id: {field_name: row}}
     lookup: dict[int, dict[str, ExtractedValue]] = {}
     for row in rows:
-        lookup.setdefault(row.property_id, {})[row.field_name] = row
+        if row.property_id is not None:
+            lookup.setdefault(row.property_id, {})[row.field_name] = row
 
     # Also fetch equity commitment from property financial_data
     prop_stmt = select(Property.id, Property.financial_data).where(
         Property.id.in_(prop_ids)
     )
     prop_result = await db.execute(prop_stmt)
-    prop_map = dict(prop_result.all())
+    prop_map: dict[Any, Any] = {row[0]: row[1] for row in prop_result.all()}
 
     for deal in deal_responses:
         if not deal.property_id:

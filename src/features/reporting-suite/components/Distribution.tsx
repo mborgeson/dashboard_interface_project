@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
   Send,
   Plus,
@@ -61,12 +61,12 @@ export function Distribution() {
   const { data: scheduleData } = useDistributionSchedules();
   const { data: templateData } = useReportTemplates();
   const templates = templateData?.templates ?? [];
-  const [schedules, setSchedules] = useState<DistributionSchedule[]>([]);
+  const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<DistributionSchedule> | null>>({});
 
-  // Sync API data into local state for optimistic updates
-  useEffect(() => {
-    if (scheduleData?.schedules) setSchedules(scheduleData.schedules);
-  }, [scheduleData?.schedules]);
+  // Derive schedules from API data with local optimistic overrides
+  const schedules = (scheduleData?.schedules ?? [])
+    .filter(s => localOverrides[s.id] !== null)
+    .map(s => (localOverrides[s.id] ? { ...s, ...localOverrides[s.id] } as DistributionSchedule : s));
   const [searchQuery, setSearchQuery] = useState('');
   const [frequencyFilter, setFrequencyFilter] = useState<FrequencyFilter>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -101,7 +101,7 @@ export function Distribution() {
     const schedule = schedules.find(s => s.id === scheduleId);
     if (!schedule) return;
     const newActive = !schedule.isActive;
-    setSchedules(schedules.map(s => (s.id === scheduleId ? { ...s, isActive: newActive } : s)));
+    setLocalOverrides(prev => ({ ...prev, [scheduleId]: { isActive: newActive } }));
     updateSchedule.mutate(
       { id: Number(scheduleId), is_active: newActive },
       { onError: () => showError('Failed to update schedule') }
@@ -109,7 +109,7 @@ export function Distribution() {
   };
 
   const handleDeleteSchedule = (scheduleId: string) => {
-    setSchedules(schedules.filter(s => s.id !== scheduleId));
+    setLocalOverrides(prev => ({ ...prev, [scheduleId]: null }));
     deleteSchedule.mutate(Number(scheduleId), {
       onError: () => showError('Failed to delete schedule'),
     });

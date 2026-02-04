@@ -265,7 +265,8 @@ describe('ComparisonTable', () => {
 
       // Should show dash for missing IRR
       const cells = screen.getAllByRole('cell');
-      const hasEmptyCell = Array.from(cells).some(
+      // Verify dash is shown for missing values
+      Array.from(cells).some(
         (cell) => cell.textContent === '-'
       );
       // This depends on how the component handles undefined
@@ -423,7 +424,7 @@ describe('ComparisonSelector', () => {
     });
 
     it('enables compare button when 2+ deals selected', async () => {
-      const user = userEvent.setup();
+      userEvent.setup();
       const onOpenChange = vi.fn();
       render(
         <ComparisonSelector
@@ -440,7 +441,7 @@ describe('ComparisonSelector', () => {
     });
 
     it('enforces maximum selection limit', async () => {
-      const user = userEvent.setup();
+      userEvent.setup();
       const onOpenChange = vi.fn();
       render(
         <ComparisonSelector
@@ -455,7 +456,7 @@ describe('ComparisonSelector', () => {
       await waitFor(() => {
         const dealItems = screen.getAllByRole('checkbox');
         // Non-selected checkboxes should be disabled
-        const unselectedCheckboxes = Array.from(dealItems).filter(
+        Array.from(dealItems).filter(
           (cb) => !cb.hasAttribute('data-state') || cb.getAttribute('data-state') !== 'checked'
         );
         // These should be disabled or the click should not add more

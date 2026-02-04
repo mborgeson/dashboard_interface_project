@@ -36,7 +36,7 @@ class RedisService:
             )
             self._client = redis.Redis(connection_pool=self._pool)
             # Test connection
-            await self._client.ping()
+            await self._client.ping()  # type: ignore[misc]
             logger.info("Redis connection established")
         except Exception as e:
             logger.error(f"Failed to connect to Redis: {e}")

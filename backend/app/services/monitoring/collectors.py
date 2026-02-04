@@ -50,7 +50,7 @@ class SystemMetricsCollector:
         if self._last_collection and now - self._last_collection < self._cache_duration:
             return self._cached_metrics
 
-        metrics = {
+        metrics: dict[str, Any] = {
             "timestamp": now.isoformat(),
             "platform": {
                 "system": platform.system(),
@@ -198,7 +198,7 @@ class ApplicationMetricsCollector:
         if self._last_collection and now - self._last_collection < self._cache_duration:
             return self._cached_metrics
 
-        metrics = {
+        metrics: dict[str, Any] = {
             "timestamp": now.isoformat(),
             "users": {},
             "deals": {},

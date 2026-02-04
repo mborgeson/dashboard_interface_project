@@ -167,6 +167,7 @@ export function QuickActionsProvider({ children }: QuickActionsProviderProps) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useQuickActions() {
   const context = useContext(QuickActionsContext);
   if (!context) {

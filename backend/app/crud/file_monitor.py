@@ -205,7 +205,7 @@ class MonitoredFileCRUD:
         )
         result = await db.execute(stmt)
         await db.commit()
-        return result.rowcount
+        return result.rowcount  # type: ignore[attr-defined]
 
     @staticmethod
     async def get_stats(db: AsyncSession) -> dict[str, Any]:
@@ -341,7 +341,7 @@ class FileChangeLogCRUD:
         )
         result = await db.execute(stmt)
         await db.commit()
-        return result.rowcount
+        return result.rowcount  # type: ignore[attr-defined]
 
     @staticmethod
     async def get_total_count(

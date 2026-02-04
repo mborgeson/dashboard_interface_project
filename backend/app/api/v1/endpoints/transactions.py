@@ -71,7 +71,7 @@ async def list_transactions(
     )
 
     return TransactionListResponse(
-        items=items,
+        items=items,  # type: ignore[arg-type]
         total=total,
         page=page,
         page_size=page_size,

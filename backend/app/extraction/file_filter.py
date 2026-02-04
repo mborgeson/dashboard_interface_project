@@ -47,8 +47,8 @@ class FilterResult:
         if self.should_process:
             return None
         if self.skip_details:
-            return f"{self.skip_reason.value}: {self.skip_details}"
-        return self.skip_reason.value if self.skip_reason else None
+            return f"{self.skip_reason.value}: {self.skip_details}" if self.skip_reason is not None else self.skip_details
+        return self.skip_reason.value if self.skip_reason is not None else None
 
 
 class FileFilter:

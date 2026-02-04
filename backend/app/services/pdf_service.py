@@ -40,8 +40,8 @@ class PDFReportService:
     """Service for generating professional PDF reports."""
 
     # B&R Capital branding colors - initialized when reportlab is available
-    COLORS = {}
-    STAGE_COLORS = {}
+    COLORS: dict[str, object] = {}
+    STAGE_COLORS: dict[str, object] = {}
 
     def __init__(self):
         """Initialize the PDF report service."""

@@ -96,6 +96,7 @@ export function useIntersectionObserver<T extends Element = Element>(
     // Check for IntersectionObserver support
     if (typeof IntersectionObserver === 'undefined') {
       // Fallback: assume element is visible if IntersectionObserver is not supported
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsIntersecting(true);
       setHasTriggered(true);
       return;

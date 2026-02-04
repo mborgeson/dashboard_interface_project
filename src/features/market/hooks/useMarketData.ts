@@ -13,9 +13,9 @@ export function useMarketData() {
   const isLoading = overviewLoading || submarketsLoading || trendsLoading;
   const error = overviewError || submarketsError || trendsError;
 
-  const submarketMetrics = submarketsData?.submarkets ?? [];
-  const trends = trendsData?.trends ?? [];
-  const monthlyData = trendsData?.monthlyData ?? [];
+  const submarketMetrics = useMemo(() => submarketsData?.submarkets ?? [], [submarketsData]);
+  const trends = useMemo(() => trendsData?.trends ?? [], [trendsData]);
+  const monthlyData = useMemo(() => trendsData?.monthlyData ?? [], [trendsData]);
 
   // Derive sparkline data from trends (last 6 data points) instead of hardcoded values
   const sparklineData = useMemo(() => {

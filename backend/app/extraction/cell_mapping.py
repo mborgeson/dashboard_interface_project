@@ -13,6 +13,7 @@ Improvements over prior implementation:
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import structlog
@@ -249,7 +250,7 @@ class CellMappingParser:
         df.to_csv(output_path, index=False)
         self.logger.info("mapping_summary_exported", path=output_path)
 
-    def validate_mappings(self) -> dict[str, any]:
+    def validate_mappings(self) -> dict[str, Any]:
         """
         Validate loaded mappings and return quality report.
 

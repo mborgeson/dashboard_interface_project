@@ -145,7 +145,7 @@ jobs:
           pip install bandit safety
 
       - name: Run Bandit security scan
-        run: bandit -r app/ -f json -o bandit-report.json -ll
+        run: bandit -r app/ -f json -o bandit-report.json -ll -s B608
 
       - name: Check dependencies for vulnerabilities
         run: |

@@ -436,7 +436,7 @@ async def run_scheduled_extraction(
     from app.api.v1.endpoints.extraction import run_extraction_task
 
     try:
-        run_extraction_task(run.id, db, "sharepoint", None)
+        run_extraction_task(run.id, "sharepoint", None)
         return str(run.id)
     except Exception as e:
         logger.exception("Scheduled extraction task failed", error=str(e))

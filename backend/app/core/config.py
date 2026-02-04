@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     # Server Settings
-    HOST: str = "0.0.0.0"
+    HOST: str = "0.0.0.0"  # nosec B104 — required for container/dev server binding
     PORT: int = 8000
     WORKERS: int = 4
 

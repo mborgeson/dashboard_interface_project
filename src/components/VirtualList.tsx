@@ -268,6 +268,7 @@ export function VirtualList<T>({
  * Hook for simple virtualization needs
  * Returns visible items and container props
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useVirtualization<T>(
   items: T[],
   options: {

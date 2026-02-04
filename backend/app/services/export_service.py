@@ -394,8 +394,8 @@ class ExcelExportService:
         ws = workbook.create_sheet(title="Pipeline Summary")
 
         # Count deals by stage
-        stage_counts = {}
-        stage_values = {}
+        stage_counts: dict[str, int] = {}
+        stage_values: dict[str, float] = {}
         for deal in deals:
             stage = deal.get("stage", "unknown")
             stage_counts[stage] = stage_counts.get(stage, 0) + 1

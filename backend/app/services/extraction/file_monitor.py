@@ -488,7 +488,7 @@ class SharePointFileMonitor:
         result = await self.db.execute(stmt)
         await self.db.commit()
 
-        return result.rowcount > 0
+        return result.rowcount > 0  # type: ignore[attr-defined]
 
     async def get_recent_changes(
         self,

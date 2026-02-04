@@ -121,6 +121,7 @@ export const LazyImage = React.forwardRef<HTMLDivElement, LazyImageProps>(
     const mergedRef = useCallback(
       (node: HTMLDivElement | null) => {
         // Set the observer ref
+        // eslint-disable-next-line react-hooks/immutability
         (observerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
 
         // Set the forwarded ref

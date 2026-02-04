@@ -71,7 +71,7 @@ async def list_documents(
     )
 
     return DocumentListResponse(
-        items=items,
+        items=items,  # type: ignore[arg-type]
         total=total,
         page=page,
         page_size=page_size,
@@ -177,7 +177,8 @@ async def upload_document(
         uploaded_by=uploaded_by,
         description=description,
         tags=tag_list,
-        # Note: url and file_path will be set when storage is implemented
+        url="",  # Will be set when storage is implemented
+        file_path="",  # Will be set when storage is implemented
     )
 
     # Create document in database
@@ -188,7 +189,7 @@ async def upload_document(
     )
 
     return DocumentUploadResponse(
-        document=new_doc,
+        document=new_doc,  # type: ignore[arg-type]
         message=f"Document '{file.filename}' uploaded successfully. Note: File storage not yet implemented.",
     )
 
@@ -317,7 +318,7 @@ async def get_documents_by_property(
     )
 
     return DocumentListResponse(
-        items=items,
+        items=items,  # type: ignore[arg-type]
         total=total,
         page=page,
         page_size=page_size,

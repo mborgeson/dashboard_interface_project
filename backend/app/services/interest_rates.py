@@ -227,7 +227,7 @@ class InterestRatesService:
                 for key, sid in _HISTORICAL_SERIES.items():
                     rows = conn.execute(
                         text(
-                            """
+                            """  # nosec B608
                             SELECT TO_CHAR(date, 'YYYY-MM') as month, AVG(value) as avg_val
                             FROM fred_timeseries
                             WHERE series_id = :sid

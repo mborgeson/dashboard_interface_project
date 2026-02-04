@@ -161,7 +161,7 @@ class ConditionHandler(StepHandler):
             if len(step.next_steps) >= 2:
                 next_step = step.next_steps[0] if result else step.next_steps[1]
             elif step.next_steps:
-                next_step = step.next_steps[0] if result else None
+                next_step = step.next_steps[0] if result else None  # type: ignore[assignment]
             else:
                 next_step = None
 
@@ -195,7 +195,7 @@ class ConditionHandler(StepHandler):
             return True
 
         # Safe operators whitelist
-        SAFE_OPERATORS = {
+        SAFE_OPERATORS: dict[type, Callable[..., Any]] = {
             ast.Eq: operator.eq,
             ast.NotEq: operator.ne,
             ast.Lt: operator.lt,
@@ -502,19 +502,27 @@ class StepHandlerRegistry:
 
     def get_action_handler(self) -> ActionHandler:
         """Get the action handler for registering actions."""
-        return self._handlers[StepType.ACTION]
+        handler = self._handlers[StepType.ACTION]
+        assert isinstance(handler, ActionHandler)
+        return handler
 
     def get_condition_handler(self) -> ConditionHandler:
         """Get the condition handler for registering evaluators."""
-        return self._handlers[StepType.CONDITION]
+        handler = self._handlers[StepType.CONDITION]
+        assert isinstance(handler, ConditionHandler)
+        return handler
 
     def get_notification_handler(self) -> NotificationHandler:
         """Get the notification handler for registering channels."""
-        return self._handlers[StepType.NOTIFICATION]
+        handler = self._handlers[StepType.NOTIFICATION]
+        assert isinstance(handler, NotificationHandler)
+        return handler
 
     def get_approval_handler(self) -> ApprovalHandler:
         """Get the approval handler for setting callbacks."""
-        return self._handlers[StepType.APPROVAL]
+        handler = self._handlers[StepType.APPROVAL]
+        assert isinstance(handler, ApprovalHandler)
+        return handler
 
 
 # =============================================================================
@@ -605,8 +613,8 @@ async def transform_data_action(
     context: dict[str, Any],
 ) -> dict[str, Any]:
     """Transform data using a mapping."""
-    source = step_config.get("source")
-    target = step_config.get("target")
+    source: str = step_config.get("source", "")
+    target: str = step_config.get("target", "")
     mapping = step_config.get("mapping", {})
 
     source_data = variables.get(source, {})

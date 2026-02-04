@@ -179,16 +179,7 @@ export function KanbanBoardWidget({
     setActiveDeal(null);
   }, []);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      notation: 'compact',
-      compactDisplay: 'short',
-    }).format(value);
-  };
+  // formatCurrency available if needed for pipeline values
 
   const getTotalPipelineValue = useCallback(() => {
     if (!stages) return 0;

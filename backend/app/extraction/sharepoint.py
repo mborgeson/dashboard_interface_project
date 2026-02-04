@@ -216,7 +216,7 @@ class SharePointClient:
         # e.g., https://company.sharepoint.com/sites/Investments
         from urllib.parse import urlparse
 
-        parsed = urlparse(self.site_url)
+        parsed = urlparse(str(self.site_url))
         hostname = parsed.netloc
         site_path = parsed.path.rstrip("/")
 

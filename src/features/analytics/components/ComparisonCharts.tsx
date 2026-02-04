@@ -88,10 +88,8 @@ export function ComparisonCharts({ propertyPerformance, capRateDscr }: Compariso
     return words.slice(0, 2).join(' ');
   };
 
-  // Calculate average DSCR for reference line
-  const avgDscr = capRateDscr.length > 0
-    ? capRateDscr.reduce((sum, d) => sum + d.dscr, 0) / capRateDscr.length
-    : 0;
+  // Average DSCR available for reference line if needed:
+  // capRateDscr.reduce((sum, d) => sum + d.dscr, 0) / capRateDscr.length
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

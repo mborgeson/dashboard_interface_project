@@ -76,7 +76,7 @@ async def list_templates(
     )
 
     return ReportTemplateListResponse(
-        items=items,
+        items=items,  # type: ignore[arg-type]
         total=total,
         page=page,
         page_size=page_size,
@@ -258,7 +258,7 @@ async def list_queued_reports(
             "created_at": item.created_at,
             "updated_at": item.updated_at,
         }
-        enriched_items.append(QueuedReportResponse(**item_dict))
+        enriched_items.append(QueuedReportResponse(**item_dict))  # type: ignore[arg-type]
 
     return QueuedReportListResponse(
         items=enriched_items,
@@ -289,9 +289,9 @@ async def get_queued_report(
         name=report.name,
         template_id=report.template_id,
         template_name=template.name if template else None,
-        format=report.format,
+        format=report.format,  # type: ignore[arg-type]
         requested_by=report.requested_by,
-        status=report.status,
+        status=report.status,  # type: ignore[arg-type]
         progress=report.progress,
         requested_at=report.requested_at,
         completed_at=report.completed_at,
@@ -349,7 +349,7 @@ async def list_schedules(
             "created_at": item.created_at,
             "updated_at": item.updated_at,
         }
-        enriched_items.append(DistributionScheduleResponse(**item_dict))
+        enriched_items.append(DistributionScheduleResponse(**item_dict))  # type: ignore[arg-type]
 
     return DistributionScheduleListResponse(
         items=enriched_items,
@@ -387,11 +387,11 @@ async def create_schedule(
         template_id=new_schedule.template_id,
         template_name=template.name,
         recipients=new_schedule.recipients,
-        frequency=new_schedule.frequency,
+        frequency=new_schedule.frequency,  # type: ignore[arg-type]
         day_of_week=new_schedule.day_of_week,
         day_of_month=new_schedule.day_of_month,
         time=new_schedule.time,
-        format=new_schedule.format,
+        format=new_schedule.format,  # type: ignore[arg-type]
         is_active=new_schedule.is_active,
         last_sent=new_schedule.last_sent,
         next_scheduled=new_schedule.next_scheduled,
@@ -428,11 +428,11 @@ async def update_schedule(
         template_id=updated_schedule.template_id,
         template_name=template.name if template else None,
         recipients=updated_schedule.recipients,
-        frequency=updated_schedule.frequency,
+        frequency=updated_schedule.frequency,  # type: ignore[arg-type]
         day_of_week=updated_schedule.day_of_week,
         day_of_month=updated_schedule.day_of_month,
         time=updated_schedule.time,
-        format=updated_schedule.format,
+        format=updated_schedule.format,  # type: ignore[arg-type]
         is_active=updated_schedule.is_active,
         last_sent=updated_schedule.last_sent,
         next_scheduled=updated_schedule.next_scheduled,

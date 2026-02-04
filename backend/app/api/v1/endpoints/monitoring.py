@@ -138,7 +138,7 @@ async def detailed_health_check(db: AsyncSession = Depends(get_db)):
     all_metrics = await collector_registry.collect_all()
 
     # Build health response
-    health = {
+    health: dict[str, Any] = {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
         "application": {
@@ -167,11 +167,11 @@ async def detailed_health_check(db: AsyncSession = Depends(get_db)):
 
     # Redis check (if configured)
     try:
-        from app.services.redis_service import get_redis_client
+        from app.services.redis_service import get_redis_service
 
-        redis_client = await get_redis_client()
-        if redis_client:
-            await redis_client.ping()
+        redis_service = await get_redis_service()
+        if redis_service:
+            await redis_service.client.ping()  # type: ignore[misc]
             health["checks"]["redis"] = {"status": "healthy"}
         else:
             health["checks"]["redis"] = {"status": "not_configured"}
