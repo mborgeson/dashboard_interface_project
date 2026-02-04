@@ -41,13 +41,13 @@ async def test_list_deals_with_pagination(client, multiple_deals):
 @pytest.mark.asyncio
 async def test_list_deals_filter_by_stage(client, multiple_deals):
     """Test filtering deals by stage."""
-    response = await client.get("/api/v1/deals/", params={"stage": "lead"})
+    response = await client.get("/api/v1/deals/", params={"stage": "initial_review"})
 
     assert response.status_code == 200
     data = response.json()
 
     for deal in data["items"]:
-        assert deal["stage"] == "lead"
+        assert deal["stage"] == "initial_review"
 
 
 @pytest.mark.asyncio
@@ -142,7 +142,7 @@ async def test_create_deal(client, test_user):
     new_deal = {
         "name": "New Test Deal",
         "deal_type": "acquisition",
-        "stage": "lead",
+        "stage": "initial_review",
         "asking_price": 25000000.00,
         "priority": "high",
     }
@@ -154,7 +154,7 @@ async def test_create_deal(client, test_user):
 
     assert data["name"] == "New Test Deal"
     assert data["deal_type"] == "acquisition"
-    assert data["stage"] == "lead"
+    assert data["stage"] == "initial_review"
     assert data["priority"] == "high"
     assert "id" in data
 
@@ -252,7 +252,7 @@ async def test_patch_deal_not_found(client):
 @pytest.mark.asyncio
 async def test_update_deal_stage(client, test_deal):
     """Test updating a deal's stage (Kanban drag-and-drop)."""
-    stage_data = {"stage": "due_diligence"}
+    stage_data = {"stage": "under_contract"}
 
     response = await client.patch(
         f"/api/v1/deals/{test_deal.id}/stage",
@@ -262,7 +262,7 @@ async def test_update_deal_stage(client, test_deal):
     assert response.status_code == 200
     data = response.json()
 
-    assert data["stage"] == "due_diligence"
+    assert data["stage"] == "under_contract"
 
 
 @pytest.mark.asyncio
@@ -300,7 +300,7 @@ async def test_update_deal_stage_invalid(client, test_deal):
 @pytest.mark.asyncio
 async def test_update_deal_stage_not_found(client):
     """Test updating stage of non-existent deal returns 404."""
-    stage_data = {"stage": "due_diligence"}
+    stage_data = {"stage": "under_contract"}
 
     response = await client.patch("/api/v1/deals/999999/stage", json=stage_data)
 
@@ -500,7 +500,7 @@ async def test_compare_deals_too_many(client, auth_headers, db_session, test_use
         deal = Deal(
             name=f"Comparison Deal #{i+1}",
             deal_type="acquisition",
-            stage=DealStage.LEAD,
+            stage=DealStage.INITIAL_REVIEW,
             stage_order=i,
             assigned_user_id=test_user.id,
             priority="medium",

@@ -205,7 +205,7 @@ async def test_deal(db_session: AsyncSession, test_user: User) -> Deal:
     deal = Deal(
         name="Test Deal #0001",
         deal_type="acquisition",
-        stage=DealStage.UNDERWRITING,
+        stage=DealStage.ACTIVE_REVIEW,
         stage_order=0,
         assigned_user_id=test_user.id,
         asking_price=Decimal("15000000.00"),
@@ -230,7 +230,7 @@ async def test_deal(db_session: AsyncSession, test_user: User) -> Deal:
 async def multiple_deals(db_session: AsyncSession, test_user: User) -> list[Deal]:
     """Create multiple test deals across different stages."""
     deals = []
-    stages = [DealStage.LEAD, DealStage.UNDERWRITING, DealStage.DUE_DILIGENCE, DealStage.CLOSED]
+    stages = [DealStage.INITIAL_REVIEW, DealStage.ACTIVE_REVIEW, DealStage.UNDER_CONTRACT, DealStage.CLOSED]
 
     for i, stage in enumerate(stages):
         deal = Deal(

@@ -65,7 +65,7 @@ async def monitored_file(db_session: AsyncSession) -> MonitoredFile:
         last_checked=datetime.utcnow() - timedelta(hours=2),
         is_active=True,
         extraction_pending=False,
-        deal_stage="underwriting",
+        deal_stage="active_review",
     )
     db_session.add(file)
     await db_session.commit()
@@ -87,7 +87,7 @@ async def pending_file(db_session: AsyncSession) -> MonitoredFile:
         last_checked=datetime.utcnow() - timedelta(hours=1),
         is_active=True,
         extraction_pending=True,
-        deal_stage="due_diligence",
+        deal_stage="under_contract",
     )
     db_session.add(file)
     await db_session.commit()
@@ -870,7 +870,7 @@ class TestCheckForChangesIntegration:
         mock_file.path = "/sites/deals/NewDeal/UW Model.xlsb"
         mock_file.name = "UW Model.xlsb"
         mock_file.deal_name = "New Deal"
-        mock_file.deal_stage = "underwriting"
+        mock_file.deal_stage = "active_review"
         mock_file.modified_date = datetime.utcnow()
         mock_file.size = 1500000
 

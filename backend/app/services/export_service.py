@@ -51,14 +51,12 @@ class ExcelExportService:
 
     # Stage colors for deal pipeline
     STAGE_COLORS = {
-        "lead": "E3F2FD",
+        "dead": "DC3545",
         "initial_review": "BBDEFB",
-        "underwriting": "90CAF9",
-        "due_diligence": "64B5F6",
-        "loi_submitted": "42A5F5",
+        "active_review": "90CAF9",
         "under_contract": "2196F3",
         "closed": "28A745",
-        "dead": "DC3545",
+        "realized": "1B5E20",
     }
 
     def __init__(self):

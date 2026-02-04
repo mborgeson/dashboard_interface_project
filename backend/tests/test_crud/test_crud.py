@@ -136,20 +136,20 @@ async def test_crud_user_is_verified(test_user):
 @pytest.mark.asyncio
 async def test_crud_deal_get_by_stage(db_session, multiple_deals):
     """Test getting deals filtered by stage."""
-    leads = await deal_crud.get_by_stage(db_session, stage=DealStage.LEAD)
+    leads = await deal_crud.get_by_stage(db_session, stage=DealStage.INITIAL_REVIEW)
 
     assert len(leads) >= 1
     for deal in leads:
-        assert deal.stage == DealStage.LEAD
+        assert deal.stage == DealStage.INITIAL_REVIEW
 
 
 @pytest.mark.asyncio
 async def test_crud_deal_get_multi_filtered(db_session, multiple_deals):
     """Test getting deals with multiple filters."""
-    deals = await deal_crud.get_multi_filtered(db_session, stage="lead", limit=10)
+    deals = await deal_crud.get_multi_filtered(db_session, stage="initial_review", limit=10)
 
     for deal in deals:
-        assert deal.stage == DealStage.LEAD
+        assert deal.stage == DealStage.INITIAL_REVIEW
 
 
 @pytest.mark.asyncio
@@ -171,7 +171,7 @@ async def test_crud_deal_count_filtered(db_session, multiple_deals):
 @pytest.mark.asyncio
 async def test_crud_deal_count_by_stage(db_session, multiple_deals):
     """Test counting deals by stage."""
-    count = await deal_crud.count_filtered(db_session, stage="lead")
+    count = await deal_crud.count_filtered(db_session, stage="initial_review")
     assert count >= 1
 
 
@@ -192,11 +192,11 @@ async def test_crud_deal_update_stage(db_session, test_deal):
     updated = await deal_crud.update_stage(
         db_session,
         deal_id=test_deal.id,
-        new_stage=DealStage.DUE_DILIGENCE,
+        new_stage=DealStage.UNDER_CONTRACT,
     )
 
     assert updated is not None
-    assert updated.stage == DealStage.DUE_DILIGENCE
+    assert updated.stage == DealStage.UNDER_CONTRACT
 
 
 @pytest.mark.asyncio
@@ -247,7 +247,7 @@ async def test_crud_base_create(db_session, test_user):
     deal_data = {
         "name": "CRUD Test Deal",
         "deal_type": "acquisition",
-        "stage": DealStage.LEAD,
+        "stage": DealStage.INITIAL_REVIEW,
         "assigned_user_id": test_user.id,
         "priority": "low",
     }

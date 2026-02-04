@@ -59,7 +59,7 @@ class TestPDFReportService:
             "id": 1,
             "name": "Phoenix Garden Acquisition",
             "deal_type": "acquisition",
-            "stage": "underwriting",
+            "stage": "active_review",
             "priority": "high",
             "source": "CBRE",
             "broker_name": "John Smith",
@@ -127,8 +127,8 @@ class TestPDFReportService:
     @pytest.mark.skipif(not REPORTLAB_AVAILABLE, reason="reportlab not installed")
     def test_stage_colors_initialized(self, service):
         """Test stage colors are properly initialized."""
-        assert "lead" in service.STAGE_COLORS
-        assert "underwriting" in service.STAGE_COLORS
+        assert "initial_review" in service.STAGE_COLORS
+        assert "active_review" in service.STAGE_COLORS
         assert "closed" in service.STAGE_COLORS
         assert "dead" in service.STAGE_COLORS
 
@@ -247,7 +247,7 @@ class TestPDFReportService:
     @pytest.mark.skipif(not REPORTLAB_AVAILABLE, reason="reportlab not installed")
     def test_deal_report_stage_colors(self, service, sample_deal):
         """Test deal report handles different stages."""
-        stages = ["lead", "underwriting", "due_diligence", "closed", "dead", "unknown"]
+        stages = ["dead", "initial_review", "active_review", "under_contract", "closed", "realized", "unknown"]
 
         for stage in stages:
             deal = {**sample_deal, "stage": stage}
@@ -260,7 +260,7 @@ class TestPDFReportService:
         minimal_deal = {
             "name": "Simple Deal",
             "deal_type": "acquisition",
-            "stage": "lead",
+            "stage": "initial_review",
             "asking_price": 1000000,
         }
 
@@ -402,7 +402,7 @@ class TestPDFReportService:
         deal_data = {
             "name": "Early Stage Deal",
             "deal_type": "acquisition",
-            "stage": "lead",
+            "stage": "initial_review",
             "asking_price": 0,
             "offer_price": 0,
             "projected_irr": 0,

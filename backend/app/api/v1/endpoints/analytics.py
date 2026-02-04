@@ -105,17 +105,10 @@ async def get_dashboard_metrics(
     low_occupancy_count = low_occupancy_count_result.scalar() or 0
 
     # Query deals entering active review this week
-    # (active_review maps to underwriting, due_diligence, loi_submitted backend stages)
     week_start = datetime.now(UTC) - timedelta(days=7)
     active_review_result = await db.execute(
         select(func.count(Deal.id)).where(
-            Deal.stage.in_(
-                [
-                    DealStage.UNDERWRITING,
-                    DealStage.DUE_DILIGENCE,
-                    DealStage.LOI_SUBMITTED,
-                ]
-            ),
+            Deal.stage == DealStage.ACTIVE_REVIEW,
             Deal.stage_updated_at >= week_start,
         )
     )

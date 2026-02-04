@@ -74,7 +74,7 @@ class TestExcelExportService:
                 "id": 1,
                 "name": "Deal #001",
                 "deal_type": "acquisition",
-                "stage": "underwriting",
+                "stage": "active_review",
                 "priority": "high",
                 "asking_price": 15000000,
                 "offer_price": 14000000,
@@ -90,7 +90,7 @@ class TestExcelExportService:
                 "id": 2,
                 "name": "Deal #002",
                 "deal_type": "development",
-                "stage": "due_diligence",
+                "stage": "under_contract",
                 "priority": "medium",
                 "asking_price": 25000000,
                 "offer_price": 23000000,
@@ -140,9 +140,9 @@ class TestExcelExportService:
 
     def test_stage_colors_defined(self, service):
         """Test pipeline stage colors are defined."""
-        assert "lead" in service.STAGE_COLORS
-        assert "underwriting" in service.STAGE_COLORS
-        assert "due_diligence" in service.STAGE_COLORS
+        assert "dead" in service.STAGE_COLORS
+        assert "active_review" in service.STAGE_COLORS
+        assert "under_contract" in service.STAGE_COLORS
         assert "closed" in service.STAGE_COLORS
         assert "dead" in service.STAGE_COLORS
 
@@ -305,10 +305,9 @@ class TestExcelExportService:
             },
             "deal_pipeline": {
                 "funnel": {
-                    "lead": 20,
-                    "initial_review": 15,
-                    "underwriting": 8,
-                    "due_diligence": 4,
+                    "initial_review": 20,
+                    "active_review": 8,
+                    "under_contract": 4,
                     "under_contract": 2,
                     "closed": 5,
                 },

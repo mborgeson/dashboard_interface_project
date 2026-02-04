@@ -36,8 +36,20 @@ vi.mock('@/hooks/api', () => ({
   })),
 }));
 
+const baseDealFields = {
+  avgUnitSf: 850,
+  currentOwner: 'Test Owner',
+  lastSalePricePerUnit: 200000,
+  lastSaleDate: '2023-01-15',
+  t12ReturnOnCost: 0.08,
+  leveredIrr: 0.15,
+  leveredMoic: 1.8,
+  totalEquityCommitment: 12000000,
+};
+
 const mockDeals: DealForComparison[] = [
   {
+    ...baseDealFields,
     id: 'deal-001',
     propertyName: 'Phoenix Gateway Plaza',
     address: { street: '2850 W Camelback Rd', city: 'Phoenix', state: 'AZ' },
@@ -60,6 +72,7 @@ const mockDeals: DealForComparison[] = [
     occupancyRate: 0.94,
   },
   {
+    ...baseDealFields,
     id: 'deal-002',
     propertyName: 'Mesa Ridge Apartments',
     address: { street: '4500 S Power Rd', city: 'Mesa', state: 'AZ' },
@@ -82,6 +95,7 @@ const mockDeals: DealForComparison[] = [
     occupancyRate: 0.96,
   },
   {
+    ...baseDealFields,
     id: 'deal-003',
     propertyName: 'Tempe University Village',
     address: { street: '950 S Rural Rd', city: 'Tempe', state: 'AZ' },

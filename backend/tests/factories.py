@@ -78,18 +78,18 @@ class DealFactory(factory.Factory):
     investment_thesis = factory.Faker("paragraph", nb_sentences=3)
 
 
-class LeadDealFactory(DealFactory):
-    """Factory for deals in Lead stage."""
+class InitialReviewDealFactory(DealFactory):
+    """Factory for deals in Initial Review stage."""
 
-    stage = DealStage.LEAD
-    name = factory.Sequence(lambda n: f"Lead Deal {n}")
+    stage = DealStage.INITIAL_REVIEW
+    name = factory.Sequence(lambda n: f"Initial Review Deal {n}")
 
 
-class UnderwritingDealFactory(DealFactory):
-    """Factory for deals in Underwriting stage."""
+class ActiveReviewDealFactory(DealFactory):
+    """Factory for deals in Active Review stage."""
 
-    stage = DealStage.UNDERWRITING
-    name = factory.Sequence(lambda n: f"Underwriting Deal {n}")
+    stage = DealStage.ACTIVE_REVIEW
+    name = factory.Sequence(lambda n: f"Active Review Deal {n}")
 
 
 class ClosedDealFactory(DealFactory):

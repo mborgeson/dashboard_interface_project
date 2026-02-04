@@ -14,7 +14,7 @@ async def test_create_deal(db_session, test_user):
     deal = Deal(
         name="Test Acquisition",
         deal_type="acquisition",
-        stage=DealStage.LEAD,
+        stage=DealStage.INITIAL_REVIEW,
         assigned_user_id=test_user.id,
         asking_price=Decimal("20000000.00"),
         priority="high",
@@ -26,7 +26,7 @@ async def test_create_deal(db_session, test_user):
     assert deal.id is not None
     assert deal.name == "Test Acquisition"
     assert deal.deal_type == "acquisition"
-    assert deal.stage == DealStage.LEAD
+    assert deal.stage == DealStage.INITIAL_REVIEW
     assert deal.priority == "high"
 
 
@@ -52,11 +52,11 @@ async def test_deal_stages(db_session):
 @pytest.mark.asyncio
 async def test_deal_stage_update(test_deal):
     """Test updating a deal's stage."""
-    assert test_deal.stage == DealStage.UNDERWRITING
+    assert test_deal.stage == DealStage.ACTIVE_REVIEW
 
-    test_deal.update_stage(DealStage.DUE_DILIGENCE)
+    test_deal.update_stage(DealStage.UNDER_CONTRACT)
 
-    assert test_deal.stage == DealStage.DUE_DILIGENCE
+    assert test_deal.stage == DealStage.UNDER_CONTRACT
     assert test_deal.stage_updated_at is not None
 
 
@@ -66,7 +66,7 @@ async def test_deal_financial_metrics(db_session, test_user):
     deal = Deal(
         name="Financial Test Deal",
         deal_type="acquisition",
-        stage=DealStage.UNDERWRITING,
+        stage=DealStage.ACTIVE_REVIEW,
         asking_price=Decimal("25000000.00"),
         offer_price=Decimal("23500000.00"),
         final_price=Decimal("24000000.00"),
@@ -105,7 +105,7 @@ async def test_deal_fixture(test_deal):
     """Test that the test_deal fixture works."""
     assert test_deal.id is not None
     assert test_deal.name == "Test Deal #0001"
-    assert test_deal.stage == DealStage.UNDERWRITING
+    assert test_deal.stage == DealStage.ACTIVE_REVIEW
 
 
 @pytest.mark.asyncio
@@ -113,7 +113,7 @@ async def test_multiple_deals_fixture(multiple_deals):
     """Test that the multiple_deals fixture works."""
     assert len(multiple_deals) == 4
     stages = [d.stage for d in multiple_deals]
-    assert DealStage.LEAD in stages
+    assert DealStage.INITIAL_REVIEW in stages
     assert DealStage.CLOSED in stages
 
 

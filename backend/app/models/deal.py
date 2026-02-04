@@ -24,16 +24,14 @@ from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
 class DealStage(PyEnum):
-    """Deal pipeline stages for Kanban board."""
+    """Deal pipeline stages for Kanban board (6-stage model)."""
 
-    LEAD = "lead"
+    DEAD = "dead"
     INITIAL_REVIEW = "initial_review"
-    UNDERWRITING = "underwriting"
-    DUE_DILIGENCE = "due_diligence"
-    LOI_SUBMITTED = "loi_submitted"
+    ACTIVE_REVIEW = "active_review"
     UNDER_CONTRACT = "under_contract"
     CLOSED = "closed"
-    DEAD = "dead"
+    REALIZED = "realized"
 
 
 class Deal(Base, TimestampMixin, SoftDeleteMixin):
@@ -53,7 +51,7 @@ class Deal(Base, TimestampMixin, SoftDeleteMixin):
     # Pipeline Stage
     stage: Mapped[DealStage] = mapped_column(
         Enum(DealStage),
-        default=DealStage.LEAD,
+        default=DealStage.INITIAL_REVIEW,
         nullable=False,
         index=True,
     )

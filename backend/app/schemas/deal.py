@@ -25,10 +25,10 @@ class DealBase(BaseSchema):
 class DealCreate(DealBase):
     """Schema for creating a new deal."""
 
-    # Initial stage (defaults to LEAD)
+    # Initial stage (defaults to initial_review)
     stage: str = Field(
-        default="lead",
-        pattern="^(lead|initial_review|underwriting|due_diligence|loi_submitted|under_contract|closed|dead)$",
+        default="initial_review",
+        pattern="^(dead|initial_review|active_review|under_contract|closed|realized)$",
     )
 
     # Financial Terms
@@ -106,7 +106,7 @@ class DealStageUpdate(BaseSchema):
 
     stage: str = Field(
         ...,
-        pattern="^(lead|initial_review|underwriting|due_diligence|loi_submitted|under_contract|closed|dead)$",
+        pattern="^(dead|initial_review|active_review|under_contract|closed|realized)$",
     )
     stage_order: int | None = Field(None, ge=0)
 

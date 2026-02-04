@@ -70,14 +70,12 @@ class PDFReportService:
 
         # Stage colors for deal pipeline
         self.STAGE_COLORS = {
-            "lead": colors.HexColor("#E3F2FD"),
+            "dead": colors.HexColor("#DC3545"),
             "initial_review": colors.HexColor("#BBDEFB"),
-            "underwriting": colors.HexColor("#90CAF9"),
-            "due_diligence": colors.HexColor("#64B5F6"),
-            "loi_submitted": colors.HexColor("#42A5F5"),
+            "active_review": colors.HexColor("#90CAF9"),
             "under_contract": colors.HexColor("#2196F3"),
             "closed": colors.HexColor("#28A745"),
-            "dead": colors.HexColor("#DC3545"),
+            "realized": colors.HexColor("#1B5E20"),
         }
 
     def _init_styles(self) -> None:

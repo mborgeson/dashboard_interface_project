@@ -57,14 +57,18 @@ interface BackendDealResponse {
 /** Map backend stage names to frontend DealStage */
 function mapBackendStage(stage: string): Deal['stage'] {
   const stageMap: Record<string, Deal['stage']> = {
-    lead: 'initial_review',
+    // New 6-stage model (identity mappings)
+    dead: 'dead',
     initial_review: 'initial_review',
+    active_review: 'active_review',
+    under_contract: 'under_contract',
+    closed: 'closed',
+    realized: 'realized',
+    // Legacy 8-stage backwards compatibility
+    lead: 'initial_review',
     underwriting: 'active_review',
     loi_submitted: 'under_contract',
     due_diligence: 'under_contract',
-    under_contract: 'under_contract',
-    closed: 'closed',
-    dead: 'dead',
   };
   return stageMap[stage] ?? 'initial_review';
 }
