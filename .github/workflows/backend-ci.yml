@@ -50,7 +50,7 @@ jobs:
         run: ruff format app/ --check
 
       - name: Run Mypy type check
-        run: mypy app/ --ignore-missing-imports --no-error-summary || true
+        run: mypy app/ --ignore-missing-imports
 
   test:
     name: Test & Coverage
@@ -94,7 +94,7 @@ jobs:
             --cov-report=xml \
             --cov-report=term-missing \
             --no-cov-on-fail \
-            --cov-fail-under=30 \
+            --cov-fail-under=60 \
             -p no:cacheprovider \
             -v
           exit_code=$?
@@ -145,12 +145,12 @@ jobs:
           pip install bandit safety
 
       - name: Run Bandit security scan
-        run: bandit -r app/ -f json -o bandit-report.json || true
+        run: bandit -r app/ -f json -o bandit-report.json -ll
 
       - name: Check dependencies for vulnerabilities
         run: |
           pip install --no-cache-dir -r requirements-ci.txt
-          safety check --json > safety-report.json || true
+          safety check --json > safety-report.json
 
       - name: Upload security reports
         uses: actions/upload-artifact@v4

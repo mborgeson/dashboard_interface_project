@@ -1,0 +1,30 @@
+# Pre-commit hooks — run quality checks before each commit
+# Install: pip install pre-commit && pre-commit install
+# Manual run: pre-commit run --all-files
+
+repos:
+  # Ruff — Python linting and formatting (backend)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+      - id: ruff
+        args: [check, --fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  # Frontend checks
+  - repo: local
+    hooks:
+      - id: tsc-check
+        name: TypeScript type check
+        entry: npx tsc --noEmit
+        language: system
+        types: [ts, tsx]
+        pass_filenames: false
+      - id: eslint-check
+        name: ESLint
+        entry: npx eslint --max-warnings 0
+        language: system
+        types: [ts, tsx]
+        files: ^src/

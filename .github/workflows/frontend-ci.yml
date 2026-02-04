@@ -57,15 +57,7 @@ jobs:
         run: npm ci
 
       - name: Run ESLint
-        continue-on-error: true
-        run: |
-          npm run lint 2>&1 | tee eslint-output.txt
-          exit_code=${PIPESTATUS[0]}
-          if [ $exit_code -ne 0 ]; then
-            error_count=$(grep -oP '\d+ error' eslint-output.txt | head -1 | grep -oP '\d+' || echo "0")
-            echo "::warning::ESLint found $error_count errors - review and fix lint issues"
-          fi
-          # TODO: Remove continue-on-error once lint issues are resolved
+        run: npm run lint
 
   # TypeScript type checking - runs in parallel with lint
   typecheck:
@@ -188,8 +180,8 @@ jobs:
 
       - name: Run npm audit
         run: |
-          npm audit --audit-level=high --json > npm-audit.json || true
-          npm audit --audit-level=high || echo "::warning::Security vulnerabilities found - review npm-audit.json"
+          npm audit --audit-level=high --json > npm-audit.json
+          npm audit --audit-level=high
 
       - name: Upload audit report
         uses: actions/upload-artifact@v4
