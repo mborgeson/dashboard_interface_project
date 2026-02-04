@@ -22,9 +22,23 @@ FRED_BASE_URL = "https://api.stlouisfed.org/fred/series/observations"
 
 # All 17 FRED series to extract
 FRED_SERIES = [
-    "FEDFUNDS", "DPRIME", "DGS1MO", "DGS3MO", "DGS6MO", "DGS1",
-    "DGS2", "DGS5", "DGS7", "DGS10", "DGS20", "DGS30",
-    "SOFR", "MORTGAGE30US", "PHOE004UR", "PHOE004NA", "CPIAUCSL",
+    "FEDFUNDS",
+    "DPRIME",
+    "DGS1MO",
+    "DGS3MO",
+    "DGS6MO",
+    "DGS1",
+    "DGS2",
+    "DGS5",
+    "DGS7",
+    "DGS10",
+    "DGS20",
+    "DGS30",
+    "SOFR",
+    "MORTGAGE30US",
+    "PHOE004UR",
+    "PHOE004NA",
+    "CPIAUCSL",
 ]
 
 # Rate limit: 120 requests per minute for FRED API
@@ -129,7 +143,9 @@ async def run_fred_extraction_async(engine=None, incremental: bool = True) -> di
     # Log extraction start
     with engine.begin() as conn:
         result = conn.execute(
-            text("INSERT INTO extraction_log (source, status) VALUES ('fred', 'running') RETURNING id"),
+            text(
+                "INSERT INTO extraction_log (source, status) VALUES ('fred', 'running') RETURNING id"
+            ),
         )
         log_id = result.scalar()
 
@@ -148,7 +164,9 @@ async def run_fred_extraction_async(engine=None, incremental: bool = True) -> di
                         start_date = max_date
                         logger.debug(f"  {series_id}: incremental from {start_date}")
 
-                observations = await fetch_series(client, series_id, api_key, start_date)
+                observations = await fetch_series(
+                    client, series_id, api_key, start_date
+                )
 
                 if observations:
                     count = _batch_upsert_fred(engine, series_id, observations)

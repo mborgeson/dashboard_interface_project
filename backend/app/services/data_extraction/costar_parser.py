@@ -98,16 +98,18 @@ def parse_costar_file(filepath: str | Path, engine) -> int:
             except (ValueError, TypeError):
                 continue
 
-            records.append({
-                "geography_name": geo_name,
-                "geography_type": geo_type,
-                "geography_code": geo_code,
-                "concept": concept,
-                "date": dt.date(),
-                "value": float_val,
-                "is_forecast": is_forecast,
-                "source_file": filepath.name,
-            })
+            records.append(
+                {
+                    "geography_name": geo_name,
+                    "geography_type": geo_type,
+                    "geography_code": geo_code,
+                    "concept": concept,
+                    "date": dt.date(),
+                    "value": float_val,
+                    "is_forecast": is_forecast,
+                    "source_file": filepath.name,
+                }
+            )
 
     wb.close()
 
@@ -168,7 +170,9 @@ def run_costar_extraction(engine=None) -> dict:
     # Log extraction start
     with engine.begin() as conn:
         result = conn.execute(
-            text("INSERT INTO extraction_log (source, status) VALUES ('costar', 'running') RETURNING id"),
+            text(
+                "INSERT INTO extraction_log (source, status) VALUES ('costar', 'running') RETURNING id"
+            ),
         )
         log_id = result.scalar()
 

@@ -92,7 +92,9 @@ def run_census_extraction(engine=None) -> dict:
     # Log extraction start
     with engine.begin() as conn:
         result = conn.execute(
-            text("INSERT INTO extraction_log (source, status) VALUES ('census', 'running') RETURNING id"),
+            text(
+                "INSERT INTO extraction_log (source, status) VALUES ('census', 'running') RETURNING id"
+            ),
         )
         log_id = result.scalar()
 

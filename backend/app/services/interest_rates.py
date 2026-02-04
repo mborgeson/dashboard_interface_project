@@ -17,22 +17,73 @@ from app.core.config import settings
 
 # FRED series ID → display config mapping
 _RATE_DISPLAY = {
-    "FEDFUNDS": {"id": "fed-funds", "name": "Federal Funds Rate", "short_name": "Fed Funds", "category": "federal"},
-    "DPRIME": {"id": "prime-rate", "name": "Prime Rate", "short_name": "Prime", "category": "federal"},
-    "DGS2": {"id": "treasury-2y", "name": "2-Year Treasury Yield", "short_name": "2Y Treasury", "category": "treasury"},
-    "DGS5": {"id": "treasury-5y", "name": "5-Year Treasury Yield", "short_name": "5Y Treasury", "category": "treasury"},
-    "DGS7": {"id": "treasury-7y", "name": "7-Year Treasury Yield", "short_name": "7Y Treasury", "category": "treasury"},
-    "DGS10": {"id": "treasury-10y", "name": "10-Year Treasury Yield", "short_name": "10Y Treasury", "category": "treasury"},
-    "DGS30": {"id": "treasury-30y", "name": "30-Year Treasury Yield", "short_name": "30Y Treasury", "category": "treasury"},
-    "SOFR": {"id": "sofr-1m", "name": "SOFR Rate", "short_name": "SOFR", "category": "sofr"},
-    "MORTGAGE30US": {"id": "mortgage-30y", "name": "30-Year Fixed Mortgage Rate", "short_name": "30Y Mortgage", "category": "mortgage"},
+    "FEDFUNDS": {
+        "id": "fed-funds",
+        "name": "Federal Funds Rate",
+        "short_name": "Fed Funds",
+        "category": "federal",
+    },
+    "DPRIME": {
+        "id": "prime-rate",
+        "name": "Prime Rate",
+        "short_name": "Prime",
+        "category": "federal",
+    },
+    "DGS2": {
+        "id": "treasury-2y",
+        "name": "2-Year Treasury Yield",
+        "short_name": "2Y Treasury",
+        "category": "treasury",
+    },
+    "DGS5": {
+        "id": "treasury-5y",
+        "name": "5-Year Treasury Yield",
+        "short_name": "5Y Treasury",
+        "category": "treasury",
+    },
+    "DGS7": {
+        "id": "treasury-7y",
+        "name": "7-Year Treasury Yield",
+        "short_name": "7Y Treasury",
+        "category": "treasury",
+    },
+    "DGS10": {
+        "id": "treasury-10y",
+        "name": "10-Year Treasury Yield",
+        "short_name": "10Y Treasury",
+        "category": "treasury",
+    },
+    "DGS30": {
+        "id": "treasury-30y",
+        "name": "30-Year Treasury Yield",
+        "short_name": "30Y Treasury",
+        "category": "treasury",
+    },
+    "SOFR": {
+        "id": "sofr-1m",
+        "name": "SOFR Rate",
+        "short_name": "SOFR",
+        "category": "sofr",
+    },
+    "MORTGAGE30US": {
+        "id": "mortgage-30y",
+        "name": "30-Year Fixed Mortgage Rate",
+        "short_name": "30Y Mortgage",
+        "category": "mortgage",
+    },
 }
 
 # Yield curve maturities in order
 _YIELD_CURVE_SERIES = [
-    ("DGS1MO", "1M", 1), ("DGS3MO", "3M", 3), ("DGS6MO", "6M", 6),
-    ("DGS1", "1Y", 12), ("DGS2", "2Y", 24), ("DGS5", "5Y", 60),
-    ("DGS7", "7Y", 84), ("DGS10", "10Y", 120), ("DGS20", "20Y", 240),
+    ("DGS1MO", "1M", 1),
+    ("DGS3MO", "3M", 3),
+    ("DGS6MO", "6M", 6),
+    ("DGS1", "1Y", 12),
+    ("DGS2", "2Y", 24),
+    ("DGS5", "5Y", 60),
+    ("DGS7", "7Y", 84),
+    ("DGS10", "10Y", 120),
+    ("DGS20", "20Y", 240),
     ("DGS30", "30Y", 360),
 ]
 
@@ -126,7 +177,9 @@ class InterestRatesService:
 
     # ── Database queries ──
 
-    def _get_rates_from_db(self, series_ids: list[str]) -> dict[str, tuple[float, float, str]] | None:
+    def _get_rates_from_db(
+        self, series_ids: list[str]
+    ) -> dict[str, tuple[float, float, str]] | None:
         """Query fred_timeseries for latest 2 values per series.
 
         Returns dict of series_id → (current_value, previous_value, as_of_date)
@@ -173,14 +226,16 @@ class InterestRatesService:
 
                 for key, sid in _HISTORICAL_SERIES.items():
                     rows = conn.execute(
-                        text("""
+                        text(
+                            """
                             SELECT TO_CHAR(date, 'YYYY-MM') as month, AVG(value) as avg_val
                             FROM fred_timeseries
                             WHERE series_id = :sid
                             AND date >= (CURRENT_DATE - INTERVAL ':months months')
                             GROUP BY TO_CHAR(date, 'YYYY-MM')
                             ORDER BY month
-                        """.replace(":months", str(months))),
+                        """.replace(":months", str(months))
+                        ),
                         {"sid": sid},
                     ).fetchall()
 
@@ -195,7 +250,11 @@ class InterestRatesService:
 
                 # Filter to months that have at least fed_funds and treasury_10y
                 result = sorted(
-                    [v for v in series_data.values() if "federal_funds" in v and "treasury_10y" in v],
+                    [
+                        v
+                        for v in series_data.values()
+                        if "federal_funds" in v and "treasury_10y" in v
+                    ],
                     key=lambda x: x["date"],
                 )
                 return result[-months:] if result else None
@@ -224,18 +283,24 @@ class InterestRatesService:
                     current, previous, as_of = db_rates[sid]
                     change = round(current - previous, 2)
                     change_pct = round((change / previous * 100) if previous else 0, 2)
-                    rates.append({
-                        **config,
-                        "current_value": current,
-                        "previous_value": previous,
-                        "change": change,
-                        "change_percent": change_pct,
-                        "as_of_date": as_of,
-                        "description": "From market database",
-                    })
+                    rates.append(
+                        {
+                            **config,
+                            "current_value": current,
+                            "previous_value": previous,
+                            "change": change,
+                            "change_percent": change_pct,
+                            "as_of_date": as_of,
+                            "description": "From market database",
+                        }
+                    )
 
             if rates:
-                data = {"key_rates": rates, "last_updated": datetime.now(UTC).isoformat(), "source": "database"}
+                data = {
+                    "key_rates": rates,
+                    "last_updated": datetime.now(UTC).isoformat(),
+                    "source": "database",
+                }
                 self._set_cache(cache_key, data)
                 return data
 
@@ -245,28 +310,48 @@ class InterestRatesService:
             for sid, config in _RATE_DISPLAY.items():
                 obs = await self._fetch_from_fred(sid)
                 if obs and len(obs) > 0:
-                    current = float(obs[0].get("value", 0)) if obs[0].get("value", ".") != "." else 0
-                    previous = float(obs[1].get("value", 0)) if len(obs) > 1 and obs[1].get("value", ".") != "." else current
+                    current = (
+                        float(obs[0].get("value", 0))
+                        if obs[0].get("value", ".") != "."
+                        else 0
+                    )
+                    previous = (
+                        float(obs[1].get("value", 0))
+                        if len(obs) > 1 and obs[1].get("value", ".") != "."
+                        else current
+                    )
                     if current > 0:
                         change = round(current - previous, 2)
-                        change_pct = round((change / previous * 100) if previous else 0, 2)
-                        rates.append({
-                            **config,
-                            "current_value": current,
-                            "previous_value": previous,
-                            "change": change,
-                            "change_percent": change_pct,
-                            "as_of_date": obs[0].get("date", ""),
-                            "description": "Live from FRED API",
-                        })
+                        change_pct = round(
+                            (change / previous * 100) if previous else 0, 2
+                        )
+                        rates.append(
+                            {
+                                **config,
+                                "current_value": current,
+                                "previous_value": previous,
+                                "change": change,
+                                "change_percent": change_pct,
+                                "as_of_date": obs[0].get("date", ""),
+                                "description": "Live from FRED API",
+                            }
+                        )
 
             if len(rates) >= 5:
-                data = {"key_rates": rates, "last_updated": datetime.now(UTC).isoformat(), "source": "fred_api"}
+                data = {
+                    "key_rates": rates,
+                    "last_updated": datetime.now(UTC).isoformat(),
+                    "source": "fred_api",
+                }
                 self._set_cache(cache_key, data)
                 return data
 
         # Fall back to mock
-        data = {"key_rates": self.get_mock_key_rates(), "last_updated": datetime.now(UTC).isoformat(), "source": "mock"}
+        data = {
+            "key_rates": self.get_mock_key_rates(),
+            "last_updated": datetime.now(UTC).isoformat(),
+            "source": "mock",
+        }
         self._set_cache(cache_key, data)
         return data
 
@@ -287,17 +372,21 @@ class InterestRatesService:
             for sid, label, months in _YIELD_CURVE_SERIES:
                 if sid in db_rates:
                     current, previous, _ = db_rates[sid]
-                    curve.append({
-                        "maturity": label,
-                        "yield": current,
-                        "previous_yield": previous,
-                        "maturity_months": months,
-                    })
+                    curve.append(
+                        {
+                            "maturity": label,
+                            "yield": current,
+                            "previous_yield": previous,
+                            "maturity_months": months,
+                        }
+                    )
 
             if curve:
                 data = {
                     "yield_curve": curve,
-                    "as_of_date": db_rates.get("DGS10", (0, 0, ""))[2] if "DGS10" in db_rates else "",
+                    "as_of_date": db_rates.get("DGS10", (0, 0, ""))[2]
+                    if "DGS10" in db_rates
+                    else "",
                     "last_updated": datetime.now(UTC).isoformat(),
                     "source": "database",
                 }
@@ -372,55 +461,350 @@ class InterestRatesService:
 
     def get_mock_key_rates(self) -> list[dict]:
         return [
-            {"id": "fed-funds", "name": "Federal Funds Rate", "short_name": "Fed Funds", "current_value": 5.33, "previous_value": 5.33, "change": 0, "change_percent": 0, "as_of_date": "2025-12-05", "category": "federal", "description": "The interest rate at which banks lend reserve balances to other banks overnight."},
-            {"id": "prime-rate", "name": "Prime Rate", "short_name": "Prime", "current_value": 8.50, "previous_value": 8.50, "change": 0, "change_percent": 0, "as_of_date": "2025-12-05", "category": "federal", "description": "The rate that commercial banks charge their most creditworthy customers."},
-            {"id": "treasury-2y", "name": "2-Year Treasury Yield", "short_name": "2Y Treasury", "current_value": 4.18, "previous_value": 4.21, "change": -0.03, "change_percent": -0.71, "as_of_date": "2025-12-05", "category": "treasury", "description": "Yield on 2-year U.S. Treasury notes."},
-            {"id": "treasury-5y", "name": "5-Year Treasury Yield", "short_name": "5Y Treasury", "current_value": 4.05, "previous_value": 4.09, "change": -0.04, "change_percent": -0.98, "as_of_date": "2025-12-05", "category": "treasury", "description": "Yield on 5-year U.S. Treasury notes."},
-            {"id": "treasury-7y", "name": "7-Year Treasury Yield", "short_name": "7Y Treasury", "current_value": 4.12, "previous_value": 4.15, "change": -0.03, "change_percent": -0.72, "as_of_date": "2025-12-05", "category": "treasury", "description": "Yield on 7-year U.S. Treasury notes."},
-            {"id": "treasury-10y", "name": "10-Year Treasury Yield", "short_name": "10Y Treasury", "current_value": 4.22, "previous_value": 4.26, "change": -0.04, "change_percent": -0.94, "as_of_date": "2025-12-05", "category": "treasury", "description": "Yield on 10-year U.S. Treasury notes. Key benchmark for mortgage rates."},
-            {"id": "sofr-1m", "name": "1-Month SOFR", "short_name": "1M SOFR", "current_value": 5.34, "previous_value": 5.34, "change": 0, "change_percent": 0, "as_of_date": "2025-12-05", "category": "sofr", "description": "Secured Overnight Financing Rate, 1-month average."},
-            {"id": "sofr-term-1m", "name": "1-Month Term SOFR", "short_name": "1M Term SOFR", "current_value": 5.32, "previous_value": 5.33, "change": -0.01, "change_percent": -0.19, "as_of_date": "2025-12-05", "category": "sofr", "description": "CME Term SOFR, 1-month rate."},
-            {"id": "mortgage-30y", "name": "30-Year Fixed Mortgage Rate", "short_name": "30Y Mortgage", "current_value": 6.84, "previous_value": 6.91, "change": -0.07, "change_percent": -1.01, "as_of_date": "2025-12-05", "category": "mortgage", "description": "Average rate for 30-year fixed-rate mortgages."},
+            {
+                "id": "fed-funds",
+                "name": "Federal Funds Rate",
+                "short_name": "Fed Funds",
+                "current_value": 5.33,
+                "previous_value": 5.33,
+                "change": 0,
+                "change_percent": 0,
+                "as_of_date": "2025-12-05",
+                "category": "federal",
+                "description": "The interest rate at which banks lend reserve balances to other banks overnight.",
+            },
+            {
+                "id": "prime-rate",
+                "name": "Prime Rate",
+                "short_name": "Prime",
+                "current_value": 8.50,
+                "previous_value": 8.50,
+                "change": 0,
+                "change_percent": 0,
+                "as_of_date": "2025-12-05",
+                "category": "federal",
+                "description": "The rate that commercial banks charge their most creditworthy customers.",
+            },
+            {
+                "id": "treasury-2y",
+                "name": "2-Year Treasury Yield",
+                "short_name": "2Y Treasury",
+                "current_value": 4.18,
+                "previous_value": 4.21,
+                "change": -0.03,
+                "change_percent": -0.71,
+                "as_of_date": "2025-12-05",
+                "category": "treasury",
+                "description": "Yield on 2-year U.S. Treasury notes.",
+            },
+            {
+                "id": "treasury-5y",
+                "name": "5-Year Treasury Yield",
+                "short_name": "5Y Treasury",
+                "current_value": 4.05,
+                "previous_value": 4.09,
+                "change": -0.04,
+                "change_percent": -0.98,
+                "as_of_date": "2025-12-05",
+                "category": "treasury",
+                "description": "Yield on 5-year U.S. Treasury notes.",
+            },
+            {
+                "id": "treasury-7y",
+                "name": "7-Year Treasury Yield",
+                "short_name": "7Y Treasury",
+                "current_value": 4.12,
+                "previous_value": 4.15,
+                "change": -0.03,
+                "change_percent": -0.72,
+                "as_of_date": "2025-12-05",
+                "category": "treasury",
+                "description": "Yield on 7-year U.S. Treasury notes.",
+            },
+            {
+                "id": "treasury-10y",
+                "name": "10-Year Treasury Yield",
+                "short_name": "10Y Treasury",
+                "current_value": 4.22,
+                "previous_value": 4.26,
+                "change": -0.04,
+                "change_percent": -0.94,
+                "as_of_date": "2025-12-05",
+                "category": "treasury",
+                "description": "Yield on 10-year U.S. Treasury notes. Key benchmark for mortgage rates.",
+            },
+            {
+                "id": "sofr-1m",
+                "name": "1-Month SOFR",
+                "short_name": "1M SOFR",
+                "current_value": 5.34,
+                "previous_value": 5.34,
+                "change": 0,
+                "change_percent": 0,
+                "as_of_date": "2025-12-05",
+                "category": "sofr",
+                "description": "Secured Overnight Financing Rate, 1-month average.",
+            },
+            {
+                "id": "sofr-term-1m",
+                "name": "1-Month Term SOFR",
+                "short_name": "1M Term SOFR",
+                "current_value": 5.32,
+                "previous_value": 5.33,
+                "change": -0.01,
+                "change_percent": -0.19,
+                "as_of_date": "2025-12-05",
+                "category": "sofr",
+                "description": "CME Term SOFR, 1-month rate.",
+            },
+            {
+                "id": "mortgage-30y",
+                "name": "30-Year Fixed Mortgage Rate",
+                "short_name": "30Y Mortgage",
+                "current_value": 6.84,
+                "previous_value": 6.91,
+                "change": -0.07,
+                "change_percent": -1.01,
+                "as_of_date": "2025-12-05",
+                "category": "mortgage",
+                "description": "Average rate for 30-year fixed-rate mortgages.",
+            },
         ]
 
     def get_mock_yield_curve(self) -> list[dict]:
         return [
-            {"maturity": "1M", "yield": 5.47, "previous_yield": 5.48, "maturity_months": 1},
-            {"maturity": "3M", "yield": 5.41, "previous_yield": 5.42, "maturity_months": 3},
-            {"maturity": "6M", "yield": 5.18, "previous_yield": 5.20, "maturity_months": 6},
-            {"maturity": "1Y", "yield": 4.65, "previous_yield": 4.68, "maturity_months": 12},
-            {"maturity": "2Y", "yield": 4.18, "previous_yield": 4.21, "maturity_months": 24},
-            {"maturity": "3Y", "yield": 4.08, "previous_yield": 4.11, "maturity_months": 36},
-            {"maturity": "5Y", "yield": 4.05, "previous_yield": 4.09, "maturity_months": 60},
-            {"maturity": "7Y", "yield": 4.12, "previous_yield": 4.15, "maturity_months": 84},
-            {"maturity": "10Y", "yield": 4.22, "previous_yield": 4.26, "maturity_months": 120},
-            {"maturity": "20Y", "yield": 4.52, "previous_yield": 4.55, "maturity_months": 240},
-            {"maturity": "30Y", "yield": 4.42, "previous_yield": 4.46, "maturity_months": 360},
+            {
+                "maturity": "1M",
+                "yield": 5.47,
+                "previous_yield": 5.48,
+                "maturity_months": 1,
+            },
+            {
+                "maturity": "3M",
+                "yield": 5.41,
+                "previous_yield": 5.42,
+                "maturity_months": 3,
+            },
+            {
+                "maturity": "6M",
+                "yield": 5.18,
+                "previous_yield": 5.20,
+                "maturity_months": 6,
+            },
+            {
+                "maturity": "1Y",
+                "yield": 4.65,
+                "previous_yield": 4.68,
+                "maturity_months": 12,
+            },
+            {
+                "maturity": "2Y",
+                "yield": 4.18,
+                "previous_yield": 4.21,
+                "maturity_months": 24,
+            },
+            {
+                "maturity": "3Y",
+                "yield": 4.08,
+                "previous_yield": 4.11,
+                "maturity_months": 36,
+            },
+            {
+                "maturity": "5Y",
+                "yield": 4.05,
+                "previous_yield": 4.09,
+                "maturity_months": 60,
+            },
+            {
+                "maturity": "7Y",
+                "yield": 4.12,
+                "previous_yield": 4.15,
+                "maturity_months": 84,
+            },
+            {
+                "maturity": "10Y",
+                "yield": 4.22,
+                "previous_yield": 4.26,
+                "maturity_months": 120,
+            },
+            {
+                "maturity": "20Y",
+                "yield": 4.52,
+                "previous_yield": 4.55,
+                "maturity_months": 240,
+            },
+            {
+                "maturity": "30Y",
+                "yield": 4.42,
+                "previous_yield": 4.46,
+                "maturity_months": 360,
+            },
         ]
 
     def get_mock_historical_rates(self, months: int = 12) -> list[dict]:
         all_data = [
-            {"date": "2025-01", "federal_funds": 5.33, "treasury_2y": 4.21, "treasury_5y": 3.84, "treasury_10y": 3.95, "treasury_30y": 4.14, "sofr": 5.31, "mortgage_30y": 6.64},
-            {"date": "2025-02", "federal_funds": 5.33, "treasury_2y": 4.64, "treasury_5y": 4.26, "treasury_10y": 4.25, "treasury_30y": 4.38, "sofr": 5.31, "mortgage_30y": 6.94},
-            {"date": "2025-03", "federal_funds": 5.33, "treasury_2y": 4.59, "treasury_5y": 4.21, "treasury_10y": 4.20, "treasury_30y": 4.34, "sofr": 5.31, "mortgage_30y": 6.82},
-            {"date": "2025-04", "federal_funds": 5.33, "treasury_2y": 4.97, "treasury_5y": 4.63, "treasury_10y": 4.59, "treasury_30y": 4.73, "sofr": 5.31, "mortgage_30y": 7.17},
-            {"date": "2025-05", "federal_funds": 5.33, "treasury_2y": 4.87, "treasury_5y": 4.48, "treasury_10y": 4.50, "treasury_30y": 4.65, "sofr": 5.31, "mortgage_30y": 7.06},
-            {"date": "2025-06", "federal_funds": 5.33, "treasury_2y": 4.71, "treasury_5y": 4.31, "treasury_10y": 4.36, "treasury_30y": 4.51, "sofr": 5.31, "mortgage_30y": 6.92},
-            {"date": "2025-07", "federal_funds": 5.33, "treasury_2y": 4.38, "treasury_5y": 4.07, "treasury_10y": 4.17, "treasury_30y": 4.40, "sofr": 5.31, "mortgage_30y": 6.77},
-            {"date": "2025-08", "federal_funds": 5.33, "treasury_2y": 3.92, "treasury_5y": 3.70, "treasury_10y": 3.90, "treasury_30y": 4.19, "sofr": 5.31, "mortgage_30y": 6.50},
-            {"date": "2025-09", "federal_funds": 5.00, "treasury_2y": 3.55, "treasury_5y": 3.42, "treasury_10y": 3.73, "treasury_30y": 4.08, "sofr": 4.96, "mortgage_30y": 6.18},
-            {"date": "2025-10", "federal_funds": 4.83, "treasury_2y": 4.17, "treasury_5y": 4.04, "treasury_10y": 4.28, "treasury_30y": 4.52, "sofr": 4.81, "mortgage_30y": 6.72},
-            {"date": "2025-11", "federal_funds": 4.58, "treasury_2y": 4.24, "treasury_5y": 4.12, "treasury_10y": 4.35, "treasury_30y": 4.54, "sofr": 4.56, "mortgage_30y": 6.88},
-            {"date": "2025-12", "federal_funds": 4.58, "treasury_2y": 4.18, "treasury_5y": 4.05, "treasury_10y": 4.22, "treasury_30y": 4.42, "sofr": 4.56, "mortgage_30y": 6.84},
+            {
+                "date": "2025-01",
+                "federal_funds": 5.33,
+                "treasury_2y": 4.21,
+                "treasury_5y": 3.84,
+                "treasury_10y": 3.95,
+                "treasury_30y": 4.14,
+                "sofr": 5.31,
+                "mortgage_30y": 6.64,
+            },
+            {
+                "date": "2025-02",
+                "federal_funds": 5.33,
+                "treasury_2y": 4.64,
+                "treasury_5y": 4.26,
+                "treasury_10y": 4.25,
+                "treasury_30y": 4.38,
+                "sofr": 5.31,
+                "mortgage_30y": 6.94,
+            },
+            {
+                "date": "2025-03",
+                "federal_funds": 5.33,
+                "treasury_2y": 4.59,
+                "treasury_5y": 4.21,
+                "treasury_10y": 4.20,
+                "treasury_30y": 4.34,
+                "sofr": 5.31,
+                "mortgage_30y": 6.82,
+            },
+            {
+                "date": "2025-04",
+                "federal_funds": 5.33,
+                "treasury_2y": 4.97,
+                "treasury_5y": 4.63,
+                "treasury_10y": 4.59,
+                "treasury_30y": 4.73,
+                "sofr": 5.31,
+                "mortgage_30y": 7.17,
+            },
+            {
+                "date": "2025-05",
+                "federal_funds": 5.33,
+                "treasury_2y": 4.87,
+                "treasury_5y": 4.48,
+                "treasury_10y": 4.50,
+                "treasury_30y": 4.65,
+                "sofr": 5.31,
+                "mortgage_30y": 7.06,
+            },
+            {
+                "date": "2025-06",
+                "federal_funds": 5.33,
+                "treasury_2y": 4.71,
+                "treasury_5y": 4.31,
+                "treasury_10y": 4.36,
+                "treasury_30y": 4.51,
+                "sofr": 5.31,
+                "mortgage_30y": 6.92,
+            },
+            {
+                "date": "2025-07",
+                "federal_funds": 5.33,
+                "treasury_2y": 4.38,
+                "treasury_5y": 4.07,
+                "treasury_10y": 4.17,
+                "treasury_30y": 4.40,
+                "sofr": 5.31,
+                "mortgage_30y": 6.77,
+            },
+            {
+                "date": "2025-08",
+                "federal_funds": 5.33,
+                "treasury_2y": 3.92,
+                "treasury_5y": 3.70,
+                "treasury_10y": 3.90,
+                "treasury_30y": 4.19,
+                "sofr": 5.31,
+                "mortgage_30y": 6.50,
+            },
+            {
+                "date": "2025-09",
+                "federal_funds": 5.00,
+                "treasury_2y": 3.55,
+                "treasury_5y": 3.42,
+                "treasury_10y": 3.73,
+                "treasury_30y": 4.08,
+                "sofr": 4.96,
+                "mortgage_30y": 6.18,
+            },
+            {
+                "date": "2025-10",
+                "federal_funds": 4.83,
+                "treasury_2y": 4.17,
+                "treasury_5y": 4.04,
+                "treasury_10y": 4.28,
+                "treasury_30y": 4.52,
+                "sofr": 4.81,
+                "mortgage_30y": 6.72,
+            },
+            {
+                "date": "2025-11",
+                "federal_funds": 4.58,
+                "treasury_2y": 4.24,
+                "treasury_5y": 4.12,
+                "treasury_10y": 4.35,
+                "treasury_30y": 4.54,
+                "sofr": 4.56,
+                "mortgage_30y": 6.88,
+            },
+            {
+                "date": "2025-12",
+                "federal_funds": 4.58,
+                "treasury_2y": 4.18,
+                "treasury_5y": 4.05,
+                "treasury_10y": 4.22,
+                "treasury_30y": 4.42,
+                "sofr": 4.56,
+                "mortgage_30y": 6.84,
+            },
         ]
         return all_data[-months:] if months < len(all_data) else all_data
 
     def get_mock_data_sources(self) -> list[dict]:
         return [
-            {"id": "treasury-gov", "name": "U.S. Treasury Department", "url": "https://home.treasury.gov/", "description": "Official source for Treasury yield curve data.", "data_types": ["Treasury Yields", "Yield Curve", "Auction Results"], "update_frequency": "Daily"},
-            {"id": "fred", "name": "Federal Reserve Economic Data (FRED)", "url": "https://fred.stlouisfed.org/", "description": "Comprehensive economic database by Federal Reserve Bank of St. Louis.", "data_types": ["Federal Funds Rate", "Treasury Yields", "SOFR", "Economic Indicators"], "update_frequency": "Daily"},
-            {"id": "cme-sofr", "name": "CME Group - SOFR", "url": "https://www.cmegroup.com/markets/interest-rates/stirs/sofr.html", "description": "Official source for Term SOFR rates.", "data_types": ["Term SOFR", "SOFR Futures"], "update_frequency": "Real-time"},
-            {"id": "ny-fed", "name": "Federal Reserve Bank of New York", "url": "https://www.newyorkfed.org/markets/reference-rates/sofr", "description": "Official administrator of SOFR.", "data_types": ["SOFR", "EFFR", "OBFR"], "update_frequency": "Daily"},
+            {
+                "id": "treasury-gov",
+                "name": "U.S. Treasury Department",
+                "url": "https://home.treasury.gov/",
+                "description": "Official source for Treasury yield curve data.",
+                "data_types": ["Treasury Yields", "Yield Curve", "Auction Results"],
+                "update_frequency": "Daily",
+            },
+            {
+                "id": "fred",
+                "name": "Federal Reserve Economic Data (FRED)",
+                "url": "https://fred.stlouisfed.org/",
+                "description": "Comprehensive economic database by Federal Reserve Bank of St. Louis.",
+                "data_types": [
+                    "Federal Funds Rate",
+                    "Treasury Yields",
+                    "SOFR",
+                    "Economic Indicators",
+                ],
+                "update_frequency": "Daily",
+            },
+            {
+                "id": "cme-sofr",
+                "name": "CME Group - SOFR",
+                "url": "https://www.cmegroup.com/markets/interest-rates/stirs/sofr.html",
+                "description": "Official source for Term SOFR rates.",
+                "data_types": ["Term SOFR", "SOFR Futures"],
+                "update_frequency": "Real-time",
+            },
+            {
+                "id": "ny-fed",
+                "name": "Federal Reserve Bank of New York",
+                "url": "https://www.newyorkfed.org/markets/reference-rates/sofr",
+                "description": "Official administrator of SOFR.",
+                "data_types": ["SOFR", "EFFR", "OBFR"],
+                "update_frequency": "Daily",
+            },
         ]
 
     def get_lending_context(self) -> dict:
@@ -431,10 +815,26 @@ class InterestRatesService:
 
         return {
             "typical_spreads": {
-                "multifamily_perm": {"name": "Multifamily Permanent", "spread": 1.50, "benchmark": "10Y Treasury"},
-                "multifamily_bridge": {"name": "Multifamily Bridge", "spread": 3.00, "benchmark": "SOFR"},
-                "commercial_perm": {"name": "Commercial Permanent", "spread": 1.75, "benchmark": "10Y Treasury"},
-                "construction": {"name": "Construction", "spread": 0.50, "benchmark": "Prime Rate"},
+                "multifamily_perm": {
+                    "name": "Multifamily Permanent",
+                    "spread": 1.50,
+                    "benchmark": "10Y Treasury",
+                },
+                "multifamily_bridge": {
+                    "name": "Multifamily Bridge",
+                    "spread": 3.00,
+                    "benchmark": "SOFR",
+                },
+                "commercial_perm": {
+                    "name": "Commercial Permanent",
+                    "spread": 1.75,
+                    "benchmark": "10Y Treasury",
+                },
+                "construction": {
+                    "name": "Construction",
+                    "spread": 0.50,
+                    "benchmark": "Prime Rate",
+                },
             },
             "current_indicative_rates": {
                 "multifamily_perm": round(treasury_10y + 1.50, 2),
@@ -455,11 +855,20 @@ class InterestRatesService:
             ff = rate.get("federal_funds", 0)
             m30 = rate.get("mortgage_30y", 0)
 
-            treasury_spread_2s10s.append({"date": rate["date"], "spread": round(t10 - t2, 2)})
-            mortgage_spread.append({"date": rate["date"], "spread": round(m30 - t10, 2)})
-            fed_funds_vs_treasury.append({
-                "date": rate["date"], "fed_funds": ff, "treasury_10y": t10, "spread": round(ff - t10, 2),
-            })
+            treasury_spread_2s10s.append(
+                {"date": rate["date"], "spread": round(t10 - t2, 2)}
+            )
+            mortgage_spread.append(
+                {"date": rate["date"], "spread": round(m30 - t10, 2)}
+            )
+            fed_funds_vs_treasury.append(
+                {
+                    "date": rate["date"],
+                    "fed_funds": ff,
+                    "treasury_10y": t10,
+                    "spread": round(ff - t10, 2),
+                }
+            )
 
         return {
             "treasury_spread_2s10s": treasury_spread_2s10s,

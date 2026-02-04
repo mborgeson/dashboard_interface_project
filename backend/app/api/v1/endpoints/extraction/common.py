@@ -135,9 +135,7 @@ def process_files(
             )
 
             # Per-deal change detection: compare extracted vs DB
-            needs_update, reason = should_extract_deal(
-                db, str(property_name), result
-            )
+            needs_update, reason = should_extract_deal(db, str(property_name), result)
 
             if not needs_update:
                 skipped += 1

@@ -57,10 +57,12 @@ def get_data_freshness() -> dict:
     sources = {}
     with engine.connect() as conn:
         # CoStar freshness
-        result = conn.execute(text("""
+        result = conn.execute(
+            text("""
             SELECT MAX(date)::text, COUNT(*), MAX(imported_at)::text
             FROM costar_timeseries WHERE is_forecast = FALSE
-        """))
+        """)
+        )
         row = result.fetchone()
         sources["costar"] = {
             "latest_date": row[0],
@@ -69,10 +71,12 @@ def get_data_freshness() -> dict:
         }
 
         # FRED freshness
-        result = conn.execute(text("""
+        result = conn.execute(
+            text("""
             SELECT MAX(date)::text, COUNT(*), MAX(imported_at)::text
             FROM fred_timeseries
-        """))
+        """)
+        )
         row = result.fetchone()
         sources["fred"] = {
             "latest_date": row[0],
@@ -81,10 +85,12 @@ def get_data_freshness() -> dict:
         }
 
         # Census freshness
-        result = conn.execute(text("""
+        result = conn.execute(
+            text("""
             SELECT MAX(year), COUNT(*), MAX(imported_at)::text
             FROM census_timeseries
-        """))
+        """)
+        )
         row = result.fetchone()
         sources["census"] = {
             "latest_year": row[0],
@@ -93,13 +99,15 @@ def get_data_freshness() -> dict:
         }
 
         # Recent extraction logs
-        result = conn.execute(text("""
+        result = conn.execute(
+            text("""
             SELECT source, status, started_at::text, finished_at::text,
                    records_upserted, error_message
             FROM extraction_log
             ORDER BY started_at DESC
             LIMIT 10
-        """))
+        """)
+        )
         logs = [
             {
                 "source": r[0],

@@ -59,7 +59,9 @@ async def _get_market_engine():
 
         async with _market_engine.connect() as conn:
             result = await conn.execute(
-                text("SELECT MAX(date) FROM costar_timeseries WHERE is_forecast = FALSE LIMIT 1")
+                text(
+                    "SELECT MAX(date) FROM costar_timeseries WHERE is_forecast = FALSE LIMIT 1"
+                )
             )
             row = result.fetchone()
             if row and row[0]:
@@ -129,7 +131,9 @@ class MarketDataService:
             unemp_rows = unemp_result.fetchall()
             if unemp_rows:
                 current_unemp = float(unemp_rows[0][0])
-                prev_unemp = float(unemp_rows[1][0]) if len(unemp_rows) > 1 else current_unemp
+                prev_unemp = (
+                    float(unemp_rows[1][0]) if len(unemp_rows) > 1 else current_unemp
+                )
                 indicators.append(
                     EconomicIndicator(
                         indicator="Unemployment Rate",
@@ -151,7 +155,11 @@ class MarketDataService:
             if emp_rows and len(emp_rows) >= 2:
                 current_emp = float(emp_rows[0][0])
                 prev_emp = float(emp_rows[-1][0])
-                job_growth = round((current_emp - prev_emp) / prev_emp * 100, 1) if prev_emp else 0
+                job_growth = (
+                    round((current_emp - prev_emp) / prev_emp * 100, 1)
+                    if prev_emp
+                    else 0
+                )
                 indicators.append(
                     EconomicIndicator(
                         indicator="Job Growth Rate",
@@ -254,7 +262,8 @@ class MarketDataService:
                 population_growth=pop_growth if len(pop_growth_rows) >= 2 else 0.023,
                 employment_growth=job_growth / 100 if emp_rows else 0.032,
                 gdp_growth=0.041,
-                last_updated=_market_data_freshness or datetime.now().strftime("%Y-%m-%d"),
+                last_updated=_market_data_freshness
+                or datetime.now().strftime("%Y-%m-%d"),
             )
 
             return MarketOverviewResponse(
@@ -277,10 +286,21 @@ class MarketDataService:
         )
 
         economic_indicators = [
-            EconomicIndicator(indicator="Unemployment Rate", value=3.6, yoy_change=-0.4, unit="%"),
-            EconomicIndicator(indicator="Job Growth Rate", value=3.2, yoy_change=0.8, unit="%"),
-            EconomicIndicator(indicator="Median Household Income", value=72500, yoy_change=0.045, unit="$"),
-            EconomicIndicator(indicator="Population Growth", value=2.3, yoy_change=0.2, unit="%"),
+            EconomicIndicator(
+                indicator="Unemployment Rate", value=3.6, yoy_change=-0.4, unit="%"
+            ),
+            EconomicIndicator(
+                indicator="Job Growth Rate", value=3.2, yoy_change=0.8, unit="%"
+            ),
+            EconomicIndicator(
+                indicator="Median Household Income",
+                value=72500,
+                yoy_change=0.045,
+                unit="$",
+            ),
+            EconomicIndicator(
+                indicator="Population Growth", value=2.3, yoy_change=0.2, unit="%"
+            ),
         ]
 
         return MarketOverviewResponse(
@@ -337,7 +357,11 @@ class MarketDataService:
                 name = _extract_submarket_name(row[0])
                 vacancy = float(row[3]) if row[3] is not None else 0.05
                 # CoStar vacancy is already a decimal (e.g. 0.094)
-                occupancy = round(1 - vacancy, 4) if vacancy < 1 else round(1 - vacancy / 100, 4)
+                occupancy = (
+                    round(1 - vacancy, 4)
+                    if vacancy < 1
+                    else round(1 - vacancy / 100, 4)
+                )
                 rent_growth = float(row[2]) if row[2] is not None else 0.0
                 # CoStar rent growth might be decimal (e.g. -0.04 = -4%) — keep as-is
 
@@ -379,27 +403,151 @@ class MarketDataService:
     def _get_submarkets_static(self) -> SubmarketsResponse:
         """Static fallback for submarket data."""
         submarkets = [
-            SubmarketMetrics(name="Tempe", avg_rent=1650, rent_growth=0.065, occupancy=0.960, cap_rate=0.048, inventory=21000, absorption=285),
-            SubmarketMetrics(name="East Valley", avg_rent=1500, rent_growth=0.060, occupancy=0.953, cap_rate=0.050, inventory=28500, absorption=340),
-            SubmarketMetrics(name="Downtown Phoenix", avg_rent=1850, rent_growth=0.068, occupancy=0.965, cap_rate=0.045, inventory=18500, absorption=245),
-            SubmarketMetrics(name="North Phoenix", avg_rent=1550, rent_growth=0.062, occupancy=0.955, cap_rate=0.049, inventory=22000, absorption=275),
-            SubmarketMetrics(name="Deer Valley", avg_rent=1600, rent_growth=0.064, occupancy=0.958, cap_rate=0.047, inventory=17500, absorption=230),
-            SubmarketMetrics(name="Chandler", avg_rent=1750, rent_growth=0.070, occupancy=0.963, cap_rate=0.046, inventory=19800, absorption=268),
-            SubmarketMetrics(name="Gilbert", avg_rent=1800, rent_growth=0.069, occupancy=0.964, cap_rate=0.047, inventory=16700, absorption=221),
-            SubmarketMetrics(name="Old Town Scottsdale", avg_rent=2150, rent_growth=0.072, occupancy=0.970, cap_rate=0.042, inventory=15200, absorption=198),
-            SubmarketMetrics(name="North West Valley", avg_rent=1450, rent_growth=0.058, occupancy=0.950, cap_rate=0.052, inventory=25000, absorption=310),
-            SubmarketMetrics(name="South West Valley", avg_rent=1400, rent_growth=0.055, occupancy=0.948, cap_rate=0.053, inventory=20000, absorption=250),
-            SubmarketMetrics(name="South Phoenix", avg_rent=1350, rent_growth=0.052, occupancy=0.945, cap_rate=0.054, inventory=14000, absorption=170),
-            SubmarketMetrics(name="North Scottsdale", avg_rent=2300, rent_growth=0.074, occupancy=0.972, cap_rate=0.040, inventory=12000, absorption=155),
-            SubmarketMetrics(name="West Maricopa County", avg_rent=1400, rent_growth=0.054, occupancy=0.946, cap_rate=0.055, inventory=18000, absorption=220),
-            SubmarketMetrics(name="Camelback", avg_rent=1900, rent_growth=0.071, occupancy=0.968, cap_rate=0.044, inventory=14500, absorption=190),
-            SubmarketMetrics(name="Southeast Valley", avg_rent=1650, rent_growth=0.063, occupancy=0.957, cap_rate=0.049, inventory=13000, absorption=165),
+            SubmarketMetrics(
+                name="Tempe",
+                avg_rent=1650,
+                rent_growth=0.065,
+                occupancy=0.960,
+                cap_rate=0.048,
+                inventory=21000,
+                absorption=285,
+            ),
+            SubmarketMetrics(
+                name="East Valley",
+                avg_rent=1500,
+                rent_growth=0.060,
+                occupancy=0.953,
+                cap_rate=0.050,
+                inventory=28500,
+                absorption=340,
+            ),
+            SubmarketMetrics(
+                name="Downtown Phoenix",
+                avg_rent=1850,
+                rent_growth=0.068,
+                occupancy=0.965,
+                cap_rate=0.045,
+                inventory=18500,
+                absorption=245,
+            ),
+            SubmarketMetrics(
+                name="North Phoenix",
+                avg_rent=1550,
+                rent_growth=0.062,
+                occupancy=0.955,
+                cap_rate=0.049,
+                inventory=22000,
+                absorption=275,
+            ),
+            SubmarketMetrics(
+                name="Deer Valley",
+                avg_rent=1600,
+                rent_growth=0.064,
+                occupancy=0.958,
+                cap_rate=0.047,
+                inventory=17500,
+                absorption=230,
+            ),
+            SubmarketMetrics(
+                name="Chandler",
+                avg_rent=1750,
+                rent_growth=0.070,
+                occupancy=0.963,
+                cap_rate=0.046,
+                inventory=19800,
+                absorption=268,
+            ),
+            SubmarketMetrics(
+                name="Gilbert",
+                avg_rent=1800,
+                rent_growth=0.069,
+                occupancy=0.964,
+                cap_rate=0.047,
+                inventory=16700,
+                absorption=221,
+            ),
+            SubmarketMetrics(
+                name="Old Town Scottsdale",
+                avg_rent=2150,
+                rent_growth=0.072,
+                occupancy=0.970,
+                cap_rate=0.042,
+                inventory=15200,
+                absorption=198,
+            ),
+            SubmarketMetrics(
+                name="North West Valley",
+                avg_rent=1450,
+                rent_growth=0.058,
+                occupancy=0.950,
+                cap_rate=0.052,
+                inventory=25000,
+                absorption=310,
+            ),
+            SubmarketMetrics(
+                name="South West Valley",
+                avg_rent=1400,
+                rent_growth=0.055,
+                occupancy=0.948,
+                cap_rate=0.053,
+                inventory=20000,
+                absorption=250,
+            ),
+            SubmarketMetrics(
+                name="South Phoenix",
+                avg_rent=1350,
+                rent_growth=0.052,
+                occupancy=0.945,
+                cap_rate=0.054,
+                inventory=14000,
+                absorption=170,
+            ),
+            SubmarketMetrics(
+                name="North Scottsdale",
+                avg_rent=2300,
+                rent_growth=0.074,
+                occupancy=0.972,
+                cap_rate=0.040,
+                inventory=12000,
+                absorption=155,
+            ),
+            SubmarketMetrics(
+                name="West Maricopa County",
+                avg_rent=1400,
+                rent_growth=0.054,
+                occupancy=0.946,
+                cap_rate=0.055,
+                inventory=18000,
+                absorption=220,
+            ),
+            SubmarketMetrics(
+                name="Camelback",
+                avg_rent=1900,
+                rent_growth=0.071,
+                occupancy=0.968,
+                cap_rate=0.044,
+                inventory=14500,
+                absorption=190,
+            ),
+            SubmarketMetrics(
+                name="Southeast Valley",
+                avg_rent=1650,
+                rent_growth=0.063,
+                occupancy=0.957,
+                cap_rate=0.049,
+                inventory=13000,
+                absorption=165,
+            ),
         ]
 
         total_inventory = sum(s.inventory for s in submarkets)
         total_absorption = sum(s.absorption for s in submarkets)
-        avg_occupancy = sum(s.occupancy * s.inventory for s in submarkets) / total_inventory
-        avg_rent_growth = sum(s.rent_growth * s.inventory for s in submarkets) / total_inventory
+        avg_occupancy = (
+            sum(s.occupancy * s.inventory for s in submarkets) / total_inventory
+        )
+        avg_rent_growth = (
+            sum(s.rent_growth * s.inventory for s in submarkets) / total_inventory
+        )
 
         return SubmarketsResponse(
             submarkets=submarkets,
@@ -426,7 +574,9 @@ class MarketDataService:
 
         return self._get_trends_static(period_months)
 
-    async def _get_trends_from_db(self, engine, period_months: int) -> MarketTrendsResponse:
+    async def _get_trends_from_db(
+        self, engine, period_months: int
+    ) -> MarketTrendsResponse:
         """Query market_analysis DB for trailing trend data from CoStar."""
         from sqlalchemy import text
 
@@ -465,16 +615,26 @@ class MarketDataService:
             for row in rows:
                 vacancy = float(row[3]) if row[3] is not None else 0.05
                 rg = float(row[2]) if row[2] is not None else 0.0
-                occ = round(1 - vacancy, 4) if vacancy < 1 else round(1 - vacancy / 100, 4)
+                occ = (
+                    round(1 - vacancy, 4)
+                    if vacancy < 1
+                    else round(1 - vacancy / 100, 4)
+                )
                 cr = float(row[4]) if row[4] is not None else 0.05
 
                 trends.append(
-                    MarketTrend(month=row[1], rent_growth=rg, occupancy=occ, cap_rate=cr)
+                    MarketTrend(
+                        month=row[1], rent_growth=rg, occupancy=occ, cap_rate=cr
+                    )
                 )
                 monthly_data.append(
                     MonthlyMarketData(
-                        month=row[1], rent_growth=rg, occupancy=occ,
-                        cap_rate=cr, employment=0, population=0,
+                        month=row[1],
+                        rent_growth=rg,
+                        occupancy=occ,
+                        cap_rate=cr,
+                        employment=0,
+                        population=0,
                     )
                 )
 
@@ -488,7 +648,20 @@ class MarketDataService:
 
     def _get_trends_static(self, period_months: int) -> MarketTrendsResponse:
         """Static fallback for trend data."""
-        months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        months = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+        ]
 
         base_rent_growth = 0.048
         base_occupancy = 0.945
@@ -543,19 +716,117 @@ class MarketDataService:
     ) -> ComparablesResponse:
         """Get property comparables. Static data — no DB source for sales comps yet."""
         all_comparables = [
-            PropertyComparable(id="comp-001", name="Desert Ridge Apartments", address="1200 N Tatum Blvd, Phoenix, AZ 85028", submarket="Scottsdale", units=288, year_built=2019, avg_rent=2100, occupancy=0.965, sale_price=85000000, sale_date="2024-08-15", cap_rate=0.044),
-            PropertyComparable(id="comp-002", name="Tempe Gateway", address="850 S Mill Ave, Tempe, AZ 85281", submarket="Tempe", units=320, year_built=2020, avg_rent=1680, occupancy=0.958, sale_price=72000000, sale_date="2024-06-20", cap_rate=0.047),
-            PropertyComparable(id="comp-003", name="Chandler Crossing", address="3200 W Chandler Blvd, Chandler, AZ 85226", submarket="Chandler", units=256, year_built=2018, avg_rent=1720, occupancy=0.962, sale_price=None, sale_date=None, cap_rate=None),
-            PropertyComparable(id="comp-004", name="Gilbert Town Center", address="275 N Gilbert Rd, Gilbert, AZ 85234", submarket="Gilbert", units=198, year_built=2021, avg_rent=1850, occupancy=0.971, sale_price=52000000, sale_date="2024-10-05", cap_rate=0.045),
-            PropertyComparable(id="comp-005", name="Mesa Riverview", address="2150 W Rio Salado Pkwy, Mesa, AZ 85201", submarket="Mesa", units=342, year_built=2017, avg_rent=1420, occupancy=0.948, sale_price=62000000, sale_date="2024-03-12", cap_rate=0.052),
-            PropertyComparable(id="comp-006", name="Downtown Phoenix Lofts", address="100 E Van Buren St, Phoenix, AZ 85004", submarket="Downtown Phoenix", units=180, year_built=2022, avg_rent=1900, occupancy=0.967, sale_price=None, sale_date=None, cap_rate=None),
-            PropertyComparable(id="comp-007", name="Scottsdale Quarter Living", address="15279 N Scottsdale Rd, Scottsdale, AZ 85254", submarket="Scottsdale", units=225, year_built=2020, avg_rent=2280, occupancy=0.974, sale_price=68000000, sale_date="2024-11-08", cap_rate=0.041),
-            PropertyComparable(id="comp-008", name="Tempe Urban Living", address="600 S College Ave, Tempe, AZ 85281", submarket="Tempe", units=275, year_built=2019, avg_rent=1620, occupancy=0.955, sale_price=None, sale_date=None, cap_rate=None),
+            PropertyComparable(
+                id="comp-001",
+                name="Desert Ridge Apartments",
+                address="1200 N Tatum Blvd, Phoenix, AZ 85028",
+                submarket="Scottsdale",
+                units=288,
+                year_built=2019,
+                avg_rent=2100,
+                occupancy=0.965,
+                sale_price=85000000,
+                sale_date="2024-08-15",
+                cap_rate=0.044,
+            ),
+            PropertyComparable(
+                id="comp-002",
+                name="Tempe Gateway",
+                address="850 S Mill Ave, Tempe, AZ 85281",
+                submarket="Tempe",
+                units=320,
+                year_built=2020,
+                avg_rent=1680,
+                occupancy=0.958,
+                sale_price=72000000,
+                sale_date="2024-06-20",
+                cap_rate=0.047,
+            ),
+            PropertyComparable(
+                id="comp-003",
+                name="Chandler Crossing",
+                address="3200 W Chandler Blvd, Chandler, AZ 85226",
+                submarket="Chandler",
+                units=256,
+                year_built=2018,
+                avg_rent=1720,
+                occupancy=0.962,
+                sale_price=None,
+                sale_date=None,
+                cap_rate=None,
+            ),
+            PropertyComparable(
+                id="comp-004",
+                name="Gilbert Town Center",
+                address="275 N Gilbert Rd, Gilbert, AZ 85234",
+                submarket="Gilbert",
+                units=198,
+                year_built=2021,
+                avg_rent=1850,
+                occupancy=0.971,
+                sale_price=52000000,
+                sale_date="2024-10-05",
+                cap_rate=0.045,
+            ),
+            PropertyComparable(
+                id="comp-005",
+                name="Mesa Riverview",
+                address="2150 W Rio Salado Pkwy, Mesa, AZ 85201",
+                submarket="Mesa",
+                units=342,
+                year_built=2017,
+                avg_rent=1420,
+                occupancy=0.948,
+                sale_price=62000000,
+                sale_date="2024-03-12",
+                cap_rate=0.052,
+            ),
+            PropertyComparable(
+                id="comp-006",
+                name="Downtown Phoenix Lofts",
+                address="100 E Van Buren St, Phoenix, AZ 85004",
+                submarket="Downtown Phoenix",
+                units=180,
+                year_built=2022,
+                avg_rent=1900,
+                occupancy=0.967,
+                sale_price=None,
+                sale_date=None,
+                cap_rate=None,
+            ),
+            PropertyComparable(
+                id="comp-007",
+                name="Scottsdale Quarter Living",
+                address="15279 N Scottsdale Rd, Scottsdale, AZ 85254",
+                submarket="Scottsdale",
+                units=225,
+                year_built=2020,
+                avg_rent=2280,
+                occupancy=0.974,
+                sale_price=68000000,
+                sale_date="2024-11-08",
+                cap_rate=0.041,
+            ),
+            PropertyComparable(
+                id="comp-008",
+                name="Tempe Urban Living",
+                address="600 S College Ave, Tempe, AZ 85281",
+                submarket="Tempe",
+                units=275,
+                year_built=2019,
+                avg_rent=1620,
+                occupancy=0.955,
+                sale_price=None,
+                sale_date=None,
+                cap_rate=None,
+            ),
         ]
 
         comparables = all_comparables
         if submarket:
-            comparables = [c for c in comparables if c.submarket.lower() == submarket.lower()]
+            comparables = [
+                c for c in comparables if c.submarket.lower() == submarket.lower()
+            ]
         comparables = comparables[:limit]
 
         return ComparablesResponse(

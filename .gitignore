@@ -61,6 +61,30 @@ context.db
 context.db-shm
 context.db-wal
 
+# Claude-Flow local state
+.claude-flow/memory/
+.claude-flow/tasks/
+
+# Hive-mind local state
+.hive-mind/
+
+# Chrome profiles
+chrome_profile_notebooklm/
+
+# SQLite databases
+*.db
+
+# Backup files
+*.backup
+*.backup.*
+
+# Playwright / test artifacts
+test-results/
+playwright-report/
+
+# Coverage HTML reports
+coverage/
+
 # Keep configuration files tracked
 !.claude-flow/README.md
 !.claude-flow/docs/

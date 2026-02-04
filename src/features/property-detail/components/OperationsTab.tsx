@@ -113,7 +113,7 @@ export function OperationsTab({ property }: OperationsTabProps) {
   // Year 1 expense data for pie chart (from the first year or fallback to operations.expenses)
   const yr1Expenses: OperatingYearExpenses = hasMultiYear
     ? years[0].expenses
-    : property.operations.expenses;
+    : { ...property.operations.expenses, utilities: 0 };
   const expenseChartData = EXPENSE_LINE_ITEMS
     .map((item) => ({
       name: item.label,
