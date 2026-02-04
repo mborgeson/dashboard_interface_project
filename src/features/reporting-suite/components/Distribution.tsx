@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Send,
   Plus,
@@ -16,13 +16,21 @@ import {
   CheckCircle,
   Search,
   Filter,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   useDistributionSchedules,
   useReportTemplates,
+  useCreateDistributionSchedule,
+  useUpdateDistributionSchedule,
+  useDeleteDistributionSchedule,
+  useGenerateReport,
   type DistributionSchedule,
+  type ScheduleFrequency,
+  type ReportFormat,
 } from '@/hooks/api/useReporting';
+import { useToast } from '@/hooks/useToast';
 
 type FrequencyFilter = 'all' | DistributionSchedule['frequency'];
 
@@ -72,22 +80,53 @@ export function Distribution() {
     return matchesSearch && matchesFrequency;
   });
 
+  const { success, error: showError } = useToast();
+  const createSchedule = useCreateDistributionSchedule();
+  const updateSchedule = useUpdateDistributionSchedule();
+  const deleteSchedule = useDeleteDistributionSchedule();
+  const generateReport = useGenerateReport();
+
+  // Form refs for modal
+  const nameRef = useRef<HTMLInputElement>(null);
+  const templateRef = useRef<HTMLSelectElement>(null);
+  const frequencyRef = useRef<HTMLSelectElement>(null);
+  const timeRef = useRef<HTMLInputElement>(null);
+  const formatRef = useRef<string>('pdf');
+  const recipientsRef = useRef<HTMLTextAreaElement>(null);
+
   const activeCount = schedules.filter(s => s.isActive).length;
   const inactiveCount = schedules.filter(s => !s.isActive).length;
 
   const handleToggleActive = (scheduleId: string) => {
-    setSchedules(
-      schedules.map(s => (s.id === scheduleId ? { ...s, isActive: !s.isActive } : s))
+    const schedule = schedules.find(s => s.id === scheduleId);
+    if (!schedule) return;
+    const newActive = !schedule.isActive;
+    setSchedules(schedules.map(s => (s.id === scheduleId ? { ...s, isActive: newActive } : s)));
+    updateSchedule.mutate(
+      { id: Number(scheduleId), is_active: newActive },
+      { onError: () => showError('Failed to update schedule') }
     );
   };
 
   const handleDeleteSchedule = (scheduleId: string) => {
     setSchedules(schedules.filter(s => s.id !== scheduleId));
+    deleteSchedule.mutate(Number(scheduleId), {
+      onError: () => showError('Failed to delete schedule'),
+    });
   };
 
   const handleSendNow = (schedule: DistributionSchedule) => {
-    console.log('Sending report immediately:', schedule.name);
-    // In production, this would trigger immediate send
+    generateReport.mutate(
+      {
+        template_id: Number(schedule.templateId),
+        name: `${schedule.name} - Immediate Send`,
+        format: schedule.format as ReportFormat,
+      },
+      {
+        onSuccess: () => success('Report queued for immediate delivery', { description: 'Check the Queue tab' }),
+        onError: () => showError('Failed to send report'),
+      }
+    );
   };
 
   const getScheduleDescription = (schedule: DistributionSchedule) => {
@@ -361,6 +400,7 @@ export function Distribution() {
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Schedule Name</label>
                 <input
+                  ref={nameRef}
                   type="text"
                   defaultValue={editingSchedule?.name || ''}
                   placeholder="e.g., Weekly Executive Update"
@@ -371,6 +411,7 @@ export function Distribution() {
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Report Template</label>
                 <select
+                  ref={templateRef}
                   defaultValue={editingSchedule?.templateId || ''}
                   className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
@@ -387,6 +428,7 @@ export function Distribution() {
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-1">Frequency</label>
                   <select
+                    ref={frequencyRef}
                     defaultValue={editingSchedule?.frequency || 'weekly'}
                     className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
@@ -400,6 +442,7 @@ export function Distribution() {
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-1">Time</label>
                   <input
+                    ref={timeRef}
                     type="time"
                     defaultValue={editingSchedule?.time || '09:00'}
                     className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -433,6 +476,7 @@ export function Distribution() {
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Recipients (one per line)</label>
                 <textarea
+                  ref={recipientsRef}
                   defaultValue={editingSchedule?.recipients.join('\n') || ''}
                   placeholder="email@example.com"
                   rows={4}
@@ -451,13 +495,63 @@ export function Distribution() {
                   Cancel
                 </button>
                 <button
+                  disabled={createSchedule.isPending || updateSchedule.isPending}
                   onClick={() => {
-                    console.log(editingSchedule ? 'Updating schedule' : 'Creating schedule');
-                    setShowCreateModal(false);
-                    setEditingSchedule(null);
+                    const name = nameRef.current?.value || '';
+                    const templateId = templateRef.current?.value || '';
+                    const frequency = (frequencyRef.current?.value || 'weekly') as ScheduleFrequency;
+                    const time = timeRef.current?.value || '09:00';
+                    const recipients = (recipientsRef.current?.value || '').split('\n').filter(Boolean);
+                    const format = (formatRef.current || 'pdf') as ReportFormat;
+
+                    if (!name || !templateId) {
+                      showError('Please fill in name and template');
+                      return;
+                    }
+
+                    if (editingSchedule) {
+                      updateSchedule.mutate(
+                        {
+                          id: Number(editingSchedule.id),
+                          name,
+                          recipients,
+                          frequency,
+                          time,
+                          format,
+                        },
+                        {
+                          onSuccess: () => {
+                            success('Schedule updated');
+                            setEditingSchedule(null);
+                          },
+                          onError: () => showError('Failed to update schedule'),
+                        }
+                      );
+                    } else {
+                      createSchedule.mutate(
+                        {
+                          name,
+                          template_id: Number(templateId),
+                          recipients,
+                          frequency,
+                          time,
+                          format,
+                          is_active: true,
+                          next_scheduled: new Date().toISOString(),
+                        },
+                        {
+                          onSuccess: () => {
+                            success('Schedule created');
+                            setShowCreateModal(false);
+                          },
+                          onError: () => showError('Failed to create schedule'),
+                        }
+                      );
+                    }
                   }}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
                 >
+                  {(createSchedule.isPending || updateSchedule.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
                   {editingSchedule ? 'Update Schedule' : 'Create Schedule'}
                 </button>
               </div>

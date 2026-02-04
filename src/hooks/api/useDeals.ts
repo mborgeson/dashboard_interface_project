@@ -189,38 +189,69 @@ export function useKanbanBoardWithMockFallback(
       if (filters?.dealType) params.deal_type = filters.dealType;
       if (filters?.assignedUserId) params.assigned_user_id = filters.assignedUserId;
 
-      const response = await get<KanbanBoardApiResponse>('/deals/kanban', params);
-
-      // Transform API response — backend stages use different names than frontend
       const frontendStages: DealStageApi[] = [
         'dead', 'initial_review', 'active_review', 'under_contract', 'closed', 'realized',
       ];
-      const stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
-      for (const fs of frontendStages) {
-        stages[fs] = { deals: [], count: 0, totalValue: 0 };
-      }
 
-      // Map backend stages to frontend stages and transform deals
-      for (const [backendStage, data] of Object.entries(response.stages)) {
-        const frontendStage = mapBackendStage(backendStage);
-        const deals = (data.deals as unknown as BackendDealResponse[]).map(transformBackendDeal);
-        stages[frontendStage].deals.push(...deals);
-        stages[frontendStage].count += data.count;
-        stages[frontendStage].totalValue += data.totalValue;
-      }
+      try {
+        const response = await get<KanbanBoardApiResponse>('/deals/kanban', params);
 
-      const stageCounts: Record<string, number> = {};
-      for (const [stage, data] of Object.entries(stages)) {
-        stageCounts[stage] = data.count;
-      }
+        const stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
+        for (const fs of frontendStages) {
+          stages[fs] = { deals: [], count: 0, totalValue: 0 };
+        }
 
-      return {
-        stages,
-        totalDeals: response.total_deals,
-        stageCounts,
-      };
+        // Map backend stages to frontend stages and transform deals
+        for (const [backendStage, data] of Object.entries(response.stages)) {
+          const frontendStage = mapBackendStage(backendStage);
+          const deals = (data.deals as unknown as BackendDealResponse[]).map(transformBackendDeal);
+          stages[frontendStage].deals.push(...deals);
+          stages[frontendStage].count += data.count;
+          stages[frontendStage].totalValue += data.totalValue;
+        }
+
+        const stageCounts: Record<string, number> = {};
+        for (const [stage, data] of Object.entries(stages)) {
+          stageCounts[stage] = data.count;
+        }
+
+        return {
+          stages,
+          totalDeals: response.total_deals,
+          stageCounts,
+        };
+      } catch {
+        // Fallback: fetch all deals and group by stage
+        const dealsResponse = await get<{ items: BackendDealResponse[]; total: number }>('/deals', { page_size: 100 });
+        const allDeals = dealsResponse.items?.map(transformBackendDeal) ?? [];
+
+        const stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
+        for (const fs of frontendStages) {
+          stages[fs] = { deals: [], count: 0, totalValue: 0 };
+        }
+
+        for (const deal of allDeals) {
+          const stage = deal.stage;
+          if (stages[stage]) {
+            stages[stage].deals.push(deal);
+            stages[stage].count += 1;
+            stages[stage].totalValue += deal.value;
+          }
+        }
+
+        const stageCounts: Record<string, number> = {};
+        for (const [stage, data] of Object.entries(stages)) {
+          stageCounts[stage] = data.count;
+        }
+
+        return {
+          stages,
+          totalDeals: allDeals.length,
+          stageCounts,
+        };
+      }
     },
-    staleTime: 1000 * 60 * 2, // 2 minutes - kanban should be more responsive
+    staleTime: 1000 * 60 * 2,
     ...options,
   });
 }

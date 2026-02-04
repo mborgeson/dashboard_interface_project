@@ -77,7 +77,7 @@ export function ResultsTab({ results }: ResultsTabProps) {
   const cocHighlight = results.year1.cashOnCashReturn >= 0.08 ? 'positive' : results.year1.cashOnCashReturn < 0.05 ? 'negative' : 'neutral';
 
   return (
-    <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+    <div className="space-y-6">
       {/* Investment Summary Box */}
       <div className="bg-gradient-to-br from-primary-50 to-accent-50 border border-primary-200 rounded-lg p-5">
         <h3 className="text-lg font-semibold text-neutral-900 mb-4">Investment Summary</h3>

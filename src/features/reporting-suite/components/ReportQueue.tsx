@@ -69,8 +69,12 @@ export function ReportQueue() {
 
   const handleDownload = (report: QueuedReport) => {
     if (report.downloadUrl) {
-      console.log('Downloading:', report.downloadUrl);
-      // In production, this would trigger file download
+      const link = document.createElement('a');
+      link.href = report.downloadUrl;
+      link.download = `${report.name}.${report.format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 

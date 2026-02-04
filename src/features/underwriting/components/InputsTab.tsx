@@ -235,7 +235,7 @@ export function InputsTab({ inputs, updateInput }: InputsTabProps) {
   const loanAmount = inputs.purchasePrice * (inputs.ltvPercent || 0);
 
   return (
-    <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+    <div className="space-y-4">
       {/* Assumptions Presets */}
       <AssumptionsPresets onLoadPreset={handleLoadPreset} currentInputs={inputs} />
 

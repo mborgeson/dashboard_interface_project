@@ -199,8 +199,8 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     # Extraction Scheduler Settings
-    EXTRACTION_SCHEDULE_ENABLED: bool = False
-    EXTRACTION_SCHEDULE_CRON: str = "0 2 * * *"  # Daily at 2 AM
+    EXTRACTION_SCHEDULE_ENABLED: bool = True
+    EXTRACTION_SCHEDULE_CRON: str = "0 17 * * *"  # Daily at 5 PM
     EXTRACTION_SCHEDULE_TIMEZONE: str = "America/Phoenix"
 
     # File Monitoring Settings

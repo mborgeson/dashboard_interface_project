@@ -128,10 +128,25 @@ export function ReportSettings() {
                     <Image className="w-6 h-6 text-neutral-400" />
                   )}
                 </div>
-                <button className="flex items-center gap-2 px-3 py-2 border border-neutral-200 rounded-lg text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors">
+                <label className="flex items-center gap-2 px-3 py-2 border border-neutral-200 rounded-lg text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors cursor-pointer">
                   <Upload className="w-4 h-4" />
                   Upload Logo
-                </button>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = ev => {
+                          handleChange('companyLogo', ev.target?.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
               </div>
             </div>
 

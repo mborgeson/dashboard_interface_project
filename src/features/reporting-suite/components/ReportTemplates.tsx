@@ -13,12 +13,17 @@ import {
   User,
   FileSpreadsheet,
   Presentation,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   useReportTemplates,
+  useGenerateReport,
+  useCreateReportTemplate,
   type ReportTemplate,
+  type ReportFormat,
 } from '@/hooks/api/useReporting';
+import { useToast } from '@/hooks/useToast';
 
 type ViewMode = 'grid' | 'list';
 type CategoryFilter = 'all' | ReportTemplate['category'];
@@ -50,10 +55,13 @@ export function ReportTemplates() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
+  const { success, error: showError } = useToast();
 
   // Fetch templates from API (with mock fallback)
   const { data: templateData } = useReportTemplates();
   const templates = templateData?.templates ?? [];
+  const generateReport = useGenerateReport();
+  const duplicateTemplate = useCreateReportTemplate();
 
   const filteredTemplates = templates.filter(template => {
     const matchesSearch =
@@ -64,8 +72,34 @@ export function ReportTemplates() {
   });
 
   const handleGenerateReport = (template: ReportTemplate, format: string) => {
-    console.log(`Generating ${format} report from template: ${template.name}`);
-    // In production, this would trigger the report generation
+    generateReport.mutate(
+      {
+        template_id: Number(template.id),
+        name: `${template.name} - ${new Date().toLocaleDateString()}`,
+        format: format as ReportFormat,
+      },
+      {
+        onSuccess: () => success('Report queued', { description: 'Check the Queue tab for progress' }),
+        onError: () => showError('Generation failed', { description: 'Could not queue report' }),
+      }
+    );
+  };
+
+  const handleDuplicateTemplate = (template: ReportTemplate) => {
+    duplicateTemplate.mutate(
+      {
+        name: `${template.name} (Copy)`,
+        description: template.description,
+        category: template.category,
+        sections: template.sections,
+        export_formats: template.supportedFormats as ReportFormat[],
+        created_by: template.createdBy,
+      },
+      {
+        onSuccess: () => success('Template duplicated'),
+        onError: () => showError('Duplication failed'),
+      }
+    );
   };
 
   return (
@@ -196,11 +230,12 @@ export function ReportTemplates() {
                 <button
                   onClick={e => {
                     e.stopPropagation();
-                    console.log('Duplicate template:', template.id);
+                    handleDuplicateTemplate(template);
                   }}
                   className="p-1.5 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-md transition-colors"
+                  disabled={duplicateTemplate.isPending}
                 >
-                  <Copy className="w-4 h-4" />
+                  {duplicateTemplate.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
             </div>

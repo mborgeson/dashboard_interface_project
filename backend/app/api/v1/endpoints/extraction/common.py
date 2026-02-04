@@ -91,7 +91,13 @@ def process_files(
     ExtractedValueCRUD,
 ):
     """
-    Process a list of files and extract data.
+    Process a list of files and extract data with per-deal change detection.
+
+    For each deal:
+    1. Extract data from Excel
+    2. Compare extracted data hash vs. latest DB data hash
+    3. If identical → skip (no insertion), move to next deal
+    4. If different → bulk_insert ALL values for this deal
 
     Args:
         db: Database session.
@@ -102,6 +108,7 @@ def process_files(
         ExtractedValueCRUD: CRUD class for extracted values.
     """
     from app.extraction import ExcelDataExtractor
+    from app.services.extraction.change_detector import should_extract_deal
 
     # Update run with file count
     ExtractionRunCRUD.update_progress(db, run_id, files_processed=0, files_failed=0)
@@ -110,6 +117,7 @@ def process_files(
     extractor = ExcelDataExtractor(mappings)
 
     processed = 0
+    skipped = 0
     failed = 0
     file_errors: list[dict] = []
 
@@ -118,7 +126,7 @@ def process_files(
         deal_name = file_info.get("deal_name", "")
 
         try:
-            # Extract data
+            # Extract data from Excel
             result = extractor.extract_from_file(file_path)
 
             # Get property name from extracted data or use deal name
@@ -126,10 +134,25 @@ def process_files(
                 result.get("PROPERTY_NAME", deal_name) or Path(file_path).stem
             )
 
-            # Include SharePoint metadata if available
+            # Per-deal change detection: compare extracted vs DB
+            needs_update, reason = should_extract_deal(
+                db, str(property_name), result
+            )
+
+            if not needs_update:
+                skipped += 1
+                logger.info(
+                    "file_skipped_unchanged",
+                    file=Path(file_path).name,
+                    property=property_name,
+                )
+                # Count as processed (successfully evaluated)
+                processed += 1
+                continue
+
+            # Data changed or new deal — insert ALL values
             source_file = file_info.get("sharepoint_path", file_path)
 
-            # Insert into database
             ExtractedValueCRUD.bulk_insert(
                 db,
                 extraction_run_id=run_id,
@@ -145,6 +168,7 @@ def process_files(
                 file=Path(file_path).name,
                 property=property_name,
                 fields_extracted=len(result),
+                change_reason=reason,
             )
 
         except Exception as e:
@@ -179,7 +203,7 @@ def process_files(
             "total_failures": len(file_errors),
         }
 
-    # Mark complete with error summary
+    # Mark complete with error summary including skip stats
     ExtractionRunCRUD.complete(
         db,
         run_id,
@@ -191,6 +215,7 @@ def process_files(
         "extraction_completed",
         run_id=str(run_id),
         processed=processed,
+        skipped=skipped,
         failed=failed,
     )
 

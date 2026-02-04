@@ -30,7 +30,23 @@ export function AnalyticsPage() {
 
   // Fetch properties from API
   const { data, isLoading, error } = useProperties();
-  const properties = selectProperties(data);
+  const allProperties = selectProperties(data);
+
+  // Filter properties by date range based on acquisition date
+  const properties = useMemo(() => {
+    if (dateRange === 'all') return allProperties;
+
+    const now = new Date();
+    const daysAgo = parseInt(dateRange, 10);
+    const cutoff = new Date(now.getTime() - daysAgo * 86400000);
+
+    const filtered = allProperties.filter(p => {
+      const acqDate = new Date(p.acquisition.date);
+      return acqDate >= cutoff;
+    });
+
+    return filtered.length > 0 ? filtered : allProperties;
+  }, [allProperties, dateRange]);
 
   // Calculate portfolio-wide KPIs
   const portfolioKPIs = useMemo(() => {
@@ -124,25 +140,23 @@ export function AnalyticsPage() {
     }));
   }, [properties]);
 
-  // Risk vs Return scatter data
-  const riskReturnData = useMemo(() => {
-    return properties.map((p, index) => {
-      // Calculate risk score based on occupancy variance from optimal (96%)
-      const occupancyVariance = Math.abs(p.operations.occupancy - 0.96);
-      // Include property class as risk factor (C=higher risk)
-      const classRisk = p.propertyDetails.propertyClass === 'C' ? 0.3 :
-                        p.propertyDetails.propertyClass === 'B' ? 0.15 : 0;
-      // Use a deterministic small variance based on property index instead of Math.random()
-      const deterministicVariance = ((index * 7) % 10) / 100; // 0.00 to 0.09
-      const riskScore = (occupancyVariance * 10) + classRisk + deterministicVariance;
-
-      return {
-        name: p.name,
-        risk: riskScore,
-        return: p.performance.leveredIrr,
-        size: p.valuation.currentValue,
-      };
-    });
+  // Cap Rate vs DSCR data for property analysis
+  const capRateDscrData = useMemo(() => {
+    return properties
+      .filter(p => p.financing.monthlyPayment > 0)
+      .map(p => {
+        const annualDebtService = p.financing.monthlyPayment * 12;
+        const dscr = annualDebtService > 0 ? p.operations.noi / annualDebtService : 0;
+        return {
+          name: p.name,
+          capRate: p.valuation.capRate * 100,
+          dscr: parseFloat(dscr.toFixed(2)),
+          noi: p.operations.noi,
+          propertyClass: p.propertyDetails.propertyClass,
+          value: p.valuation.currentValue,
+        };
+      })
+      .sort((a, b) => b.capRate - a.capRate);
   }, [properties]);
 
   // Table data with sorting
@@ -307,6 +321,11 @@ export function AnalyticsPage() {
           <h1 className="text-page-title text-primary-500">Portfolio Analytics</h1>
           <p className="text-sm text-neutral-600 mt-1">
             Comprehensive performance analysis and insights
+            {dateRange !== 'all' && (
+              <span className="ml-2 text-xs text-primary-600 font-medium">
+                ({properties.length} of {allProperties.length} properties{properties.length === allProperties.length ? ' — showing all, none match filter' : ''})
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -392,7 +411,7 @@ export function AnalyticsPage() {
       {/* Comparison Charts */}
       <div>
         <h2 className="text-section-title text-primary-500 mb-4">Property Analysis</h2>
-        <ComparisonCharts propertyPerformance={propertyPerformance} riskReturn={riskReturnData} />
+        <ComparisonCharts propertyPerformance={propertyPerformance} capRateDscr={capRateDscrData} />
       </div>
 
       {/* Market Insights */}

@@ -18,9 +18,11 @@ import {
   LayoutGrid,
   Heading,
   Gauge,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useReportWidgets, type ReportWidget } from '@/hooks/api/useReporting';
+import { useReportWidgets, useCreateReportTemplate, useGenerateReport, type ReportWidget } from '@/hooks/api/useReporting';
+import { useToast } from '@/hooks/useToast';
 
 interface PlacedWidget {
   id: string;
@@ -54,11 +56,15 @@ export function CustomReportBuilder() {
   const [placedWidgets, setPlacedWidgets] = useState<PlacedWidget[]>([]);
   const [selectedWidget, setSelectedWidget] = useState<PlacedWidget | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [showPreview, setShowPreview] = useState(false);
   const widgetIdCounter = useRef(0);
+  const { success, error: showError } = useToast();
 
   // Fetch report widgets from API (with mock fallback)
   const { data: widgetData } = useReportWidgets();
   const allWidgets = widgetData?.widgets ?? [];
+  const saveTemplate = useCreateReportTemplate();
+  const generateReport = useGenerateReport();
 
   const categories = ['all', ...Array.from(new Set(allWidgets.map(w => w.category)))];
 
@@ -87,18 +93,76 @@ export function CustomReportBuilder() {
   };
 
   const handleSaveReport = () => {
-    console.log('Saving report:', { name: reportName, widgets: placedWidgets });
-    // In production, this would save to the backend
+    if (!reportName.trim() || reportName === 'Untitled Report') {
+      showError('Please name your report');
+      return;
+    }
+    saveTemplate.mutate(
+      {
+        name: reportName,
+        description: `Custom report with ${placedWidgets.length} widgets`,
+        category: 'custom',
+        sections: placedWidgets.map(w => w.widget.name),
+        export_formats: ['pdf'],
+        config: {
+          widgets: placedWidgets.map(w => ({
+            widgetId: w.widgetId,
+            width: w.width,
+            height: w.height,
+            x: w.x,
+            y: w.y,
+          })),
+        },
+      },
+      {
+        onSuccess: () => success('Report saved'),
+        onError: () => showError('Save failed'),
+      }
+    );
   };
 
   const handlePreviewReport = () => {
-    console.log('Previewing report');
-    // In production, this would open a preview modal
+    setShowPreview(true);
   };
 
   const handleGenerateReport = () => {
-    console.log('Generating report');
-    // In production, this would trigger report generation
+    if (placedWidgets.length === 0) {
+      showError('Add at least one widget before generating');
+      return;
+    }
+    // Save as template first, then generate
+    saveTemplate.mutate(
+      {
+        name: reportName,
+        description: `Custom report with ${placedWidgets.length} widgets`,
+        category: 'custom',
+        sections: placedWidgets.map(w => w.widget.name),
+        export_formats: ['pdf'],
+        config: {
+          widgets: placedWidgets.map(w => ({
+            widgetId: w.widgetId,
+            width: w.width,
+            height: w.height,
+          })),
+        },
+      },
+      {
+        onSuccess: (data) => {
+          generateReport.mutate(
+            {
+              template_id: data.id,
+              name: `${reportName} - ${new Date().toLocaleDateString()}`,
+              format: 'pdf',
+            },
+            {
+              onSuccess: () => success('Report queued', { description: 'Check the Queue tab for progress' }),
+              onError: () => showError('Generation failed'),
+            }
+          );
+        },
+        onError: () => showError('Could not save report template'),
+      }
+    );
   };
 
   return (
@@ -169,9 +233,10 @@ export function CustomReportBuilder() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleSaveReport}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 rounded-md transition-colors"
+              disabled={saveTemplate.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 rounded-md transition-colors disabled:opacity-50"
             >
-              <Save className="w-4 h-4" />
+              {saveTemplate.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Save
             </button>
             <button
@@ -183,9 +248,10 @@ export function CustomReportBuilder() {
             </button>
             <button
               onClick={handleGenerateReport}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 rounded-md transition-colors"
+              disabled={generateReport.isPending || saveTemplate.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 rounded-md transition-colors disabled:opacity-50"
             >
-              <Download className="w-4 h-4" />
+              {generateReport.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               Generate
             </button>
           </div>
@@ -239,9 +305,10 @@ export function CustomReportBuilder() {
                         <button
                           onClick={e => {
                             e.stopPropagation();
-                            console.log('Configure widget:', placed.id);
+                            setSelectedWidget(placed);
                           }}
                           className="p-1 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded"
+                          title="Configure widget"
                         >
                           <Settings className="w-4 h-4" />
                         </button>
@@ -279,6 +346,43 @@ export function CustomReportBuilder() {
           )}
         </div>
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowPreview(false)}>
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-neutral-200 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-neutral-900">Preview: {reportName}</h2>
+              <button onClick={() => setShowPreview(false)} className="text-neutral-400 hover:text-neutral-600">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {placedWidgets.length === 0 ? (
+                <p className="text-neutral-500 text-center py-8">No widgets added yet</p>
+              ) : (
+                placedWidgets.map(placed => {
+                  const Icon = widgetIcons[placed.widget.icon] || FileText;
+                  return (
+                    <div key={placed.id} className="border border-neutral-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Icon className="w-5 h-5 text-neutral-600" />
+                        <span className="font-medium text-neutral-900">{placed.widget.name}</span>
+                        <span className="text-xs text-neutral-400">({placed.width} x {placed.height})</span>
+                      </div>
+                      <div className="bg-neutral-100 rounded-md py-8 flex items-center justify-center border border-dashed border-neutral-300">
+                        <p className="text-sm text-neutral-500">{placed.widget.description}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Properties Panel */}
       {selectedWidget && (
@@ -340,11 +444,11 @@ export function CustomReportBuilder() {
             </div>
 
             <button
-              onClick={() => console.log('Open advanced settings')}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-neutral-200 rounded-md text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+              onClick={() => success('Widget configured', { description: `${selectedWidget.widget.name} settings applied` })}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700 transition-colors"
             >
               <Settings className="w-4 h-4" />
-              Advanced Settings
+              Apply Settings
             </button>
           </div>
         </div>

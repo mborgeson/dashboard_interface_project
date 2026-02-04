@@ -22,6 +22,30 @@ interface UnderwritingModalProps {
   trigger?: React.ReactNode;
 }
 
+function QuickStatItem({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: string;
+  color?: 'green' | 'amber' | 'red' | 'default';
+}) {
+  const colorClasses = {
+    green: 'text-green-400',
+    amber: 'text-amber-400',
+    red: 'text-red-400',
+    default: 'text-white',
+  };
+
+  return (
+    <div className="text-center">
+      <div className="text-xs text-neutral-400 uppercase tracking-wider mb-0.5">{label}</div>
+      <div className={`text-xl font-bold ${colorClasses[color ?? 'default']}`}>{value}</div>
+    </div>
+  );
+}
+
 export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('inputs');
@@ -67,6 +91,33 @@ export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
     }
   };
 
+  // Color-code IRR
+  const irrColor = results
+    ? results.leveredIRR >= 0.15
+      ? 'green'
+      : results.leveredIRR >= 0.08
+        ? 'amber'
+        : 'red'
+    : 'default';
+
+  // Color-code equity multiple
+  const emColor = results
+    ? results.equityMultiple >= 2.0
+      ? 'green'
+      : results.equityMultiple >= 1.5
+        ? 'amber'
+        : 'red'
+    : 'default';
+
+  // Color-code DSCR
+  const dscrColor = results
+    ? results.year1.debtServiceCoverageRatio >= 1.25
+      ? 'green'
+      : results.year1.debtServiceCoverageRatio >= 1.0
+        ? 'amber'
+        : 'red'
+    : 'default';
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -77,14 +128,15 @@ export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 bg-white">
+        {/* Header */}
+        <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 border-b border-neutral-200">
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-xl font-semibold">
+              <DialogTitle className="text-xl font-semibold text-primary-700">
                 {inputs.propertyName || 'New Investment Analysis'}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-sm text-neutral-500 mt-0.5">
                 Enter property details and financial assumptions to calculate returns
               </DialogDescription>
             </div>
@@ -127,73 +179,87 @@ export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="inputs">Inputs</TabsTrigger>
-            <TabsTrigger value="results" disabled={!results}>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0 px-6">
+          <TabsList className="grid w-full grid-cols-4 mt-3 mb-3 bg-neutral-100 p-1 rounded-lg">
+            <TabsTrigger
+              value="inputs"
+              className="data-[state=active]:bg-white data-[state=active]:text-primary-700 data-[state=active]:shadow-sm rounded-md py-2 text-sm font-medium"
+            >
+              Inputs
+            </TabsTrigger>
+            <TabsTrigger
+              value="results"
+              disabled={!results}
+              className="data-[state=active]:bg-white data-[state=active]:text-primary-700 data-[state=active]:shadow-sm rounded-md py-2 text-sm font-medium"
+            >
               Results
             </TabsTrigger>
-            <TabsTrigger value="projections" disabled={!results}>
+            <TabsTrigger
+              value="projections"
+              disabled={!results}
+              className="data-[state=active]:bg-white data-[state=active]:text-primary-700 data-[state=active]:shadow-sm rounded-md py-2 text-sm font-medium"
+            >
               Projections
             </TabsTrigger>
-            <TabsTrigger value="sensitivity" disabled={!results}>
+            <TabsTrigger
+              value="sensitivity"
+              disabled={!results}
+              className="data-[state=active]:bg-white data-[state=active]:text-primary-700 data-[state=active]:shadow-sm rounded-md py-2 text-sm font-medium"
+            >
               Sensitivity
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="inputs" className="mt-4">
-            <InputsTab inputs={inputs} updateInput={updateInput} />
-          </TabsContent>
+          {/* Scrollable content area — single scroll context */}
+          <div className="flex-1 overflow-y-auto min-h-0 pb-4">
+            <TabsContent value="inputs" className="mt-0 data-[state=active]:block">
+              <InputsTab inputs={inputs} updateInput={updateInput} />
+            </TabsContent>
 
-          <TabsContent value="results" className="mt-4">
-            {results && <ResultsTab results={results} />}
-          </TabsContent>
+            <TabsContent value="results" className="mt-0 data-[state=active]:block">
+              {results && <ResultsTab results={results} />}
+            </TabsContent>
 
-          <TabsContent value="projections" className="mt-4">
-            {results && <ProjectionsTab projections={results.cashFlowProjection} />}
-          </TabsContent>
+            <TabsContent value="projections" className="mt-0 data-[state=active]:block">
+              {results && <ProjectionsTab projections={results.cashFlowProjection} />}
+            </TabsContent>
 
-          <TabsContent value="sensitivity" className="mt-4">
-            {results && sensitivity.length > 0 && (
-              <SensitivityTab sensitivity={sensitivity} baseIRR={results.leveredIRR} />
-            )}
-          </TabsContent>
+            <TabsContent value="sensitivity" className="mt-0 data-[state=active]:block">
+              {results && sensitivity.length > 0 && (
+                <SensitivityTab sensitivity={sensitivity} baseIRR={results.leveredIRR} />
+              )}
+            </TabsContent>
+          </div>
         </Tabs>
 
-        {/* Quick Stats Bar */}
+        {/* Sticky Quick Stats Bar */}
         {results && (
-          <div className="mt-4 pt-4 border-t border-neutral-200">
-            <div className="grid grid-cols-5 gap-4 text-center">
-              <div>
-                <div className="text-xs text-neutral-500">Levered IRR</div>
-                <div className="text-lg font-semibold text-primary-600">
-                  {(results.leveredIRR * 100).toFixed(1)}%
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-neutral-500">Equity Multiple</div>
-                <div className="text-lg font-semibold text-neutral-900">
-                  {results.equityMultiple.toFixed(2)}x
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-neutral-500">Cash-on-Cash</div>
-                <div className="text-lg font-semibold text-neutral-900">
-                  {(results.year1.cashOnCashReturn * 100).toFixed(1)}%
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-neutral-500">DSCR</div>
-                <div className="text-lg font-semibold text-neutral-900">
-                  {results.year1.debtServiceCoverageRatio.toFixed(2)}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-neutral-500">Total Equity</div>
-                <div className="text-lg font-semibold text-neutral-900">
-                  ${(results.totalEquityRequired / 1000000).toFixed(2)}M
-                </div>
-              </div>
+          <div className="flex-shrink-0 bg-neutral-900 border-t border-neutral-700 px-6 py-3">
+            <div className="grid grid-cols-5 gap-6">
+              <QuickStatItem
+                label="Levered IRR"
+                value={`${(results.leveredIRR * 100).toFixed(1)}%`}
+                color={irrColor}
+              />
+              <QuickStatItem
+                label="Equity Multiple"
+                value={`${results.equityMultiple.toFixed(2)}x`}
+                color={emColor}
+              />
+              <QuickStatItem
+                label="Cash-on-Cash"
+                value={`${(results.year1.cashOnCashReturn * 100).toFixed(1)}%`}
+              />
+              <QuickStatItem
+                label="DSCR"
+                value={results.year1.debtServiceCoverageRatio.toFixed(2)}
+                color={dscrColor}
+              />
+              <QuickStatItem
+                label="Total Equity"
+                value={`$${(results.totalEquityRequired / 1000000).toFixed(2)}M`}
+              />
             </div>
           </div>
         )}

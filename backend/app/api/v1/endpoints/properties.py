@@ -411,8 +411,8 @@ def _to_frontend_property(prop: Property) -> dict:
             "city": clean_city,
             "state": clean_state,
             "zip": clean_zip,
-            "latitude": float(prop.latitude) if prop.latitude else 33.45,
-            "longitude": float(prop.longitude) if prop.longitude else -112.07,
+            "latitude": float(prop.latitude) if prop.latitude else None,
+            "longitude": float(prop.longitude) if prop.longitude else None,
             "submarket": frontend_submarket,
         },
         "propertyDetails": {
