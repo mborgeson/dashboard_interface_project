@@ -19,8 +19,8 @@ import { cn } from '@/lib/utils';
 import { useSearchStore, type SearchResult } from '@/stores/searchStore';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { useDealsWithMockFallback } from '@/hooks/api/useDeals';
-import { mockDocuments } from '@/data/mockDocuments';
-import { mockTransactions } from '@/data/mockTransactions';
+import { useDocumentsWithMockFallback } from '@/hooks/api/useDocuments';
+import { useTransactionsWithMockFallback } from '@/hooks/api/useTransactions';
 import { useToast } from '@/hooks/useToast';
 
 // Quick navigation actions
@@ -100,6 +100,14 @@ export function GlobalSearch() {
   const { data: dealsData } = useDealsWithMockFallback();
   const deals = dealsData?.deals ?? [];
 
+  // Fetch documents from API
+  const { data: documentsData } = useDocumentsWithMockFallback();
+  const documents = documentsData?.documents ?? [];
+
+  // Fetch transactions from API
+  const { data: transactionsData } = useTransactionsWithMockFallback();
+  const transactions = transactionsData?.transactions ?? [];
+
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const { info } = useToast();
@@ -153,7 +161,7 @@ export function GlobalSearch() {
     });
 
     // Configure Fuse.js for documents
-    const documentFuse = new Fuse(mockDocuments, {
+    const documentFuse = new Fuse(documents, {
       keys: [
         { name: 'name', weight: 2 },
         { name: 'propertyName', weight: 1.5 },
@@ -165,7 +173,7 @@ export function GlobalSearch() {
     });
 
     // Configure Fuse.js for transactions
-    const transactionFuse = new Fuse(mockTransactions, {
+    const transactionFuse = new Fuse(transactions, {
       keys: [
         { name: 'propertyName', weight: 2 },
         { name: 'description', weight: 1.5 },
@@ -260,7 +268,7 @@ export function GlobalSearch() {
       ...documentResults,
       ...transactionResults,
     ];
-  }, [debouncedQuery, properties, deals]);
+  }, [debouncedQuery, properties, deals, documents, transactions]);
 
   // Use results directly - no need to sync to store
   // The local results are already computed and available for rendering

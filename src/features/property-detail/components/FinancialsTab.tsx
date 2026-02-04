@@ -30,6 +30,10 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
               <div className="text-lg font-semibold">{formatDate(property.acquisition.date)}</div>
             </div>
             <div>
+              <div className="text-sm text-gray-600 mb-1">Land & Acquisition Costs</div>
+              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.landAndAcquisitionCosts)}</div>
+            </div>
+            <div>
               <div className="text-sm text-gray-600 mb-1">Hard Costs</div>
               <div className="text-lg font-semibold">{formatCurrency(property.acquisition.hardCosts)}</div>
             </div>
