@@ -24,7 +24,7 @@ async def get_market_overview():
         MSA overview data including population, employment, GDP,
         and key economic indicators for the Phoenix MSA.
     """
-    return market_data_service.get_market_overview()
+    return await market_data_service.get_market_overview()
 
 
 @router.get("/submarkets", response_model=SubmarketsResponse)
@@ -36,7 +36,7 @@ async def get_submarkets():
         List of submarkets with rent, occupancy, cap rate,
         inventory, and absorption metrics.
     """
-    return market_data_service.get_submarkets()
+    return await market_data_service.get_submarkets()
 
 
 @router.get("/trends", response_model=MarketTrendsResponse)
@@ -55,7 +55,7 @@ async def get_market_trends(
         Monthly trend data including rent growth, occupancy,
         cap rates, and economic metrics.
     """
-    return market_data_service.get_market_trends(period_months=period_months)
+    return await market_data_service.get_market_trends(period_months=period_months)
 
 
 @router.get("/comparables", response_model=ComparablesResponse)
@@ -79,7 +79,7 @@ async def get_comparables(
     Returns:
         List of comparable properties with sale and performance data.
     """
-    return market_data_service.get_comparables(
+    return await market_data_service.get_comparables(
         property_id=property_id,
         submarket=submarket,
         radius_miles=radius_miles,

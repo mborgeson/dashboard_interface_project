@@ -5,6 +5,7 @@ API v1 router aggregating all endpoint routers.
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
+    admin,
     analytics,
     auth,
     deals,
@@ -48,3 +49,4 @@ api_router.include_router(
 api_router.include_router(documents.router, prefix="/documents", tags=["documents"])
 api_router.include_router(market_data.router, prefix="/market", tags=["market-data"])
 api_router.include_router(reporting.router, prefix="/reporting", tags=["reporting"])
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])

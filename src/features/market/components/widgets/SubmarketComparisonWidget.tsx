@@ -230,11 +230,6 @@ export function SubmarketComparisonWidget({
         </div>
       )}
 
-      {/* Static data disclaimer */}
-      <div className="mt-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
-        Static reference data — not connected to live market feeds.
-      </div>
-
       {/* Summary stats */}
       <div className="mt-4 pt-4 border-t border-neutral-200">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">

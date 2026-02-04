@@ -80,17 +80,6 @@ export function MarketPage() {
         </div>
       </div>
 
-      {/* Static Data Notice */}
-      <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-        <div className="text-sm text-amber-800">
-          <p className="font-medium mb-1">Static Reference Data</p>
-          <p>
-            Market metrics shown below are static reference values and are not connected to live data feeds.
-            Integration with third-party data sources (CoStar, Census Bureau, BLS) is planned.
-          </p>
-        </div>
-      </div>
-
       {/* Phoenix MSA Overview */}
       {msaOverview && <MarketOverview overview={msaOverview} />}
 
@@ -115,8 +104,8 @@ export function MarketPage() {
         <div className="text-sm text-neutral-600">
           <p className="font-medium text-neutral-900 mb-1">Market Data Sources</p>
           <p>
-            Data sourced from CoStar, U.S. Census Bureau, Bureau of Labor Statistics, and Arizona Commerce Authority.
-            Market metrics are updated monthly and reflect the Phoenix Metropolitan Statistical Area (MSA).
+            Data sourced from CoStar, FRED (Federal Reserve), and U.S. Census Bureau.
+            Market metrics reflect the Phoenix Metropolitan Statistical Area (MSA).
           </p>
         </div>
       </div>

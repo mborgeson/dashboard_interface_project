@@ -148,8 +148,21 @@ class Settings(BaseSettings):
     ML_BATCH_SIZE: int = 32
     ML_PREDICTION_CACHE_TTL: int = 300  # 5 minutes
 
+    # Market Analysis Database (separate PostgreSQL DB with CoStar + FRED data)
+    # Set via MARKET_ANALYSIS_DB_URL env var, e.g.:
+    #   postgresql://user:pass@localhost:5432/market_analysis
+    MARKET_ANALYSIS_DB_URL: str | None = None
+
     # External APIs - set via environment variables, no hardcoded keys
     FRED_API_KEY: str | None = None  # Set via FRED_API_KEY env var
+    CENSUS_API_KEY: str | None = None  # Set via CENSUS_API_KEY env var
+
+    # Market Data Extraction Settings
+    COSTAR_DATA_DIR: str = "data/costar"
+    MARKET_DATA_EXTRACTION_ENABLED: bool = False
+    MARKET_FRED_SCHEDULE_CRON: str = "0 2 * * *"  # Daily 2 AM
+    MARKET_COSTAR_SCHEDULE_CRON: str = "0 3 15 * *"  # Monthly 15th 3 AM
+    MARKET_CENSUS_SCHEDULE_CRON: str = "0 4 15 12 *"  # Annual Dec 15th 4 AM
 
     # SharePoint/Azure AD Settings (load from .env)
     AZURE_CLIENT_ID: str | None = None
