@@ -246,8 +246,12 @@ async def get_dashboard_metrics(
             "total_units": prop_row.total_units if prop_row else 0,
             "total_sf": prop_row.total_sf if prop_row else 0,
             "total_value": _decimal_to_float(prop_row.total_value) if prop_row else 0,
-            "avg_occupancy": round(_decimal_to_float(prop_row.avg_occupancy) or 0, 1) if prop_row else 0,
-            "avg_cap_rate": round(_decimal_to_float(prop_row.avg_cap_rate) or 0, 1) if prop_row else 0,
+            "avg_occupancy": round(_decimal_to_float(prop_row.avg_occupancy) or 0, 1)
+            if prop_row
+            else 0,
+            "avg_cap_rate": round(_decimal_to_float(prop_row.avg_cap_rate) or 0, 1)
+            if prop_row
+            else 0,
         },
         "kpis": {
             "ytd_noi_growth": 0.0,  # Would need historical NOI data to calculate
@@ -322,7 +326,9 @@ async def get_portfolio_analytics(
 
     # Check if we have any data
     total_count_result = await db.execute(
-        select(func.count(Property.id)).where(*base_filter if base_filter else [literal_column("1=1")])
+        select(func.count(Property.id)).where(
+            *base_filter if base_filter else [literal_column("1=1")]
+        )
     )
     total_count = total_count_result.scalar() or 0
 

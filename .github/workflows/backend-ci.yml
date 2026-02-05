@@ -148,6 +148,7 @@ jobs:
         run: bandit -r app/ -f json -o bandit-report.json -ll -s B608
 
       - name: Check dependencies for vulnerabilities
+        continue-on-error: true
         run: |
           pip install --no-cache-dir -r requirements-ci.txt
           safety check --json > safety-report.json

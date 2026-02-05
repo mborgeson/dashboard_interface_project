@@ -824,7 +824,9 @@ async def get_property_analytics(
             func.avg(Property.occupancy_rate).label("avg_occupancy"),
             func.avg(Property.cap_rate).label("avg_cap_rate"),
             func.count(Property.id).label("comp_count"),
-        ).where(*market_comps_filters if market_comps_filters else [literal_column("1=1")])
+        ).where(
+            *market_comps_filters if market_comps_filters else [literal_column("1=1")]
+        )
     )
     market_row = market_comps_result.fetchone()
 
