@@ -1,243 +1,439 @@
 """
-CoStar Excel Parser — transforms wide-format CoStar exports to normalized DB rows.
+CoStar Excel Parser -- transforms wide-format CoStar exports to normalized DB rows.
 
 Handles both MSA-level and Submarket-level exports.
-Column layout (both files):
-  A: Property Class Name  (always "Multi-Family")
-  B: Slice               (always "All")
-  C: As Of               (e.g. "2026 Q1")
-  D: Geography Name      (e.g. "Phoenix - AZ USA" or "Phoenix - AZ USA - Tempe")
-  E: Geography Code
-  F: Property Type
-  G: Forecast Scenario
-  H: CBSA Code
-  I: Geography Type      ("Metro" or "Submarket")
-  J: Concept Name        (63 concepts)
-  K+: Quarterly data columns  ("1982 Q1", "1982 Q2", ..., "2031 Q1")
+Column layout (both files, sheet "DataExport"):
+  A (0): Property Class Name  (always "Multi-Family")
+  B (1): Slice               (always "All")
+  C (2): As Of               (e.g. "2026 Q1")
+  D (3): Geography Name      (e.g. "Phoenix - AZ USA" or "Phoenix - AZ USA - Tempe")
+  E (4): Geography Code
+  F (5): Property Type
+  G (6): Forecast Scenario
+  H (7): CBSA Code
+  I (8): Geography Type      ("Metro" or "Submarket")
+  J (9): Concept Name        (63 concepts)
+  K+ (10+): Quarterly data columns ("1982 Q1" .. "2031 Q1" for MSA; "2000 Q1" .. "2031 Q1" for submarket)
 
 Usage:
   python -m app.services.data_extraction.costar_parser
 """
 
+from __future__ import annotations
+
 import re
 import sys
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
+from typing import Any
 
+import asyncpg
 import openpyxl
-from loguru import logger
-from sqlalchemy import create_engine, text
+import structlog
 
-from app.core.config import settings
+logger = structlog.get_logger(__name__)
 
-# Quarter string → date mapping
-QUARTER_TO_MONTH = {"Q1": 1, "Q2": 4, "Q3": 7, "Q4": 10}
+# Quarter string -> month mapping
+QUARTER_TO_MONTH: dict[str, int] = {"Q1": 1, "Q2": 4, "Q3": 7, "Q4": 10}
 
+# Metadata column indices
+_COL_GEO_NAME = 3
+_COL_GEO_CODE = 4
+_COL_GEO_TYPE = 8
+_COL_CONCEPT = 9
+_FIRST_DATA_COL = 10
 
-def parse_quarter(quarter_str: str) -> datetime | None:
-    """Convert '2025 Q1' → datetime(2025, 1, 1)."""
-    match = re.match(r"(\d{4})\s+(Q[1-4])", str(quarter_str).strip())
-    if not match:
-        return None
-    year = int(match.group(1))
-    month = QUARTER_TO_MONTH[match.group(2)]
-    return datetime(year, month, 1)
-
-
-def _current_quarter_start() -> datetime:
-    """Get the start date of the current quarter."""
-    now = datetime.now()
-    q = (now.month - 1) // 3
-    return datetime(now.year, q * 3 + 1, 1)
+# Default batch size for upserts
+_BATCH_SIZE = 1000
 
 
-def parse_costar_file(filepath: str | Path, engine) -> int:
+class CoStarParser:
+    """Parse CoStar wide-format Excel exports and upsert into PostgreSQL.
+
+    Each data row in the Excel has a single concept for a single geography,
+    with quarterly values spread across columns.  This parser transposes
+    that into normalized rows:
+        (geography_type, geography_name, concept, date, value, is_forecast, source_file)
     """
-    Parse a single CoStar Excel file and upsert into costar_timeseries.
 
-    Returns number of records upserted.
-    """
-    filepath = Path(filepath)
-    logger.info(f"Parsing CoStar file: {filepath.name}")
+    def __init__(self, db_url: str, data_dir: str) -> None:
+        """Initialize with database URL and CoStar data directory path.
 
-    wb = openpyxl.load_workbook(str(filepath), read_only=True, data_only=True)
-    ws = wb["DataExport"]
+        Args:
+            db_url: PostgreSQL connection string
+                (e.g. ``postgresql://user:pass@localhost:5432/market_analysis``).
+            data_dir: Filesystem path to directory containing CoStar ``.xlsx`` exports.
+        """
+        self._db_url = db_url
+        self._data_dir = Path(data_dir)
+        self._pool: asyncpg.Pool | None = None
+        self._current_quarter_start = self._compute_current_quarter_start()
 
-    # Read header row to get date columns
-    header_row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True))
-    date_columns: list[tuple[int, datetime, bool]] = []
-    current_q = _current_quarter_start()
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
-    for col_idx, cell_val in enumerate(header_row):
-        if col_idx < 10:  # Skip metadata columns A-J
-            continue
-        dt = parse_quarter(str(cell_val) if cell_val else "")
-        if dt:
-            is_forecast = dt > current_q
-            date_columns.append((col_idx, dt, is_forecast))
+    async def parse_all(self) -> dict[str, Any]:
+        """Parse all CoStar Excel files and upsert into database.
 
-    logger.info(f"  Found {len(date_columns)} date columns, {ws.max_row - 1} data rows")
+        Returns:
+            Summary dict with keys ``status``, ``files_processed``,
+            ``records_upserted``, and ``errors``.
+        """
+        if not self._data_dir.exists():
+            msg = f"CoStar data directory not found: {self._data_dir}"
+            logger.error(msg)
+            return {"status": "error", "message": msg, "records_upserted": 0}
 
-    # Process data rows
-    records = []
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        geo_name = str(row[3]).strip() if row[3] else None
-        geo_type = str(row[8]).strip() if row[8] else None
-        geo_code = str(row[4]).strip() if row[4] else None
-        concept = str(row[9]).strip() if row[9] else None
+        self._pool = await asyncpg.create_pool(self._db_url, min_size=1, max_size=4)
 
-        if not geo_name or not concept:
-            continue
+        log_id = await self._start_extraction_log()
+        total_records = 0
+        files_processed = 0
+        errors: list[str] = []
 
-        for col_idx, dt, is_forecast in date_columns:
-            val = row[col_idx] if col_idx < len(row) else None
-            if val is None:
-                continue
+        # Discover xlsx files, skip the submarket *list* file and tiny Zone.Identifier stubs
+        xlsx_files = sorted(
+            f
+            for f in self._data_dir.glob("*.xlsx")
+            if f.stat().st_size > 1000 and "Submarket List" not in f.name
+        )
+
+        for filepath in xlsx_files:
             try:
-                float_val = float(val)
-            except (ValueError, TypeError):
+                geo_type = self._detect_geography_type(filepath)
+                if geo_type == "Metro":
+                    count = await self.parse_msa_file(filepath)
+                else:
+                    count = await self.parse_submarket_file(filepath)
+                total_records += count
+                files_processed += 1
+            except Exception as exc:
+                logger.error("costar_parse_error", file=filepath.name, error=str(exc))
+                errors.append(f"{filepath.name}: {exc}")
+
+        # Refresh materialized view if it exists
+        await self._try_refresh_materialized_view()
+
+        status = "success" if not errors else "partial_error"
+        await self._finish_extraction_log(
+            log_id, status, total_records, errors, files_processed
+        )
+        await self._pool.close()
+        self._pool = None
+
+        summary: dict[str, Any] = {
+            "status": status,
+            "files_processed": files_processed,
+            "records_upserted": total_records,
+            "errors": errors,
+        }
+        logger.info("costar_extraction_complete", **summary)
+        return summary
+
+    async def parse_msa_file(self, filepath: Path) -> int:
+        """Parse the MSA-level market data export.
+
+        Args:
+            filepath: Path to the MSA Excel file.
+
+        Returns:
+            Number of records upserted.
+        """
+        return await self._parse_file(filepath)
+
+    async def parse_submarket_file(self, filepath: Path) -> int:
+        """Parse the submarket-level data export.
+
+        Args:
+            filepath: Path to the submarket Excel file.
+
+        Returns:
+            Number of records upserted.
+        """
+        return await self._parse_file(filepath)
+
+    def _parse_quarter_header(self, header: str) -> date | None:
+        """Parse quarter column header like ``'2025 Q1'`` to a :class:`date`.
+
+        Mapping: Q1 -> Jan 1, Q2 -> Apr 1, Q3 -> Jul 1, Q4 -> Oct 1.
+
+        Returns:
+            ``None`` if the header does not match the expected pattern.
+        """
+        match = re.match(r"(\d{4})\s+(Q[1-4])", str(header).strip())
+        if not match:
+            return None
+        year = int(match.group(1))
+        month = QUARTER_TO_MONTH[match.group(2)]
+        return date(year, month, 1)
+
+    def _is_forecast(self, dt: date) -> bool:
+        """Return ``True`` if *dt* is in the future (forecast data)."""
+        return dt > self._current_quarter_start
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _compute_current_quarter_start() -> date:
+        """Return the first day of the current calendar quarter."""
+        now = datetime.now()
+        quarter_month = ((now.month - 1) // 3) * 3 + 1
+        return date(now.year, quarter_month, 1)
+
+    @staticmethod
+    def _detect_geography_type(filepath: Path) -> str:
+        """Heuristic: if filename contains 'Submarket' treat as submarket data."""
+        return "Submarket" if "Submarket" in filepath.name else "Metro"
+
+    async def _parse_file(self, filepath: Path) -> int:
+        """Core parsing logic shared by MSA and submarket files."""
+        log = logger.bind(file=filepath.name)
+        log.info("costar_parse_start")
+
+        wb = openpyxl.load_workbook(str(filepath), read_only=True, data_only=True)
+        try:
+            ws = wb["DataExport"]
+        except KeyError:
+            ws = wb[wb.sheetnames[0]]
+
+        # --- Build date column index from header row ---
+        header_row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True))
+        date_columns: list[tuple[int, date, bool]] = []
+        for col_idx, cell_val in enumerate(header_row):
+            if col_idx < _FIRST_DATA_COL:
+                continue
+            dt = self._parse_quarter_header(str(cell_val) if cell_val else "")
+            if dt is not None:
+                date_columns.append((col_idx, dt, self._is_forecast(dt)))
+
+        log.info("costar_columns_parsed", quarter_columns=len(date_columns))
+
+        # --- Extract normalized records ---
+        records: list[tuple[str, str, str | None, str, date, float, bool, str]] = []
+        row_count = 0
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            row_count += 1
+            geo_name = str(row[_COL_GEO_NAME]).strip() if row[_COL_GEO_NAME] else None
+            geo_type = str(row[_COL_GEO_TYPE]).strip() if row[_COL_GEO_TYPE] else None
+            geo_code = str(row[_COL_GEO_CODE]).strip() if row[_COL_GEO_CODE] else None
+            concept = str(row[_COL_CONCEPT]).strip() if row[_COL_CONCEPT] else None
+
+            if not geo_name or not concept or not geo_type:
                 continue
 
-            records.append(
-                {
-                    "geography_name": geo_name,
-                    "geography_type": geo_type,
-                    "geography_code": geo_code,
-                    "concept": concept,
-                    "date": dt.date(),
-                    "value": float_val,
-                    "is_forecast": is_forecast,
-                    "source_file": filepath.name,
-                }
-            )
+            for col_idx, dt, is_fc in date_columns:
+                val = row[col_idx] if col_idx < len(row) else None
+                if val is None:
+                    continue
+                try:
+                    float_val = float(val)
+                except (ValueError, TypeError):
+                    continue
 
-    wb.close()
+                records.append(
+                    (
+                        geo_type,
+                        geo_name,
+                        geo_code,
+                        concept,
+                        dt,
+                        float_val,
+                        is_fc,
+                        filepath.name,
+                    )
+                )
 
-    if not records:
-        logger.warning(f"  No records extracted from {filepath.name}")
-        return 0
+        wb.close()
+        log.info("costar_records_extracted", data_rows=row_count, records=len(records))
 
-    # Batch upsert
-    upserted = _batch_upsert(engine, records)
-    logger.info(f"  Upserted {upserted} records from {filepath.name}")
-    return upserted
+        if not records:
+            return 0
 
+        upserted = await self._batch_upsert(records)
+        log.info("costar_upsert_complete", upserted=upserted)
+        return upserted
 
-def _batch_upsert(engine, records: list[dict], batch_size: int = 5000) -> int:
-    """Upsert records into costar_timeseries in batches."""
-    total = 0
-    for i in range(0, len(records), batch_size):
-        batch = records[i : i + batch_size]
-        with engine.begin() as conn:
-            for rec in batch:
-                conn.execute(
-                    text("""
-                        INSERT INTO costar_timeseries
-                            (geography_name, geography_type, geography_code, concept, date, value, is_forecast, source_file)
-                        VALUES
-                            (:geography_name, :geography_type, :geography_code, :concept, :date, :value, :is_forecast, :source_file)
-                        ON CONFLICT (geography_name, concept, date)
-                        DO UPDATE SET
-                            value = EXCLUDED.value,
-                            is_forecast = EXCLUDED.is_forecast,
-                            source_file = EXCLUDED.source_file,
-                            imported_at = NOW()
-                    """),
-                    rec,
+    async def _batch_upsert(
+        self,
+        records: list[tuple[str, str, str | None, str, date, float, bool, str]],
+    ) -> int:
+        """Upsert records into ``costar_timeseries`` in batches of ``_BATCH_SIZE``."""
+        assert self._pool is not None
+        upsert_sql = """
+            INSERT INTO costar_timeseries
+                (geography_type, geography_name, geography_code, concept, date, value, is_forecast, source_file)
+            SELECT
+                r.geography_type, r.geography_name, r.geography_code,
+                r.concept, r.date, r.value, r.is_forecast, r.source_file
+            FROM unnest(
+                $1::text[], $2::text[], $3::text[], $4::text[],
+                $5::date[], $6::double precision[], $7::boolean[], $8::text[]
+            ) AS r(geography_type, geography_name, geography_code, concept, date, value, is_forecast, source_file)
+            ON CONFLICT (geography_type, geography_name, concept, date)
+            DO UPDATE SET
+                value        = EXCLUDED.value,
+                is_forecast  = EXCLUDED.is_forecast,
+                source_file  = EXCLUDED.source_file,
+                geography_code = EXCLUDED.geography_code,
+                updated_at   = NOW()
+        """
+
+        total = 0
+        for start in range(0, len(records), _BATCH_SIZE):
+            batch = records[start : start + _BATCH_SIZE]
+            # Decompose tuple list into columnar arrays for unnest
+            geo_types = [r[0] for r in batch]
+            geo_names = [r[1] for r in batch]
+            geo_codes = [r[2] for r in batch]
+            concepts = [r[3] for r in batch]
+            dates = [r[4] for r in batch]
+            values = [r[5] for r in batch]
+            forecasts = [r[6] for r in batch]
+            sources = [r[7] for r in batch]
+
+            async with self._pool.acquire() as conn:
+                await conn.execute(
+                    upsert_sql,
+                    geo_types,
+                    geo_names,
+                    geo_codes,
+                    concepts,
+                    dates,
+                    values,
+                    forecasts,
+                    sources,
                 )
             total += len(batch)
-    return total
+            logger.debug(
+                "costar_batch_upserted", batch_size=len(batch), total_so_far=total
+            )
 
+        return total
 
-def run_costar_extraction(engine=None) -> dict:
-    """
-    Parse all CoStar Excel files in the configured directory.
+    # ------------------------------------------------------------------
+    # Extraction log helpers
+    # ------------------------------------------------------------------
 
-    Returns extraction summary dict.
-    """
-    if engine is None:
-        db_url = settings.MARKET_ANALYSIS_DB_URL
-        if not db_url:
-            logger.error("MARKET_ANALYSIS_DB_URL not configured")
-            return {"status": "error", "message": "No DB URL configured"}
-        engine = create_engine(db_url)
-
-    data_dir = Path(settings.COSTAR_DATA_DIR)
-    if not data_dir.exists():
-        logger.error(f"CoStar data directory not found: {data_dir}")
-        return {"status": "error", "message": f"Directory not found: {data_dir}"}
-
-    # Log extraction start
-    with engine.begin() as conn:
-        result = conn.execute(
-            text(
-                "INSERT INTO extraction_log (source, status) VALUES ('costar', 'running') RETURNING id"
-            ),
-        )
-        log_id = result.scalar()
-
-    total_records = 0
-    files_processed = 0
-    errors = []
-
-    # Process MSA and Submarket files
-    xlsx_files = sorted(data_dir.glob("*.xlsx"))
-    # Filter out Zone.Identifier files (small metadata files from Windows)
-    xlsx_files = [f for f in xlsx_files if f.stat().st_size > 1000]
-
-    for filepath in xlsx_files:
-        if "Submarket List" in filepath.name:
-            continue  # Skip the summary list file
+    async def _start_extraction_log(self) -> int | None:
+        """Insert a running extraction_log entry and return its id."""
+        assert self._pool is not None
         try:
-            count = parse_costar_file(filepath, engine)
-            total_records += count
-            files_processed += 1
-        except Exception as e:
-            logger.error(f"Error parsing {filepath.name}: {e}")
-            errors.append(f"{filepath.name}: {e}")
+            async with self._pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "INSERT INTO extraction_log (source, status) VALUES ('costar', 'running') RETURNING id"
+                )
+                return row["id"] if row else None
+        except Exception as exc:
+            logger.warning("costar_extraction_log_insert_failed", error=str(exc))
+            return None
 
-    # Refresh materialized view
-    try:
-        with engine.begin() as conn:
-            conn.execute(text("REFRESH MATERIALIZED VIEW CONCURRENTLY costar_latest"))
-    except Exception as e:
-        logger.warning(f"Could not refresh costar_latest view (may not exist yet): {e}")
+    async def _finish_extraction_log(
+        self,
+        log_id: int | None,
+        status: str,
+        records: int,
+        errors: list[str],
+        files_processed: int,
+    ) -> None:
+        """Update the extraction_log entry with final results."""
+        if log_id is None or self._pool is None:
+            return
         try:
-            with engine.begin() as conn:
-                conn.execute(text("REFRESH MATERIALIZED VIEW costar_latest"))
+            async with self._pool.acquire() as conn:
+                await conn.execute(
+                    """
+                    UPDATE extraction_log
+                    SET finished_at = NOW(),
+                        status = $1,
+                        records_upserted = $2,
+                        error_message = $3,
+                        details = $4
+                    WHERE id = $5
+                    """,
+                    status,
+                    records,
+                    "; ".join(errors) if errors else None,
+                    f'{{"files_processed": {files_processed}}}',
+                    log_id,
+                )
+        except Exception as exc:
+            logger.warning("costar_extraction_log_update_failed", error=str(exc))
+
+    async def _try_refresh_materialized_view(self) -> None:
+        """Refresh the ``costar_latest`` materialized view if it exists."""
+        if self._pool is None:
+            return
+        try:
+            async with self._pool.acquire() as conn:
+                await conn.execute(
+                    "REFRESH MATERIALIZED VIEW CONCURRENTLY costar_latest"
+                )
         except Exception:
-            pass
+            try:
+                async with self._pool.acquire() as conn:
+                    await conn.execute("REFRESH MATERIALIZED VIEW costar_latest")
+            except Exception as exc:
+                logger.debug("costar_matview_refresh_skipped", reason=str(exc))
 
-    # Update extraction log
-    status = "success" if not errors else "error"
-    with engine.begin() as conn:
-        conn.execute(
-            text("""
-                UPDATE extraction_log
-                SET finished_at = NOW(), status = :status, records_upserted = :records,
-                    error_message = :errors, details = :details
-                WHERE id = :log_id
-            """),
-            {
-                "status": status,
-                "records": total_records,
-                "errors": "; ".join(errors) if errors else None,
-                "details": f'{{"files_processed": {files_processed}}}',
-                "log_id": log_id,
-            },
-        )
 
-    summary = {
-        "status": status,
-        "files_processed": files_processed,
-        "records_upserted": total_records,
-        "errors": errors,
-    }
-    logger.info(f"CoStar extraction complete: {summary}")
-    return summary
+# ----------------------------------------------------------------------
+# Synchronous convenience wrapper (used by scheduler / CLI)
+# ----------------------------------------------------------------------
+
+
+def run_costar_extraction_sync(
+    db_url: str | None = None, data_dir: str | None = None
+) -> dict:
+    """Synchronous entry-point that delegates to the async parser.
+
+    Falls back to ``settings.MARKET_ANALYSIS_DB_URL`` and ``settings.COSTAR_DATA_DIR``
+    when arguments are not provided.
+    """
+    from app.core.config import settings
+
+    db_url = db_url or settings.MARKET_ANALYSIS_DB_URL
+    data_dir = data_dir or settings.COSTAR_DATA_DIR
+
+    if not db_url:
+        logger.error("MARKET_ANALYSIS_DB_URL not configured")
+        return {
+            "status": "error",
+            "message": "No DB URL configured",
+            "records_upserted": 0,
+        }
+
+    import asyncio
+
+    parser = CoStarParser(db_url=db_url, data_dir=data_dir)
+    return asyncio.run(parser.parse_all())
+
+
+# ----------------------------------------------------------------------
+# Script entry-point
+# ----------------------------------------------------------------------
+
+
+async def main() -> None:
+    """Load settings and run ``parse_all()``."""
+    from app.core.config import settings
+
+    db_url = settings.MARKET_ANALYSIS_DB_URL
+    if not db_url:
+        logger.error("MARKET_ANALYSIS_DB_URL not set -- cannot run CoStar extraction")
+        sys.exit(1)
+
+    data_dir = settings.COSTAR_DATA_DIR
+    parser = CoStarParser(db_url=db_url, data_dir=data_dir)
+    result = await parser.parse_all()
+
+    print(result)
+    sys.exit(0 if result["status"] == "success" else 1)
 
 
 if __name__ == "__main__":
-    result = run_costar_extraction()
-    print(result)
-    sys.exit(0 if result["status"] == "success" else 1)
+    import asyncio
+
+    asyncio.run(main())

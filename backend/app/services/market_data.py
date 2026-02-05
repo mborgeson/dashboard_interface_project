@@ -10,6 +10,11 @@ Required tables (see database/schemas/market_data_schema.sql):
   - costar_timeseries / costar_latest  (materialized view)
   - fred_timeseries / fred_latest      (materialized view)
   - census_timeseries
+
+Architecture:
+  Each public method follows a 3-tier pattern:
+    Database query -> Static fallback -> Empty/error
+  Static methods are prefixed with _static_ and kept intact as fallbacks.
 """
 
 from datetime import datetime
@@ -30,60 +35,12 @@ from app.schemas.market_data import (
     SubmarketsResponse,
 )
 
-# Optional: async DB engine for market_analysis database
-_market_engine = None
-_market_db_available = False
-_market_data_freshness: str | None = None
-
-
-async def _get_market_engine():
-    """Lazily create async engine for market_analysis DB."""
-    global _market_engine, _market_db_available, _market_data_freshness
-
-    if _market_engine is not None:
-        return _market_engine
-
-    db_url = settings.MARKET_ANALYSIS_DB_URL
-    if not db_url:
-        _market_db_available = False
-        return None
-
-    try:
-        from sqlalchemy.ext.asyncio import create_async_engine
-
-        async_url = db_url.replace("postgresql://", "postgresql+asyncpg://")
-        _market_engine = create_async_engine(async_url, pool_size=3, max_overflow=2)
-
-        # Test connection and get data freshness
-        from sqlalchemy import text
-
-        async with _market_engine.connect() as conn:
-            result = await conn.execute(
-                text(
-                    "SELECT MAX(date) FROM costar_timeseries WHERE is_forecast = FALSE LIMIT 1"
-                )
-            )
-            row = result.fetchone()
-            if row and row[0]:
-                _market_data_freshness = str(row[0])
-
-        _market_db_available = True
-        logger.info(
-            f"Market analysis DB connected, data as of {_market_data_freshness}"
-        )
-        return _market_engine
-    except Exception as e:
-        logger.warning(f"Market analysis DB not available: {e}")
-        _market_db_available = False
-        _market_engine = None
-        return None
-
 
 def _extract_submarket_name(geography_name: str) -> str:
     """Extract submarket name from CoStar geography string.
 
-    'Phoenix - AZ USA - Tempe' → 'Tempe'
-    'Phoenix - AZ USA - North West Valley ' → 'North West Valley'
+    'Phoenix - AZ USA - Tempe' -> 'Tempe'
+    'Phoenix - AZ USA - North West Valley ' -> 'North West Valley'
     """
     parts = geography_name.split(" - ")
     if len(parts) >= 3:
@@ -92,35 +49,121 @@ def _extract_submarket_name(geography_name: str) -> str:
 
 
 class MarketDataService:
-    """Service for market data operations."""
+    """Service for market data operations.
+
+    Initialises an optional async engine for the market_analysis PostgreSQL
+    database.  Every public method tries the database first, catches any
+    exception, and falls back to the corresponding ``_static_*`` method so
+    the API always returns data.
+    """
 
     def __init__(self):
-        """Initialize market data service."""
+        """Initialize market data service and market DB engine."""
         self._last_updated = datetime.now()
+        self._market_db_engine = None
+        self._market_db_available = False
+        self._market_data_freshness: str | None = None
+        self._init_market_db()
+
+    # ------------------------------------------------------------------
+    # Engine initialisation
+    # ------------------------------------------------------------------
+
+    def _init_market_db(self):
+        """Create async engine for market data database if URL configured.
+
+        The engine is created lazily on first use if this synchronous init
+        cannot import asyncpg (e.g. during tests).  The actual connection
+        test happens in ``_ensure_market_db``.
+        """
+        if not settings.MARKET_ANALYSIS_DB_URL:
+            logger.info(
+                "MARKET_ANALYSIS_DB_URL not configured — using static market data"
+            )
+            return
+
+        try:
+            from sqlalchemy.ext.asyncio import create_async_engine
+
+            db_url = settings.MARKET_ANALYSIS_DB_URL.replace(
+                "postgresql://", "postgresql+asyncpg://"
+            )
+            self._market_db_engine = create_async_engine(
+                db_url, pool_size=5, max_overflow=3
+            )
+            logger.info("Market analysis DB engine created (connection not yet tested)")
+        except Exception as exc:
+            logger.warning(f"Could not create market DB engine: {exc}")
+            self._market_db_engine = None
+
+    async def _ensure_market_db(self):
+        """Ensure the market DB engine is connected and return it, or None.
+
+        On first successful call the data-freshness timestamp is cached.
+        """
+        if self._market_db_engine is None:
+            return None
+
+        # Already verified
+        if self._market_db_available:
+            return self._market_db_engine
+
+        try:
+            from sqlalchemy import text
+
+            async with self._market_db_engine.connect() as conn:
+                result = await conn.execute(
+                    text(
+                        "SELECT MAX(date) FROM costar_timeseries "
+                        "WHERE is_forecast = FALSE LIMIT 1"
+                    )
+                )
+                row = result.fetchone()
+                if row and row[0]:
+                    self._market_data_freshness = str(row[0])
+
+            self._market_db_available = True
+            logger.info(
+                f"Market analysis DB connected, data as of {self._market_data_freshness}"
+            )
+            return self._market_db_engine
+        except Exception as exc:
+            logger.warning(f"Market analysis DB not available: {exc}")
+            self._market_db_available = False
+            return None
+
+    # ==================================================================
+    # get_market_overview
+    # ==================================================================
 
     async def get_market_overview(self) -> MarketOverviewResponse:
-        """
-        Get market overview with MSA stats and economic indicators.
+        """Get market overview with MSA stats and economic indicators.
+
         Tries market_analysis DB first, falls back to static data.
         """
-        engine = await _get_market_engine()
+        engine = await self._ensure_market_db()
 
-        if engine and _market_db_available:
+        if engine is not None:
             try:
-                return await self._get_overview_from_db(engine)
-            except Exception as e:
-                logger.warning(f"Failed to query market DB for overview: {e}")
+                response = await self._db_get_market_overview(engine)
+                logger.info("get_market_overview served from database")
+                return response
+            except Exception as exc:
+                logger.warning(
+                    f"DB query failed for market overview, using static fallback: {exc}"
+                )
 
-        return self._get_overview_static()
+        logger.info("get_market_overview served from static_fallback")
+        return self._static_get_market_overview()
 
-    async def _get_overview_from_db(self, engine) -> MarketOverviewResponse:
-        """Query market_analysis DB for economic indicators."""
+    async def _db_get_market_overview(self, engine) -> MarketOverviewResponse:
+        """Query market_analysis DB for MSA overview and economic indicators."""
         from sqlalchemy import text
 
         async with engine.connect() as conn:
-            indicators = []
+            indicators: list[EconomicIndicator] = []
 
-            # Unemployment from FRED
+            # -- Unemployment Rate from FRED --
             unemp_result = await conn.execute(
                 text("""
                     SELECT value, date FROM fred_timeseries
@@ -143,7 +186,7 @@ class MarketDataService:
                     )
                 )
 
-            # Employment from FRED (job growth YoY)
+            # -- Employment / Job Growth from FRED --
             emp_result = await conn.execute(
                 text("""
                     SELECT value, date FROM fred_timeseries
@@ -152,6 +195,7 @@ class MarketDataService:
                 """)
             )
             emp_rows = emp_result.fetchall()
+            job_growth = 0.0
             if emp_rows and len(emp_rows) >= 2:
                 current_emp = float(emp_rows[0][0])
                 prev_emp = float(emp_rows[-1][0])
@@ -169,7 +213,7 @@ class MarketDataService:
                     )
                 )
 
-            # Median Household Income from CoStar or Census
+            # -- Median Household Income (CoStar -> Census fallback) --
             income_result = await conn.execute(
                 text("""
                     SELECT value FROM costar_latest
@@ -180,7 +224,6 @@ class MarketDataService:
             )
             income_row = income_result.fetchone()
             if not income_row:
-                # Fallback to Census
                 income_result = await conn.execute(
                     text("""
                         SELECT value FROM census_timeseries
@@ -199,7 +242,7 @@ class MarketDataService:
                     )
                 )
 
-            # Population from CoStar or Census
+            # -- Population (CoStar -> Census fallback) --
             pop_result = await conn.execute(
                 text("""
                     SELECT value FROM costar_latest
@@ -223,7 +266,8 @@ class MarketDataService:
                 if census_row:
                     pop_value = int(float(census_row[0]))
 
-            # Population growth from Census (compare last 2 years)
+            # -- Population Growth from Census (compare last 2 years) --
+            pop_growth = 0.023  # default
             pop_growth_result = await conn.execute(
                 text("""
                     SELECT value, year FROM census_timeseries
@@ -249,7 +293,7 @@ class MarketDataService:
 
             # Fill missing indicators with static defaults
             indicator_names = {i.indicator for i in indicators}
-            for default in self._get_overview_static().economic_indicators:
+            for default in self._static_get_market_overview().economic_indicators:
                 if default.indicator not in indicator_names:
                     indicators.append(default)
 
@@ -259,10 +303,10 @@ class MarketDataService:
                 population=pop_value or 5100000,
                 employment=employment_val,
                 gdp=263000000000,
-                population_growth=pop_growth if len(pop_growth_rows) >= 2 else 0.023,
+                population_growth=pop_growth,
                 employment_growth=job_growth / 100 if emp_rows else 0.032,
                 gdp_growth=0.041,
-                last_updated=_market_data_freshness
+                last_updated=self._market_data_freshness
                 or datetime.now().strftime("%Y-%m-%d"),
             )
 
@@ -273,7 +317,7 @@ class MarketDataService:
                 source="database",
             )
 
-    def _get_overview_static(self) -> MarketOverviewResponse:
+    def _static_get_market_overview(self) -> MarketOverviewResponse:
         """Static fallback for market overview."""
         msa_overview = MSAOverview(
             population=5100000,
@@ -307,30 +351,227 @@ class MarketDataService:
             msa_overview=msa_overview,
             economic_indicators=economic_indicators,
             last_updated=self._last_updated,
-            source="static",
+            source="static_fallback",
         )
 
-    async def get_submarkets(self) -> SubmarketsResponse:
+    # ==================================================================
+    # get_economic_indicators  (standalone — queries FRED + Census)
+    # ==================================================================
+
+    async def get_economic_indicators(self) -> list[EconomicIndicator]:
+        """Get economic indicators independently of the full overview.
+
+        Queries FRED for unemployment (PHOE004UR) and employment (PHOE004NA),
+        Census for population/income, and CPI from FRED (CPIAUCSL).
+        Falls back to static data when DB is unavailable.
         """
-        Get submarket breakdown with performance metrics.
+        engine = await self._ensure_market_db()
+
+        if engine is not None:
+            try:
+                indicators = await self._db_get_economic_indicators(engine)
+                logger.info("get_economic_indicators served from database")
+                return indicators
+            except Exception as exc:
+                logger.warning(
+                    f"DB query failed for economic indicators, using static fallback: {exc}"
+                )
+
+        logger.info("get_economic_indicators served from static_fallback")
+        return self._static_get_economic_indicators()
+
+    async def _db_get_economic_indicators(self, engine) -> list[EconomicIndicator]:
+        """Query FRED + Census for economic indicators."""
+        from sqlalchemy import text
+
+        indicators: list[EconomicIndicator] = []
+
+        async with engine.connect() as conn:
+            # Unemployment
+            unemp = await conn.execute(
+                text("""
+                    SELECT value, date FROM fred_timeseries
+                    WHERE series_id = 'PHOE004UR'
+                    ORDER BY date DESC LIMIT 2
+                """)
+            )
+            unemp_rows = unemp.fetchall()
+            if unemp_rows:
+                cur = float(unemp_rows[0][0])
+                prev = float(unemp_rows[1][0]) if len(unemp_rows) > 1 else cur
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="Unemployment Rate",
+                        value=cur,
+                        yoy_change=round(cur - prev, 2),
+                        unit="%",
+                    )
+                )
+
+            # Employment (Non-Farm Payrolls)
+            emp = await conn.execute(
+                text("""
+                    SELECT value, date FROM fred_timeseries
+                    WHERE series_id = 'PHOE004NA'
+                    ORDER BY date DESC LIMIT 13
+                """)
+            )
+            emp_rows = emp.fetchall()
+            if emp_rows and len(emp_rows) >= 2:
+                cur_emp = float(emp_rows[0][0])
+                prev_emp = float(emp_rows[-1][0])
+                growth = (
+                    round((cur_emp - prev_emp) / prev_emp * 100, 1) if prev_emp else 0
+                )
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="Job Growth Rate",
+                        value=growth,
+                        yoy_change=0,
+                        unit="%",
+                    )
+                )
+
+            # CPI from FRED
+            cpi = await conn.execute(
+                text("""
+                    SELECT value, date FROM fred_timeseries
+                    WHERE series_id = 'CPIAUCSL'
+                    ORDER BY date DESC LIMIT 13
+                """)
+            )
+            cpi_rows = cpi.fetchall()
+            if cpi_rows and len(cpi_rows) >= 2:
+                cur_cpi = float(cpi_rows[0][0])
+                prev_cpi = float(cpi_rows[-1][0])
+                cpi_change = (
+                    round((cur_cpi - prev_cpi) / prev_cpi * 100, 1) if prev_cpi else 0
+                )
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="CPI (All Urban)",
+                        value=round(cur_cpi, 1),
+                        yoy_change=cpi_change,
+                        unit="index",
+                    )
+                )
+
+            # Population from Census
+            pop = await conn.execute(
+                text("""
+                    SELECT value, year FROM census_timeseries
+                    WHERE variable_code = 'B01003_001E'
+                    ORDER BY year DESC LIMIT 2
+                """)
+            )
+            pop_rows = pop.fetchall()
+            if pop_rows:
+                pop_val = int(float(pop_rows[0][0]))
+                pop_change = 0.0
+                if len(pop_rows) >= 2:
+                    pop_change = round(
+                        (float(pop_rows[0][0]) - float(pop_rows[1][0]))
+                        / float(pop_rows[1][0])
+                        * 100,
+                        1,
+                    )
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="Population",
+                        value=pop_val,
+                        yoy_change=pop_change,
+                        unit="people",
+                    )
+                )
+
+            # Median Household Income from Census
+            income = await conn.execute(
+                text("""
+                    SELECT value, year FROM census_timeseries
+                    WHERE variable_code = 'B19013_001E'
+                    ORDER BY year DESC LIMIT 2
+                """)
+            )
+            income_rows = income.fetchall()
+            if income_rows:
+                inc_val = float(income_rows[0][0])
+                inc_change = 0.0
+                if len(income_rows) >= 2:
+                    inc_change = round(
+                        (float(income_rows[0][0]) - float(income_rows[1][0]))
+                        / float(income_rows[1][0])
+                        * 100,
+                        1,
+                    )
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="Median Household Income",
+                        value=inc_val,
+                        yoy_change=inc_change,
+                        unit="$",
+                    )
+                )
+
+        # Fill missing with static defaults
+        indicator_names = {i.indicator for i in indicators}
+        for default in self._static_get_economic_indicators():
+            if default.indicator not in indicator_names:
+                indicators.append(default)
+
+        return indicators
+
+    def _static_get_economic_indicators(self) -> list[EconomicIndicator]:
+        """Static fallback for economic indicators."""
+        return [
+            EconomicIndicator(
+                indicator="Unemployment Rate", value=3.6, yoy_change=-0.4, unit="%"
+            ),
+            EconomicIndicator(
+                indicator="Job Growth Rate", value=3.2, yoy_change=0.8, unit="%"
+            ),
+            EconomicIndicator(
+                indicator="CPI (All Urban)", value=314.2, yoy_change=3.1, unit="index"
+            ),
+            EconomicIndicator(
+                indicator="Population", value=5100000, yoy_change=2.3, unit="people"
+            ),
+            EconomicIndicator(
+                indicator="Median Household Income",
+                value=72500,
+                yoy_change=4.5,
+                unit="$",
+            ),
+        ]
+
+    # ==================================================================
+    # get_submarkets
+    # ==================================================================
+
+    async def get_submarkets(self) -> SubmarketsResponse:
+        """Get submarket breakdown with performance metrics.
+
         Tries market_analysis DB first, falls back to static data.
         """
-        engine = await _get_market_engine()
+        engine = await self._ensure_market_db()
 
-        if engine and _market_db_available:
+        if engine is not None:
             try:
-                return await self._get_submarkets_from_db(engine)
-            except Exception as e:
-                logger.warning(f"Failed to query market DB for submarkets: {e}")
+                response = await self._db_get_submarkets(engine)
+                logger.info("get_submarkets served from database")
+                return response
+            except Exception as exc:
+                logger.warning(
+                    f"DB query failed for submarkets, using static fallback: {exc}"
+                )
 
-        return self._get_submarkets_static()
+        logger.info("get_submarkets served from static_fallback")
+        return self._static_get_submarkets()
 
-    async def _get_submarkets_from_db(self, engine) -> SubmarketsResponse:
+    async def _db_get_submarkets(self, engine) -> SubmarketsResponse:
         """Query market_analysis DB for submarket data from CoStar."""
         from sqlalchemy import text
 
         async with engine.connect() as conn:
-            # Pivot costar_latest for submarket-level data
             result = await conn.execute(
                 text("""
                     SELECT
@@ -350,7 +591,8 @@ class MarketDataService:
             rows = result.fetchall()
 
             if not rows:
-                return self._get_submarkets_static()
+                logger.info("No submarket rows in DB, falling back to static")
+                return self._static_get_submarkets()
 
             submarkets = []
             for row in rows:
@@ -363,7 +605,6 @@ class MarketDataService:
                     else round(1 - vacancy / 100, 4)
                 )
                 rent_growth = float(row[2]) if row[2] is not None else 0.0
-                # CoStar rent growth might be decimal (e.g. -0.04 = -4%) — keep as-is
 
                 submarkets.append(
                     SubmarketMetrics(
@@ -400,7 +641,7 @@ class MarketDataService:
                 source="database",
             )
 
-    def _get_submarkets_static(self) -> SubmarketsResponse:
+    def _static_get_submarkets(self) -> SubmarketsResponse:
         """Static fallback for submarket data."""
         submarkets = [
             SubmarketMetrics(
@@ -556,31 +797,40 @@ class MarketDataService:
             average_occupancy=round(avg_occupancy, 4),
             average_rent_growth=round(avg_rent_growth, 4),
             last_updated=self._last_updated,
-            source="static",
+            source="static_fallback",
         )
 
+    # ==================================================================
+    # get_market_trends
+    # ==================================================================
+
     async def get_market_trends(self, period_months: int = 12) -> MarketTrendsResponse:
-        """
-        Get market trends over time.
+        """Get market trends over time.
+
         Tries market_analysis DB first, falls back to static data.
         """
-        engine = await _get_market_engine()
+        engine = await self._ensure_market_db()
 
-        if engine and _market_db_available:
+        if engine is not None:
             try:
-                return await self._get_trends_from_db(engine, period_months)
-            except Exception as e:
-                logger.warning(f"Failed to query market DB for trends: {e}")
+                response = await self._db_get_market_trends(engine, period_months)
+                logger.info("get_market_trends served from database")
+                return response
+            except Exception as exc:
+                logger.warning(
+                    f"DB query failed for market trends, using static fallback: {exc}"
+                )
 
-        return self._get_trends_static(period_months)
+        logger.info("get_market_trends served from static_fallback")
+        return self._static_get_market_trends(period_months)
 
-    async def _get_trends_from_db(
+    async def _db_get_market_trends(
         self, engine, period_months: int
     ) -> MarketTrendsResponse:
         """Query market_analysis DB for trailing trend data from CoStar."""
         from sqlalchemy import text
 
-        # Convert months to quarters (CoStar is quarterly)
+        # Convert months to quarters (CoStar data is quarterly)
         num_quarters = max(period_months // 3, 4)
 
         async with engine.connect() as conn:
@@ -605,7 +855,8 @@ class MarketDataService:
             rows = result.fetchall()
 
             if not rows:
-                return self._get_trends_static(period_months)
+                logger.info("No trend rows in DB, falling back to static")
+                return self._static_get_market_trends(period_months)
 
             # Reverse to chronological order
             rows = list(reversed(rows))
@@ -646,7 +897,7 @@ class MarketDataService:
                 source="database",
             )
 
-    def _get_trends_static(self, period_months: int) -> MarketTrendsResponse:
+    def _static_get_market_trends(self, period_months: int) -> MarketTrendsResponse:
         """Static fallback for trend data."""
         months = [
             "Jan",
@@ -704,8 +955,12 @@ class MarketDataService:
             monthly_data=monthly_data,
             period=f"{period_months}M",
             last_updated=self._last_updated,
-            source="static",
+            source="static_fallback",
         )
+
+    # ==================================================================
+    # get_comparables
+    # ==================================================================
 
     async def get_comparables(
         self,
@@ -714,8 +969,126 @@ class MarketDataService:
         radius_miles: float = 5.0,
         limit: int = 10,
     ) -> ComparablesResponse:
-        """Get property comparables. Static data — no DB source for sales comps yet."""
-        all_comparables = [
+        """Get property comparables, enriched with DB submarket context when available.
+
+        The base comparable data is portfolio-based (static). When the market
+        database is available, each comparable is enriched with live submarket
+        metrics (avg rent, vacancy, cap rate) from costar_latest.
+        """
+        # Start with static comparables
+        comparables = self._static_get_comparables_list()
+
+        if submarket:
+            comparables = [
+                c for c in comparables if c.submarket.lower() == submarket.lower()
+            ]
+        comparables = comparables[:limit]
+
+        # Try to enrich with DB submarket context
+        source = "static_fallback"
+        engine = await self._ensure_market_db()
+        if engine is not None:
+            try:
+                comparables = await self._enrich_comparables_with_db(
+                    engine, comparables
+                )
+                source = "database"
+                logger.info("get_comparables served from database (enriched)")
+            except Exception as exc:
+                logger.warning(
+                    f"Could not enrich comparables from DB, returning static: {exc}"
+                )
+                logger.info("get_comparables served from static_fallback")
+        else:
+            logger.info("get_comparables served from static_fallback")
+
+        return ComparablesResponse(
+            comparables=comparables,
+            total=len(comparables),
+            radius_miles=radius_miles,
+            last_updated=self._last_updated,
+            source=source,
+        )
+
+    async def _enrich_comparables_with_db(
+        self, engine, comparables: list[PropertyComparable]
+    ) -> list[PropertyComparable]:
+        """Enrich comparable properties with live submarket context from costar_latest.
+
+        For each comparable's submarket, fetch latest avg rent, vacancy, and
+        cap rate so the frontend can show market context alongside the comp.
+        """
+        from sqlalchemy import text
+
+        # Collect unique submarket names
+        submarket_names = {c.submarket for c in comparables}
+        if not submarket_names:
+            return comparables
+
+        async with engine.connect() as conn:
+            # Build a lookup of submarket metrics from costar_latest
+            result = await conn.execute(
+                text("""
+                    SELECT
+                        geography_name,
+                        MAX(CASE WHEN concept = 'Market Asking Rent/Unit' THEN value END) as avg_rent,
+                        MAX(CASE WHEN concept = 'Vacancy Rate' THEN value END) as vacancy,
+                        MAX(CASE WHEN concept = 'Market Cap Rate' THEN value END) as cap_rate
+                    FROM costar_latest
+                    WHERE geography_type = 'Submarket'
+                    GROUP BY geography_name
+                """)
+            )
+            rows = result.fetchall()
+
+            # Map extracted submarket names to their metrics
+            submarket_lookup: dict[str, dict] = {}
+            for row in rows:
+                name = _extract_submarket_name(row[0])
+                submarket_lookup[name.lower()] = {
+                    "avg_rent": float(row[1]) if row[1] is not None else None,
+                    "vacancy": float(row[2]) if row[2] is not None else None,
+                    "cap_rate": float(row[3]) if row[3] is not None else None,
+                }
+
+        # Enrich comparables — update fields where DB data is available
+        enriched = []
+        for comp in comparables:
+            market = submarket_lookup.get(comp.submarket.lower())
+            if market:
+                # Update comp fields with live market data where the comp
+                # doesn't already have a sale-specific value
+                enriched.append(
+                    PropertyComparable(
+                        id=comp.id,
+                        name=comp.name,
+                        address=comp.address,
+                        submarket=comp.submarket,
+                        units=comp.units,
+                        year_built=comp.year_built,
+                        avg_rent=market["avg_rent"]
+                        if market["avg_rent"] is not None
+                        else comp.avg_rent,
+                        occupancy=(
+                            round(1 - market["vacancy"], 4)
+                            if market["vacancy"] is not None and market["vacancy"] < 1
+                            else comp.occupancy
+                        ),
+                        sale_price=comp.sale_price,
+                        sale_date=comp.sale_date,
+                        cap_rate=comp.cap_rate
+                        if comp.cap_rate is not None
+                        else market.get("cap_rate"),
+                    )
+                )
+            else:
+                enriched.append(comp)
+
+        return enriched
+
+    def _static_get_comparables_list(self) -> list[PropertyComparable]:
+        """Static list of property comparables (portfolio-based)."""
+        return [
             PropertyComparable(
                 id="comp-001",
                 name="Desert Ridge Apartments",
@@ -822,7 +1195,16 @@ class MarketDataService:
             ),
         ]
 
-        comparables = all_comparables
+    def _static_get_comparables(
+        self,
+        property_id: str | None = None,
+        submarket: str | None = None,
+        radius_miles: float = 5.0,
+        limit: int = 10,
+    ) -> ComparablesResponse:
+        """Static fallback for comparables (full response)."""
+        comparables = self._static_get_comparables_list()
+
         if submarket:
             comparables = [
                 c for c in comparables if c.submarket.lower() == submarket.lower()
@@ -834,7 +1216,7 @@ class MarketDataService:
             total=len(comparables),
             radius_miles=radius_miles,
             last_updated=self._last_updated,
-            source="static",
+            source="static_fallback",
         )
 
 

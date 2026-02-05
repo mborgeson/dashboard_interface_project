@@ -1,143 +1,168 @@
--- ============================================================================
--- Market Data Database Schema
--- Database: dashboard_market_data (port 5432)
--- ============================================================================
--- Setup:
+-- Market Data Schema for B&R Capital Dashboard
+-- Database: dashboard_market_data
+--
+-- Usage:
 --   createdb -h localhost -p 5432 -U postgres dashboard_market_data
---   psql -h localhost -p 5432 -U postgres -d dashboard_market_data -f market_data_schema.sql
--- ============================================================================
+--   psql -h localhost -p 5432 -U postgres -d dashboard_market_data -f backend/database/schemas/market_data_schema.sql
+--
+-- Connection string: postgresql://postgres:****@localhost:5432/dashboard_market_data
 
--- 1. CoStar time-series (normalized long format)
+BEGIN;
+
+-- =============================================================================
+-- 1. costar_timeseries — Normalized long-format CoStar data
+-- =============================================================================
 CREATE TABLE IF NOT EXISTS costar_timeseries (
-    id              BIGSERIAL PRIMARY KEY,
-    geography_name  TEXT NOT NULL,          -- e.g. "Phoenix - AZ USA" or "Phoenix - AZ USA - Tempe"
-    geography_type  TEXT NOT NULL,          -- 'Metro' or 'Submarket'
-    geography_code  TEXT,                   -- e.g. "G2-38060" or "APT-1-11286"
-    concept         TEXT NOT NULL,          -- e.g. "Market Asking Rent/Unit", "Vacancy Rate"
-    date            DATE NOT NULL,          -- Quarter start date (Q1=Jan 1, Q2=Apr 1, etc.)
-    value           DOUBLE PRECISION,
-    is_forecast     BOOLEAN DEFAULT FALSE,
-    source_file     TEXT,
-    imported_at     TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (geography_name, concept, date)
+    id                SERIAL PRIMARY KEY,
+    geography_type    VARCHAR(20) NOT NULL,        -- 'msa' or 'submarket'
+    geography_name    VARCHAR(200) NOT NULL,        -- e.g. 'Phoenix, AZ USA' or 'Camelback Corridor'
+    concept           VARCHAR(200) NOT NULL,        -- e.g. 'Market Asking Rent/Unit', 'Vacancy Rate'
+    date              DATE NOT NULL,                -- observation date
+    value             DOUBLE PRECISION,             -- the metric value
+    is_forecast       BOOLEAN DEFAULT FALSE,        -- true if date is future/forecast
+    source_file       VARCHAR(500),                 -- which Excel file this came from
+    created_at        TIMESTAMP DEFAULT NOW(),
+    updated_at        TIMESTAMP DEFAULT NOW(),
+
+    CONSTRAINT uq_costar_timeseries
+        UNIQUE (geography_type, geography_name, concept, date)
 );
 
-CREATE INDEX IF NOT EXISTS idx_costar_geo_concept ON costar_timeseries (geography_name, concept);
-CREATE INDEX IF NOT EXISTS idx_costar_date ON costar_timeseries (date DESC);
-CREATE INDEX IF NOT EXISTS idx_costar_type ON costar_timeseries (geography_type);
-CREATE INDEX IF NOT EXISTS idx_costar_concept ON costar_timeseries (concept);
+CREATE INDEX IF NOT EXISTS idx_costar_geo_concept
+    ON costar_timeseries (geography_name, concept);
 
--- 2. FRED time-series
+CREATE INDEX IF NOT EXISTS idx_costar_date
+    ON costar_timeseries (date);
+
+CREATE INDEX IF NOT EXISTS idx_costar_geo_type
+    ON costar_timeseries (geography_type);
+
+-- =============================================================================
+-- 2. fred_timeseries — FRED series observations
+-- =============================================================================
 CREATE TABLE IF NOT EXISTS fred_timeseries (
-    id          BIGSERIAL PRIMARY KEY,
-    series_id   TEXT NOT NULL,              -- e.g. "FEDFUNDS", "DGS10"
+    id          SERIAL PRIMARY KEY,
+    series_id   VARCHAR(50) NOT NULL,              -- e.g. 'FEDFUNDS', 'DGS10'
     date        DATE NOT NULL,
     value       DOUBLE PRECISION,
-    imported_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (series_id, date)
+    created_at  TIMESTAMP DEFAULT NOW(),
+
+    CONSTRAINT uq_fred_timeseries
+        UNIQUE (series_id, date)
 );
 
-CREATE INDEX IF NOT EXISTS idx_fred_series_date ON fred_timeseries (series_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_fred_series
+    ON fred_timeseries (series_id);
 
--- 3. Census Bureau time-series
+CREATE INDEX IF NOT EXISTS idx_fred_date
+    ON fred_timeseries (date);
+
+-- =============================================================================
+-- 3. census_timeseries — Census Bureau annual data
+-- =============================================================================
 CREATE TABLE IF NOT EXISTS census_timeseries (
-    id              BIGSERIAL PRIMARY KEY,
-    variable_code   TEXT NOT NULL,          -- e.g. "B01003_001E" (population)
-    variable_name   TEXT,                   -- Human-readable name
-    geography       TEXT NOT NULL,          -- e.g. "Phoenix-Mesa-Chandler, AZ Metro Area"
-    geography_code  TEXT,                   -- CBSA code
-    year            INT NOT NULL,
-    value           DOUBLE PRECISION,
-    dataset         TEXT DEFAULT 'acs5',    -- ACS 5-year estimates
-    imported_at     TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (variable_code, geography_code, year)
+    id               SERIAL PRIMARY KEY,
+    variable_code    VARCHAR(50) NOT NULL,          -- e.g. 'B01003_001E' (Population)
+    variable_name    VARCHAR(200) NOT NULL,         -- human-readable name
+    geography_id     VARCHAR(50) NOT NULL,          -- e.g. 'CBSA:38060' (Phoenix MSA)
+    geography_name   VARCHAR(200) NOT NULL,
+    year             INTEGER NOT NULL,
+    value            DOUBLE PRECISION,
+    dataset          VARCHAR(50) DEFAULT 'acs5',    -- ACS 5-Year
+    created_at       TIMESTAMP DEFAULT NOW(),
+
+    CONSTRAINT uq_census_timeseries
+        UNIQUE (variable_code, geography_id, year, dataset)
 );
 
-CREATE INDEX IF NOT EXISTS idx_census_var_year ON census_timeseries (variable_code, year DESC);
-
--- 4. FRED series metadata (pre-populated)
+-- =============================================================================
+-- 4. fred_series_metadata — Pre-populated with 17 FRED series
+-- =============================================================================
 CREATE TABLE IF NOT EXISTS fred_series_metadata (
-    series_id   TEXT PRIMARY KEY,
-    name        TEXT NOT NULL,
-    category    TEXT NOT NULL,              -- 'interest_rate', 'economic', 'national'
-    frequency   TEXT DEFAULT 'D',           -- D=daily, M=monthly
-    description TEXT
+    series_id            VARCHAR(50) PRIMARY KEY,
+    title                VARCHAR(500) NOT NULL,
+    category             VARCHAR(100) NOT NULL,     -- 'interest_rates', 'phoenix_economic', 'national_economic'
+    frequency            VARCHAR(20),               -- 'daily', 'monthly', 'quarterly'
+    units                VARCHAR(100),              -- 'Percent', 'Thousands of Persons', 'Index'
+    seasonal_adjustment  VARCHAR(50),
+    last_updated         TIMESTAMP,
+    observation_start    DATE,
+    observation_end      DATE
 );
 
--- Pre-populate FRED series metadata
-INSERT INTO fred_series_metadata (series_id, name, category, frequency, description) VALUES
-    ('FEDFUNDS', 'Federal Funds Effective Rate', 'interest_rate', 'M', 'Rate at which banks lend reserves overnight'),
-    ('DPRIME', 'Bank Prime Loan Rate', 'interest_rate', 'M', 'Rate banks charge most creditworthy customers'),
-    ('DGS1MO', '1-Month Treasury Yield', 'interest_rate', 'D', 'Market yield on 1-month Treasury'),
-    ('DGS3MO', '3-Month Treasury Yield', 'interest_rate', 'D', 'Market yield on 3-month Treasury'),
-    ('DGS6MO', '6-Month Treasury Yield', 'interest_rate', 'D', 'Market yield on 6-month Treasury'),
-    ('DGS1', '1-Year Treasury Yield', 'interest_rate', 'D', 'Market yield on 1-year Treasury'),
-    ('DGS2', '2-Year Treasury Yield', 'interest_rate', 'D', 'Market yield on 2-year Treasury'),
-    ('DGS5', '5-Year Treasury Yield', 'interest_rate', 'D', 'Market yield on 5-year Treasury'),
-    ('DGS7', '7-Year Treasury Yield', 'interest_rate', 'D', 'Market yield on 7-year Treasury'),
-    ('DGS10', '10-Year Treasury Yield', 'interest_rate', 'D', 'Benchmark for mortgage rates'),
-    ('DGS20', '20-Year Treasury Yield', 'interest_rate', 'D', 'Market yield on 20-year Treasury'),
-    ('DGS30', '30-Year Treasury Yield', 'interest_rate', 'D', 'Market yield on 30-year Treasury'),
-    ('SOFR', 'Secured Overnight Financing Rate', 'interest_rate', 'D', 'Broad repo rate replacing LIBOR'),
-    ('MORTGAGE30US', '30-Year Fixed Rate Mortgage', 'interest_rate', 'W', 'Average 30-year mortgage rate'),
-    ('PHOE004UR', 'Phoenix MSA Unemployment Rate', 'economic', 'M', 'Unemployment rate for Phoenix-Mesa-Chandler MSA'),
-    ('PHOE004NA', 'Phoenix MSA Employment Level', 'economic', 'M', 'All employees in thousands, Phoenix MSA'),
-    ('CPIAUCSL', 'Consumer Price Index (CPI)', 'national', 'M', 'CPI for all urban consumers')
+-- Pre-populate the 17 tracked FRED series
+INSERT INTO fred_series_metadata (series_id, title, category, frequency, units, seasonal_adjustment)
+VALUES
+    -- Interest Rates
+    ('FEDFUNDS',    'Federal Funds Effective Rate',                  'interest_rates',    'monthly', 'Percent', 'Not Seasonally Adjusted'),
+    ('DPRIME',      'Bank Prime Loan Rate',                          'interest_rates',    'monthly', 'Percent', 'Not Seasonally Adjusted'),
+    ('DGS1MO',      'Market Yield on U.S. Treasury Securities at 1-Month Constant Maturity',  'interest_rates', 'daily', 'Percent', 'Not Seasonally Adjusted'),
+    ('DGS3MO',      'Market Yield on U.S. Treasury Securities at 3-Month Constant Maturity',  'interest_rates', 'daily', 'Percent', 'Not Seasonally Adjusted'),
+    ('DGS6MO',      'Market Yield on U.S. Treasury Securities at 6-Month Constant Maturity',  'interest_rates', 'daily', 'Percent', 'Not Seasonally Adjusted'),
+    ('DGS1',        'Market Yield on U.S. Treasury Securities at 1-Year Constant Maturity',   'interest_rates', 'daily', 'Percent', 'Not Seasonally Adjusted'),
+    ('DGS2',        'Market Yield on U.S. Treasury Securities at 2-Year Constant Maturity',   'interest_rates', 'daily', 'Percent', 'Not Seasonally Adjusted'),
+    ('DGS5',        'Market Yield on U.S. Treasury Securities at 5-Year Constant Maturity',   'interest_rates', 'daily', 'Percent', 'Not Seasonally Adjusted'),
+    ('DGS7',        'Market Yield on U.S. Treasury Securities at 7-Year Constant Maturity',   'interest_rates', 'daily', 'Percent', 'Not Seasonally Adjusted'),
+    ('DGS10',       'Market Yield on U.S. Treasury Securities at 10-Year Constant Maturity',  'interest_rates', 'daily', 'Percent', 'Not Seasonally Adjusted'),
+    ('DGS20',       'Market Yield on U.S. Treasury Securities at 20-Year Constant Maturity',  'interest_rates', 'daily', 'Percent', 'Not Seasonally Adjusted'),
+    ('DGS30',       'Market Yield on U.S. Treasury Securities at 30-Year Constant Maturity',  'interest_rates', 'daily', 'Percent', 'Not Seasonally Adjusted'),
+    ('SOFR',        'Secured Overnight Financing Rate',              'interest_rates',    'daily',   'Percent', 'Not Seasonally Adjusted'),
+    ('MORTGAGE30US','30-Year Fixed Rate Mortgage Average in the United States', 'interest_rates', 'weekly', 'Percent', 'Not Seasonally Adjusted'),
+
+    -- Phoenix Economic
+    ('PHOE004UR',   'Unemployment Rate in Phoenix-Mesa-Chandler, AZ (MSA)', 'phoenix_economic', 'monthly', 'Percent',              'Not Seasonally Adjusted'),
+    ('PHOE004NA',   'All Employees: Total Nonfarm in Phoenix-Mesa-Chandler, AZ (MSA)', 'phoenix_economic', 'monthly', 'Thousands of Persons', 'Not Seasonally Adjusted'),
+
+    -- National Economic
+    ('CPIAUCSL',    'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average', 'national_economic', 'monthly', 'Index 1982-1984=100', 'Seasonally Adjusted')
 ON CONFLICT (series_id) DO NOTHING;
 
--- 5. Extraction log
+-- =============================================================================
+-- 5. extraction_log — Tracks every extraction run
+-- =============================================================================
 CREATE TABLE IF NOT EXISTS extraction_log (
-    id              BIGSERIAL PRIMARY KEY,
-    source          TEXT NOT NULL,          -- 'costar_msa', 'costar_submarket', 'fred', 'census'
-    started_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    finished_at     TIMESTAMPTZ,
-    status          TEXT NOT NULL DEFAULT 'running',  -- 'running', 'success', 'error'
-    records_upserted INT DEFAULT 0,
-    error_message   TEXT,
-    details         JSONB
+    id                  SERIAL PRIMARY KEY,
+    source              VARCHAR(50) NOT NULL,       -- 'costar', 'fred', 'census'
+    started_at          TIMESTAMP NOT NULL DEFAULT NOW(),
+    completed_at        TIMESTAMP,
+    status              VARCHAR(20) NOT NULL DEFAULT 'running',  -- 'running', 'success', 'failed'
+    records_processed   INTEGER DEFAULT 0,
+    records_inserted    INTEGER DEFAULT 0,
+    records_updated     INTEGER DEFAULT 0,
+    error_message       TEXT,
+    details             JSONB                       -- extra metadata
 );
 
-CREATE INDEX IF NOT EXISTS idx_extraction_log_source ON extraction_log (source, started_at DESC);
-
--- ============================================================================
--- Materialized Views for fast dashboard queries
--- ============================================================================
-
--- Latest CoStar value per geography/concept
+-- =============================================================================
+-- Materialized View 1: costar_latest — Latest value per geography/concept
+-- =============================================================================
 CREATE MATERIALIZED VIEW IF NOT EXISTS costar_latest AS
-SELECT DISTINCT ON (geography_name, concept)
-    geography_name,
+SELECT DISTINCT ON (geography_type, geography_name, concept)
     geography_type,
-    geography_code,
+    geography_name,
     concept,
     date,
     value,
     is_forecast
 FROM costar_timeseries
-WHERE value IS NOT NULL AND is_forecast = FALSE
-ORDER BY geography_name, concept, date DESC;
+WHERE is_forecast = FALSE
+ORDER BY geography_type, geography_name, concept, date DESC;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_costar_latest_pk ON costar_latest (geography_name, concept);
+CREATE UNIQUE INDEX IF NOT EXISTS uidx_costar_latest
+    ON costar_latest (geography_type, geography_name, concept);
 
--- Latest FRED value per series
+-- =============================================================================
+-- Materialized View 2: fred_latest — Latest value per series
+-- =============================================================================
 CREATE MATERIALIZED VIEW IF NOT EXISTS fred_latest AS
 SELECT DISTINCT ON (series_id)
     series_id,
     date,
     value
 FROM fred_timeseries
-WHERE value IS NOT NULL
 ORDER BY series_id, date DESC;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_fred_latest_pk ON fred_latest (series_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uidx_fred_latest
+    ON fred_latest (series_id);
 
--- ============================================================================
--- Helper function to refresh materialized views
--- ============================================================================
-CREATE OR REPLACE FUNCTION refresh_market_views()
-RETURNS void AS $$
-BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY costar_latest;
-    REFRESH MATERIALIZED VIEW CONCURRENTLY fred_latest;
-END;
-$$ LANGUAGE plpgsql;
+COMMIT;

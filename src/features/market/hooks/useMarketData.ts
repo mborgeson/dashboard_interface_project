@@ -6,7 +6,7 @@ import {
 } from '@/hooks/api/useMarketData';
 
 export function useMarketData() {
-  // Fetch from API (with DB → static fallback)
+  // Fetch from API (with DB fallback on the backend)
   const { data: overviewData, isLoading: overviewLoading, error: overviewError } = useMarketOverview();
   const { data: submarketsData, isLoading: submarketsLoading, error: submarketsError } = useSubmarkets();
   const { data: trendsData, isLoading: trendsLoading, error: trendsError } = useMarketTrends();
@@ -17,24 +17,38 @@ export function useMarketData() {
   const trends = useMemo(() => trendsData?.trends ?? [], [trendsData]);
   const monthlyData = useMemo(() => trendsData?.monthlyData ?? [], [trendsData]);
 
-  // Derive sparkline data from trends (last 6 data points) instead of hardcoded values
+  // Derive sparkline data from monthly API data (last 6 data points).
+  // monthlyData includes employment/population fields from /api/v1/market/trends.
+  // Falls back to trends-based approximation, then to static seed values.
   const sparklineData = useMemo(() => {
-    if (trends.length === 0) {
+    // Prefer monthlyData which has employment & population fields
+    if (monthlyData.length >= 2) {
+      const last6 = monthlyData.slice(-6);
       return {
-        unemployment: [4.2, 4.0, 3.9, 3.8, 3.7, 3.6],
-        jobGrowth: [2.1, 2.4, 2.6, 2.8, 3.0, 3.2],
-        incomeGrowth: [3.8, 4.0, 4.1, 4.2, 4.3, 4.5],
-        populationGrowth: [2.0, 2.1, 2.1, 2.2, 2.2, 2.3],
+        unemployment: last6.map(m => (1 - m.occupancy) * 100),
+        jobGrowth: last6.map(m => m.employment),
+        incomeGrowth: last6.map(m => m.rentGrowth * 100),
+        populationGrowth: last6.map(m => m.population),
       };
     }
-    const last6 = trends.slice(-6);
+    // Fall back to basic trends if monthlyData is unavailable
+    if (trends.length >= 2) {
+      const last6 = trends.slice(-6);
+      return {
+        unemployment: last6.map(t => (1 - t.occupancy) * 100),
+        jobGrowth: last6.map(t => t.rentGrowth * 100),
+        incomeGrowth: last6.map(t => t.rentGrowth * 100),
+        populationGrowth: last6.map(t => t.rentGrowth * 50),
+      };
+    }
+    // TODO: Remove when DB pipeline confirmed — temporary seed values
     return {
-      unemployment: last6.map(t => (1 - t.occupancy) * 100),
-      jobGrowth: last6.map(t => t.rentGrowth * 100),
-      incomeGrowth: last6.map(t => t.rentGrowth * 100),
-      populationGrowth: last6.map(t => t.rentGrowth * 50),
+      unemployment: [4.2, 4.0, 3.9, 3.8, 3.7, 3.6],
+      jobGrowth: [2.1, 2.4, 2.6, 2.8, 3.0, 3.2],
+      incomeGrowth: [3.8, 4.0, 4.1, 4.2, 4.3, 4.5],
+      populationGrowth: [2.0, 2.1, 2.1, 2.2, 2.2, 2.3],
     };
-  }, [trends]);
+  }, [monthlyData, trends]);
 
   // Calculate aggregate metrics
   const aggregateMetrics = useMemo(() => {

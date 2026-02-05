@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     extraction,
     interest_rates,
     market_data,
+    market_data_admin,
     monitoring,
     properties,
     reporting,
@@ -50,3 +51,4 @@ api_router.include_router(documents.router, prefix="/documents", tags=["document
 api_router.include_router(market_data.router, prefix="/market", tags=["market-data"])
 api_router.include_router(reporting.router, prefix="/reporting", tags=["reporting"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+api_router.include_router(market_data_admin.router)

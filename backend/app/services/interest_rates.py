@@ -155,6 +155,7 @@ class InterestRatesService:
     # ── FRED API direct fetch ──
 
     async def _fetch_from_fred(self, series_id: str) -> list[dict] | None:
+        """Fetch the latest 2 observations for a single FRED series."""
         if not self._fred_api_key:
             return None
         try:
@@ -175,14 +176,57 @@ class InterestRatesService:
             logger.debug(f"FRED API error for {series_id}: {e}")
             return None
 
+    async def _fetch_historical_from_fred(
+        self, series_id: str, start_date: str, end_date: str
+    ) -> list[dict] | None:
+        """Fetch historical observations for a FRED series over a date range.
+
+        Args:
+            series_id: FRED series identifier (e.g. 'DGS10').
+            start_date: Start date in YYYY-MM-DD format.
+            end_date: End date in YYYY-MM-DD format.
+
+        Returns:
+            List of {date, value} dicts sorted ascending, or None on failure.
+        """
+        if not self._fred_api_key:
+            return None
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.get(
+                    "https://api.stlouisfed.org/fred/series/observations",
+                    params={
+                        "series_id": series_id,
+                        "api_key": self._fred_api_key,
+                        "file_type": "json",
+                        "observation_start": start_date,
+                        "observation_end": end_date,
+                        "sort_order": "asc",
+                        "frequency": "m",  # monthly aggregation
+                        "aggregation_method": "avg",
+                    },
+                )
+                response.raise_for_status()
+                observations = response.json().get("observations", [])
+                # Filter out missing values (FRED uses "." for unavailable data)
+                return [
+                    {"date": obs["date"], "value": float(obs["value"])}
+                    for obs in observations
+                    if obs.get("value", ".") != "."
+                ]
+        except Exception as e:
+            logger.debug(f"FRED API historical error for {series_id}: {e}")
+            return None
+
     # ── Database queries ──
 
     def _get_rates_from_db(
         self, series_ids: list[str]
     ) -> dict[str, tuple[float, float, str]] | None:
-        """Query fred_timeseries for latest 2 values per series.
+        """Query fred_timeseries for latest 2 values per series using a single query.
 
-        Returns dict of series_id → (current_value, previous_value, as_of_date)
+        Returns dict of series_id -> (current_value, previous_value, as_of_date)
+        or None if DB is unavailable or returns no data.
         """
         if not self._db_available or not self._market_db_engine:
             return None
@@ -190,26 +234,50 @@ class InterestRatesService:
         try:
             from sqlalchemy import text
 
-            results = {}
+            results: dict[str, tuple[float, float, str]] = {}
             with self._market_db_engine.connect() as conn:
-                for sid in series_ids:
-                    rows = conn.execute(
-                        text("""
-                            SELECT value, date::text FROM fred_timeseries
-                            WHERE series_id = :sid
-                            ORDER BY date DESC LIMIT 2
-                        """),
-                        {"sid": sid},
-                    ).fetchall()
+                # Use a single query with a window function to fetch the latest
+                # 2 rows per series, avoiding N+1 individual queries.
+                rows = conn.execute(
+                    text("""
+                        WITH ranked AS (
+                            SELECT
+                                series_id,
+                                value,
+                                date::text AS date_str,
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY series_id ORDER BY date DESC
+                                ) AS rn
+                            FROM fred_timeseries
+                            WHERE series_id = ANY(:sids)
+                        )
+                        SELECT series_id, value, date_str, rn
+                        FROM ranked
+                        WHERE rn <= 2
+                        ORDER BY series_id, rn
+                    """),
+                    {"sids": series_ids},
+                ).fetchall()
 
-                    if rows:
-                        current = float(rows[0][0])
-                        previous = float(rows[1][0]) if len(rows) > 1 else current
-                        results[sid] = (current, previous, rows[0][1])
+                # Group by series_id
+                series_rows: dict[str, list[tuple[float, str]]] = {}
+                for row in rows:
+                    sid = row[0]
+                    val = float(row[1])
+                    date_str = row[2]
+                    if sid not in series_rows:
+                        series_rows[sid] = []
+                    series_rows[sid].append((val, date_str))
+
+                for sid, vals in series_rows.items():
+                    current = vals[0][0]
+                    previous = vals[1][0] if len(vals) > 1 else current
+                    as_of = vals[0][1]
+                    results[sid] = (current, previous, as_of)
 
             return results if results else None
         except Exception as e:
-            logger.debug(f"DB query failed for interest rates: {e}")
+            logger.warning(f"DB query failed for interest rates: {e}")
             return None
 
     def _get_historical_from_db(self, months: int = 12) -> list[dict] | None:
@@ -226,17 +294,15 @@ class InterestRatesService:
 
                 for key, sid in _HISTORICAL_SERIES.items():
                     rows = conn.execute(
-                        text(
-                            """  # nosec B608
+                        text("""
                             SELECT TO_CHAR(date, 'YYYY-MM') as month, AVG(value) as avg_val
                             FROM fred_timeseries
                             WHERE series_id = :sid
-                            AND date >= (CURRENT_DATE - INTERVAL ':months months')
+                            AND date >= (CURRENT_DATE - make_interval(months => :months))
                             GROUP BY TO_CHAR(date, 'YYYY-MM')
                             ORDER BY month
-                        """.replace(":months", str(months))
-                        ),
-                        {"sid": sid},
+                        """),
+                        {"sid": sid, "months": months},
                     ).fetchall()
 
                     for row in rows:
@@ -259,19 +325,19 @@ class InterestRatesService:
                 )
                 return result[-months:] if result else None
         except Exception as e:
-            logger.debug(f"DB historical query failed: {e}")
+            logger.warning(f"DB historical query failed: {e}")
             return None
 
     # ── Public methods ──
 
     async def get_key_rates(self) -> dict:
-        """Get current key interest rates. DB → FRED API → mock."""
+        """Get current key interest rates. DB -> FRED API -> mock."""
         cache_key = "key_rates"
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        # Try DB first
+        # Tier 1: Try DB first
         await self._get_db_engine()
         series_ids = list(_RATE_DISPLAY.keys())
         db_rates = self._get_rates_from_db(series_ids)
@@ -296,15 +362,20 @@ class InterestRatesService:
                     )
 
             if rates:
+                logger.info(
+                    "Key rates sourced from database",
+                    count=len(rates),
+                )
                 data = {
                     "key_rates": rates,
                     "last_updated": datetime.now(UTC).isoformat(),
                     "source": "database",
+                    "data_source": "database",
                 }
                 self._set_cache(cache_key, data)
                 return data
 
-        # Try FRED API directly
+        # Tier 2: Try FRED API directly
         if self._fred_api_key:
             rates = []
             for sid, config in _RATE_DISPLAY.items():
@@ -338,31 +409,38 @@ class InterestRatesService:
                         )
 
             if len(rates) >= 5:
+                logger.info(
+                    "Key rates sourced from FRED API",
+                    count=len(rates),
+                )
                 data = {
                     "key_rates": rates,
                     "last_updated": datetime.now(UTC).isoformat(),
                     "source": "fred_api",
+                    "data_source": "fred_api",
                 }
                 self._set_cache(cache_key, data)
                 return data
 
-        # Fall back to mock
+        # Tier 3: Fall back to mock
+        logger.info("Key rates sourced from mock data (DB and FRED API unavailable)")
         data = {
             "key_rates": self.get_mock_key_rates(),
             "last_updated": datetime.now(UTC).isoformat(),
             "source": "mock",
+            "data_source": "mock",
         }
         self._set_cache(cache_key, data)
         return data
 
     async def get_yield_curve(self) -> dict:
-        """Get Treasury yield curve. DB → FRED API → mock."""
+        """Get Treasury yield curve. DB -> FRED API -> mock."""
         cache_key = "yield_curve"
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        # Try DB
+        # Tier 1: Try DB
         await self._get_db_engine()
         series_ids = [s[0] for s in _YIELD_CURVE_SERIES]
         db_rates = self._get_rates_from_db(series_ids)
@@ -382,50 +460,132 @@ class InterestRatesService:
                     )
 
             if curve:
+                as_of = db_rates["DGS10"][2] if "DGS10" in db_rates else ""
+                logger.info(
+                    "Yield curve sourced from database",
+                    points=len(curve),
+                )
                 data = {
                     "yield_curve": curve,
-                    "as_of_date": db_rates.get("DGS10", (0, 0, ""))[2]
-                    if "DGS10" in db_rates
-                    else "",
+                    "as_of_date": as_of,
                     "last_updated": datetime.now(UTC).isoformat(),
                     "source": "database",
+                    "data_source": "database",
                 }
                 self._set_cache(cache_key, data)
                 return data
 
-        # Fall back to mock
+        # Tier 2: Try FRED API for each yield curve maturity
+        if self._fred_api_key:
+            curve = []
+            for sid, label, maturity_months in _YIELD_CURVE_SERIES:
+                obs = await self._fetch_from_fred(sid)
+                if obs and len(obs) > 0:
+                    current_val = obs[0].get("value", ".")
+                    if current_val != ".":
+                        current = float(current_val)
+                        previous = (
+                            float(obs[1]["value"])
+                            if len(obs) > 1 and obs[1].get("value", ".") != "."
+                            else current
+                        )
+                        curve.append(
+                            {
+                                "maturity": label,
+                                "yield": current,
+                                "previous_yield": previous,
+                                "maturity_months": maturity_months,
+                            }
+                        )
+
+            if len(curve) >= 6:
+                as_of = ""
+                # Extract as_of_date from the 10Y observation if available
+                for sid, _label, _m in _YIELD_CURVE_SERIES:
+                    if sid == "DGS10":
+                        ten_yr_obs = await self._fetch_from_fred(sid)
+                        if ten_yr_obs:
+                            as_of = ten_yr_obs[0].get("date", "")
+                        break
+
+                logger.info(
+                    "Yield curve sourced from FRED API",
+                    points=len(curve),
+                )
+                data = {
+                    "yield_curve": curve,
+                    "as_of_date": as_of,
+                    "last_updated": datetime.now(UTC).isoformat(),
+                    "source": "fred_api",
+                    "data_source": "fred_api",
+                }
+                self._set_cache(cache_key, data)
+                return data
+
+        # Tier 3: Fall back to mock
+        logger.info("Yield curve sourced from mock data (DB and FRED API unavailable)")
         data = {
             "yield_curve": self.get_mock_yield_curve(),
             "as_of_date": "2025-12-05",
             "last_updated": datetime.now(UTC).isoformat(),
             "source": "mock",
+            "data_source": "mock",
         }
         self._set_cache(cache_key, data)
         return data
 
     async def get_historical_rates(self, months: int = 12) -> dict:
-        """Get historical rates. DB → mock."""
+        """Get historical rates. DB -> FRED API -> mock."""
         cache_key = f"historical_rates_{months}"
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
-        # Try DB
+        # Tier 1: Try DB
         await self._get_db_engine()
         db_historical = self._get_historical_from_db(months)
 
         if db_historical:
+            logger.info(
+                "Historical rates sourced from database",
+                months=months,
+                rows=len(db_historical),
+            )
             data = {
                 "rates": db_historical,
                 "start_date": db_historical[0]["date"],
                 "end_date": db_historical[-1]["date"],
                 "last_updated": datetime.now(UTC).isoformat(),
                 "source": "database",
+                "data_source": "database",
             }
             self._set_cache(cache_key, data)
             return data
 
-        # Fall back to mock
+        # Tier 2: Try FRED API for historical data
+        if self._fred_api_key:
+            fred_historical = await self._fetch_historical_rates_from_fred(months)
+            if fred_historical:
+                logger.info(
+                    "Historical rates sourced from FRED API",
+                    months=months,
+                    rows=len(fred_historical),
+                )
+                data = {
+                    "rates": fred_historical,
+                    "start_date": fred_historical[0]["date"],
+                    "end_date": fred_historical[-1]["date"],
+                    "last_updated": datetime.now(UTC).isoformat(),
+                    "source": "fred_api",
+                    "data_source": "fred_api",
+                }
+                self._set_cache(cache_key, data)
+                return data
+
+        # Tier 3: Fall back to mock
+        logger.info(
+            "Historical rates sourced from mock data (DB and FRED API unavailable)"
+        )
         rates = self.get_mock_historical_rates(months)
         data = {
             "rates": rates,
@@ -433,9 +593,63 @@ class InterestRatesService:
             "end_date": rates[-1]["date"] if rates else "",
             "last_updated": datetime.now(UTC).isoformat(),
             "source": "mock",
+            "data_source": "mock",
         }
         self._set_cache(cache_key, data)
         return data
+
+    async def _fetch_historical_rates_from_fred(
+        self, months: int = 12
+    ) -> list[dict] | None:
+        """Fetch monthly historical rates from FRED API for all tracked series.
+
+        Aggregates each series into monthly averages and merges them into a list
+        of dicts matching the mock data shape:
+        [{date: "YYYY-MM", federal_funds: x, treasury_2y: x, ...}, ...]
+
+        Returns None if insufficient data is available.
+        """
+        now = datetime.now(UTC)
+        end_date = now.strftime("%Y-%m-%d")
+        # Calculate start date going back the requested number of months
+        start_year = now.year
+        start_month = now.month - months
+        while start_month <= 0:
+            start_month += 12
+            start_year -= 1
+        start_date = f"{start_year}-{start_month:02d}-01"
+
+        # Fetch all series in parallel-ish (sequential but with shared client)
+        series_data: dict[str, dict[str, float]] = {}
+
+        for key, sid in _HISTORICAL_SERIES.items():
+            observations = await self._fetch_historical_from_fred(
+                sid, start_date, end_date
+            )
+            if not observations:
+                continue
+
+            for obs in observations:
+                # Convert YYYY-MM-DD to YYYY-MM for monthly grouping
+                month_key = obs["date"][:7]
+                if month_key not in series_data:
+                    series_data[month_key] = {"date": month_key}
+                # Since FRED already returns monthly avg, use directly
+                series_data[month_key][key] = round(obs["value"], 2)
+
+        if not series_data:
+            return None
+
+        # Filter to months that have at least federal_funds and treasury_10y
+        result = sorted(
+            [
+                v
+                for v in series_data.values()
+                if "federal_funds" in v and "treasury_10y" in v
+            ],
+            key=lambda x: x["date"],
+        )
+        return result[-months:] if result else None
 
     async def get_rate_spreads(self, months: int = 12) -> dict:
         """Get calculated rate spreads."""
@@ -444,7 +658,7 @@ class InterestRatesService:
         if cached:
             return cached
 
-        # Use historical rates (which already do DB → mock fallback)
+        # Use historical rates (which already do DB -> FRED API -> mock fallback)
         historical_data = await self.get_historical_rates(months)
         rates = historical_data.get("rates", [])
         spreads = self.calculate_spreads(rates)
@@ -453,11 +667,60 @@ class InterestRatesService:
             "spreads": spreads,
             "last_updated": datetime.now(UTC).isoformat(),
             "source": historical_data.get("source", "mock"),
+            "data_source": historical_data.get("data_source", "mock"),
         }
         self._set_cache(cache_key, data)
         return data
 
-    # ── Mock data (unchanged, kept as fallback) ──
+    async def get_lending_context(self) -> dict:
+        """Get lending context with indicative rates from live data when available.
+
+        Uses the same 3-tier fallback as get_key_rates() to source benchmark values.
+        """
+        # Try to get live key rates (DB -> FRED API -> mock)
+        key_rates_response = await self.get_key_rates()
+        key_rates_list = key_rates_response.get("key_rates", [])
+        source = key_rates_response.get("data_source", "mock")
+
+        # Build lookup by id
+        key_rates = {r["id"]: r["current_value"] for r in key_rates_list}
+        treasury_10y = key_rates.get("treasury-10y", 4.22)
+        sofr = key_rates.get("sofr-1m", 5.34)
+        prime = key_rates.get("prime-rate", 8.50)
+
+        return {
+            "typical_spreads": {
+                "multifamily_perm": {
+                    "name": "Multifamily Permanent",
+                    "spread": 1.50,
+                    "benchmark": "10Y Treasury",
+                },
+                "multifamily_bridge": {
+                    "name": "Multifamily Bridge",
+                    "spread": 3.00,
+                    "benchmark": "SOFR",
+                },
+                "commercial_perm": {
+                    "name": "Commercial Permanent",
+                    "spread": 1.75,
+                    "benchmark": "10Y Treasury",
+                },
+                "construction": {
+                    "name": "Construction",
+                    "spread": 0.50,
+                    "benchmark": "Prime Rate",
+                },
+            },
+            "current_indicative_rates": {
+                "multifamily_perm": round(treasury_10y + 1.50, 2),
+                "multifamily_bridge": round(sofr + 3.00, 2),
+                "commercial_perm": round(treasury_10y + 1.75, 2),
+                "construction": round(prime + 0.50, 2),
+            },
+            "data_source": source,
+        }
+
+    # ── Mock data (unchanged, kept as tier-3 fallback) ──
 
     def get_mock_key_rates(self) -> list[dict]:
         return [
@@ -806,43 +1069,6 @@ class InterestRatesService:
                 "update_frequency": "Daily",
             },
         ]
-
-    def get_lending_context(self) -> dict:
-        key_rates = {r["id"]: r["current_value"] for r in self.get_mock_key_rates()}
-        treasury_10y = key_rates.get("treasury-10y", 4.22)
-        sofr = key_rates.get("sofr-1m", 5.34)
-        prime = key_rates.get("prime-rate", 8.50)
-
-        return {
-            "typical_spreads": {
-                "multifamily_perm": {
-                    "name": "Multifamily Permanent",
-                    "spread": 1.50,
-                    "benchmark": "10Y Treasury",
-                },
-                "multifamily_bridge": {
-                    "name": "Multifamily Bridge",
-                    "spread": 3.00,
-                    "benchmark": "SOFR",
-                },
-                "commercial_perm": {
-                    "name": "Commercial Permanent",
-                    "spread": 1.75,
-                    "benchmark": "10Y Treasury",
-                },
-                "construction": {
-                    "name": "Construction",
-                    "spread": 0.50,
-                    "benchmark": "Prime Rate",
-                },
-            },
-            "current_indicative_rates": {
-                "multifamily_perm": round(treasury_10y + 1.50, 2),
-                "multifamily_bridge": round(sofr + 3.00, 2),
-                "commercial_perm": round(treasury_10y + 1.75, 2),
-                "construction": round(prime + 0.50, 2),
-            },
-        }
 
     def calculate_spreads(self, historical_rates: list[dict]) -> dict:
         treasury_spread_2s10s = []

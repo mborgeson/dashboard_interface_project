@@ -162,7 +162,7 @@ async def get_lending_context():
     Actual rates will vary based on property type, location, sponsor, and market conditions.
     """
     service = get_interest_rates_service()
-    context = service.get_lending_context()
+    context = await service.get_lending_context()
 
     return LendingContextResponse(
         context=context,

@@ -6,69 +6,271 @@ Supports full-history first run and incremental updates.
 
 Usage:
   python -m app.services.data_extraction.fred_extractor
+  python -m app.services.data_extraction.fred_extractor --incremental
 """
+
+from __future__ import annotations
 
 import asyncio
 import sys
-import time
+from datetime import date
+from typing import Any
 
 import httpx
-from loguru import logger
+import structlog
 from sqlalchemy import create_engine, text
 
-from app.core.config import settings
+logger = structlog.get_logger(__name__)
 
-FRED_BASE_URL = "https://api.stlouisfed.org/fred/series/observations"
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
 
-# All 17 FRED series to extract
-FRED_SERIES = [
-    "FEDFUNDS",
-    "DPRIME",
-    "DGS1MO",
-    "DGS3MO",
-    "DGS6MO",
-    "DGS1",
-    "DGS2",
-    "DGS5",
-    "DGS7",
-    "DGS10",
-    "DGS20",
-    "DGS30",
-    "SOFR",
-    "MORTGAGE30US",
-    "PHOE004UR",
-    "PHOE004NA",
-    "CPIAUCSL",
-]
-
-# Rate limit: 120 requests per minute for FRED API
-REQUEST_DELAY = 0.6  # seconds between requests
+BATCH_SIZE = 1000
+REQUEST_DELAY = 0.6  # seconds — FRED allows ~120 requests/min
 
 
-async def fetch_series(
-    client: httpx.AsyncClient,
-    series_id: str,
-    api_key: str,
-    observation_start: str | None = None,
-) -> list[dict]:
-    """Fetch observations for a single FRED series."""
-    params = {
-        "series_id": series_id,
-        "api_key": api_key,
-        "file_type": "json",
-        "sort_order": "asc",
+class FREDExtractor:
+    """Extracts economic data from the FRED API and stores in database."""
+
+    SERIES_IDS: dict[str, str] = {
+        # Interest rates (14)
+        "FEDFUNDS": "Federal Funds Effective Rate",
+        "DPRIME": "Bank Prime Loan Rate",
+        "DGS1MO": "1-Month Treasury",
+        "DGS3MO": "3-Month Treasury",
+        "DGS6MO": "6-Month Treasury",
+        "DGS1": "1-Year Treasury",
+        "DGS2": "2-Year Treasury",
+        "DGS5": "5-Year Treasury",
+        "DGS7": "7-Year Treasury",
+        "DGS10": "10-Year Treasury",
+        "DGS20": "20-Year Treasury",
+        "DGS30": "30-Year Treasury",
+        "SOFR": "Secured Overnight Financing Rate",
+        "MORTGAGE30US": "30-Year Fixed Rate Mortgage Average",
+        # Phoenix economic (2)
+        "PHOE004UR": "Phoenix Unemployment Rate",
+        "PHOE004NA": "Phoenix All Employees Total Nonfarm",
+        # National economic (1)
+        "CPIAUCSL": "Consumer Price Index for All Urban Consumers",
     }
-    if observation_start:
-        params["observation_start"] = observation_start
 
-    try:
-        response = await client.get(FRED_BASE_URL, params=params)
-        response.raise_for_status()
-        data = response.json()
+    BASE_URL = "https://api.stlouisfed.org/fred"
+
+    def __init__(self, api_key: str, db_url: str) -> None:
+        """Initialize with FRED API key and database URL."""
+        if not api_key:
+            raise ValueError("FRED API key is required")
+        if not db_url:
+            raise ValueError("Database URL is required")
+
+        self._api_key = api_key
+        self._db_url = db_url
+        self._engine = create_engine(db_url)
+        self._log = logger.bind(service="fred_extractor")
+
+    # ------------------------------------------------------------------
+    # Public interface
+    # ------------------------------------------------------------------
+
+    async def extract_all(self, incremental: bool = True) -> dict[str, Any]:
+        """Extract all 17 series.
+
+        If *incremental* is True, only fetch data newer than what is already
+        in the database.  Returns a summary dict with status, counts, and
+        any errors encountered.
+        """
+        self._log.info(
+            "fred_extraction_started",
+            series_count=len(self.SERIES_IDS),
+            incremental=incremental,
+        )
+
+        # Create extraction_log entry
+        log_id = self._insert_extraction_log()
+
+        total_records = 0
+        series_processed = 0
+        errors: list[str] = []
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            self._client = client
+
+            for series_id in self.SERIES_IDS:
+                try:
+                    start_date: date | None = None
+                    if incremental:
+                        start_date = await self._get_last_date(series_id)
+                        if start_date:
+                            self._log.debug(
+                                "incremental_start",
+                                series_id=series_id,
+                                start_date=str(start_date),
+                            )
+
+                    count = await self.extract_series(series_id, start_date)
+                    total_records += count
+                    series_processed += 1
+
+                    if count > 0:
+                        self._log.info(
+                            "series_extracted",
+                            series_id=series_id,
+                            records=count,
+                        )
+                    else:
+                        self._log.debug("series_no_new_data", series_id=series_id)
+
+                    # Update metadata for the series
+                    await self._update_series_metadata(series_id)
+
+                except Exception as exc:
+                    msg = f"{series_id}: {exc}"
+                    self._log.error(
+                        "series_extraction_failed",
+                        series_id=series_id,
+                        error=str(exc),
+                    )
+                    errors.append(msg)
+
+            self._client = None  # type: ignore[assignment]
+
+        # Refresh materialized view
+        self._refresh_materialized_view()
+
+        # Finalize extraction_log
+        status = "success" if not errors else "error"
+        self._finalize_extraction_log(
+            log_id, status, total_records, series_processed, incremental, errors
+        )
+
+        summary: dict[str, Any] = {
+            "status": status,
+            "series_processed": series_processed,
+            "records_upserted": total_records,
+            "errors": errors,
+        }
+        self._log.info("fred_extraction_complete", **summary)
+        return summary
+
+    async def extract_series(
+        self, series_id: str, start_date: date | None = None
+    ) -> int:
+        """Fetch observations for a single series from the FRED API.
+
+        If *start_date* is provided, only fetch observations from that date
+        forward.  Returns the number of records upserted.
+        """
+        observations = await self._fetch_observations(series_id, start_date)
+        if not observations:
+            return 0
+
+        return self._batch_upsert(series_id, observations)
+
+    # ------------------------------------------------------------------
+    # Database helpers
+    # ------------------------------------------------------------------
+
+    async def _get_last_date(self, series_id: str) -> date | None:
+        """Query database for MAX(date) of a series for incremental updates."""
+        with self._engine.connect() as conn:
+            result = conn.execute(
+                text(
+                    "SELECT MAX(date)::text FROM fred_timeseries WHERE series_id = :sid"
+                ),
+                {"sid": series_id},
+            )
+            row = result.fetchone()
+            if row and row[0]:
+                return date.fromisoformat(row[0])
+        return None
+
+    def _batch_upsert(self, series_id: str, records: list[dict]) -> int:
+        """Upsert observations into fred_timeseries in chunks of BATCH_SIZE."""
+        if not records:
+            return 0
+
+        upserted = 0
+        for i in range(0, len(records), BATCH_SIZE):
+            chunk = records[i : i + BATCH_SIZE]
+            self._upsert_chunk(series_id, chunk)
+            upserted += len(chunk)
+
+        return upserted
+
+    def _upsert_chunk(self, series_id: str, chunk: list[dict]) -> None:
+        """Execute a batch upsert for a chunk of records."""
+        if not chunk:
+            return
+
+        # Build a multi-row VALUES clause for efficient batch insert
+        placeholders = []
+        params: dict[str, Any] = {}
+        for idx, rec in enumerate(chunk):
+            placeholders.append(f"(:sid_{idx}, :dt_{idx}, :val_{idx})")
+            params[f"sid_{idx}"] = series_id
+            params[f"dt_{idx}"] = rec["date"]
+            params[f"val_{idx}"] = rec["value"]
+
+        values_clause = ", ".join(placeholders)
+        sql = text(f"""
+            INSERT INTO fred_timeseries (series_id, date, value)
+            VALUES {values_clause}
+            ON CONFLICT (series_id, date)
+            DO UPDATE SET value = EXCLUDED.value, imported_at = NOW()
+        """)
+
+        with self._engine.begin() as conn:
+            conn.execute(sql, params)
+
+    # ------------------------------------------------------------------
+    # FRED API calls
+    # ------------------------------------------------------------------
+
+    async def _fetch_observations(
+        self, series_id: str, start_date: date | None = None
+    ) -> list[dict]:
+        """Call FRED API ``/fred/series/observations`` endpoint.
+
+        Returns list of ``{date, value}`` dicts.  Rows where the FRED value
+        is ``"."`` (missing) are silently skipped.
+        """
+        params: dict[str, str] = {
+            "series_id": series_id,
+            "api_key": self._api_key,
+            "file_type": "json",
+            "sort_order": "asc",
+        }
+        if start_date is not None:
+            params["observation_start"] = start_date.isoformat()
+
+        try:
+            response = await self._client.get(
+                f"{self.BASE_URL}/series/observations", params=params
+            )
+            response.raise_for_status()
+            data = response.json()
+        except httpx.HTTPStatusError as exc:
+            self._log.warning(
+                "fred_api_http_error",
+                series_id=series_id,
+                status_code=exc.response.status_code,
+            )
+            return []
+        except Exception as exc:
+            self._log.error(
+                "fred_api_request_error",
+                series_id=series_id,
+                error=str(exc),
+            )
+            return []
+
+        # Rate limiting — sleep after every request
+        await asyncio.sleep(REQUEST_DELAY)
+
         observations = data.get("observations", [])
-
-        # Filter out missing values (FRED uses "." for missing)
-        valid = []
+        valid: list[dict] = []
         for obs in observations:
             val_str = obs.get("value", ".")
             if val_str == "." or val_str is None:
@@ -80,160 +282,204 @@ async def fetch_series(
                 continue
 
         return valid
-    except httpx.HTTPStatusError as e:
-        logger.warning(f"FRED API HTTP error for {series_id}: {e.response.status_code}")
-        return []
-    except Exception as e:
-        logger.error(f"Error fetching FRED series {series_id}: {e}")
-        return []
 
+    async def _update_series_metadata(self, series_id: str) -> None:
+        """Fetch and update ``fred_series_metadata`` table for a series."""
+        params: dict[str, str] = {
+            "series_id": series_id,
+            "api_key": self._api_key,
+            "file_type": "json",
+        }
 
-def _get_max_date(engine, series_id: str) -> str | None:
-    """Get the latest date for a series in the database."""
-    with engine.connect() as conn:
-        result = conn.execute(
-            text("SELECT MAX(date)::text FROM fred_timeseries WHERE series_id = :sid"),
-            {"sid": series_id},
-        )
-        row = result.fetchone()
-        return row[0] if row and row[0] else None
+        try:
+            response = await self._client.get(f"{self.BASE_URL}/series", params=params)
+            response.raise_for_status()
+            data = response.json()
+        except Exception as exc:
+            self._log.debug(
+                "metadata_fetch_skipped",
+                series_id=series_id,
+                error=str(exc),
+            )
+            return
 
+        await asyncio.sleep(REQUEST_DELAY)
 
-def _batch_upsert_fred(engine, series_id: str, records: list[dict]) -> int:
-    """Upsert FRED observations into fred_timeseries."""
-    if not records:
-        return 0
+        serieses = data.get("seriess", [])
+        if not serieses:
+            return
 
-    with engine.begin() as conn:
-        for rec in records:
+        meta = serieses[0]
+
+        with self._engine.begin() as conn:
             conn.execute(
                 text("""
-                    INSERT INTO fred_timeseries (series_id, date, value)
-                    VALUES (:series_id, :date, :value)
-                    ON CONFLICT (series_id, date)
-                    DO UPDATE SET value = EXCLUDED.value, imported_at = NOW()
+                    INSERT INTO fred_series_metadata
+                        (series_id, title, frequency, units, seasonal_adjustment,
+                         observation_start, observation_end, last_updated)
+                    VALUES
+                        (:series_id, :title, :frequency, :units, :seasonal_adj,
+                         :obs_start, :obs_end, :last_updated)
+                    ON CONFLICT (series_id)
+                    DO UPDATE SET
+                        title = EXCLUDED.title,
+                        frequency = EXCLUDED.frequency,
+                        units = EXCLUDED.units,
+                        seasonal_adjustment = EXCLUDED.seasonal_adjustment,
+                        observation_start = EXCLUDED.observation_start,
+                        observation_end = EXCLUDED.observation_end,
+                        last_updated = EXCLUDED.last_updated,
+                        imported_at = NOW()
                 """),
-                {"series_id": series_id, "date": rec["date"], "value": rec["value"]},
+                {
+                    "series_id": series_id,
+                    "title": meta.get("title"),
+                    "frequency": meta.get("frequency_short"),
+                    "units": meta.get("units"),
+                    "seasonal_adj": meta.get("seasonal_adjustment_short"),
+                    "obs_start": meta.get("observation_start"),
+                    "obs_end": meta.get("observation_end"),
+                    "last_updated": meta.get("last_updated"),
+                },
             )
-    return len(records)
+
+    # ------------------------------------------------------------------
+    # Extraction log helpers
+    # ------------------------------------------------------------------
+
+    def _insert_extraction_log(self) -> int:
+        """Insert a new extraction_log row with status='running'."""
+        with self._engine.begin() as conn:
+            result = conn.execute(
+                text(
+                    "INSERT INTO extraction_log (source, status) "
+                    "VALUES ('fred', 'running') RETURNING id"
+                )
+            )
+            return result.scalar()  # type: ignore[return-value]
+
+    def _finalize_extraction_log(
+        self,
+        log_id: int,
+        status: str,
+        records: int,
+        series_processed: int,
+        incremental: bool,
+        errors: list[str],
+    ) -> None:
+        """Update the extraction_log row with final results."""
+        import json
+
+        details = json.dumps(
+            {
+                "series_processed": series_processed,
+                "incremental": incremental,
+            }
+        )
+
+        with self._engine.begin() as conn:
+            conn.execute(
+                text("""
+                    UPDATE extraction_log
+                    SET finished_at = NOW(),
+                        status = :status,
+                        records_upserted = :records,
+                        error_message = :errors,
+                        details = :details
+                    WHERE id = :log_id
+                """),
+                {
+                    "status": status,
+                    "records": records,
+                    "errors": "; ".join(errors) if errors else None,
+                    "details": details,
+                    "log_id": log_id,
+                },
+            )
+
+    def _refresh_materialized_view(self) -> None:
+        """Refresh the ``fred_latest`` materialized view."""
+        try:
+            with self._engine.begin() as conn:
+                conn.execute(text("REFRESH MATERIALIZED VIEW CONCURRENTLY fred_latest"))
+            self._log.info("materialized_view_refreshed", view="fred_latest")
+        except Exception as exc:
+            self._log.warning(
+                "materialized_view_concurrent_refresh_failed",
+                error=str(exc),
+            )
+            # Fall back to non-concurrent refresh
+            try:
+                with self._engine.begin() as conn:
+                    conn.execute(text("REFRESH MATERIALIZED VIEW fred_latest"))
+                self._log.info(
+                    "materialized_view_refreshed_non_concurrent",
+                    view="fred_latest",
+                )
+            except Exception as fallback_exc:
+                self._log.error(
+                    "materialized_view_refresh_failed",
+                    error=str(fallback_exc),
+                )
+
+
+# -----------------------------------------------------------------------
+# Legacy functional API (backward compatibility)
+# -----------------------------------------------------------------------
 
 
 async def run_fred_extraction_async(engine=None, incremental: bool = True) -> dict:
-    """
-    Fetch all 17 FRED series and upsert into database.
+    """Fetch all 17 FRED series and upsert into database.
 
-    Args:
-        engine: SQLAlchemy engine (created from settings if None)
-        incremental: If True, only fetch data newer than what's in DB
-
-    Returns extraction summary.
+    Thin wrapper around :class:`FREDExtractor` for backward compatibility
+    with callers that used the old functional interface.
     """
+    from app.core.config import settings
+
     api_key = settings.FRED_API_KEY
+    db_url = settings.MARKET_ANALYSIS_DB_URL
+
     if not api_key:
         logger.error("FRED_API_KEY not configured")
         return {"status": "error", "message": "No FRED API key"}
+    if not db_url:
+        logger.error("MARKET_ANALYSIS_DB_URL not configured")
+        return {"status": "error", "message": "No DB URL configured"}
 
-    if engine is None:
-        db_url = settings.MARKET_ANALYSIS_DB_URL
-        if not db_url:
-            logger.error("MARKET_ANALYSIS_DB_URL not configured")
-            return {"status": "error", "message": "No DB URL configured"}
-        engine = create_engine(db_url)
+    extractor = FREDExtractor(api_key=api_key, db_url=db_url)
 
-    # Log extraction start
-    with engine.begin() as conn:
-        result = conn.execute(
-            text(
-                "INSERT INTO extraction_log (source, status) VALUES ('fred', 'running') RETURNING id"
-            ),
-        )
-        log_id = result.scalar()
+    # Allow callers to inject an engine (used by scheduler / tests)
+    if engine is not None:
+        extractor._engine = engine
 
-    total_records = 0
-    series_processed = 0
-    errors = []
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        for series_id in FRED_SERIES:
-            try:
-                # Determine start date for incremental fetch
-                start_date = None
-                if incremental:
-                    max_date = _get_max_date(engine, series_id)
-                    if max_date:
-                        start_date = max_date
-                        logger.debug(f"  {series_id}: incremental from {start_date}")
-
-                observations = await fetch_series(
-                    client, series_id, api_key, start_date
-                )
-
-                if observations:
-                    count = _batch_upsert_fred(engine, series_id, observations)
-                    total_records += count
-                    logger.info(f"  {series_id}: {count} records")
-                else:
-                    logger.debug(f"  {series_id}: no new data")
-
-                series_processed += 1
-
-                # Rate limiting
-                time.sleep(REQUEST_DELAY)
-
-            except Exception as e:
-                logger.error(f"Error processing FRED series {series_id}: {e}")
-                errors.append(f"{series_id}: {e}")
-
-    # Refresh materialized view
-    try:
-        with engine.begin() as conn:
-            conn.execute(text("REFRESH MATERIALIZED VIEW CONCURRENTLY fred_latest"))
-    except Exception as e:
-        logger.warning(f"Could not refresh fred_latest view: {e}")
-        try:
-            with engine.begin() as conn:
-                conn.execute(text("REFRESH MATERIALIZED VIEW fred_latest"))
-        except Exception:
-            pass
-
-    # Update extraction log
-    status = "success" if not errors else "error"
-    with engine.begin() as conn:
-        conn.execute(
-            text("""
-                UPDATE extraction_log
-                SET finished_at = NOW(), status = :status, records_upserted = :records,
-                    error_message = :errors,
-                    details = :details
-                WHERE id = :log_id
-            """),
-            {
-                "status": status,
-                "records": total_records,
-                "errors": "; ".join(errors) if errors else None,
-                "details": f'{{"series_processed": {series_processed}, "incremental": {str(incremental).lower()}}}',
-                "log_id": log_id,
-            },
-        )
-
-    summary = {
-        "status": status,
-        "series_processed": series_processed,
-        "records_upserted": total_records,
-        "errors": errors,
-    }
-    logger.info(f"FRED extraction complete: {summary}")
-    return summary
+    return await extractor.extract_all(incremental=incremental)
 
 
 def run_fred_extraction(engine=None, incremental: bool = True) -> dict:
-    """Synchronous wrapper for run_fred_extraction_async."""
+    """Synchronous wrapper for :func:`run_fred_extraction_async`."""
     return asyncio.run(run_fred_extraction_async(engine, incremental))
 
 
-if __name__ == "__main__":
-    # First run: full history (incremental=False)
+# -----------------------------------------------------------------------
+# Script entry-point
+# -----------------------------------------------------------------------
+
+
+async def main() -> None:
+    """Run FRED extraction as a standalone script."""
+    from app.core.config import settings
+
     incremental = "--incremental" in sys.argv
-    result = run_fred_extraction(incremental=incremental)
-    print(result)
+
+    extractor = FREDExtractor(
+        api_key=settings.FRED_API_KEY,  # type: ignore[arg-type]
+        db_url=settings.MARKET_ANALYSIS_DB_URL,  # type: ignore[arg-type]
+    )
+    result = await extractor.extract_all(incremental=incremental)
+    print(f"FRED extraction complete: {result}")
+
     sys.exit(0 if result["status"] == "success" else 1)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

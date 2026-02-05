@@ -12,164 +12,263 @@ Usage:
   python -m app.services.data_extraction.census_extractor
 """
 
+from __future__ import annotations
+
+import asyncio
 import sys
 
 import httpx
-from loguru import logger
+import structlog
 from sqlalchemy import create_engine, text
 
 from app.core.config import settings
 
-CENSUS_BASE_URL = "https://api.census.gov/data"
-PHOENIX_CBSA = "38060"
-
-VARIABLES = {
-    "B01003_001E": "Total Population",
-    "B19013_001E": "Median Household Income",
-}
+log = structlog.get_logger(__name__)
 
 
-def fetch_census_data(
-    api_key: str, year: int, variables: list[str]
-) -> dict[str, float] | None:
-    """Fetch ACS 5-year data for Phoenix MSA for a given year."""
-    var_str = ",".join(["NAME"] + variables)
-    url = f"{CENSUS_BASE_URL}/{year}/acs/acs5"
-    params = {
-        "get": var_str,
-        "for": f"metropolitan statistical area/micropolitan statistical area:{PHOENIX_CBSA}",
-        "key": api_key,
+class CensusExtractor:
+    """Extracts population and economic data from Census Bureau API."""
+
+    BASE_URL = "https://api.census.gov/data"
+
+    # ACS 5-Year Subject variables for Phoenix MSA (CBSA 38060)
+    VARIABLES = {
+        "B01003_001E": "Total Population",
+        "B19013_001E": "Median Household Income",
     }
 
-    try:
-        response = httpx.get(url, params=params, timeout=30.0)
-        response.raise_for_status()
-        data = response.json()
+    GEOGRAPHY = {
+        "for": "metropolitan statistical area/micropolitan statistical area:38060",
+    }
 
-        if len(data) < 2:
+    PHOENIX_CBSA = "38060"
+    GEOGRAPHY_NAME = "Phoenix-Mesa-Chandler, AZ Metro Area"
+
+    # Year range for ACS 5-Year estimates
+    YEAR_START = 2010
+    YEAR_END = 2024
+
+    # Rate limiting: 0.5s between requests (Census API is slower)
+    REQUEST_DELAY = 0.5
+
+    def __init__(self, api_key: str, db_url: str) -> None:
+        """Initialize with Census API key and database URL."""
+        self.api_key = api_key
+        self.db_url = db_url
+        self._engine = create_engine(db_url)
+
+    async def extract_all(self) -> dict:
+        """Extract all configured variables for all years.
+
+        Returns summary dict with record counts.
+        """
+        log.info(
+            "census_extraction_started", year_range=f"{self.YEAR_START}-{self.YEAR_END}"
+        )
+
+        # Log extraction start
+        with self._engine.begin() as conn:
+            result = conn.execute(
+                text(
+                    "INSERT INTO extraction_log (source, status) "
+                    "VALUES ('census', 'running') RETURNING id"
+                ),
+            )
+            log_id = result.scalar()
+
+        total_records = 0
+        years_processed = 0
+        errors: list[str] = []
+
+        for year in range(self.YEAR_START, self.YEAR_END + 1):
+            try:
+                count = await self.extract_year(year)
+                total_records += count
+                if count > 0:
+                    years_processed += 1
+            except Exception as exc:
+                msg = f"{year}: {exc}"
+                log.error("census_year_error", year=year, error=str(exc))
+                errors.append(msg)
+
+            # Rate limiting between requests
+            await asyncio.sleep(self.REQUEST_DELAY)
+
+        # Update extraction log
+        status = "success" if not errors else "error"
+        with self._engine.begin() as conn:
+            conn.execute(
+                text(
+                    "UPDATE extraction_log "
+                    "SET finished_at = NOW(), status = :status, records_upserted = :records, "
+                    "    error_message = :errors, details = :details "
+                    "WHERE id = :log_id"
+                ),
+                {
+                    "status": status,
+                    "records": total_records,
+                    "errors": "; ".join(errors) if errors else None,
+                    "details": f'{{"years_processed": {years_processed}}}',
+                    "log_id": log_id,
+                },
+            )
+
+        summary = {
+            "status": status,
+            "years_processed": years_processed,
+            "records_upserted": total_records,
+            "errors": errors,
+        }
+        log.info("census_extraction_complete", **summary)
+        return summary
+
+    async def extract_year(self, year: int) -> int:
+        """Fetch ACS 5-Year data for a specific year.
+
+        Returns number of records upserted.
+        """
+        var_codes = list(self.VARIABLES.keys())
+        data = await self._fetch_acs_data(year, var_codes)
+
+        if data is None:
+            log.debug("census_no_data", year=year)
+            return 0
+
+        count = 0
+        with self._engine.begin() as conn:
+            for var_code, value in data.items():
+                conn.execute(
+                    text(
+                        "INSERT INTO census_timeseries "
+                        "    (variable_code, variable_name, geography, geography_code, "
+                        "     year, value, dataset) "
+                        "VALUES "
+                        "    (:var_code, :var_name, :geo, :geo_code, :year, :value, 'acs5') "
+                        "ON CONFLICT (variable_code, geography_code, year) "
+                        "DO UPDATE SET value = EXCLUDED.value, imported_at = NOW()"
+                    ),
+                    {
+                        "var_code": var_code,
+                        "var_name": self.VARIABLES[var_code],
+                        "geo": self.GEOGRAPHY_NAME,
+                        "geo_code": self.PHOENIX_CBSA,
+                        "year": year,
+                        "value": value,
+                    },
+                )
+                count += 1
+
+        log.info("census_year_fetched", year=year, variables=count)
+        return count
+
+    async def _fetch_acs_data(
+        self, year: int, variables: list[str]
+    ) -> dict[str, float] | None:
+        """Call Census API for ACS 5-Year estimates.
+
+        URL pattern:
+          https://api.census.gov/data/{year}/acs/acs5
+            ?get=NAME,{variable_codes}
+            &for=metropolitan+statistical+area/micropolitan+statistical+area:38060
+            &key={api_key}
+
+        Returns parsed variable-to-value mapping, or None on error.
+        """
+        var_str = ",".join(["NAME"] + variables)
+        url = f"{self.BASE_URL}/{year}/acs/acs5"
+        params = {
+            "get": var_str,
+            "for": self.GEOGRAPHY["for"],
+            "key": self.api_key,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(url, params=params)
+                response.raise_for_status()
+                data = response.json()
+
+            if len(data) < 2:
+                return None
+
+            header = data[0]
+            values = data[1]
+
+            result: dict[str, float] = {}
+            for var_code in variables:
+                try:
+                    idx = header.index(var_code)
+                    val = values[idx]
+                    if val is not None and str(val) not in ("", "-", "null"):
+                        result[var_code] = float(val)
+                except (ValueError, IndexError):
+                    continue
+
+            return result if result else None
+
+        except httpx.HTTPStatusError as exc:
+            log.warning(
+                "census_api_http_error",
+                year=year,
+                status_code=exc.response.status_code,
+            )
+            return None
+        except Exception as exc:
+            log.warning("census_api_error", year=year, error=str(exc))
             return None
 
-        header = data[0]
-        values = data[1]
 
-        result = {}
-        for var_code in variables:
-            try:
-                idx = header.index(var_code)
-                val = values[idx]
-                if val is not None and str(val) not in ("", "-", "null"):
-                    result[var_code] = float(val)
-            except (ValueError, IndexError):
-                continue
-
-        return result if result else None
-    except httpx.HTTPStatusError as e:
-        logger.debug(f"Census API {year}: HTTP {e.response.status_code}")
-        return None
-    except Exception as e:
-        logger.debug(f"Census API {year}: {e}")
-        return None
+# ---------------------------------------------------------------------------
+# Synchronous wrapper (backward-compatible with scheduler / existing callers)
+# ---------------------------------------------------------------------------
 
 
 def run_census_extraction(engine=None) -> dict:
-    """
-    Fetch Census Bureau ACS data for Phoenix MSA across all available years.
+    """Synchronous entry point for the extraction scheduler.
 
-    Returns extraction summary.
+    Creates a CensusExtractor and runs extract_all().
     """
     api_key = settings.CENSUS_API_KEY
     if not api_key:
-        logger.error("CENSUS_API_KEY not configured")
+        log.error("census_api_key_missing")
         return {"status": "error", "message": "No Census API key"}
 
-    if engine is None:
-        db_url = settings.MARKET_ANALYSIS_DB_URL
-        if not db_url:
-            logger.error("MARKET_ANALYSIS_DB_URL not configured")
-            return {"status": "error", "message": "No DB URL configured"}
-        engine = create_engine(db_url)
+    db_url = settings.MARKET_ANALYSIS_DB_URL
+    if not db_url:
+        log.error("census_db_url_missing")
+        return {"status": "error", "message": "No DB URL configured"}
 
-    # Log extraction start
-    with engine.begin() as conn:
-        result = conn.execute(
-            text(
-                "INSERT INTO extraction_log (source, status) VALUES ('census', 'running') RETURNING id"
-            ),
-        )
-        log_id = result.scalar()
+    extractor = CensusExtractor(api_key=api_key, db_url=db_url)
 
-    total_records = 0
-    years_processed = 0
-    errors = []
-    var_codes = list(VARIABLES.keys())
+    # Allow caller to inject an engine (used by scheduler)
+    if engine is not None:
+        extractor._engine = engine
 
-    # ACS 5-year estimates: 2010–2024
-    for year in range(2010, 2025):
-        try:
-            data = fetch_census_data(api_key, year, var_codes)
-            if not data:
-                continue
+    return asyncio.run(extractor.extract_all())
 
-            with engine.begin() as conn:
-                for var_code, value in data.items():
-                    conn.execute(
-                        text("""
-                            INSERT INTO census_timeseries
-                                (variable_code, variable_name, geography, geography_code, year, value, dataset)
-                            VALUES
-                                (:var_code, :var_name, :geo, :geo_code, :year, :value, 'acs5')
-                            ON CONFLICT (variable_code, geography_code, year)
-                            DO UPDATE SET value = EXCLUDED.value, imported_at = NOW()
-                        """),
-                        {
-                            "var_code": var_code,
-                            "var_name": VARIABLES[var_code],
-                            "geo": "Phoenix-Mesa-Chandler, AZ Metro Area",
-                            "geo_code": PHOENIX_CBSA,
-                            "year": year,
-                            "value": value,
-                        },
-                    )
-                    total_records += 1
 
-            years_processed += 1
-            logger.info(f"  Census {year}: {len(data)} variables")
+# ---------------------------------------------------------------------------
+# Script entry point
+# ---------------------------------------------------------------------------
 
-        except Exception as e:
-            logger.error(f"Error fetching Census {year}: {e}")
-            errors.append(f"{year}: {e}")
 
-    # Update extraction log
-    status = "success" if not errors else "error"
-    with engine.begin() as conn:
-        conn.execute(
-            text("""
-                UPDATE extraction_log
-                SET finished_at = NOW(), status = :status, records_upserted = :records,
-                    error_message = :errors,
-                    details = :details
-                WHERE id = :log_id
-            """),
-            {
-                "status": status,
-                "records": total_records,
-                "errors": "; ".join(errors) if errors else None,
-                "details": f'{{"years_processed": {years_processed}}}',
-                "log_id": log_id,
-            },
-        )
+async def main() -> None:
+    """Async main for direct script execution."""
+    api_key = settings.CENSUS_API_KEY
+    db_url = settings.MARKET_ANALYSIS_DB_URL
 
-    summary = {
-        "status": status,
-        "years_processed": years_processed,
-        "records_upserted": total_records,
-        "errors": errors,
-    }
-    logger.info(f"Census extraction complete: {summary}")
-    return summary
+    if not api_key:
+        print("ERROR: CENSUS_API_KEY not set")
+        sys.exit(1)
+    if not db_url:
+        print("ERROR: MARKET_ANALYSIS_DB_URL not set")
+        sys.exit(1)
+
+    extractor = CensusExtractor(api_key=api_key, db_url=db_url)
+    result = await extractor.extract_all()
+    print(f"Census extraction complete: {result}")
+    sys.exit(0 if result["status"] == "success" else 1)
 
 
 if __name__ == "__main__":
-    result = run_census_extraction()
-    print(result)
-    sys.exit(0 if result["status"] == "success" else 1)
+    asyncio.run(main())
