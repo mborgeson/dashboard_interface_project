@@ -102,7 +102,14 @@ jobs:
         run: npm ci
 
       - name: Run tests with coverage
-        run: npm run test:coverage -- --reporter=verbose
+        run: |
+          npm run test:coverage -- --reporter=verbose
+          node -e "
+            const r = require('./coverage/coverage-summary.json');
+            const pct = r.total.lines.pct;
+            console.log('Line coverage: ' + pct + '%');
+            if (pct < 70) { console.error('Coverage ' + pct + '% is below 70% threshold'); process.exit(1); }
+          "
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
