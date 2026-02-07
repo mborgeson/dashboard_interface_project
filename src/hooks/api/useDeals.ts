@@ -11,110 +11,7 @@ import type {
   DealStageUpdateInput,
   DealStageApi,
 } from '@/types/api';
-
-// ============================================================================
-// Backend Deal Response (actual API shape)
-// ============================================================================
-
-/** Actual shape returned by GET /deals/ items */
-interface BackendDealResponse {
-  id: number;
-  name: string;
-  deal_type: string;
-  property_id: number | null;
-  assigned_user_id: number | null;
-  stage: string;
-  stage_order: number;
-  asking_price: string | null;
-  offer_price: string | null;
-  final_price: string | null;
-  projected_irr: string | null;
-  projected_coc: string | null;
-  projected_equity_multiple: string | null;
-  hold_period_years: number | null;
-  initial_contact_date: string | null;
-  actual_close_date: string | null;
-  source: string | null;
-  broker_name: string | null;
-  notes: string | null;
-  investment_thesis: string | null;
-  deal_score: number | null;
-  priority: string | null;
-  created_at: string;
-  updated_at: string;
-  // Enrichment fields from extraction data
-  total_units: number | null;
-  avg_unit_sf: number | null;
-  current_owner: string | null;
-  last_sale_price_per_unit: number | null;
-  last_sale_date: string | null;
-  t12_return_on_cost: number | null;
-  levered_irr: number | null;
-  levered_moic: number | null;
-  total_equity_commitment: number | null;
-}
-
-/** Map backend stage names to frontend DealStage */
-function mapBackendStage(stage: string): Deal['stage'] {
-  const stageMap: Record<string, Deal['stage']> = {
-    // New 6-stage model (identity mappings)
-    dead: 'dead',
-    initial_review: 'initial_review',
-    active_review: 'active_review',
-    under_contract: 'under_contract',
-    closed: 'closed',
-    realized: 'realized',
-    // Legacy 8-stage backwards compatibility
-    lead: 'initial_review',
-    underwriting: 'active_review',
-    loi_submitted: 'under_contract',
-    due_diligence: 'under_contract',
-  };
-  return stageMap[stage] ?? 'initial_review';
-}
-
-/** Parse city and state from deal name like "505 West (Tempe, AZ)" */
-function parseCityState(name: string): { city: string; state: string; propertyName: string } {
-  const match = name.match(/^(.+?)\s*\(([^,]+),\s*([A-Z]{2})\)\s*(?:\(\d{4}\))?$/);
-  if (match) {
-    return { propertyName: match[1].trim(), city: match[2].trim(), state: match[3].trim() };
-  }
-  return { propertyName: name, city: '', state: '' };
-}
-
-/** Transform a backend deal response to the frontend Deal type */
-function transformBackendDeal(d: BackendDealResponse): Deal {
-  const { propertyName, city, state } = parseCityState(d.name);
-  const value = d.asking_price ? parseFloat(d.asking_price) : d.final_price ? parseFloat(d.final_price) : 0;
-  const now = new Date();
-  const created = new Date(d.created_at);
-  const daysInPipeline = Math.max(0, Math.floor((now.getTime() - created.getTime()) / 86400000));
-
-  return {
-    id: String(d.id),
-    propertyName: d.name,
-    address: { street: propertyName, city, state },
-    value,
-    capRate: 0,
-    stage: mapBackendStage(d.stage),
-    daysInStage: daysInPipeline,
-    totalDaysInPipeline: daysInPipeline,
-    assignee: '',
-    propertyType: d.deal_type || 'acquisition',
-    units: d.total_units ?? 0,
-    avgUnitSf: d.avg_unit_sf ?? 0,
-    currentOwner: d.current_owner ?? '',
-    lastSalePricePerUnit: d.last_sale_price_per_unit ?? 0,
-    lastSaleDate: d.last_sale_date ?? '',
-    t12ReturnOnCost: d.t12_return_on_cost ?? 0,
-    leveredIrr: d.levered_irr ?? 0,
-    leveredMoic: d.levered_moic ?? 0,
-    totalEquityCommitment: d.total_equity_commitment ?? 0,
-    createdAt: created,
-    timeline: [],
-    notes: d.notes ?? undefined,
-  };
-}
+import { backendDealSchema, mapBackendStage } from '@/lib/api/schemas/deal';
 
 // ============================================================================
 // Query Key Factory
@@ -165,9 +62,9 @@ export function useDealsWithMockFallback(
     queryKey: dealKeys.lists(),
     queryFn: async (): Promise<DealsWithFallbackResponse> => {
       // Backend returns { items: [...], total, page, page_size }
-      const response = await get<{ items: BackendDealResponse[]; total: number }>('/deals', { page_size: 100 });
+      const response = await get<{ items: unknown[]; total: number }>('/deals', { page_size: 100 });
       return {
-        deals: response.items?.map(transformBackendDeal) ?? [],
+        deals: response.items?.map((item) => backendDealSchema.parse(item)) ?? [],
         total: response.total ?? 0,
       };
     },
@@ -208,7 +105,7 @@ export function useKanbanBoardWithMockFallback(
         // Map backend stages to frontend stages and transform deals
         for (const [backendStage, data] of Object.entries(response.stages)) {
           const frontendStage = mapBackendStage(backendStage);
-          const deals = (data.deals as unknown as BackendDealResponse[]).map(transformBackendDeal);
+          const deals = (data.deals as unknown[]).map((d) => backendDealSchema.parse(d));
           stages[frontendStage].deals.push(...deals);
           stages[frontendStage].count += data.count;
           stages[frontendStage].totalValue += data.totalValue;
@@ -226,8 +123,8 @@ export function useKanbanBoardWithMockFallback(
         };
       } catch {
         // Fallback: fetch all deals and group by stage
-        const dealsResponse = await get<{ items: BackendDealResponse[]; total: number }>('/deals', { page_size: 100 });
-        const allDeals = dealsResponse.items?.map(transformBackendDeal) ?? [];
+        const dealsResponse = await get<{ items: unknown[]; total: number }>('/deals', { page_size: 100 });
+        const allDeals = dealsResponse.items?.map((item) => backendDealSchema.parse(item)) ?? [];
 
         const stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
         for (const fs of frontendStages) {
@@ -337,8 +234,8 @@ export function useDealWithMockFallback(
     queryFn: async (): Promise<Deal | null> => {
       if (!id) return null;
 
-      const response = await get<BackendDealResponse>(`/deals/${id}`);
-      return transformBackendDeal(response);
+      const response = await get<unknown>(`/deals/${id}`);
+      return backendDealSchema.parse(response);
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5, // 5 minutes

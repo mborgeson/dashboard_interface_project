@@ -3,6 +3,11 @@
  */
 import { apiClient } from './client';
 import type { Property, PropertySummaryStats } from '@/types';
+import {
+  propertiesResponseSchema,
+  propertySchema,
+  propertySummaryStatsSchema,
+} from './schemas/property';
 
 export interface PropertiesResponse {
   properties: Property[];
@@ -24,53 +29,24 @@ export interface PropertyFiltersParams {
  * Fetch all properties from the API
  */
 export async function fetchProperties(filters?: PropertyFiltersParams): Promise<PropertiesResponse> {
-  const response = await apiClient.get<PropertiesResponse>('/properties/dashboard', {
+  const raw = await apiClient.get<unknown>('/properties/dashboard', {
     params: filters as Record<string, string | number | boolean | undefined>,
   });
-
-  // Transform date strings to Date objects if needed
-  const properties = response.properties.map(transformPropertyDates);
-
-  return {
-    properties,
-    total: response.total,
-  };
+  return propertiesResponseSchema.parse(raw);
 }
 
 /**
  * Fetch a single property by ID
  */
 export async function fetchPropertyById(id: string): Promise<Property> {
-  const response = await apiClient.get<Property>(`/properties/dashboard/${id}`);
-  return transformPropertyDates(response);
+  const raw = await apiClient.get<unknown>(`/properties/dashboard/${id}`);
+  return propertySchema.parse(raw);
 }
 
 /**
  * Fetch portfolio summary statistics
  */
 export async function fetchPortfolioSummary(): Promise<PropertySummaryStats> {
-  return apiClient.get<PropertySummaryStats>('/properties/summary');
-}
-
-/**
- * Transform date strings from API to Date objects
- * The API returns ISO date strings, but our Property type expects Date objects
- */
-function transformPropertyDates(property: Property): Property {
-  return {
-    ...property,
-    acquisition: {
-      ...property.acquisition,
-      date: new Date(property.acquisition.date),
-    },
-    financing: {
-      ...property.financing,
-      originationDate: new Date(property.financing.originationDate),
-      maturityDate: property.financing.maturityDate ? new Date(property.financing.maturityDate) : null,
-    },
-    valuation: {
-      ...property.valuation,
-      lastAppraisalDate: new Date(property.valuation.lastAppraisalDate),
-    },
-  };
+  const raw = await apiClient.get<unknown>('/properties/summary');
+  return propertySummaryStatsSchema.parse(raw);
 }
