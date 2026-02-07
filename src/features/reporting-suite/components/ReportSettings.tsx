@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Save,
   Upload,
@@ -11,9 +11,12 @@ import {
   Type,
   Image,
   RotateCcw,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { defaultReportSettings, type ReportSettings as ReportSettingsType } from '@/data/mockReportingData';
+import type { ReportSettings as ReportSettingsType } from '@/data/mockReportingData';
+import { fetchReportSettings, updateReportSettings } from '@/lib/api/reporting';
 
 const fontOptions = [
   { value: 'Inter', label: 'Inter (Default)' },
@@ -37,32 +40,84 @@ const orientationOptions = [
 ];
 
 export function ReportSettings() {
-  const [settings, setSettings] = useState<ReportSettingsType>(defaultReportSettings);
+  const [settings, setSettings] = useState<ReportSettingsType | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState('');
 
+  const loadSettings = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchReportSettings();
+      setSettings(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
   const handleChange = <K extends keyof ReportSettingsType>(key: K, value: ReportSettingsType[K]) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings(prev => prev ? { ...prev, [key]: value } : prev);
     setHasChanges(true);
     setSavedMessage('');
   };
 
   const handleSave = async () => {
+    if (!settings) return;
     setSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSaving(false);
-    setHasChanges(false);
-    setSavedMessage('Settings saved successfully!');
-    setTimeout(() => setSavedMessage(''), 3000);
+    setError(null);
+    try {
+      const updated = await updateReportSettings(settings);
+      setSettings(updated);
+      setHasChanges(false);
+      setSavedMessage('Settings saved successfully!');
+      setTimeout(() => setSavedMessage(''), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleReset = () => {
-    setSettings(defaultReportSettings);
-    setHasChanges(true);
+  const handleReset = async () => {
+    await loadSettings();
+    setHasChanges(false);
     setSavedMessage('');
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-primary-600 mr-2" />
+        <span className="text-sm text-neutral-500">Loading settings...</span>
+      </div>
+    );
+  }
+
+  if (error && !settings) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <AlertCircle className="w-8 h-8 text-red-500" />
+        <p className="text-sm text-red-600">{error}</p>
+        <button
+          onClick={loadSettings}
+          className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!settings) return null;
 
   return (
     <div className="space-y-6">
@@ -75,6 +130,9 @@ export function ReportSettings() {
         <div className="flex items-center gap-3">
           {savedMessage && (
             <span className="text-sm text-green-600 font-medium">{savedMessage}</span>
+          )}
+          {error && (
+            <span className="text-sm text-red-600 font-medium">{error}</span>
           )}
           <button
             onClick={handleReset}

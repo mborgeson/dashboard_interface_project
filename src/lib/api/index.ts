@@ -9,3 +9,4 @@ export {
   type PropertiesResponse,
   type PropertyFiltersParams,
 } from './properties';
+export { fetchReportSettings, updateReportSettings } from './reporting';

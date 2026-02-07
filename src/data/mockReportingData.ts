@@ -495,22 +495,6 @@ export const mockReportWidgets: ReportWidget[] = [
   },
 ];
 
-// Default Report Settings
-export const defaultReportSettings: ReportSettings = {
-  companyName: 'B&R Capital',
-  primaryColor: '#1e40af',
-  secondaryColor: '#059669',
-  defaultFont: 'Inter',
-  defaultPageSize: 'letter',
-  defaultOrientation: 'portrait',
-  includePageNumbers: true,
-  includeTableOfContents: true,
-  includeTimestamp: true,
-  footerText: 'Confidential - For Internal Use Only',
-  headerText: 'B&R Capital Real Estate Analytics',
-  watermarkText: undefined,
-};
-
 // Helper function to get template by category
 export function getTemplatesByCategory(category: ReportTemplate['category']): ReportTemplate[] {
   return mockReportTemplates.filter(t => t.category === category);

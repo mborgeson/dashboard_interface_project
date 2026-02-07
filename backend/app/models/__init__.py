@@ -11,6 +11,7 @@ from .file_monitor import FileChangeLog, MonitoredFile
 from .property import Property
 
 # Reporting Models
+from .report_settings import ReportSettings
 from .report_template import (
     DistributionSchedule,
     QueuedReport,
@@ -71,6 +72,7 @@ __all__ = [
     "SalesComp",
     "AnnualCashflow",
     # Reporting Models
+    "ReportSettings",
     "ReportTemplate",
     "QueuedReport",
     "DistributionSchedule",

@@ -4,6 +4,7 @@ Reporting endpoints for report templates, queued reports, and distribution sched
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.crud_report_template import (
@@ -16,6 +17,7 @@ from app.crud.crud_report_template import (
     report_template as template_crud,
 )
 from app.db.session import get_db
+from app.models.report_settings import ReportSettings
 from app.schemas.reporting import (
     DistributionScheduleCreate,
     DistributionScheduleListResponse,
@@ -25,6 +27,8 @@ from app.schemas.reporting import (
     GenerateReportResponse,
     QueuedReportListResponse,
     QueuedReportResponse,
+    ReportSettingsSchema,
+    ReportSettingsUpdate,
     ReportStatusSchema,
     ReportTemplateCreate,
     ReportTemplateListResponse,
@@ -461,6 +465,54 @@ async def delete_schedule(
 
     logger.info(f"Deleted distribution schedule: {schedule_id}")
     return None
+
+
+# ==================== Report Settings Endpoints ====================
+
+
+@router.get("/settings", response_model=ReportSettingsSchema)
+async def get_report_settings(
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the current report settings (singleton row)."""
+    result = await db.execute(select(ReportSettings).where(ReportSettings.id == 1))
+    settings = result.scalar_one_or_none()
+
+    if not settings:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report settings not found",
+        )
+
+    return settings
+
+
+@router.put("/settings", response_model=ReportSettingsSchema)
+async def update_report_settings(
+    settings_data: ReportSettingsUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update report settings (partial update)."""
+    result = await db.execute(select(ReportSettings).where(ReportSettings.id == 1))
+    settings = result.scalar_one_or_none()
+
+    if not settings:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report settings not found",
+        )
+
+    update_data = settings_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(settings, field, value)
+
+    db.add(settings)
+    await db.commit()
+    await db.refresh(settings)
+
+    logger.info(f"Updated report settings: {list(update_data.keys())}")
+
+    return settings
 
 
 # ==================== Widget Endpoints ====================
