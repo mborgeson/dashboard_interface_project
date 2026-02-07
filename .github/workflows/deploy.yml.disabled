@@ -1,0 +1,313 @@
+name: Deploy
+
+on:
+  # Deploy on push to main after CI passes
+  workflow_run:
+    workflows: ["Frontend CI", "Backend CI"]
+    branches: [main]
+    types: [completed]
+
+  # Manual deployment trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Pre-deployment checks
+  pre-deploy:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+    # Only run if CI workflow succeeded OR if manually triggered
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set deployment environment
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            # Auto-deploy to staging on main branch
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify required secrets
+        run: |
+          # Check that required secrets are configured
+          # This doesn't expose secrets, just checks they exist
+          echo "Checking deployment configuration..."
+          if [ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
+            echo "::warning::DEPLOY_SSH_KEY not configured"
+          fi
+          if [ -z "${{ secrets.DEPLOY_HOST }}" ]; then
+            echo "::warning::DEPLOY_HOST not configured"
+          fi
+
+  # Build Docker images
+  build-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: pre-deploy
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+      backend-image: ${{ steps.meta-backend.outputs.tags }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Extract metadata for backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Deploy to staging environment
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [pre-deploy, build-images]
+    if: needs.pre-deploy.outputs.environment == 'staging'
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy to staging server
+        env:
+          DEPLOY_HOST: ${{ secrets.STAGING_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'deploy' }}
+          FRONTEND_IMAGE: ${{ needs.build-images.outputs.frontend-image }}
+          BACKEND_IMAGE: ${{ needs.build-images.outputs.backend-image }}
+        run: |
+          echo "🚀 Deploying to staging environment..."
+
+          # Skip if no host configured (allows dry-run)
+          if [ -z "$DEPLOY_HOST" ]; then
+            echo "::warning::STAGING_HOST not configured - running in dry-run mode"
+            echo "Would deploy: Frontend=$FRONTEND_IMAGE, Backend=$BACKEND_IMAGE"
+            exit 0
+          fi
+
+          # Deploy via SSH
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} << 'ENDSSH'
+            cd /opt/dashboard || exit 1
+
+            # Pull latest images
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+
+            # Update and restart services
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d --force-recreate backend frontend
+
+            # Clean up old images
+            docker image prune -f
+
+            echo "Staging deployment complete"
+          ENDSSH
+
+          echo "✅ Staging deployment complete"
+
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "::notice::Successfully deployed to staging"
+
+  # Deploy to production environment
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [pre-deploy, build-images]
+    if: needs.pre-deploy.outputs.environment == 'production'
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy to production server
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'deploy' }}
+          FRONTEND_IMAGE: ${{ needs.build-images.outputs.frontend-image }}
+          BACKEND_IMAGE: ${{ needs.build-images.outputs.backend-image }}
+        run: |
+          echo "🚀 Deploying to production environment..."
+
+          # Skip if no host configured (allows dry-run)
+          if [ -z "$DEPLOY_HOST" ]; then
+            echo "::warning::PRODUCTION_HOST not configured - running in dry-run mode"
+            echo "Would deploy: Frontend=$FRONTEND_IMAGE, Backend=$BACKEND_IMAGE"
+            exit 0
+          fi
+
+          # Deploy via SSH with rolling update
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} << 'ENDSSH'
+            cd /opt/dashboard || exit 1
+
+            # Backup current state
+            docker-compose -f docker-compose.prod.yml config > /tmp/docker-compose-backup.yml
+
+            # Pull latest images
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+
+            # Run database migrations
+            docker-compose -f docker-compose.prod.yml exec -T backend alembic upgrade head || echo "Migration skipped"
+
+            # Rolling update - backend first, then frontend
+            docker-compose -f docker-compose.prod.yml up -d --no-deps --force-recreate backend
+            sleep 10  # Wait for backend health check
+            docker-compose -f docker-compose.prod.yml up -d --no-deps --force-recreate frontend
+
+            # Verify health
+            sleep 5
+            curl -sf http://localhost:8000/health || echo "Backend health check pending"
+
+            # Clean up old images
+            docker image prune -f
+
+            echo "Production deployment complete"
+          ENDSSH
+
+          echo "✅ Production deployment complete"
+
+      - name: Create deployment tag
+        if: success()
+        run: |
+          git tag -a "deploy-$(date +%Y%m%d-%H%M%S)" -m "Production deployment"
+          # git push origin --tags  # Uncomment to push tags
+
+  # Post-deployment health checks
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+
+    steps:
+      - name: Check frontend health
+        continue-on-error: true
+        run: |
+          echo "Checking frontend health..."
+          if [ -n "${{ vars.STAGING_URL }}" ]; then
+            curl -sf "${{ vars.STAGING_URL }}" -o /dev/null && echo "✅ Frontend healthy" || echo "⚠️ Frontend health check failed"
+          elif [ -n "${{ vars.PRODUCTION_URL }}" ]; then
+            curl -sf "${{ vars.PRODUCTION_URL }}" -o /dev/null && echo "✅ Frontend healthy" || echo "⚠️ Frontend health check failed"
+          else
+            echo "::notice::No URL configured for health check"
+          fi
+
+      - name: Check backend health
+        continue-on-error: true
+        run: |
+          echo "Checking backend health..."
+          if [ -n "${{ vars.STAGING_URL }}" ]; then
+            curl -sf "${{ vars.STAGING_URL }}/api/v1/health" && echo "✅ Backend healthy" || echo "⚠️ Backend health check failed"
+          elif [ -n "${{ vars.PRODUCTION_URL }}" ]; then
+            curl -sf "${{ vars.PRODUCTION_URL }}/api/v1/health" && echo "✅ Backend healthy" || echo "⚠️ Backend health check failed"
+          else
+            echo "::notice::No URL configured for health check"
+          fi
+
+      - name: Check monitoring endpoints
+        continue-on-error: true
+        run: |
+          echo "Checking monitoring endpoints..."
+          BASE_URL="${{ vars.STAGING_URL || vars.PRODUCTION_URL }}"
+          if [ -n "$BASE_URL" ]; then
+            curl -sf "${BASE_URL}/api/v1/monitoring/health/live" && echo "✅ Liveness probe OK"
+            curl -sf "${BASE_URL}/api/v1/monitoring/health/ready" && echo "✅ Readiness probe OK"
+          fi
+
+      - name: Report status
+        run: |
+          echo "::notice::Deployment health check complete"

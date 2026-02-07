@@ -54,19 +54,17 @@ htmlcov/
 # Docker
 docker-compose.override.yml
 
-# Claude-Flow / Swarm (local state)
-.swarm/
-.claude-flow/metrics/
-context.db
-context.db-shm
-context.db-wal
-
-# Claude-Flow local state
-.claude-flow/memory/
-.claude-flow/tasks/
+# Claude-Flow / Swarm (local state, any depth)
+**/.swarm/
+**/.claude-flow/metrics/
+**/.claude-flow/memory/
+**/.claude-flow/tasks/
+**/context.db
+**/context.db-shm
+**/context.db-wal
 
 # Hive-mind local state
-.hive-mind/
+**/.hive-mind/
 
 # Chrome profiles
 chrome_profile_notebooklm/
@@ -84,6 +82,27 @@ playwright-report/
 
 # Coverage HTML reports
 coverage/
+
+# Claude Code local state (any depth)
+**/.claude/settings.local.json
+**/.claude/memories/.last_cleanup_trigger
+**/.claude/agents/
+
+# MCP / NotebookLM local config
+**/.mcp.json
+notebooklm-config.json
+
+# CoStar / market data files (large binaries)
+backend/data/
+
+# Backend agent-scaffolded Playwright (not used — real config at project root)
+backend/package.json
+backend/package-lock.json
+backend/playwright.config.js
+backend/seed.spec.ts
+backend/e2e/
+backend/specs/
+backend/.github/
 
 # Keep configuration files tracked
 !.claude-flow/README.md

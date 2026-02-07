@@ -1,38 +1,63 @@
 {
   "memories": [
     {
-      "type": "completed_feature",
-      "content": "Waves 1-10 COMPLETE (2026-01-14, commit f8381ce). Backend APIs, Market/Reporting, React Query, 18 UI components, E2E testing (258 Playwright), Performance, Security (RBAC, token blacklist, eval() RCE fix), LazyImage, usePrefetch, React.memo, VirtualList. Tests: 337 frontend + 1055 backend.",
-      "added_at": "2026-01-14T15:00:00.000000",
+      "type": "completed_features",
+      "content": "Waves 1-10 COMPLETE (2026-01-14). Market Data Pipeline COMPLETE (2026-02-05, commit 9d4f961): DB dashboard_market_data on port 5432 with 253K records (CoStar 98K, FRED 155K, Census 30). 5 tables + 2 materialized views. Extractors: CoStar async Excel parser, FRED 17 series incremental, Census population+income. Scheduler: APScheduler cron (FRED daily, CoStar monthly, Census annual). 3-tier fallback: DB→API→mock. 6 admin endpoints for manual triggers. Frontend sparklines wired to API trends. Wave 2 audit COMPLETE (2026-02-04): Cash-on-Cash KPI corrected, GlobalSearch fully wired, useReporting silent fallbacks removed, DealStage 6-stage alignment (migration c3d4e5f6a7b8), error handling on MarketPage/ReportingSuitePage/ExtractionDashboard. CI quality gates COMPLETE (2026-02-04): blocking gates enabled, mypy/bandit/ESLint errors fixed, ruff formatting applied, safety check non-blocking, backend coverage threshold at 45%. Commits: 4e18a5b → a711b56 → 4521db3 → 1259590. 328 frontend + 1049 backend tests pass.",
+      "added_at": "2026-02-06T17:23:00.000000",
       "source": "consolidated"
     },
     {
-      "type": "user_preference",
-      "content": "conda env: /home/mattb/miniconda3/envs/dashboard-backend. Backend port 8000, Frontend port 5173. Git: stash apply over pop, don't push unless asked. User prefers validation/testing before new features. No agent swarms for sequential dependent tasks. Be extremely clear about what actions user needs to take; state clearly if no action needed. User prefers directness over hedging. Dashboard purpose: comprehensive deal intelligence platform tracking ALL deals pursued (not just owned). Two currently owned deals: Cabana on 99th (Glendale, AZ) and Tempe Metro (Tempe, AZ). '4) Closed Deals' = currently owned, '5) Realized Deals' = sold/disposed. Do NOT expand extraction filter to older UW Model versions — different layouts would produce errors. Future task: group models by version for separate extraction. Kill port: use 'fuser -k 8000/tcp' (lsof -t may not work on this system). User is adamant: NO mock data, NO fake data, NO silent fallbacks anywhere. Remove all fabricated trend data (sine waves, etc.). Per-page review workflow: fix issues, then 3-4 parallel agents (visual validation, data integrity, TypeScript/lint, test coverage).",
-      "added_at": "2026-02-04T05:00:00.000000",
+      "type": "user_preferences",
+      "content": "conda env: /home/mattb/miniconda3/envs/dashboard-backend. Backend port 8000, Frontend port 5173. Git: stash apply over pop, don't push unless asked. User prefers validation/testing before new features. No agent swarms for sequential dependent tasks. Be extremely clear about what actions user needs to take; state clearly if no action needed. User prefers directness over hedging. NO mock data, NO fake data, NO silent fallbacks anywhere. Per-page review workflow: fix issues, then parallel agents for validation. Kill port: use 'fuser -k 8000/tcp'. Dashboard purpose: comprehensive deal intelligence platform tracking ALL deals pursued (not just owned). Parallel agent strategy approved for independent tasks. Commit strategy: split by logical area (e.g. backend alignment vs frontend fixes), push when asked.",
+      "added_at": "2026-02-04T15:00:00.000000",
       "source": "consolidated"
     },
     {
-      "type": "tech_decision",
-      "content": "pydantic-settings 2.x: CORS_ORIGINS must be JSON array. Single .env in project root, symlinked from backend/.env. Shell env var SHAREPOINT_SITE_URL overrides .env with truncated value - MUST unset shell var before running extraction. Main DB: PostgreSQL localhost:5432/dashboard_interface_data. Market DB: PostgreSQL localhost:5432/dashboard_market_data (same server, separate DB). Cell reference file: Underwriting_Dashboard_Cell_References.xlsx in project root. VITE_API_URL fix: src/lib/config.ts always appends /api/v1 to base URL; api.ts imports API_URL from config.ts as single source of truth. Email domain: bandrcapital.com (NOT brcapital.com). CI requires: ruff check + ruff format on backend, tsc -b + vite build on frontend. Stale .pyc files can prevent --reload from picking up changes — delete __pycache__ when routes aren't matching. Redis warning (token blacklist) is harmless — falls back to in-memory store for dev.",
-      "added_at": "2026-02-04T05:15:00.000000",
+      "type": "tech_decisions",
+      "content": "pydantic-settings 2.x: CORS_ORIGINS must be JSON array. Single .env in project root, symlinked from backend/.env. Shell env var SHAREPOINT_SITE_URL overrides .env — MUST unset before extraction. Main DB: PostgreSQL localhost:5432/dashboard_interface_data. Market DB: PostgreSQL localhost:5432/dashboard_market_data. VITE_API_URL: src/lib/config.ts appends /api/v1; api.ts imports from config.ts as single source of truth. Email domain: bandrcapital.com. CI: ruff check + format on backend, tsc -b + vite build on frontend. Stale .pyc: delete __pycache__ when routes aren't matching. Redis warning (token blacklist) harmless — falls back to in-memory for dev. DealStage enum: 6-stage model (dead, initial_review, active_review, under_contract, closed, realized). Alembic migration c3d4e5f6a7b8 applied. Frontend useDeals.ts has backward-compat stage mapping for legacy DB values. Alembic requires PYTHONPATH=. when running from backend dir.",
+      "added_at": "2026-02-04T15:00:00.000000",
       "source": "consolidated"
     },
     {
-      "type": "extraction_status",
-      "content": "SHAREPOINT EXTRACTION (2026-02-02): 28/28 files, 0 failures, 52.8s. 26 properties with extraction data + 3 monitored with none (Casitas at San Marcos, Cortland Arrowhead Summit, Town Center Apartments). NOI = ANNUAL PER-UNIT (multiply by total_units). Some UW models have bracket placeholders — _is_placeholder() detects these. Filters: FILE_PATTERN=.*UW.*Model.*vCurrent.*, CUTOFF_DATE=2024-07-15. Cash-on-Cash: LP_RETURNS_PREREFI_CASH_ON_CASH (rate), NOT EQUITY_CASH_ON_CASH_EXCLUDING_PROJECTLEVEL_FEES_YEAR_1 (dollar amount).",
-      "added_at": "2026-02-03T06:00:00.000000",
+      "type": "extraction_config",
+      "content": "SHAREPOINT EXTRACTION: 28/28 files, 0 failures. 26 properties with extraction data + 3 monitored with none. NOI = ANNUAL PER-UNIT (multiply by total_units). Filters: FILE_PATTERN=.*UW.*Model.*vCurrent.*, CUTOFF_DATE=2024-07-15. Cash-on-Cash: LP_RETURNS_PREREFI_CASH_ON_CASH (rate). Do NOT expand filter to older UW Model versions — different layouts produce errors. Future task: group models by version for separate extraction. Cell reference file: Underwriting_Dashboard_Cell_References.xlsx in project root.",
+      "added_at": "2026-02-04T07:00:00.000000",
       "source": "consolidated"
     },
     {
-      "type": "current_status",
-      "content": "MARKET DATA PIPELINE COMPLETE (2026-02-04): All 5 phases done. DB dashboard_market_data on port 5432 with 253K records: CoStar 98,137 (MSA + 15 submarkets, quarterly since 1982), FRED 154,899 (17 series — rates, yields, Phoenix employment, CPI), Census 30 (Population + Income 2010-2024). Backend services: costar_parser.py, fred_extractor.py, census_extractor.py, scheduler.py (APScheduler: FRED daily 2AM, CoStar monthly 15th, Census annually Dec). market_data.py + interest_rates.py use 3-tier fallback (DB→API→mock). Frontend: interestRatesApi.ts calls backend API (removed VITE_FRED_API_KEY from bundle), all static disclaimers removed, sparklineData derived from API. Admin endpoints: POST /admin/extract/{fred,costar,census}, GET /admin/market-data-status. All endpoints verified returning source:'database'. 30 properties, 30 deals. 328 frontend + 1055 backend tests pass. Stage mapping: dead→closed_lost, initial_review→underwriting, closed→closed_won. 15 CoStar Submarket Clusters. Occupancy normalized 0-1 in API.",
-      "added_at": "2026-02-04T05:15:00.000000",
+      "type": "remaining_tasks",
+      "content": "Remaining backlog (post market-data-pipeline): 1) Reporting Settings Backend Endpoint — replace defaultReportSettings mock with GET/PUT /reporting/settings. 2) Auth Security — localStorage JWT → httpOnly cookies + CSRF protection. 3) Zod Runtime Validation — add Zod schemas for API response validation on frontend. 4) Coverage Thresholds — raise test coverage targets beyond 45%. 5) Refactor _to_frontend_property() — break up 287-line function. Two currently owned deals: Cabana on 99th (Glendale, AZ) and Tempe Metro (Tempe, AZ). '4) Closed Deals' = currently owned, '5) Realized Deals' = sold/disposed. 15 CoStar Submarket Clusters. Occupancy normalized 0-1 in API.",
+      "added_at": "2026-02-06T17:23:00.000000",
       "source": "consolidated"
     }
   ],
   "manual_memories": [],
-  "realtime_memories": [],
+  "realtime_memories": [
+    {
+      "type": "claude_response",
+      "content": "Memories consolidated: 15 → 5. Merged CI quality gate completion into `completed_features`, replaced `deal_context` with `remaining_tasks` (updated backlog), cleared all 15 realtime entries (CI troubl",
+      "added_at": "2026-02-06T17:54:21.596136",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "There are a ton of uncommited files when running the \"git status\" command. Do we need to commit and push any of these? Also, why wouldn't they have been included in one of the previous commits/pushes?",
+      "added_at": "2026-02-06T17:54:21.596181",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "Here's the breakdown. The files fall into distinct categories, and the reason they weren't committed is different for each:\n\n---\n\n## Category 1: Build artifacts that are gitignored BUT still tracked\n*",
+      "added_at": "2026-02-06T17:58:11.723782",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Prior to moving forward with these items, can you first please review the latest git commit (9d4f961) issue shown below: \"Lint & Type Check -- Run Mypy type check Run mypy app/ --ignore-missing-import",
+      "added_at": "2026-02-06T17:58:11.723916",
+      "source": "realtime_capture"
+    }
+  ],
   "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-02-04T05:15:00.000000"
+  "updated_at": "2026-02-06T17:58:11.723920"
 }

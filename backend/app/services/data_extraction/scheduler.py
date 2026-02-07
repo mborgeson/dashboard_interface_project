@@ -18,13 +18,16 @@ Integration with app lifecycle (main.py lifespan):
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
 from app.core.config import Settings, settings
+
+if TYPE_CHECKING:
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
 def _get_engine(db_url: str | None = None) -> Engine:
@@ -64,7 +67,7 @@ class MarketDataScheduler:
 
     def __init__(self, app_settings: Settings | None = None) -> None:
         self.settings = app_settings or settings
-        self.scheduler = None  # Lazy init — created in start()
+        self.scheduler: AsyncIOScheduler | None = None  # Lazy init — created in start()
         self._running = False
         self._log = logger.bind(component="MarketDataScheduler")
 
@@ -181,12 +184,11 @@ class MarketDataScheduler:
         self._log.info("costar_extraction_started")
         try:
             from app.services.data_extraction.costar_parser import (
-                run_costar_extraction,
+                run_costar_extraction_sync,
             )
 
-            engine = _get_engine()
             # CoStar parser is synchronous — run in thread pool
-            result = await asyncio.to_thread(run_costar_extraction, engine=engine)
+            result = await asyncio.to_thread(run_costar_extraction_sync)
 
             # Materialized view refresh is handled inside run_costar_extraction
             self._log.info("costar_extraction_completed", result=result)
@@ -435,10 +437,9 @@ def trigger_fred_extraction(incremental: bool = True) -> dict:
 
 def trigger_costar_extraction() -> dict:
     """Synchronous wrapper — manually trigger CoStar data extraction."""
-    from app.services.data_extraction.costar_parser import run_costar_extraction
+    from app.services.data_extraction.costar_parser import run_costar_extraction_sync
 
-    engine = _get_engine()
-    return run_costar_extraction(engine=engine)
+    return run_costar_extraction_sync()
 
 
 def trigger_census_extraction() -> dict:
@@ -465,9 +466,9 @@ def get_data_freshness() -> dict:
             """)
         ).fetchone()
         sources["costar"] = {
-            "latest_date": row[0],
-            "record_count": row[1],
-            "last_import": row[2],
+            "latest_date": row[0] if row else None,
+            "record_count": row[1] if row else 0,
+            "last_import": row[2] if row else None,
         }
 
         row = conn.execute(
@@ -477,9 +478,9 @@ def get_data_freshness() -> dict:
             """)
         ).fetchone()
         sources["fred"] = {
-            "latest_date": row[0],
-            "record_count": row[1],
-            "last_import": row[2],
+            "latest_date": row[0] if row else None,
+            "record_count": row[1] if row else 0,
+            "last_import": row[2] if row else None,
         }
 
         row = conn.execute(
@@ -489,9 +490,9 @@ def get_data_freshness() -> dict:
             """)
         ).fetchone()
         sources["census"] = {
-            "latest_year": row[0],
-            "record_count": row[1],
-            "last_import": row[2],
+            "latest_year": row[0] if row else None,
+            "record_count": row[1] if row else 0,
+            "last_import": row[2] if row else None,
         }
 
         log_rows = conn.execute(
