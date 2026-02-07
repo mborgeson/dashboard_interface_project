@@ -1,4 +1,5 @@
 """Tests for task executor service."""
+
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -360,13 +361,17 @@ class TestExecutorStats:
 class TestBuiltInHandlers:
     """Tests for built-in task handlers."""
 
-    @pytest.mark.skip(reason="Production code has import issue: get_export_service doesn't exist")
+    @pytest.mark.skip(
+        reason="Production code has import issue: get_export_service doesn't exist"
+    )
     @pytest.mark.asyncio
     async def test_report_generation_handler_pdf(self):
         """Test report generation handler for PDF."""
         pass  # Handler imports broken get_export_service
 
-    @pytest.mark.skip(reason="Production code has import issue: get_export_service doesn't exist")
+    @pytest.mark.skip(
+        reason="Production code has import issue: get_export_service doesn't exist"
+    )
     @pytest.mark.asyncio
     async def test_report_generation_handler_excel(self):
         """Test report generation handler for Excel."""

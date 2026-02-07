@@ -1,4 +1,5 @@
 """Tests for monitoring collectors."""
+
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -77,7 +78,7 @@ class TestSystemMetricsCollector:
         collector._last_collection = None
 
         # Mock ImportError for psutil
-        with patch.dict('sys.modules', {'psutil': None}):
+        with patch.dict("sys.modules", {"psutil": None}):
             # Force reimport attempt by clearing cache
             collector._cached_metrics = {}
 
@@ -258,6 +259,7 @@ class TestCollectorRegistrySingleton:
     def test_get_collector_registry_returns_instance(self):
         """Test get_collector_registry returns an instance."""
         import app.services.monitoring.collectors as module
+
         module._collector_registry = None
 
         registry = get_collector_registry()
@@ -266,6 +268,7 @@ class TestCollectorRegistrySingleton:
     def test_get_collector_registry_returns_same_instance(self):
         """Test get_collector_registry returns cached singleton."""
         import app.services.monitoring.collectors as module
+
         module._collector_registry = None
 
         registry1 = get_collector_registry()

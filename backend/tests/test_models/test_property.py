@@ -1,4 +1,5 @@
 """Tests for the Property model."""
+
 from decimal import Decimal
 
 import pytest

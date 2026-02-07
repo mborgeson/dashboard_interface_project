@@ -72,9 +72,7 @@ class TestExtractionCompleteness:
         for field_name in sample_mappings:
             assert field_name in result, f"Field {field_name} not in extraction result"
 
-    def test_extraction_metadata_present(
-        self, extractor: ExcelDataExtractor
-    ) -> None:
+    def test_extraction_metadata_present(self, extractor: ExcelDataExtractor) -> None:
         """Verify extraction metadata is always present."""
         mock_workbook = MagicMock()
         mock_sheet = MagicMock()
@@ -154,9 +152,9 @@ class TestExtractionCompleteness:
             total = successful + failed
             if total > 0:
                 calculated_rate = round(successful / total * 100, 1)
-                assert calculated_rate == expected_rate, (
-                    f"Success rate should be {expected_rate}, got {calculated_rate}"
-                )
+                assert (
+                    calculated_rate == expected_rate
+                ), f"Success rate should be {expected_rate}, got {calculated_rate}"
 
     def test_error_summary_complete(self) -> None:
         """Verify error_summary contains all error categories."""
@@ -197,9 +195,7 @@ class TestExtractionCompleteness:
         assert breakdown[ErrorCategory.MISSING_SHEET.value]["count"] == 5
         assert breakdown[ErrorCategory.FORMULA_ERROR.value]["count"] == 3
 
-    def test_extraction_errors_logged(
-        self, extractor: ExcelDataExtractor
-    ) -> None:
+    def test_extraction_errors_logged(self, extractor: ExcelDataExtractor) -> None:
         """Verify extraction errors are logged in result."""
         mock_workbook = MagicMock()
         mock_sheet = MagicMock()
@@ -259,9 +255,7 @@ class TestBatchProcessorCompleteness:
         extractor = ExcelDataExtractor(sample_mappings)
         return BatchProcessor(extractor)
 
-    def test_batch_summary_accurate(
-        self, batch_processor: BatchProcessor
-    ) -> None:
+    def test_batch_summary_accurate(self, batch_processor: BatchProcessor) -> None:
         """Verify batch processing summary is accurate."""
         # Mock file list
         file_list = [
@@ -295,9 +289,7 @@ class TestBatchProcessorCompleteness:
         assert summary["failed"] == 0
         assert summary["success_rate"] == 100.0
 
-    def test_batch_failure_tracking(
-        self, batch_processor: BatchProcessor
-    ) -> None:
+    def test_batch_failure_tracking(self, batch_processor: BatchProcessor) -> None:
         """Verify failed files are tracked."""
         file_list = [
             {"file_path": "good.xlsx", "deal_name": "Good Deal"},
@@ -407,8 +399,10 @@ class TestExtractionProgress:
 
         with patch.object(extractor, "_load_xlsx", return_value=mock_workbook):
             extractor.extract_from_file(
-                "test.xlsx", file_content=b"dummy", validate=False,
-                progress_callback=progress_callback
+                "test.xlsx",
+                file_content=b"dummy",
+                validate=False,
+                progress_callback=progress_callback,
             )
 
         # Should have been called at least once (every 100 fields)
@@ -435,8 +429,10 @@ class TestExtractionProgress:
 
         with patch.object(extractor, "_load_xlsx", return_value=mock_workbook):
             extractor.extract_from_file(
-                "test.xlsx", file_content=b"dummy", validate=False,
-                progress_callback=progress_callback
+                "test.xlsx",
+                file_content=b"dummy",
+                validate=False,
+                progress_callback=progress_callback,
             )
 
         # Check monotonic increase
@@ -517,9 +513,7 @@ class TestRealFileCompleteness:
         """Get fixture files."""
         return list(FIXTURES_DIR.glob("*.xlsb"))
 
-    def test_real_file_extraction_completeness(
-        self, fixture_files: list[Path]
-    ) -> None:
+    def test_real_file_extraction_completeness(self, fixture_files: list[Path]) -> None:
         """Test extraction completeness on real files."""
         if not fixture_files:
             pytest.skip("No fixture files available")

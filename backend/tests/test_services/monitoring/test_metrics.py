@@ -1,4 +1,5 @@
 """Tests for monitoring metrics service."""
+
 import time
 from unittest.mock import MagicMock, patch
 
@@ -366,12 +367,16 @@ class TestTimedDecorator:
 class TestMetricsManagerSingleton:
     """Tests for metrics manager singleton pattern."""
 
-    @pytest.mark.skip(reason="Settings mock does not properly inject due to local import")
+    @pytest.mark.skip(
+        reason="Settings mock does not properly inject due to local import"
+    )
     def test_get_metrics_manager_returns_instance(self):
         """Test get_metrics_manager returns an instance."""
         pass  # Settings imported inside function
 
-    @pytest.mark.skip(reason="Settings mock does not properly inject due to local import")
+    @pytest.mark.skip(
+        reason="Settings mock does not properly inject due to local import"
+    )
     def test_get_metrics_manager_returns_same_instance(self):
         """Test get_metrics_manager returns cached singleton."""
         pass  # Settings imported inside function

@@ -1,4 +1,5 @@
 """Tests for deal API endpoints."""
+
 from decimal import Decimal
 
 import pytest
@@ -8,6 +9,7 @@ from app.models import DealStage
 # =============================================================================
 # List Deals Tests
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_list_deals(client, multiple_deals):
@@ -67,8 +69,7 @@ async def test_list_deals_sort_order(client, multiple_deals):
     """Test deals sorting."""
     # Sort ascending
     response = await client.get(
-        "/api/v1/deals/",
-        params={"sort_by": "created_at", "sort_order": "asc"}
+        "/api/v1/deals/", params={"sort_by": "created_at", "sort_order": "asc"}
     )
 
     assert response.status_code == 200
@@ -77,6 +78,7 @@ async def test_list_deals_sort_order(client, multiple_deals):
 # =============================================================================
 # Kanban Board Tests
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_get_kanban_board(client, multiple_deals):
@@ -96,8 +98,7 @@ async def test_get_kanban_board(client, multiple_deals):
 async def test_get_kanban_board_with_filter(client, multiple_deals):
     """Test Kanban board with deal type filter."""
     response = await client.get(
-        "/api/v1/deals/kanban",
-        params={"deal_type": "acquisition"}
+        "/api/v1/deals/kanban", params={"deal_type": "acquisition"}
     )
 
     assert response.status_code == 200
@@ -109,6 +110,7 @@ async def test_get_kanban_board_with_filter(client, multiple_deals):
 # =============================================================================
 # Get Single Deal Tests
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_get_deal_by_id(client, test_deal):
@@ -135,6 +137,7 @@ async def test_get_deal_not_found(client):
 # =============================================================================
 # Create Deal Tests
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_create_deal(client, test_user):
@@ -190,6 +193,7 @@ async def test_create_deal_missing_required_field(client):
 # Update Deal Tests (PUT)
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_update_deal(client, test_deal):
     """Test updating an existing deal."""
@@ -221,6 +225,7 @@ async def test_update_deal_not_found(client):
 # Patch Deal Tests (PATCH)
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_patch_deal(client, test_deal):
     """Test partially updating an existing deal."""
@@ -249,14 +254,14 @@ async def test_patch_deal_not_found(client):
 # Update Deal Stage Tests
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_update_deal_stage(client, test_deal):
     """Test updating a deal's stage (Kanban drag-and-drop)."""
     stage_data = {"stage": "under_contract"}
 
     response = await client.patch(
-        f"/api/v1/deals/{test_deal.id}/stage",
-        json=stage_data
+        f"/api/v1/deals/{test_deal.id}/stage", json=stage_data
     )
 
     assert response.status_code == 200
@@ -272,8 +277,7 @@ async def test_update_deal_stage_with_order(client, test_deal):
     stage_data = {"stage": "closed", "stage_order": 5}
 
     response = await client.patch(
-        f"/api/v1/deals/{test_deal.id}/stage",
-        json=stage_data
+        f"/api/v1/deals/{test_deal.id}/stage", json=stage_data
     )
 
     assert response.status_code == 200
@@ -288,8 +292,7 @@ async def test_update_deal_stage_invalid(client, test_deal):
     stage_data = {"stage": "invalid_stage_value"}
 
     response = await client.patch(
-        f"/api/v1/deals/{test_deal.id}/stage",
-        json=stage_data
+        f"/api/v1/deals/{test_deal.id}/stage", json=stage_data
     )
 
     # Schema validation returns 422, endpoint validation returns 400
@@ -310,6 +313,7 @@ async def test_update_deal_stage_not_found(client):
 # =============================================================================
 # Delete Deal Tests
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_delete_deal(client, test_deal):
@@ -335,6 +339,7 @@ async def test_delete_deal_not_found(client):
 # Activity Log Tests
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_add_deal_activity(client, test_deal):
     """Test adding an activity log entry to a deal."""
@@ -345,8 +350,7 @@ async def test_add_deal_activity(client, test_deal):
     }
 
     response = await client.post(
-        f"/api/v1/deals/{test_deal.id}/activity",
-        json=activity
+        f"/api/v1/deals/{test_deal.id}/activity", json=activity
     )
 
     assert response.status_code == 200
@@ -425,7 +429,9 @@ async def test_compare_four_deals(client, multiple_deals, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_compare_deals_has_comparison_summary(client, multiple_deals, auth_headers):
+async def test_compare_deals_has_comparison_summary(
+    client, multiple_deals, auth_headers
+):
     """Test that comparison response includes correct summary structure."""
     deal_ids = [d.id for d in multiple_deals[:2]]
     ids_str = ",".join(str(id) for id in deal_ids)
@@ -453,7 +459,9 @@ async def test_compare_deals_has_comparison_summary(client, multiple_deals, auth
 
 
 @pytest.mark.asyncio
-async def test_compare_deals_has_metric_comparisons(client, multiple_deals, auth_headers):
+async def test_compare_deals_has_metric_comparisons(
+    client, multiple_deals, auth_headers
+):
     """Test that comparison includes metric comparisons."""
     deal_ids = [d.id for d in multiple_deals[:2]]
     ids_str = ",".join(str(id) for id in deal_ids)
@@ -573,7 +581,9 @@ async def test_compare_deals_with_duplicates(client, multiple_deals, auth_header
 
 
 @pytest.mark.asyncio
-async def test_compare_deals_metrics_values(client, test_deal, multiple_deals, auth_headers):
+async def test_compare_deals_metrics_values(
+    client, test_deal, multiple_deals, auth_headers
+):
     """Test that deal metrics are populated correctly."""
     deal_ids = [test_deal.id, multiple_deals[0].id]
     ids_str = ",".join(str(id) for id in deal_ids)
@@ -726,7 +736,9 @@ async def test_get_watchlist_status_deal_not_found(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_watchlist_toggle_twice_returns_to_original(client, test_deal, auth_headers):
+async def test_watchlist_toggle_twice_returns_to_original(
+    client, test_deal, auth_headers
+):
     """Test that toggling twice returns to original state."""
     # Check initial status
     initial_status = await client.get(
@@ -750,7 +762,9 @@ async def test_watchlist_toggle_twice_returns_to_original(client, test_deal, aut
 
 
 @pytest.mark.asyncio
-async def test_watchlist_user_isolation(client, test_deal, auth_headers, admin_auth_headers):
+async def test_watchlist_user_isolation(
+    client, test_deal, auth_headers, admin_auth_headers
+):
     """Test that watchlist entries are isolated per user."""
     # User 1 adds to watchlist
     user1_add = await client.post(

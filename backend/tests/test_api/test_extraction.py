@@ -79,6 +79,7 @@ async def extraction_client(sync_db_session: Session) -> AsyncClient:
     Create an async test client with sync database dependency override.
     This is needed because extraction endpoints use get_sync_db.
     """
+
     def override_get_sync_db():
         yield sync_db_session
 
@@ -213,7 +214,9 @@ class TestExtractionStatus:
     async def test_get_status_invalid_run_id(self, extraction_client) -> None:
         """Returns 404 for non-existent run ID."""
         fake_id = uuid4()
-        response = await extraction_client.get(f"/api/v1/extraction/status?run_id={fake_id}")
+        response = await extraction_client.get(
+            f"/api/v1/extraction/status?run_id={fake_id}"
+        )
         assert response.status_code == 404
 
     @pytest.mark.asyncio
@@ -284,7 +287,9 @@ class TestExtractionHistory:
         assert len(data["runs"]) == 2
 
         # Test offset
-        response = await extraction_client.get("/api/v1/extraction/history?limit=2&offset=2")
+        response = await extraction_client.get(
+            "/api/v1/extraction/history?limit=2&offset=2"
+        )
         data = response.json()
         assert len(data["runs"]) == 2
 
@@ -349,11 +354,11 @@ class TestExtractionStart:
             assert data["files_discovered"] >= 0
 
     @pytest.mark.asyncio
-    async def test_start_extraction_sharepoint_not_configured(self, extraction_client) -> None:
+    async def test_start_extraction_sharepoint_not_configured(
+        self, extraction_client
+    ) -> None:
         """Returns 400 when SharePoint is not configured."""
-        with patch(
-            "app.api.v1.endpoints.extraction.extract.settings"
-        ) as mock_settings:
+        with patch("app.api.v1.endpoints.extraction.extract.settings") as mock_settings:
             mock_settings.sharepoint_configured = False
             mock_settings.get_sharepoint_config_errors.return_value = [
                 "AZURE_TENANT_ID",
@@ -449,13 +454,18 @@ class TestExtractionProperties:
         prop_names = [p["property_name"] for p in data["properties"]]
         assert "Test Property" in prop_names
         # Verify property object shape
-        prop = next(p for p in data["properties"] if p["property_name"] == "Test Property")
+        prop = next(
+            p for p in data["properties"] if p["property_name"] == "Test Property"
+        )
         assert prop["total_fields"] == 3
         assert "categories" in prop
 
     @pytest.mark.asyncio
     async def test_list_properties_by_run_id(
-        self, extraction_client, extraction_run: ExtractionRun, extracted_values: list[ExtractedValue]
+        self,
+        extraction_client,
+        extraction_run: ExtractionRun,
+        extracted_values: list[ExtractedValue],
     ) -> None:
         """Filters properties by extraction run ID."""
         response = await extraction_client.get(
@@ -478,7 +488,9 @@ class TestExtractionPropertyData:
     @pytest.mark.asyncio
     async def test_get_property_not_found(self, extraction_client) -> None:
         """Returns 404 for non-existent property."""
-        response = await extraction_client.get("/api/v1/extraction/properties/NonExistent")
+        response = await extraction_client.get(
+            "/api/v1/extraction/properties/NonExistent"
+        )
         assert response.status_code == 404
         assert "No data found" in response.json()["detail"]
 
@@ -487,7 +499,9 @@ class TestExtractionPropertyData:
         self, extraction_client, extracted_values: list[ExtractedValue]
     ) -> None:
         """Returns all extracted values for a property."""
-        response = await extraction_client.get("/api/v1/extraction/properties/Test%20Property")
+        response = await extraction_client.get(
+            "/api/v1/extraction/properties/Test%20Property"
+        )
         assert response.status_code == 200
 
         data = response.json()
@@ -501,7 +515,10 @@ class TestExtractionPropertyData:
 
     @pytest.mark.asyncio
     async def test_get_property_data_with_run_id(
-        self, extraction_client, extraction_run: ExtractionRun, extracted_values: list[ExtractedValue]
+        self,
+        extraction_client,
+        extraction_run: ExtractionRun,
+        extracted_values: list[ExtractedValue],
     ) -> None:
         """Filters property data by extraction run ID."""
         response = await extraction_client.get(
@@ -539,7 +556,9 @@ class TestSchedulerStatus:
             }
             mock_get_scheduler.return_value = mock_scheduler
 
-            response = await extraction_client.get("/api/v1/extraction/scheduler/status")
+            response = await extraction_client.get(
+                "/api/v1/extraction/scheduler/status"
+            )
             assert response.status_code == 200
 
             data = response.json()
@@ -577,7 +596,9 @@ class TestSchedulerEnable:
             )
             mock_get_scheduler.return_value = mock_scheduler
 
-            response = await extraction_client.post("/api/v1/extraction/scheduler/enable")
+            response = await extraction_client.post(
+                "/api/v1/extraction/scheduler/enable"
+            )
             assert response.status_code == 200
             assert response.json()["enabled"] is True
 
@@ -610,7 +631,9 @@ class TestSchedulerDisable:
             )
             mock_get_scheduler.return_value = mock_scheduler
 
-            response = await extraction_client.post("/api/v1/extraction/scheduler/disable")
+            response = await extraction_client.post(
+                "/api/v1/extraction/scheduler/disable"
+            )
             assert response.status_code == 200
             assert response.json()["enabled"] is False
 
@@ -781,7 +804,9 @@ class TestBackgroundTaskIntegration:
     """Tests for background task functionality."""
 
     @pytest.mark.asyncio
-    async def test_extraction_task_receives_correct_params(self, extraction_client) -> None:
+    async def test_extraction_task_receives_correct_params(
+        self, extraction_client
+    ) -> None:
         """Verifies background task receives correct parameters."""
         with patch(
             "app.api.v1.endpoints.extraction.common.run_extraction_task"
@@ -808,16 +833,16 @@ class TestEdgeCases:
     """Tests for edge cases and error handling."""
 
     @pytest.mark.asyncio
-    async def test_empty_file_paths_falls_back_to_fixtures(self, extraction_client) -> None:
+    async def test_empty_file_paths_falls_back_to_fixtures(
+        self, extraction_client
+    ) -> None:
         """
         Empty file_paths falls back to fixture files.
 
         When source is 'local' but file_paths is empty, the API falls back
         to loading files from the fixtures directory for testing purposes.
         """
-        with patch(
-            "app.api.v1.endpoints.extraction.common.run_extraction_task"
-        ):
+        with patch("app.api.v1.endpoints.extraction.common.run_extraction_task"):
             response = await extraction_client.post(
                 "/api/v1/extraction/start",
                 json={"source": "local", "file_paths": []},

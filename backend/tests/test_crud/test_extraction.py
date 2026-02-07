@@ -341,9 +341,7 @@ class TestExtractionRunListRecent:
         assert len(first_batch) == 2
 
         # Get next 2 with offset
-        second_batch = ExtractionRunCRUD.list_recent(
-            sync_db_session, limit=2, offset=2
-        )
+        second_batch = ExtractionRunCRUD.list_recent(sync_db_session, limit=2, offset=2)
         assert len(second_batch) == 2
 
         # Verify no overlap
@@ -626,6 +624,7 @@ class TestExtractedValueBulkInsert:
         assert len(values) == 1
         # value_date is a Date column, so only the date portion is stored
         from datetime import date
+
         assert values[0].value_date == date(2024, 6, 15)
 
 
@@ -834,9 +833,7 @@ class TestExtractionRunProperties:
 
         assert run.duration_seconds == 330.0  # 5 minutes 30 seconds
 
-    def test_duration_seconds_none_when_running(
-        self, sync_db_session: Session
-    ) -> None:
+    def test_duration_seconds_none_when_running(self, sync_db_session: Session) -> None:
         """Returns None when not completed."""
         run = ExtractionRun(
             id=uuid4(),

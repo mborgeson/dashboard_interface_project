@@ -1,4 +1,5 @@
 """Tests for task scheduler service."""
+
 import asyncio
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -425,7 +426,9 @@ class TestTaskQueries:
         """Test getting only enabled tasks."""
         scheduler = TaskScheduler()
         await scheduler.add_task("Enabled", "test", ScheduleInterval.HOURLY)
-        await scheduler.add_task("Disabled", "test", ScheduleInterval.DAILY, enabled=False)
+        await scheduler.add_task(
+            "Disabled", "test", ScheduleInterval.DAILY, enabled=False
+        )
 
         enabled = scheduler.get_enabled_tasks()
 
@@ -617,6 +620,7 @@ class TestSchedulerSingleton:
     def test_get_scheduler_returns_instance(self):
         """Test get_scheduler returns an instance."""
         import app.services.batch.scheduler as module
+
         module._scheduler = None
 
         scheduler = get_scheduler()
@@ -625,6 +629,7 @@ class TestSchedulerSingleton:
     def test_get_scheduler_returns_same_instance(self):
         """Test get_scheduler returns cached singleton."""
         import app.services.batch.scheduler as module
+
         module._scheduler = None
 
         scheduler1 = get_scheduler()

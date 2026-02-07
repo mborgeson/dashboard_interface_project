@@ -2,6 +2,7 @@
 Pytest fixtures and configuration for the test suite.
 Provides async database sessions, test client, and sample data fixtures.
 """
+
 import asyncio
 from collections.abc import AsyncGenerator, Generator
 from datetime import date
@@ -77,14 +78,14 @@ def cleanup_engine():
     loop = asyncio.new_event_loop()
     try:
         # Set timeout for cleanup to prevent indefinite hanging
-        loop.run_until_complete(
-            asyncio.wait_for(engine_test.dispose(), timeout=10.0)
-        )
+        loop.run_until_complete(asyncio.wait_for(engine_test.dispose(), timeout=10.0))
     except TimeoutError:
         import logging
+
         logging.warning("Engine disposal timed out after 10s, forcing close")
     except Exception as e:
         import logging
+
         logging.warning(f"Error during engine disposal: {e}")
     finally:
         # Clean up any remaining tasks
@@ -106,6 +107,7 @@ def reset_rate_limiter():
     """
     # Reset before each test to ensure clean state
     from app.middleware.rate_limiter import RateLimiter
+
     limiter = RateLimiter.get_instance()
     if limiter is not None:
         limiter.reset()
@@ -123,6 +125,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """
     Create an async test client with database dependency override.
     """
+
     async def override_get_db():
         yield db_session
 
@@ -138,6 +141,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 # =============================================================================
 # Sample Data Fixtures
 # =============================================================================
+
 
 @pytest_asyncio.fixture
 async def test_user(db_session: AsyncSession) -> User:
@@ -230,7 +234,12 @@ async def test_deal(db_session: AsyncSession, test_user: User) -> Deal:
 async def multiple_deals(db_session: AsyncSession, test_user: User) -> list[Deal]:
     """Create multiple test deals across different stages."""
     deals = []
-    stages = [DealStage.INITIAL_REVIEW, DealStage.ACTIVE_REVIEW, DealStage.UNDER_CONTRACT, DealStage.CLOSED]
+    stages = [
+        DealStage.INITIAL_REVIEW,
+        DealStage.ACTIVE_REVIEW,
+        DealStage.UNDER_CONTRACT,
+        DealStage.CLOSED,
+    ]
 
     for i, stage in enumerate(stages):
         deal = Deal(
@@ -255,6 +264,7 @@ async def multiple_deals(db_session: AsyncSession, test_user: User) -> list[Deal
 # Authentication Helpers
 # =============================================================================
 
+
 @pytest_asyncio.fixture
 async def auth_headers(test_user: User) -> dict:
     """
@@ -262,6 +272,7 @@ async def auth_headers(test_user: User) -> dict:
     NOTE: Adjust this based on your actual auth implementation.
     """
     from app.core.security import create_access_token
+
     token = create_access_token(subject=str(test_user.id))
     return {"Authorization": f"Bearer {token}"}
 
@@ -270,5 +281,6 @@ async def auth_headers(test_user: User) -> dict:
 async def admin_auth_headers(admin_user: User) -> dict:
     """Generate admin authentication headers."""
     from app.core.security import create_access_token
+
     token = create_access_token(subject=str(admin_user.id))
     return {"Authorization": f"Bearer {token}"}

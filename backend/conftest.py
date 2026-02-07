@@ -4,6 +4,7 @@ Root conftest.py for pytest configuration.
 This file runs before any test imports, allowing us to set environment
 variables that affect the application configuration.
 """
+
 import os
 
 # Set high rate limits for testing BEFORE any app imports
@@ -19,7 +20,8 @@ os.environ["RATE_LIMIT_AUTH_WINDOW"] = "60"
 # Clear the settings cache if it exists
 try:
     from app.core import config
-    if hasattr(config, 'get_settings'):
+
+    if hasattr(config, "get_settings"):
         config.get_settings.cache_clear()
 except ImportError:
     pass  # App not yet importable, which is fine

@@ -17,7 +17,7 @@ from pathlib import Path
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -39,7 +39,7 @@ async def main():
 
     async with async_session() as db:
         # Find properties with NULL or fallback (33.45, -112.07) coordinates
-        from sqlalchemy import or_, and_
+        from sqlalchemy import and_, or_
 
         result = await db.execute(
             select(Property).where(

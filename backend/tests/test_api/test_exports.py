@@ -95,7 +95,9 @@ async def test_export_deals_excel(client, db_session):
 async def test_export_deals_excel_by_stage(client, db_session):
     """Test exporting deals filtered by stage."""
     response = await client.get(
-        "/api/v1/exports/deals/excel", params={"stage": "initial_review"}, follow_redirects=True
+        "/api/v1/exports/deals/excel",
+        params={"stage": "initial_review"},
+        follow_redirects=True,
     )
 
     if response.status_code == 404:

@@ -7,6 +7,7 @@ Tests ExcelExportService functionality including:
 - Analytics reports with charts
 - Style creation and application
 """
+
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 
@@ -16,6 +17,7 @@ import pytest
 try:
     import openpyxl
     from openpyxl import Workbook
+
     OPENPYXL_AVAILABLE = True
 except ImportError:
     OPENPYXL_AVAILABLE = False
@@ -28,6 +30,7 @@ class TestExcelExportService:
     def service(self):
         """Create ExcelExportService instance."""
         from app.services.export_service import ExcelExportService
+
         return ExcelExportService()
 
     @pytest.fixture
@@ -369,21 +372,23 @@ class TestExcelExportService:
     @pytest.mark.skipif(not OPENPYXL_AVAILABLE, reason="openpyxl not installed")
     def test_export_with_none_values(self, service):
         """Test export handles None values gracefully."""
-        properties = [{
-            "id": 1,
-            "name": "Test Property",
-            "property_type": "multifamily",
-            "address": None,
-            "city": None,
-            "state": None,
-            "market": None,
-            "total_units": None,
-            "year_built": None,
-            "occupancy_rate": None,
-            "avg_rent_per_unit": None,
-            "noi": None,
-            "cap_rate": None,
-        }]
+        properties = [
+            {
+                "id": 1,
+                "name": "Test Property",
+                "property_type": "multifamily",
+                "address": None,
+                "city": None,
+                "state": None,
+                "market": None,
+                "total_units": None,
+                "year_built": None,
+                "occupancy_rate": None,
+                "avg_rent_per_unit": None,
+                "noi": None,
+                "cap_rate": None,
+            }
+        ]
 
         # Should not raise exception
         result = service.export_properties(properties)
@@ -392,14 +397,16 @@ class TestExcelExportService:
     @pytest.mark.skipif(not OPENPYXL_AVAILABLE, reason="openpyxl not installed")
     def test_export_with_zero_values(self, service):
         """Test export handles zero values correctly."""
-        properties = [{
-            "id": 1,
-            "name": "Empty Property",
-            "property_type": "land",
-            "occupancy_rate": 0,
-            "noi": 0,
-            "cap_rate": 0,
-        }]
+        properties = [
+            {
+                "id": 1,
+                "name": "Empty Property",
+                "property_type": "land",
+                "occupancy_rate": 0,
+                "noi": 0,
+                "cap_rate": 0,
+            }
+        ]
 
         result = service.export_properties(properties)
         assert result.getvalue()
@@ -468,21 +475,23 @@ class TestExcelExportService:
     @pytest.mark.skipif(not OPENPYXL_AVAILABLE, reason="openpyxl not installed")
     def test_export_with_special_characters(self, service):
         """Test export handles special characters in data."""
-        properties = [{
-            "id": 1,
-            "name": "Test & Property <with> \"special\" chars",
-            "property_type": "office",
-            "address": "123 Main St, Suite #5",
-            "city": "New York",
-            "state": "NY",
-            "market": "NYC Metro / Tri-State",
-            "total_units": None,
-            "year_built": 2020,
-            "occupancy_rate": 95.5,
-            "avg_rent_per_unit": None,
-            "noi": 1000000.00,
-            "cap_rate": 5.5,
-        }]
+        properties = [
+            {
+                "id": 1,
+                "name": 'Test & Property <with> "special" chars',
+                "property_type": "office",
+                "address": "123 Main St, Suite #5",
+                "city": "New York",
+                "state": "NY",
+                "market": "NYC Metro / Tri-State",
+                "total_units": None,
+                "year_built": 2020,
+                "occupancy_rate": 95.5,
+                "avg_rent_per_unit": None,
+                "noi": 1000000.00,
+                "cap_rate": 5.5,
+            }
+        ]
 
         result = service.export_properties(properties)
         assert result.getvalue()
@@ -511,8 +520,9 @@ class TestExcelExportService:
 
     def test_export_without_openpyxl_raises(self, service):
         """Test export raises ImportError when openpyxl unavailable."""
-        with patch('app.services.export_service.OPENPYXL_AVAILABLE', False):
+        with patch("app.services.export_service.OPENPYXL_AVAILABLE", False):
             from app.services.export_service import ExcelExportService
+
             svc = ExcelExportService()
 
             with pytest.raises(ImportError, match="openpyxl"):

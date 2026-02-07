@@ -1,6 +1,7 @@
 """
 Alembic migration environment configuration.
 """
+
 import asyncio
 from logging.config import fileConfig
 from urllib.parse import unquote
@@ -82,6 +83,7 @@ async def run_async_migrations() -> None:
     if _is_sqlite:
         # SQLite configuration - use StaticPool for in-memory databases
         from sqlalchemy.pool import StaticPool
+
         connectable = create_async_engine(
             db_url,
             poolclass=StaticPool,

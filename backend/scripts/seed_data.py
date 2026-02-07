@@ -7,6 +7,7 @@ Creates realistic mock data for development and testing:
 - Deals (various stages)
 - Underwriting models with full assumptions and projections
 """
+
 import asyncio
 import sys
 from datetime import date, timedelta
@@ -69,8 +70,12 @@ SUBMARKETS = ["Central", "East", "West", "North", "South", "Downtown"]
 
 UNIT_TYPES = ["Studio", "1BR/1BA", "2BR/1BA", "2BR/2BA", "3BR/2BA"]
 COMP_NAMES = [
-    "Comparable A", "Comparable B", "Comparable C",
-    "Market Leader", "Recent Build", "Nearby Community"
+    "Comparable A",
+    "Comparable B",
+    "Comparable C",
+    "Market Leader",
+    "Recent Build",
+    "Nearby Community",
 ]
 
 
@@ -88,6 +93,7 @@ def random_date(days_back: int = 365) -> date:
 # ============================================================================
 # USER SEEDING
 # ============================================================================
+
 
 async def seed_users(session: AsyncSession) -> list[User]:
     """Create sample users."""
@@ -136,6 +142,7 @@ async def seed_users(session: AsyncSession) -> list[User]:
 # PROPERTY SEEDING
 # ============================================================================
 
+
 async def seed_properties(session: AsyncSession) -> list[Property]:
     """Create sample properties."""
     properties = []
@@ -170,10 +177,9 @@ async def seed_properties(session: AsyncSession) -> list[Property]:
 # DEAL SEEDING
 # ============================================================================
 
+
 async def seed_deals(
-    session: AsyncSession,
-    properties: list[Property],
-    users: list[User]
+    session: AsyncSession, properties: list[Property], users: list[User]
 ) -> list[Deal]:
     """Create sample deals."""
     deals = []
@@ -188,7 +194,9 @@ async def seed_deals(
             stage=stage,
             stage_order=i,
             assigned_user_id=users[1].id if len(users) > 1 else users[0].id,
-            initial_contact_date=random_date(180) if stage in [DealStage.CLOSED, DealStage.LOI_SUBMITTED] else None,
+            initial_contact_date=random_date(180)
+            if stage in [DealStage.CLOSED, DealStage.LOI_SUBMITTED]
+            else None,
             target_close_date=date.today() + timedelta(days=randint(30, 180)),
             asking_price=random_decimal(10_000_000, 50_000_000, 0),
             notes=f"Acquisition opportunity for {prop.name} in {prop.market}.",
@@ -206,10 +214,9 @@ async def seed_deals(
 # UNDERWRITING MODEL SEEDING
 # ============================================================================
 
+
 async def seed_underwriting_models(
-    session: AsyncSession,
-    deals: list[Deal],
-    properties: list[Property]
+    session: AsyncSession, deals: list[Deal], properties: list[Property]
 ) -> list[UnderwritingModel]:
     """Create underwriting models with all child tables."""
     models = []
@@ -250,10 +257,7 @@ async def seed_underwriting_models(
 
 
 async def seed_general_assumptions(
-    session: AsyncSession,
-    uw: UnderwritingModel,
-    deal: Deal,
-    prop: Property
+    session: AsyncSession, uw: UnderwritingModel, deal: Deal, prop: Property
 ):
     """Create general assumptions for underwriting model."""
     assumptions = GeneralAssumptions(
@@ -309,9 +313,7 @@ async def seed_noi_assumptions(session: AsyncSession, uw: UnderwritingModel):
 
 
 async def seed_financing_assumptions(
-    session: AsyncSession,
-    uw: UnderwritingModel,
-    deal: Deal
+    session: AsyncSession, uw: UnderwritingModel, deal: Deal
 ):
     """Create financing assumptions."""
     purchase_price = deal.asking_price or Decimal("25000000")
@@ -386,11 +388,7 @@ async def seed_equity_returns(session: AsyncSession, uw: UnderwritingModel):
     session.add(returns)
 
 
-async def seed_unit_mix(
-    session: AsyncSession,
-    uw: UnderwritingModel,
-    prop: Property
-):
+async def seed_unit_mix(session: AsyncSession, uw: UnderwritingModel, prop: Property):
     """Create unit mix entries."""
     total_units = prop.total_units or 200
     unit_distribution = [0.15, 0.35, 0.20, 0.20, 0.10]  # Distribution by type
@@ -456,9 +454,7 @@ async def seed_sales_comps(session: AsyncSession, uw: UnderwritingModel):
 
 
 async def seed_annual_cashflows(
-    session: AsyncSession,
-    uw: UnderwritingModel,
-    prop: Property
+    session: AsyncSession, uw: UnderwritingModel, prop: Property
 ):
     """Create annual cashflow projections for 5 years."""
     units = prop.total_units or 200
@@ -496,6 +492,7 @@ async def seed_annual_cashflows(
 # MAIN SEEDING FUNCTION
 # ============================================================================
 
+
 async def main():
     """Main seeding function."""
     print("=" * 60)
@@ -506,9 +503,7 @@ async def main():
     engine = create_async_engine(DATABASE_URL, echo=False)
 
     # Create session factory
-    async_session = sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as session:
         try:
@@ -516,7 +511,9 @@ async def main():
             result = await session.execute(select(User).limit(1))
             if result.scalar_one_or_none():
                 print("⚠️  Data already exists. Skipping seeding.")
-                print("   Run 'alembic downgrade base && alembic upgrade head' to reset.")
+                print(
+                    "   Run 'alembic downgrade base && alembic upgrade head' to reset."
+                )
                 return
 
             # Seed in order of dependencies

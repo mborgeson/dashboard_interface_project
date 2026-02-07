@@ -1,4 +1,5 @@
 """Tests for the Deal model."""
+
 from datetime import date
 from decimal import Decimal
 
@@ -88,11 +89,9 @@ async def test_deal_financial_metrics(db_session, test_user):
 @pytest.mark.asyncio
 async def test_deal_activity_log(test_deal):
     """Test adding activities to deal log."""
-    test_deal.add_activity({
-        "type": "note",
-        "user": "Test User",
-        "content": "Initial review completed"
-    })
+    test_deal.add_activity(
+        {"type": "note", "user": "Test User", "content": "Initial review completed"}
+    )
 
     assert test_deal.activity_log is not None
     assert len(test_deal.activity_log) == 1

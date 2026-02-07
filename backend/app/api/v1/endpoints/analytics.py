@@ -3,7 +3,6 @@ Analytics endpoints for data visualization and ML predictions.
 """
 
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status

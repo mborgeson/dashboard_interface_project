@@ -291,7 +291,7 @@ class ErrorHandler:
             return value.strip()
 
         # Handle numeric values
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             # Check for NaN/infinite values
             if pd.isna(value) or np.isinf(value):
                 return self.handle_empty_value(field_name, sheet_name, cell_address)

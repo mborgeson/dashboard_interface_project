@@ -243,8 +243,12 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
             address = raw_address if raw_address else deal_name.split("(")[0].strip()
 
         zip_code = safe_zip(
-            fields.get("PROPERTY_ZIP", {}).get("text") if fields.get("PROPERTY_ZIP") else None,
-            fields.get("PROPERTY_ZIP", {}).get("numeric") if fields.get("PROPERTY_ZIP") else None,
+            fields.get("PROPERTY_ZIP", {}).get("text")
+            if fields.get("PROPERTY_ZIP")
+            else None,
+            fields.get("PROPERTY_ZIP", {}).get("numeric")
+            if fields.get("PROPERTY_ZIP")
+            else None,
         )
 
         total_units = field_int(fields, "TOTAL_UNITS")
@@ -254,30 +258,40 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
         noi_raw = field_num(fields, "NET_OPERATING_INCOME")
         cap_rate = field_num(fields, "CAP_RATE")
         vacancy_rate = field_num(fields, "VACANCY_LOSS_YEAR_1_RATE")
-        occupancy = round((1 - vacancy_rate) * 100, 2) if vacancy_rate is not None else None
+        occupancy = (
+            round((1 - vacancy_rate) * 100, 2) if vacancy_rate is not None else None
+        )
 
         # Build financial_data JSON for frontend nested fields
         financial_data = {
             "acquisition": {
                 "purchasePrice": purchase_price,
                 "totalAcquisitionBudget": field_num(fields, "TOTAL_ACQUISITION_BUDGET"),
-                "landAndAcquisitionCosts": field_num(fields, "TOTAL_LAND_AND_ACQUISITION_COSTS"),
+                "landAndAcquisitionCosts": field_num(
+                    fields, "TOTAL_LAND_AND_ACQUISITION_COSTS"
+                ),
                 "hardCosts": field_num(fields, "TOTAL_HARD_COSTS"),
                 "softCosts": field_num(fields, "TOTAL_SOFT_COSTS"),
                 "lenderClosingCosts": field_num(fields, "TOTAL_LENDER_CLOSING_COSTS"),
                 "equityClosingCosts": field_num(fields, "TOTAL_EQUITY_CLOSING_COSTS"),
                 "closingCosts": field_num(fields, "EQUITY_CLOSING_COSTS_EXPENSES"),
                 "acquisitionFee": field_num(fields, "ACQUISITION_FEE"),
-                "pricePerUnit": round(purchase_price / total_units, 2) if purchase_price and total_units else None,
+                "pricePerUnit": round(purchase_price / total_units, 2)
+                if purchase_price and total_units
+                else None,
             },
             "financing": {
                 "loanAmount": field_num(fields, "LOAN_AMOUNT"),
-                "ltv": round(field_num(fields, "LOAN_AMOUNT", 0) / purchase_price, 3) if purchase_price and field_num(fields, "LOAN_AMOUNT") else None,
+                "ltv": round(field_num(fields, "LOAN_AMOUNT", 0) / purchase_price, 3)
+                if purchase_price and field_num(fields, "LOAN_AMOUNT")
+                else None,
                 "interestRate": field_num(fields, "SENIOR_INTEREST_RATE"),
                 "loanTermMonths": field_int(fields, "LOAN_TERM_MONTHS"),
                 "amortizationMonths": field_int(fields, "AMORTIZATION_MONTHS"),
                 "annualDebtService": field_num(fields, "ANNUAL_DEBT_SERVICE"),
-                "debtServiceYear1": field_num(fields, "SENIOR_LOAN_DEBT_SERVICE_YEAR_1"),
+                "debtServiceYear1": field_num(
+                    fields, "SENIOR_LOAN_DEBT_SERVICE_YEAR_1"
+                ),
             },
             "returns": {
                 "lpIrr": field_num(fields, "LP_RETURNS_IRR"),
@@ -285,11 +299,17 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
                 "leveredIrr": field_num(fields, "LEVERED_RETURNS_IRR"),
                 "leveredMoic": field_num(fields, "LEVERED_RETURNS_MOIC"),
                 "cashOnCashYear1": field_num(fields, "LP_RETURNS_PREREFI_CASH_ON_CASH"),
-                "cashOnCashYear2": field_num(fields, "LP_RETURNS_POSTREFI_CASH_ON_CASH"),
-                "cashOnCashYear3": field_num(fields, "LP_RETURNS_AVG_REFI_CASH_ON_CASH"),
+                "cashOnCashYear2": field_num(
+                    fields, "LP_RETURNS_POSTREFI_CASH_ON_CASH"
+                ),
+                "cashOnCashYear3": field_num(
+                    fields, "LP_RETURNS_AVG_REFI_CASH_ON_CASH"
+                ),
                 "unleveredIrr": field_num(fields, "UNLEVERED_RETURNS_IRR"),
                 "unleveredMoic": field_num(fields, "UNLEVERED_RETURNS_MOIC"),
-                "lpCashflowInflow": field_num(fields, "LP_CASHFLOW_INFLOW_RETURN_TOTAL"),
+                "lpCashflowInflow": field_num(
+                    fields, "LP_CASHFLOW_INFLOW_RETURN_TOTAL"
+                ),
                 "totalEquityCommitment": field_num(fields, "EQUITY_LP_CAPITAL"),
             },
             "operations": {
@@ -299,7 +319,9 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
                 "avgRentPerSf": field_num(fields, "AVERAGE_RENT_PER_SF_INPLACE"),
                 "totalOperatingExpenses": field_num(fields, "TOTAL_OPERATING_EXPENSES"),
                 "noiYear1": field_num(fields, "NET_OPERATING_INCOME_YEAR_1"),
-                "totalRevenueYear1": field_num(fields, "GROSS_POTENTIAL_REVENUE_YEAR_1"),
+                "totalRevenueYear1": field_num(
+                    fields, "GROSS_POTENTIAL_REVENUE_YEAR_1"
+                ),
                 "netRentalIncomeYear1": field_num(fields, "NET_RENTAL_INCOME_YEAR_1"),
                 "otherIncomeYear1": field_num(fields, "TOTAL_OTHER_INCOME_YEAR_1"),
                 "vacancyLossYear1": field_num(fields, "VACANCY_LOSS_YEAR_1"),
@@ -308,34 +330,62 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
             # Multi-year operations data (years 1-5)
             "operationsByYear": {
                 str(yr): {
-                    "grossPotentialRevenue": field_num(fields, f"GROSS_POTENTIAL_REVENUE_YEAR_{yr}"),
+                    "grossPotentialRevenue": field_num(
+                        fields, f"GROSS_POTENTIAL_REVENUE_YEAR_{yr}"
+                    ),
                     "lossToLease": field_num(fields, f"LOSS_TO_LEASE_YEAR_{yr}"),
                     "vacancyLoss": field_num(fields, f"VACANCY_LOSS_YEAR_{yr}"),
                     "badDebts": field_num(fields, f"BAD_DEBTS_YEAR_{yr}"),
                     "concessions": field_num(fields, f"CONCESSIONS_YEAR_{yr}"),
                     "otherLoss": field_num(fields, f"OTHER_LOSS_YEAR_{yr}"),
-                    "netRentalIncome": field_num(fields, f"NET_RENTAL_INCOME_YEAR_{yr}"),
+                    "netRentalIncome": field_num(
+                        fields, f"NET_RENTAL_INCOME_YEAR_{yr}"
+                    ),
                     "otherIncome": field_num(fields, f"TOTAL_OTHER_INCOME_YEAR_{yr}"),
                     "laundryIncome": field_num(fields, f"LAUNDRY_INCOME_YEAR_{yr}"),
                     "parkingIncome": field_num(fields, f"PARKING_INCOME_YEAR_{yr}"),
                     "petIncome": field_num(fields, f"PET_INCOME_YEAR_{yr}"),
                     "storageIncome": field_num(fields, f"STORAGE_INCOME_YEAR_{yr}"),
                     "utilityIncome": field_num(fields, f"UTILITY_INCOME_YEAR_{yr}"),
-                    "otherMiscIncome": field_num(fields, f"OTHER_MISC_INCOME_YEAR_{yr}"),
-                    "effectiveGrossIncome": field_num(fields, f"EFFECTIVE_GROSS_INCOME_YEAR_{yr}"),
-                    "totalOperatingExpenses": field_num(fields, f"TOTAL_OPERATING_EXPENSES_YEAR_{yr}"),
+                    "otherMiscIncome": field_num(
+                        fields, f"OTHER_MISC_INCOME_YEAR_{yr}"
+                    ),
+                    "effectiveGrossIncome": field_num(
+                        fields, f"EFFECTIVE_GROSS_INCOME_YEAR_{yr}"
+                    ),
+                    "totalOperatingExpenses": field_num(
+                        fields, f"TOTAL_OPERATING_EXPENSES_YEAR_{yr}"
+                    ),
                     "noi": field_num(fields, f"NET_OPERATING_INCOME_YEAR_{yr}"),
                     "expenses": {
-                        "realEstateTaxes": field_num(fields, f"REAL_ESTATE_TAXES_YEAR_{yr}"),
-                        "propertyInsurance": field_num(fields, f"PROPERTY_INSURANCE_YEAR_{yr}"),
-                        "staffingPayroll": field_num(fields, f"STAFFING_PAYROLL_YEAR_{yr}"),
-                        "propertyManagementFee": field_num(fields, f"PROPERTY_MANAGEMENT_FEE_YEAR_{yr}"),
-                        "repairsAndMaintenance": field_num(fields, f"REPAIRS_AND_MAINTENANCE_YEAR_{yr}"),
+                        "realEstateTaxes": field_num(
+                            fields, f"REAL_ESTATE_TAXES_YEAR_{yr}"
+                        ),
+                        "propertyInsurance": field_num(
+                            fields, f"PROPERTY_INSURANCE_YEAR_{yr}"
+                        ),
+                        "staffingPayroll": field_num(
+                            fields, f"STAFFING_PAYROLL_YEAR_{yr}"
+                        ),
+                        "propertyManagementFee": field_num(
+                            fields, f"PROPERTY_MANAGEMENT_FEE_YEAR_{yr}"
+                        ),
+                        "repairsAndMaintenance": field_num(
+                            fields, f"REPAIRS_AND_MAINTENANCE_YEAR_{yr}"
+                        ),
                         "turnover": field_num(fields, f"TURNOVER_YEAR_{yr}"),
-                        "contractServices": field_num(fields, f"CONTRACT_SERVICES_YEAR_{yr}"),
-                        "reservesForReplacement": field_num(fields, f"RESERVES_FOR_REPLACEMENT_YEAR_{yr}"),
-                        "adminLegalSecurity": field_num(fields, f"ADMIN_LEGAL_AND_SECURITY_YEAR_{yr}"),
-                        "advertisingLeasingMarketing": field_num(fields, f"ADVERTISING_LEASING_AND_MARKETING_YEAR_{yr}"),
+                        "contractServices": field_num(
+                            fields, f"CONTRACT_SERVICES_YEAR_{yr}"
+                        ),
+                        "reservesForReplacement": field_num(
+                            fields, f"RESERVES_FOR_REPLACEMENT_YEAR_{yr}"
+                        ),
+                        "adminLegalSecurity": field_num(
+                            fields, f"ADMIN_LEGAL_AND_SECURITY_YEAR_{yr}"
+                        ),
+                        "advertisingLeasingMarketing": field_num(
+                            fields, f"ADVERTISING_LEASING_AND_MARKETING_YEAR_{yr}"
+                        ),
                         "otherExpenses": field_num(fields, f"OTHER_EXPENSES_YEAR_{yr}"),
                         "utilities": field_num(fields, f"UTILITIES_YEAR_{yr}"),
                     },
@@ -350,9 +400,13 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
                 "managementRate": field_num(fields, "PROPERTY_MANAGEMENT_FEE_RATE"),
                 "repairs": field_num(fields, "REPAIRS_AND_MAINTENANCE_YEAR_1"),
                 "payroll": field_num(fields, "STAFFING_PAYROLL_YEAR_1"),
-                "marketing": field_num(fields, "ADVERTISING_LEASING_AND_MARKETING_YEAR_1"),
+                "marketing": field_num(
+                    fields, "ADVERTISING_LEASING_AND_MARKETING_YEAR_1"
+                ),
                 "contractServices": field_num(fields, "CONTRACT_SERVICES_YEAR_1"),
-                "adminLegalSecurity": field_num(fields, "ADMIN_LEGAL_AND_SECURITY_YEAR_1"),
+                "adminLegalSecurity": field_num(
+                    fields, "ADMIN_LEGAL_AND_SECURITY_YEAR_1"
+                ),
                 "reserves": field_num(fields, "RESERVES_FOR_REPLACEMENT_YEAR_1"),
                 "turnover": field_num(fields, "TURNOVER_YEAR_1"),
                 "otherExpenses": field_num(fields, "OTHER_EXPENSES_YEAR_1"),
@@ -360,11 +414,17 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
             "exit": {
                 "exitCapRate": field_num(fields, "EXIT_CAP_RATE"),
                 "exitPeriodMonths": field_int(fields, "EXIT_PERIOD_MONTHS"),
-                "holdPeriodYears": round(field_num(fields, "EXIT_PERIOD_MONTHS", 60) / 12, 1),
+                "holdPeriodYears": round(
+                    field_num(fields, "EXIT_PERIOD_MONTHS", 60) / 12, 1
+                ),
                 "basisPerUnitAtClose": field_num(fields, "BASIS_UNIT_AT_CLOSE"),
                 "basisPerUnitAtExit": field_num(fields, "BASIS_UNIT_AT_EXIT"),
-                "seniorDebtBasisPerUnitAtClose": field_num(fields, "SENIOR_DEBT_BASIS_UNIT_AT_CLOSE"),
-                "seniorDebtBasisPerUnitAtExit": field_num(fields, "SENIOR_DEBT_BASIS_UNIT_AT_EXIT"),
+                "seniorDebtBasisPerUnitAtClose": field_num(
+                    fields, "SENIOR_DEBT_BASIS_UNIT_AT_CLOSE"
+                ),
+                "seniorDebtBasisPerUnitAtExit": field_num(
+                    fields, "SENIOR_DEBT_BASIS_UNIT_AT_EXIT"
+                ),
             },
             "physical": {
                 "numberOfBuildings": field_int(fields, "NUMBER_OF_BUILDINGS"),
@@ -389,12 +449,26 @@ def seed_properties_from_extraction(session) -> dict[str, int]:
             year_built=field_int(fields, "YEAR_BUILT"),
             total_units=total_units,
             total_sf=total_sf,
-            lot_size_acres=Decimal(str(field_num(fields, "LAND_AREA"))) if field_num(fields, "LAND_AREA") else None,
-            purchase_price=Decimal(str(round(purchase_price, 2))) if purchase_price else None,
-            current_value=Decimal(str(round(purchase_price, 2))) if purchase_price else None,
+            lot_size_acres=Decimal(str(field_num(fields, "LAND_AREA")))
+            if field_num(fields, "LAND_AREA")
+            else None,
+            purchase_price=Decimal(str(round(purchase_price, 2)))
+            if purchase_price
+            else None,
+            current_value=Decimal(str(round(purchase_price, 2)))
+            if purchase_price
+            else None,
             occupancy_rate=Decimal(str(occupancy)) if occupancy else None,
-            avg_rent_per_unit=Decimal(str(round(field_num(fields, "AVERAGE_RENT_PER_UNIT_INPLACE", 0), 2))) if field_num(fields, "AVERAGE_RENT_PER_UNIT_INPLACE") else None,
-            avg_rent_per_sf=Decimal(str(round(field_num(fields, "AVERAGE_RENT_PER_SF_INPLACE", 0), 2))) if field_num(fields, "AVERAGE_RENT_PER_SF_INPLACE") else None,
+            avg_rent_per_unit=Decimal(
+                str(round(field_num(fields, "AVERAGE_RENT_PER_UNIT_INPLACE", 0), 2))
+            )
+            if field_num(fields, "AVERAGE_RENT_PER_UNIT_INPLACE")
+            else None,
+            avg_rent_per_sf=Decimal(
+                str(round(field_num(fields, "AVERAGE_RENT_PER_SF_INPLACE", 0), 2))
+            )
+            if field_num(fields, "AVERAGE_RENT_PER_SF_INPLACE")
+            else None,
             noi=Decimal(str(round(noi_raw, 2))) if noi_raw else None,
             cap_rate=Decimal(str(round(cap_rate, 4))) if cap_rate else None,
             data_source="extraction",
@@ -487,10 +561,14 @@ def seed_deals(session, property_map: dict[str, int]):
             stage=stage,
             stage_order=0,
             property_id=prop_id,
-            asking_price=Decimal(str(round(purchase_price, 2))) if purchase_price else None,
+            asking_price=Decimal(str(round(purchase_price, 2)))
+            if purchase_price
+            else None,
             projected_irr=Decimal(str(round(irr, 4))) if irr is not None else None,
             projected_coc=None,  # CoC extracted as raw $ not rate; stored in financial_data
-            projected_equity_multiple=Decimal(str(round(moic, 2))) if moic is not None else None,
+            projected_equity_multiple=Decimal(str(round(moic, 2)))
+            if moic is not None
+            else None,
             hold_period_years=int(round(exit_months / 12)) if exit_months else 5,
             initial_contact_date=first_seen.date() if first_seen else None,
             source="Broker",
@@ -514,7 +592,9 @@ def seed_deals(session, property_map: dict[str, int]):
             final_price=cd["purchase_price"],
             source="Off-Market",
             priority="high",
-            actual_close_date=date(2024, 6, 15) if cd["name"] == "Cabana on 99th" else date(2024, 9, 1),
+            actual_close_date=date(2024, 6, 15)
+            if cd["name"] == "Cabana on 99th"
+            else date(2024, 9, 1),
             deal_score=75,
         )
         session.add(deal)
@@ -584,7 +664,9 @@ def seed_transactions(session, property_map: dict[str, int]):
             type="acquisition",
             category="Purchase",
             amount=cd["purchase_price"],
-            date=date(2024, 6, 15) if cd["name"] == "Cabana on 99th" else date(2024, 9, 1),
+            date=date(2024, 6, 15)
+            if cd["name"] == "Cabana on 99th"
+            else date(2024, 9, 1),
             description=f"Acquisition of {full_name}",
         )
         session.add(tx)
@@ -603,7 +685,9 @@ def seed_users(session):
     if existing:
         # Update email domain
         session.execute(
-            text("UPDATE users SET email = REPLACE(email, 'brcapital.com', 'bandrcapital.com') WHERE email LIKE '%brcapital.com%'")
+            text(
+                "UPDATE users SET email = REPLACE(email, 'brcapital.com', 'bandrcapital.com') WHERE email LIKE '%brcapital.com%'"
+            )
         )
         session.commit()
         print("  Updated existing user email domains")
@@ -643,7 +727,12 @@ def seed_report_templates(session):
             name="Property Performance Summary",
             description="Comprehensive performance metrics for individual properties including NOI, occupancy, and returns.",
             category=ReportCategory.FINANCIAL,
-            sections=["executive_summary", "financial_performance", "operations", "market_comparison"],
+            sections=[
+                "executive_summary",
+                "financial_performance",
+                "operations",
+                "market_comparison",
+            ],
             export_formats=[ReportFormat.PDF, ReportFormat.EXCEL],
             is_default=True,
             created_by="matt@bandrcapital.com",
@@ -661,7 +750,12 @@ def seed_report_templates(session):
             name="Deal Pipeline Report",
             description="Current deal pipeline status with stage distribution and projected returns.",
             category=ReportCategory.EXECUTIVE,
-            sections=["pipeline_overview", "stage_analysis", "deal_details", "projected_returns"],
+            sections=[
+                "pipeline_overview",
+                "stage_analysis",
+                "deal_details",
+                "projected_returns",
+            ],
             export_formats=[ReportFormat.PDF, ReportFormat.EXCEL],
             is_default=False,
             created_by="matt@bandrcapital.com",
@@ -670,7 +764,12 @@ def seed_report_templates(session):
             name="Market Analysis Report",
             description="Phoenix MSA market data including rent trends, supply, employment, and economic indicators.",
             category=ReportCategory.MARKET,
-            sections=["market_overview", "rent_trends", "supply_pipeline", "economic_data"],
+            sections=[
+                "market_overview",
+                "rent_trends",
+                "supply_pipeline",
+                "economic_data",
+            ],
             export_formats=[ReportFormat.PDF],
             is_default=True,
             created_by="matt@bandrcapital.com",
@@ -696,13 +795,18 @@ def seed_queued_reports(session):
     print("\nSeeding queued reports...")
 
     # Get actual template IDs
-    templates = session.execute(text("SELECT id, name FROM report_templates ORDER BY id")).fetchall()
+    templates = session.execute(
+        text("SELECT id, name FROM report_templates ORDER BY id")
+    ).fetchall()
     if not templates:
         print("  No templates found, skipping queued reports")
         return
     tid_map = {t[1]: t[0] for t in templates}
     perf_id = tid_map.get("Property Performance Summary", templates[0][0])
-    pipeline_id = tid_map.get("Deal Pipeline Report", templates[2][0] if len(templates) > 2 else templates[0][0])
+    pipeline_id = tid_map.get(
+        "Deal Pipeline Report",
+        templates[2][0] if len(templates) > 2 else templates[0][0],
+    )
 
     now = datetime.now(UTC)
     reports = [
@@ -740,11 +844,19 @@ def seed_distribution_schedules(session):
     print("\nSeeding distribution schedules...")
 
     # Get actual template IDs
-    templates = session.execute(text("SELECT id, name FROM report_templates ORDER BY id")).fetchall()
+    templates = session.execute(
+        text("SELECT id, name FROM report_templates ORDER BY id")
+    ).fetchall()
     tid_map = {t[1]: t[0] for t in templates}
-    investor_tid = tid_map.get("Investor Distribution Report", templates[-1][0] if templates else 1)
-    portfolio_tid = tid_map.get("Portfolio Overview", templates[1][0] if len(templates) > 1 else 1)
-    pipeline_tid = tid_map.get("Deal Pipeline Report", templates[2][0] if len(templates) > 2 else 1)
+    investor_tid = tid_map.get(
+        "Investor Distribution Report", templates[-1][0] if templates else 1
+    )
+    portfolio_tid = tid_map.get(
+        "Portfolio Overview", templates[1][0] if len(templates) > 1 else 1
+    )
+    pipeline_tid = tid_map.get(
+        "Deal Pipeline Report", templates[2][0] if len(templates) > 2 else 1
+    )
 
     schedules = [
         DistributionSchedule(
@@ -796,7 +908,9 @@ def link_extracted_values_to_properties(session, property_map: dict[str, int]):
     count = 0
     for deal_name, prop_id in property_map.items():
         result = session.execute(
-            text("UPDATE extracted_values SET property_id = :pid WHERE property_name = :pname"),
+            text(
+                "UPDATE extracted_values SET property_id = :pid WHERE property_name = :pname"
+            ),
             {"pid": prop_id, "pname": deal_name},
         )
         if result.rowcount > 0:

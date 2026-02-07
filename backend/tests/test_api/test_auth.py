@@ -1,4 +1,5 @@
 """Tests for authentication endpoints."""
+
 import pytest
 import pytest_asyncio
 
@@ -14,6 +15,7 @@ from app.models import User
 # =============================================================================
 # Fixtures for Auth Tests
 # =============================================================================
+
 
 @pytest_asyncio.fixture
 async def inactive_user(db_session) -> User:
@@ -36,6 +38,7 @@ async def inactive_user(db_session) -> User:
 # =============================================================================
 # Login Endpoint Tests
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_login_success(client, test_user):
@@ -177,6 +180,7 @@ async def test_login_demo_user_wrong_password(client):
 # Refresh Token Tests
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_refresh_token_valid(client, test_user):
     """Test refreshing tokens with valid refresh token."""
@@ -237,6 +241,7 @@ async def test_refresh_token_access_token_used(client, test_user):
 # Logout Tests
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_logout(client):
     """Test logout endpoint returns success message."""
@@ -251,6 +256,7 @@ async def test_logout(client):
 # =============================================================================
 # Get Current User (/me) Tests
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_get_me_with_valid_token(client, test_user, auth_headers):
@@ -308,6 +314,7 @@ async def test_get_me_demo_user_fallback(client):
 # =============================================================================
 # Edge Cases and Security Tests
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_login_missing_username(client):

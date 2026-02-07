@@ -1,4 +1,5 @@
 """Tests for core configuration module."""
+
 import os
 
 import pytest
@@ -29,7 +30,12 @@ class TestSettings:
 
     def test_settings_environment(self):
         """Test ENVIRONMENT default value."""
-        assert settings.ENVIRONMENT in ["development", "staging", "production", "testing"]
+        assert settings.ENVIRONMENT in [
+            "development",
+            "staging",
+            "production",
+            "testing",
+        ]
 
     def test_settings_debug_is_boolean(self):
         """Test DEBUG is a boolean value."""
@@ -64,7 +70,9 @@ class TestSettings:
         """Test database configuration."""
         assert settings.DATABASE_URL is not None
         # Allow sqlite for testing, postgresql for other environments
-        assert "postgresql" in settings.DATABASE_URL or "sqlite" in settings.DATABASE_URL
+        assert (
+            "postgresql" in settings.DATABASE_URL or "sqlite" in settings.DATABASE_URL
+        )
         assert settings.DATABASE_POOL_SIZE > 0
         assert settings.DATABASE_MAX_OVERFLOW >= 0
         assert settings.DATABASE_POOL_TIMEOUT > 0
@@ -299,7 +307,10 @@ class TestSecurityValidation:
         # Default environment should allow SQLite
         if settings.ENVIRONMENT != "production":
             # SQLite is acceptable in non-production
-            assert "sqlite" in settings.DATABASE_URL or "postgresql" in settings.DATABASE_URL
+            assert (
+                "sqlite" in settings.DATABASE_URL
+                or "postgresql" in settings.DATABASE_URL
+            )
 
     def test_no_hardcoded_smtp_password(self, tmp_path, monkeypatch):
         """Test that SMTP_PASSWORD default is None (not hardcoded)."""

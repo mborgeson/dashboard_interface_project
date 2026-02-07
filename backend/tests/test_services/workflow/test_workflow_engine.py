@@ -1,4 +1,5 @@
 """Tests for workflow engine service."""
+
 import asyncio
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -28,6 +29,7 @@ from app.services.workflow.workflow_models import (
 def workflow_engine():
     """Create a fresh WorkflowEngine instance."""
     import app.services.workflow.workflow_engine as module
+
     module._workflow_engine = None
     return WorkflowEngine()
 
@@ -128,7 +130,10 @@ class TestWorkflowDefinitionManagement:
         workflow_engine.register_workflow(sample_workflow_definition)
 
         assert sample_workflow_definition.id in workflow_engine._definitions
-        assert workflow_engine._definitions[sample_workflow_definition.id] is sample_workflow_definition
+        assert (
+            workflow_engine._definitions[sample_workflow_definition.id]
+            is sample_workflow_definition
+        )
 
     def test_unregister_workflow(self, workflow_engine, sample_workflow_definition):
         """Test unregistering a workflow definition."""
@@ -256,7 +261,9 @@ class TestWorkflowInstanceManagement:
         await workflow_engine.create_instance(workflow_id=sample_workflow_definition.id)
         await workflow_engine.create_instance(workflow_id=simple_workflow.id)
 
-        instances = workflow_engine.list_instances(workflow_id=sample_workflow_definition.id)
+        instances = workflow_engine.list_instances(
+            workflow_id=sample_workflow_definition.id
+        )
 
         assert len(instances) == 1
         assert instances[0].workflow_id == sample_workflow_definition.id
@@ -276,8 +283,12 @@ class TestWorkflowInstanceManagement:
         )
         instance2.status = WorkflowStatus.RUNNING
 
-        pending_instances = workflow_engine.list_instances(status=WorkflowStatus.PENDING)
-        running_instances = workflow_engine.list_instances(status=WorkflowStatus.RUNNING)
+        pending_instances = workflow_engine.list_instances(
+            status=WorkflowStatus.PENDING
+        )
+        running_instances = workflow_engine.list_instances(
+            status=WorkflowStatus.RUNNING
+        )
 
         assert len(pending_instances) == 1
         assert len(running_instances) == 1
@@ -295,14 +306,12 @@ class TestWorkflowInstanceControl:
     async def test_start_instance(self, workflow_engine, simple_workflow):
         """Test starting a workflow instance."""
         workflow_engine.register_workflow(simple_workflow)
-        instance = await workflow_engine.create_instance(
-            workflow_id=simple_workflow.id
-        )
+        instance = await workflow_engine.create_instance(workflow_id=simple_workflow.id)
 
         # Mock the step handler
         with patch.object(
             workflow_engine._handler_registry,
-            'get',
+            "get",
             return_value=MagicMock(
                 execute=AsyncMock(return_value={"success": True, "next_step": None})
             ),
@@ -324,9 +333,7 @@ class TestWorkflowInstanceControl:
     async def test_start_already_running(self, workflow_engine, simple_workflow):
         """Test cannot start already running instance."""
         workflow_engine.register_workflow(simple_workflow)
-        instance = await workflow_engine.create_instance(
-            workflow_id=simple_workflow.id
-        )
+        instance = await workflow_engine.create_instance(workflow_id=simple_workflow.id)
         instance.status = WorkflowStatus.RUNNING
 
         result = await workflow_engine.start_instance(instance.id)
@@ -337,9 +344,7 @@ class TestWorkflowInstanceControl:
     async def test_pause_instance(self, workflow_engine, simple_workflow):
         """Test pausing a workflow instance."""
         workflow_engine.register_workflow(simple_workflow)
-        instance = await workflow_engine.create_instance(
-            workflow_id=simple_workflow.id
-        )
+        instance = await workflow_engine.create_instance(workflow_id=simple_workflow.id)
         instance.status = WorkflowStatus.RUNNING
 
         result = await workflow_engine.pause_instance(instance.id)
@@ -351,9 +356,7 @@ class TestWorkflowInstanceControl:
     async def test_pause_nonrunning_instance(self, workflow_engine, simple_workflow):
         """Test cannot pause non-running instance."""
         workflow_engine.register_workflow(simple_workflow)
-        instance = await workflow_engine.create_instance(
-            workflow_id=simple_workflow.id
-        )
+        instance = await workflow_engine.create_instance(workflow_id=simple_workflow.id)
 
         result = await workflow_engine.pause_instance(instance.id)
 
@@ -363,9 +366,7 @@ class TestWorkflowInstanceControl:
     async def test_cancel_instance(self, workflow_engine, simple_workflow):
         """Test cancelling a workflow instance."""
         workflow_engine.register_workflow(simple_workflow)
-        instance = await workflow_engine.create_instance(
-            workflow_id=simple_workflow.id
-        )
+        instance = await workflow_engine.create_instance(workflow_id=simple_workflow.id)
 
         result = await workflow_engine.cancel_instance(instance.id)
 
@@ -377,9 +378,7 @@ class TestWorkflowInstanceControl:
     async def test_cancel_completed_instance(self, workflow_engine, simple_workflow):
         """Test cannot cancel completed instance."""
         workflow_engine.register_workflow(simple_workflow)
-        instance = await workflow_engine.create_instance(
-            workflow_id=simple_workflow.id
-        )
+        instance = await workflow_engine.create_instance(workflow_id=simple_workflow.id)
         instance.status = WorkflowStatus.COMPLETED
 
         result = await workflow_engine.cancel_instance(instance.id)
@@ -432,6 +431,7 @@ class TestWorkflowEventSystem:
     @pytest.mark.asyncio
     async def test_emit_event_callback_error_handled(self, workflow_engine):
         """Test that callback errors are handled gracefully."""
+
         def failing_callback(*args):
             raise Exception("Callback error")
 
@@ -451,6 +451,7 @@ class TestHandlerRegistration:
 
     def test_register_action(self, workflow_engine):
         """Test registering a custom action handler."""
+
         def my_action(params, context):
             return {"result": "done"}
 
@@ -459,6 +460,7 @@ class TestHandlerRegistration:
 
     def test_register_notification_channel(self, workflow_engine):
         """Test registering a notification channel."""
+
         async def email_sender(recipient, message):
             pass
 
@@ -489,7 +491,7 @@ class TestWorkflowApprovals:
         instance.current_step = "step1"
 
         # Mock the workflow execution to prevent background task
-        with patch.object(workflow_engine, '_execute_workflow', new_callable=AsyncMock):
+        with patch.object(workflow_engine, "_execute_workflow", new_callable=AsyncMock):
             result = await workflow_engine.approve_step(
                 instance_id=instance.id,
                 step_id="step1",
@@ -590,12 +592,8 @@ class TestWorkflowStatistics:
     ):
         """Test stats with definitions and instances."""
         workflow_engine.register_workflow(sample_workflow_definition)
-        await workflow_engine.create_instance(
-            workflow_id=sample_workflow_definition.id
-        )
-        await workflow_engine.create_instance(
-            workflow_id=sample_workflow_definition.id
-        )
+        await workflow_engine.create_instance(workflow_id=sample_workflow_definition.id)
+        await workflow_engine.create_instance(workflow_id=sample_workflow_definition.id)
 
         stats = await workflow_engine.get_stats()
 
@@ -614,6 +612,7 @@ class TestWorkflowEngineSingleton:
     def test_get_workflow_engine_returns_instance(self):
         """Test get_workflow_engine returns an instance."""
         import app.services.workflow.workflow_engine as module
+
         module._workflow_engine = None
 
         engine = get_workflow_engine()
@@ -622,6 +621,7 @@ class TestWorkflowEngineSingleton:
     def test_get_workflow_engine_returns_same_instance(self):
         """Test get_workflow_engine returns cached singleton."""
         import app.services.workflow.workflow_engine as module
+
         module._workflow_engine = None
 
         engine1 = get_workflow_engine()

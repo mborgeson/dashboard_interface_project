@@ -1,4 +1,5 @@
 """Tests for ML rent growth prediction service."""
+
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -15,10 +16,11 @@ from app.services.ml.rent_growth_predictor import (
 # Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def predictor():
     """Create RentGrowthPredictor instance."""
-    with patch('app.services.ml.rent_growth_predictor.get_model_manager') as mock_mgr:
+    with patch("app.services.ml.rent_growth_predictor.get_model_manager") as mock_mgr:
         mock_manager = MagicMock()
         mock_manager.load_model.return_value = None
         mock_manager.get_model_info.return_value = {}
@@ -29,7 +31,7 @@ def predictor():
 @pytest.fixture
 def predictor_with_model():
     """Create predictor with mock model loaded."""
-    with patch('app.services.ml.rent_growth_predictor.get_model_manager') as mock_mgr:
+    with patch("app.services.ml.rent_growth_predictor.get_model_manager") as mock_mgr:
         mock_model = MagicMock()
         mock_model.predict.return_value = np.array([3.5])
         mock_model.feature_importances_ = np.array([0.1] * 16)
@@ -157,7 +159,9 @@ class TestPredictorInit:
     @pytest.mark.asyncio
     async def test_initialize_with_model(self):
         """Test initialization when model is available."""
-        with patch('app.services.ml.rent_growth_predictor.get_model_manager') as mock_mgr:
+        with patch(
+            "app.services.ml.rent_growth_predictor.get_model_manager"
+        ) as mock_mgr:
             mock_model = MagicMock()
             mock_manager = MagicMock()
             mock_manager.load_model.return_value = mock_model
@@ -212,7 +216,9 @@ class TestFeaturePreparation:
         # Should default to 0 (multifamily encoding)
         assert features[0][3] == 0
 
-    def test_prepare_features_extracts_all_values(self, predictor, sample_property_data):
+    def test_prepare_features_extracts_all_values(
+        self, predictor, sample_property_data
+    ):
         """Test that all property values are extracted."""
         features = predictor._prepare_features(sample_property_data)
 
@@ -253,9 +259,13 @@ class TestPrediction:
         assert result is not None
         assert result.prediction_period_months == 6
 
-    def test_predict_calculates_rent_correctly(self, predictor_with_model, sample_property_data):
+    def test_predict_calculates_rent_correctly(
+        self, predictor_with_model, sample_property_data
+    ):
         """Test rent calculation is correct."""
-        result = predictor_with_model.predict(sample_property_data, prediction_months=12)
+        result = predictor_with_model.predict(
+            sample_property_data, prediction_months=12
+        )
 
         # Model returns 3.5% annual growth
         expected_growth = 3.5
@@ -263,7 +273,9 @@ class TestPrediction:
 
         assert result.predicted_rent == pytest.approx(expected_rent, rel=0.01)
 
-    def test_predict_includes_confidence_interval(self, predictor_with_model, sample_property_data):
+    def test_predict_includes_confidence_interval(
+        self, predictor_with_model, sample_property_data
+    ):
         """Test that prediction includes confidence interval."""
         result = predictor_with_model.predict(sample_property_data)
 
@@ -272,14 +284,18 @@ class TestPrediction:
         lower, upper = result.confidence_interval
         assert lower < result.predicted_growth_rate < upper
 
-    def test_predict_includes_features_used(self, predictor_with_model, sample_property_data):
+    def test_predict_includes_features_used(
+        self, predictor_with_model, sample_property_data
+    ):
         """Test that prediction includes features used."""
         result = predictor_with_model.predict(sample_property_data)
 
         assert result.features_used is not None
         assert len(result.features_used) > 0
 
-    def test_predict_handles_exception(self, predictor_with_model, sample_property_data):
+    def test_predict_handles_exception(
+        self, predictor_with_model, sample_property_data
+    ):
         """Test that prediction handles exceptions gracefully."""
         predictor_with_model._model.predict.side_effect = Exception("Prediction error")
 
@@ -422,13 +438,16 @@ class TestPredictorSingleton:
     @pytest.mark.asyncio
     async def test_get_rent_growth_predictor_returns_instance(self):
         """Test get_rent_growth_predictor returns an instance."""
-        with patch('app.services.ml.rent_growth_predictor.get_model_manager') as mock_mgr:
+        with patch(
+            "app.services.ml.rent_growth_predictor.get_model_manager"
+        ) as mock_mgr:
             mock_manager = MagicMock()
             mock_manager.load_model.return_value = None
             mock_manager.get_model_info.return_value = {}
             mock_mgr.return_value = mock_manager
 
             import app.services.ml.rent_growth_predictor as module
+
             module._predictor = None
 
             result = await get_rent_growth_predictor()
@@ -437,13 +456,16 @@ class TestPredictorSingleton:
     @pytest.mark.asyncio
     async def test_get_rent_growth_predictor_returns_same_instance(self):
         """Test get_rent_growth_predictor returns cached singleton."""
-        with patch('app.services.ml.rent_growth_predictor.get_model_manager') as mock_mgr:
+        with patch(
+            "app.services.ml.rent_growth_predictor.get_model_manager"
+        ) as mock_mgr:
             mock_manager = MagicMock()
             mock_manager.load_model.return_value = None
             mock_manager.get_model_info.return_value = {}
             mock_mgr.return_value = mock_manager
 
             import app.services.ml.rent_growth_predictor as module
+
             module._predictor = None
 
             result1 = await get_rent_growth_predictor()

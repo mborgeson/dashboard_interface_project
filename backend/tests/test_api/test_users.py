@@ -193,7 +193,10 @@ async def test_create_user(client, db_session, admin_auth_headers):
     }
 
     response = await client.post(
-        "/api/v1/users/", json=new_user, headers=admin_auth_headers, follow_redirects=True
+        "/api/v1/users/",
+        json=new_user,
+        headers=admin_auth_headers,
+        follow_redirects=True,
     )
 
     if response.status_code == 404:
@@ -222,7 +225,10 @@ async def test_create_user_duplicate_email(client, db_session, admin_auth_header
     }
 
     response = await client.post(
-        "/api/v1/users/", json=duplicate_user, headers=admin_auth_headers, follow_redirects=True
+        "/api/v1/users/",
+        json=duplicate_user,
+        headers=admin_auth_headers,
+        follow_redirects=True,
     )
 
     if response.status_code == 404:
@@ -233,7 +239,9 @@ async def test_create_user_duplicate_email(client, db_session, admin_auth_header
 
 
 @pytest.mark.asyncio
-async def test_create_user_missing_required_fields(client, db_session, admin_auth_headers):
+async def test_create_user_missing_required_fields(
+    client, db_session, admin_auth_headers
+):
     """Test creating a user with missing required fields fails validation."""
     incomplete_user = {
         "email": "incomplete@bandrcapital.com",
@@ -241,7 +249,10 @@ async def test_create_user_missing_required_fields(client, db_session, admin_aut
     }
 
     response = await client.post(
-        "/api/v1/users/", json=incomplete_user, headers=admin_auth_headers, follow_redirects=True
+        "/api/v1/users/",
+        json=incomplete_user,
+        headers=admin_auth_headers,
+        follow_redirects=True,
     )
 
     if response.status_code == 404:
@@ -283,7 +294,10 @@ async def test_update_user(client, db_session, admin_auth_headers):
     }
 
     response = await client.put(
-        "/api/v1/users/1", json=update_data, headers=admin_auth_headers, follow_redirects=True
+        "/api/v1/users/1",
+        json=update_data,
+        headers=admin_auth_headers,
+        follow_redirects=True,
     )
 
     if response.status_code == 404:
@@ -301,7 +315,10 @@ async def test_update_user_not_found(client, db_session, admin_auth_headers):
     update_data = {"full_name": "Updated Name"}
 
     response = await client.put(
-        "/api/v1/users/99999", json=update_data, headers=admin_auth_headers, follow_redirects=True
+        "/api/v1/users/99999",
+        json=update_data,
+        headers=admin_auth_headers,
+        follow_redirects=True,
     )
 
     assert response.status_code == 404
@@ -327,7 +344,9 @@ async def test_delete_user(client, db_session, admin_auth_headers, test_user):
     """Test deleting (deactivating) a user (admin only)."""
     # Delete the test user, not user 1 (which might be the admin)
     response = await client.delete(
-        f"/api/v1/users/{test_user.id}", headers=admin_auth_headers, follow_redirects=True
+        f"/api/v1/users/{test_user.id}",
+        headers=admin_auth_headers,
+        follow_redirects=True,
     )
 
     if response.status_code == 404:
@@ -367,7 +386,9 @@ async def test_delete_user_non_admin(client, db_session, auth_headers):
 async def test_verify_user(client, db_session, admin_auth_headers, test_user):
     """Test verifying a user's email (admin only)."""
     response = await client.post(
-        f"/api/v1/users/{test_user.id}/verify", headers=admin_auth_headers, follow_redirects=True
+        f"/api/v1/users/{test_user.id}/verify",
+        headers=admin_auth_headers,
+        follow_redirects=True,
     )
 
     if response.status_code == 404:

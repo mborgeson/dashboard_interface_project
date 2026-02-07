@@ -1,4 +1,5 @@
 """Tests for batch processor service."""
+
 import asyncio
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -381,7 +382,9 @@ class TestBatchProcessorControl:
 
         # Create batch task
         batch_task = asyncio.create_task(
-            processor.process_batch([1, 2, 3, 4, 5], slow_processor, batch_id="test-pause")
+            processor.process_batch(
+                [1, 2, 3, 4, 5], slow_processor, batch_id="test-pause"
+            )
         )
 
         await asyncio.sleep(0.05)  # Let it start
@@ -422,7 +425,9 @@ class TestBatchProcessorControl:
 
         # Start batch with more items to give time for cancel
         batch_task = asyncio.create_task(
-            processor.process_batch([1, 2, 3, 4, 5], slow_processor, batch_id="test-cancel")
+            processor.process_batch(
+                [1, 2, 3, 4, 5], slow_processor, batch_id="test-cancel"
+            )
         )
 
         await asyncio.sleep(0.1)  # Let it start
@@ -566,6 +571,7 @@ class TestBatchProcessorSingleton:
     def test_get_batch_processor_returns_instance(self):
         """Test get_batch_processor returns an instance."""
         import app.services.batch.batch_processor as module
+
         module._batch_processor = None
 
         processor = get_batch_processor()
@@ -574,6 +580,7 @@ class TestBatchProcessorSingleton:
     def test_get_batch_processor_returns_same_instance(self):
         """Test get_batch_processor returns cached singleton."""
         import app.services.batch.batch_processor as module
+
         module._batch_processor = None
 
         processor1 = get_batch_processor()

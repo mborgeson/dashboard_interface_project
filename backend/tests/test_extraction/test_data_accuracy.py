@@ -24,7 +24,9 @@ from app.extraction.extractor import ExcelDataExtractor
 
 # Paths
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "uw_models"
-EXPECTED_VALUES_FILE = Path(__file__).parent.parent / "fixtures" / "expected_values.json"
+EXPECTED_VALUES_FILE = (
+    Path(__file__).parent.parent / "fixtures" / "expected_values.json"
+)
 BACKEND_DIR = Path(__file__).parent.parent.parent
 REFERENCE_FILE = BACKEND_DIR.parent / "Underwriting_Dashboard_Cell_References.xlsx"
 
@@ -132,9 +134,13 @@ class TestDataAccuracy:
             is_within_tolerance = abs(actual - expected) <= tolerance
 
             if should_match:
-                assert is_within_tolerance, f"{actual} should be within 0.01% of {expected}"
+                assert (
+                    is_within_tolerance
+                ), f"{actual} should be within 0.01% of {expected}"
             else:
-                assert not is_within_tolerance, f"{actual} should NOT be within 0.01% of {expected}"
+                assert (
+                    not is_within_tolerance
+                ), f"{actual} should NOT be within 0.01% of {expected}"
 
     def test_date_values_match_source(self, extractor: ExcelDataExtractor) -> None:
         """Verify date extractions match source Excel values."""
@@ -237,7 +243,9 @@ class TestDataAccuracy:
 
         for empty_val in empty_values:
             result = handler.process_cell_value(empty_val, "field", "Sheet", "A1")
-            assert np.isnan(result), f"Empty value '{repr(empty_val)}' should return np.nan"
+            assert np.isnan(
+                result
+            ), f"Empty value '{repr(empty_val)}' should return np.nan"
 
     def test_missing_value_indicators_handled(self) -> None:
         """Verify common missing value indicators return np.nan."""
@@ -247,7 +255,9 @@ class TestDataAccuracy:
 
         for indicator in missing_indicators:
             result = handler.process_cell_value(indicator, "field", "Sheet", "A1")
-            assert np.isnan(result), f"Missing indicator '{indicator}' should return np.nan"
+            assert np.isnan(
+                result
+            ), f"Missing indicator '{indicator}' should return np.nan"
 
     def test_error_cells_flagged(self) -> None:
         """Verify #REF!, #VALUE! etc are flagged as errors."""
@@ -312,7 +322,9 @@ class TestDataAccuracy:
 
         for decimal_val in decimal_values:
             result = handler.process_cell_value(decimal_val, "field", "Sheet", "A1")
-            assert abs(result - decimal_val) < 1e-10, f"Decimal {decimal_val} precision lost"
+            assert (
+                abs(result - decimal_val) < 1e-10
+            ), f"Decimal {decimal_val} precision lost"
 
     def test_boolean_values_preserved(self) -> None:
         """Verify boolean values are extracted correctly."""
@@ -322,9 +334,7 @@ class TestDataAccuracy:
         assert handler.process_cell_value(False, "field", "Sheet", "A1") is False
 
     @pytest.mark.slow
-    def test_fixture_file_extraction_accuracy(
-        self, fixture_files: list[Path]
-    ) -> None:
+    def test_fixture_file_extraction_accuracy(self, fixture_files: list[Path]) -> None:
         """Test extraction accuracy against real fixture files."""
         if not fixture_files:
             pytest.skip("No fixture files available")
@@ -402,13 +412,13 @@ class TestDataAccuracy:
                 # Compare based on type
                 if isinstance(expected_value, (int, float)):
                     tolerance = abs(expected_value) * 0.0001  # 0.01% tolerance
-                    assert abs(actual_value - expected_value) <= tolerance, (
-                        f"{file_name}.{field_name}: {actual_value} != {expected_value}"
-                    )
+                    assert (
+                        abs(actual_value - expected_value) <= tolerance
+                    ), f"{file_name}.{field_name}: {actual_value} != {expected_value}"
                 elif isinstance(expected_value, str):
-                    assert str(actual_value).strip() == expected_value.strip(), (
-                        f"{file_name}.{field_name}: '{actual_value}' != '{expected_value}'"
-                    )
+                    assert (
+                        str(actual_value).strip() == expected_value.strip()
+                    ), f"{file_name}.{field_name}: '{actual_value}' != '{expected_value}'"
 
 
 class TestValueTypeConversion:

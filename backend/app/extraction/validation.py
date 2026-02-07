@@ -365,8 +365,8 @@ class ExtractionValidator:
             )
 
         # Compare numeric values
-        if isinstance(expected, (int, float, Decimal)) and isinstance(
-            actual, (int, float, Decimal)
+        if isinstance(expected, int | float | Decimal) and isinstance(
+            actual, int | float | Decimal
         ):
             return self._compare_numeric(field_name, float(expected), float(actual))
 

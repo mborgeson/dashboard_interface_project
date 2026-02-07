@@ -419,9 +419,7 @@ class TestDetectChanges:
     """Tests for SharePointFileMonitor._detect_changes()."""
 
     @pytest.mark.asyncio
-    async def test_detect_new_file(
-        self, file_monitor: SharePointFileMonitor
-    ) -> None:
+    async def test_detect_new_file(self, file_monitor: SharePointFileMonitor) -> None:
         """Detects new files not in stored state."""
         # Create mock SharePoint file
         current_file = MagicMock()
@@ -532,9 +530,7 @@ class TestGetPendingFiles:
     """Tests for SharePointFileMonitor.get_pending_files()."""
 
     @pytest.mark.asyncio
-    async def test_get_pending_empty(
-        self, file_monitor: SharePointFileMonitor
-    ) -> None:
+    async def test_get_pending_empty(self, file_monitor: SharePointFileMonitor) -> None:
         """Returns empty list when no pending files."""
         pending = await file_monitor.get_pending_files()
 
@@ -882,14 +878,10 @@ class TestCheckForChangesIntegration:
         mock_sharepoint_client.find_uw_models = AsyncMock(return_value=mock_result)
 
         # Mock settings to disable auto-extraction
-        with patch(
-            "app.services.extraction.file_monitor.settings"
-        ) as mock_settings:
+        with patch("app.services.extraction.file_monitor.settings") as mock_settings:
             mock_settings.AUTO_EXTRACT_ON_CHANGE = False
 
-            result = await file_monitor.check_for_changes(
-                auto_trigger_extraction=False
-            )
+            result = await file_monitor.check_for_changes(auto_trigger_extraction=False)
 
         assert isinstance(result, MonitorCheckResult)
         assert result.files_checked == 50

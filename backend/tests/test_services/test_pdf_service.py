@@ -7,6 +7,7 @@ Tests PDFReportService functionality including:
 - Portfolio reports
 - Style and formatting
 """
+
 from datetime import datetime
 from io import BytesIO
 from unittest.mock import MagicMock, PropertyMock, patch
@@ -17,6 +18,7 @@ import pytest
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.platypus import SimpleDocTemplate
+
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
@@ -29,6 +31,7 @@ class TestPDFReportService:
     def service(self):
         """Create PDFReportService instance."""
         from app.services.pdf_service import PDFReportService
+
         return PDFReportService()
 
     @pytest.fixture
@@ -190,7 +193,7 @@ class TestPDFReportService:
 
         # PDF files start with %PDF
         content = result.getvalue()
-        assert content[:4] == b'%PDF'
+        assert content[:4] == b"%PDF"
 
     @pytest.mark.skipif(not REPORTLAB_AVAILABLE, reason="reportlab not installed")
     def test_generate_property_report_with_analytics(self, service, sample_property):
@@ -235,19 +238,31 @@ class TestPDFReportService:
         result = service.generate_deal_report(sample_deal)
 
         content = result.getvalue()
-        assert content[:4] == b'%PDF'
+        assert content[:4] == b"%PDF"
 
     @pytest.mark.skipif(not REPORTLAB_AVAILABLE, reason="reportlab not installed")
-    def test_generate_deal_report_with_property(self, service, sample_deal, sample_property):
+    def test_generate_deal_report_with_property(
+        self, service, sample_deal, sample_property
+    ):
         """Test deal report with associated property."""
-        result = service.generate_deal_report(sample_deal, property_data=sample_property)
+        result = service.generate_deal_report(
+            sample_deal, property_data=sample_property
+        )
         assert isinstance(result, BytesIO)
         assert result.getvalue()
 
     @pytest.mark.skipif(not REPORTLAB_AVAILABLE, reason="reportlab not installed")
     def test_deal_report_stage_colors(self, service, sample_deal):
         """Test deal report handles different stages."""
-        stages = ["dead", "initial_review", "active_review", "under_contract", "closed", "realized", "unknown"]
+        stages = [
+            "dead",
+            "initial_review",
+            "active_review",
+            "under_contract",
+            "closed",
+            "realized",
+            "unknown",
+        ]
 
         for stage in stages:
             deal = {**sample_deal, "stage": stage}
@@ -305,7 +320,7 @@ class TestPDFReportService:
         )
 
         content = result.getvalue()
-        assert content[:4] == b'%PDF'
+        assert content[:4] == b"%PDF"
 
     @pytest.mark.skipif(not REPORTLAB_AVAILABLE, reason="reportlab not installed")
     def test_portfolio_report_limits_items(
@@ -319,13 +334,9 @@ class TestPDFReportService:
         """Test portfolio report limits properties/deals to 10."""
         # Create 15 properties and 15 deals
         properties = [
-            {**sample_property, "id": i, "name": f"Property {i}"}
-            for i in range(15)
+            {**sample_property, "id": i, "name": f"Property {i}"} for i in range(15)
         ]
-        deals = [
-            {**sample_deal, "id": i, "name": f"Deal {i}"}
-            for i in range(15)
-        ]
+        deals = [{**sample_deal, "id": i, "name": f"Deal {i}"} for i in range(15)]
 
         # Should not error - will show first 10 with "and X more" message
         result = service.generate_portfolio_report(
@@ -355,8 +366,9 @@ class TestPDFReportService:
 
     def test_generate_report_without_reportlab_raises(self, service):
         """Test report generation raises ImportError when reportlab unavailable."""
-        with patch('app.services.pdf_service.REPORTLAB_AVAILABLE', False):
+        with patch("app.services.pdf_service.REPORTLAB_AVAILABLE", False):
             from app.services.pdf_service import PDFReportService
+
             svc = PDFReportService()
 
             with pytest.raises(ImportError, match="reportlab"):
@@ -364,8 +376,9 @@ class TestPDFReportService:
 
     def test_deal_report_without_reportlab_raises(self, service):
         """Test deal report raises ImportError when reportlab unavailable."""
-        with patch('app.services.pdf_service.REPORTLAB_AVAILABLE', False):
+        with patch("app.services.pdf_service.REPORTLAB_AVAILABLE", False):
             from app.services.pdf_service import PDFReportService
+
             svc = PDFReportService()
 
             with pytest.raises(ImportError, match="reportlab"):
@@ -373,8 +386,9 @@ class TestPDFReportService:
 
     def test_portfolio_report_without_reportlab_raises(self, service):
         """Test portfolio report raises ImportError when reportlab unavailable."""
-        with patch('app.services.pdf_service.REPORTLAB_AVAILABLE', False):
+        with patch("app.services.pdf_service.REPORTLAB_AVAILABLE", False):
             from app.services.pdf_service import PDFReportService
+
             svc = PDFReportService()
 
             with pytest.raises(ImportError, match="reportlab"):
@@ -435,7 +449,7 @@ class TestPDFReportService:
 
         # Should be readable and valid PDF
         content = result.read()
-        assert content[:4] == b'%PDF'
+        assert content[:4] == b"%PDF"
 
     @pytest.mark.skipif(not REPORTLAB_AVAILABLE, reason="reportlab not installed")
     def test_portfolio_report_returns_seekable_buffer(
@@ -460,7 +474,7 @@ class TestPDFReportService:
     def test_property_report_with_special_characters(self, service):
         """Test property report handles special characters."""
         property_data = {
-            "name": "Test & Property <with> \"special\" chars",
+            "name": 'Test & Property <with> "special" chars',
             "property_type": "office",
             "address": "123 Main St, Suite #5",
             "city": "San José",
@@ -477,15 +491,17 @@ class TestPDFReportService:
         # Generate several reports
         result1 = service.generate_property_report(sample_property)
         result2 = service.generate_deal_report(sample_deal)
-        result3 = service.generate_property_report({
-            "name": "Another Property",
-            "property_type": "retail",
-        })
+        result3 = service.generate_property_report(
+            {
+                "name": "Another Property",
+                "property_type": "retail",
+            }
+        )
 
         # All should be valid PDFs
-        assert result1.getvalue()[:4] == b'%PDF'
-        assert result2.getvalue()[:4] == b'%PDF'
-        assert result3.getvalue()[:4] == b'%PDF'
+        assert result1.getvalue()[:4] == b"%PDF"
+        assert result2.getvalue()[:4] == b"%PDF"
+        assert result3.getvalue()[:4] == b"%PDF"
 
     @pytest.mark.skipif(not REPORTLAB_AVAILABLE, reason="reportlab not installed")
     def test_report_with_unicode_content(self, service):

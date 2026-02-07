@@ -1,4 +1,5 @@
 """Tests for ML model manager service."""
+
 import json
 import pickle
 import shutil
@@ -13,6 +14,7 @@ from app.services.ml.model_manager import ModelManager, get_model_manager
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def temp_model_dir():
@@ -30,6 +32,7 @@ def model_manager(temp_model_dir):
 
 class SimpleModel:
     """Simple picklable model class for testing."""
+
     def __init__(self, value=3.5):
         self.value = value
 
@@ -65,9 +68,9 @@ class TestModelManagerInit:
 
     def test_init_with_default_path(self):
         """Test initialization with default path from settings."""
-        with patch('app.services.ml.model_manager.settings') as mock_settings:
+        with patch("app.services.ml.model_manager.settings") as mock_settings:
             mock_settings.ML_MODEL_PATH = "/tmp/test_models"
-            with patch.object(Path, 'mkdir'):
+            with patch.object(Path, "mkdir"):
                 manager = ModelManager()
                 assert str(manager.model_path) == "/tmp/test_models"
 
@@ -115,7 +118,7 @@ class TestSaveModel:
             model=mock_model,
             model_name="test_model",
             metrics={"mae": 0.1, "rmse": 0.15},
-            parameters={"learning_rate": 0.01}
+            parameters={"learning_rate": 0.01},
         )
 
         assert result is not None
@@ -124,10 +127,7 @@ class TestSaveModel:
 
     def test_save_model_creates_metadata(self, model_manager, mock_model):
         """Test that saving model creates metadata file."""
-        model_manager.save_model(
-            model=mock_model,
-            model_name="test_model"
-        )
+        model_manager.save_model(model=mock_model, model_name="test_model")
 
         metadata_path = model_manager._get_metadata_path("test_model")
         assert metadata_path.exists()
@@ -142,9 +142,7 @@ class TestSaveModel:
     def test_save_model_with_custom_version(self, model_manager, mock_model):
         """Test saving model with custom version string."""
         result = model_manager.save_model(
-            model=mock_model,
-            model_name="test_model",
-            version="v1.0.0"
+            model=mock_model, model_name="test_model", version="v1.0.0"
         )
 
         assert "v1.0.0" in result
@@ -166,10 +164,7 @@ class TestSaveModel:
         """Test that metrics are saved in metadata."""
         metrics = {"accuracy": 0.95, "f1_score": 0.92}
         model_manager.save_model(
-            mock_model,
-            "test_model",
-            metrics=metrics,
-            version="v1"
+            mock_model, "test_model", metrics=metrics, version="v1"
         )
 
         metadata = model_manager._load_metadata("test_model")
@@ -179,10 +174,7 @@ class TestSaveModel:
         """Test that parameters are saved in metadata."""
         parameters = {"epochs": 100, "batch_size": 32}
         model_manager.save_model(
-            mock_model,
-            "test_model",
-            parameters=parameters,
-            version="v1"
+            mock_model, "test_model", parameters=parameters, version="v1"
         )
 
         metadata = model_manager._load_metadata("test_model")
@@ -289,10 +281,7 @@ class TestMetadata:
     def test_get_model_info(self, model_manager, mock_model):
         """Test getting model info."""
         model_manager.save_model(
-            mock_model,
-            "test_model",
-            metrics={"accuracy": 0.95},
-            version="v1"
+            mock_model, "test_model", metrics={"accuracy": 0.95}, version="v1"
         )
 
         info = model_manager.get_model_info("test_model")
@@ -445,10 +434,11 @@ class TestModelManagerSingleton:
 
     def test_get_model_manager_returns_instance(self):
         """Test get_model_manager returns an instance."""
-        with patch('app.services.ml.model_manager.settings') as mock_settings:
+        with patch("app.services.ml.model_manager.settings") as mock_settings:
             mock_settings.ML_MODEL_PATH = "/tmp/test_models"
-            with patch.object(Path, 'mkdir'):
+            with patch.object(Path, "mkdir"):
                 import app.services.ml.model_manager as module
+
                 module._model_manager = None
 
                 manager = get_model_manager()
@@ -456,10 +446,11 @@ class TestModelManagerSingleton:
 
     def test_get_model_manager_returns_same_instance(self):
         """Test get_model_manager returns cached singleton."""
-        with patch('app.services.ml.model_manager.settings') as mock_settings:
+        with patch("app.services.ml.model_manager.settings") as mock_settings:
             mock_settings.ML_MODEL_PATH = "/tmp/test_models"
-            with patch.object(Path, 'mkdir'):
+            with patch.object(Path, "mkdir"):
                 import app.services.ml.model_manager as module
+
                 module._model_manager = None
 
                 manager1 = get_model_manager()

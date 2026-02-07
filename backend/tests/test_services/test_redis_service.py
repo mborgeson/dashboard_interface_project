@@ -8,6 +8,7 @@ Tests RedisService functionality including:
 - Key builders
 - Pub/Sub functionality
 """
+
 import json
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
@@ -22,6 +23,7 @@ class TestRedisService:
     def service(self):
         """Create RedisService instance."""
         from app.services.redis_service import RedisService
+
         return RedisService()
 
     @pytest.fixture
@@ -45,8 +47,10 @@ class TestRedisService:
     @pytest.mark.asyncio
     async def test_connect_success(self, service):
         """Test successful Redis connection."""
-        with patch('app.services.redis_service.redis.ConnectionPool.from_url') as mock_pool:
-            with patch('app.services.redis_service.redis.Redis') as mock_redis:
+        with patch(
+            "app.services.redis_service.redis.ConnectionPool.from_url"
+        ) as mock_pool:
+            with patch("app.services.redis_service.redis.Redis") as mock_redis:
                 mock_client = AsyncMock()
                 mock_client.ping = AsyncMock(return_value=True)
                 mock_redis.return_value = mock_client
@@ -59,10 +63,14 @@ class TestRedisService:
     @pytest.mark.asyncio
     async def test_connect_failure(self, service):
         """Test Redis connection failure."""
-        with patch('app.services.redis_service.redis.ConnectionPool.from_url') as mock_pool:
-            with patch('app.services.redis_service.redis.Redis') as mock_redis:
+        with patch(
+            "app.services.redis_service.redis.ConnectionPool.from_url"
+        ) as mock_pool:
+            with patch("app.services.redis_service.redis.Redis") as mock_redis:
                 mock_client = AsyncMock()
-                mock_client.ping = AsyncMock(side_effect=Exception("Connection refused"))
+                mock_client.ping = AsyncMock(
+                    side_effect=Exception("Connection refused")
+                )
                 mock_redis.return_value = mock_client
 
                 with pytest.raises(Exception, match="Connection refused"):
@@ -229,11 +237,13 @@ class TestRedisService:
     async def test_mget_returns_values(self, service, mock_redis_client):
         """Test mget returns multiple values."""
         service._client = mock_redis_client
-        mock_redis_client.mget = AsyncMock(return_value=[
-            '{"a": 1}',
-            '{"b": 2}',
-            None,
-        ])
+        mock_redis_client.mget = AsyncMock(
+            return_value=[
+                '{"a": 1}',
+                '{"b": 2}',
+                None,
+            ]
+        )
 
         result = await service.mget(["key1", "key2", "key3"])
 
@@ -326,9 +336,11 @@ class TestRedisService:
     @pytest.mark.asyncio
     async def test_connect_creates_connection_pool(self, service):
         """Test connect creates a connection pool with correct settings."""
-        with patch('app.services.redis_service.redis.ConnectionPool.from_url') as mock_pool:
-            with patch('app.services.redis_service.redis.Redis') as mock_redis:
-                with patch('app.services.redis_service.settings') as mock_settings:
+        with patch(
+            "app.services.redis_service.redis.ConnectionPool.from_url"
+        ) as mock_pool:
+            with patch("app.services.redis_service.redis.Redis") as mock_redis:
+                with patch("app.services.redis_service.settings") as mock_settings:
                     mock_settings.REDIS_URL = "redis://localhost:6379"
                     mock_settings.REDIS_MAX_CONNECTIONS = 20
 
@@ -346,8 +358,10 @@ class TestRedisService:
     @pytest.mark.asyncio
     async def test_connect_uses_pool_for_client(self, service):
         """Test connect creates Redis client with connection pool."""
-        with patch('app.services.redis_service.redis.ConnectionPool.from_url') as mock_pool:
-            with patch('app.services.redis_service.redis.Redis') as mock_redis:
+        with patch(
+            "app.services.redis_service.redis.ConnectionPool.from_url"
+        ) as mock_pool:
+            with patch("app.services.redis_service.redis.Redis") as mock_redis:
                 mock_pool_instance = MagicMock()
                 mock_pool.return_value = mock_pool_instance
 
@@ -363,12 +377,16 @@ class TestRedisService:
     @pytest.mark.asyncio
     async def test_connect_timeout_handling(self, service):
         """Test connect handles connection timeout gracefully."""
-        with patch('app.services.redis_service.redis.ConnectionPool.from_url') as mock_pool:
-            with patch('app.services.redis_service.redis.Redis') as mock_redis:
+        with patch(
+            "app.services.redis_service.redis.ConnectionPool.from_url"
+        ) as mock_pool:
+            with patch("app.services.redis_service.redis.Redis") as mock_redis:
                 import asyncio
 
                 mock_client = AsyncMock()
-                mock_client.ping = AsyncMock(side_effect=TimeoutError("Connection timed out"))
+                mock_client.ping = AsyncMock(
+                    side_effect=TimeoutError("Connection timed out")
+                )
                 mock_redis.return_value = mock_client
 
                 with pytest.raises(asyncio.TimeoutError):
@@ -381,6 +399,7 @@ class TestRedisService:
 
         # Simulate connection error
         import redis.exceptions
+
         mock_redis_client.get = AsyncMock(side_effect=Exception("Connection lost"))
 
         result = await service.get("test_key")
@@ -392,7 +411,9 @@ class TestRedisService:
     async def test_set_with_connection_error(self, service, mock_redis_client):
         """Test set handles connection errors gracefully."""
         service._client = mock_redis_client
-        mock_redis_client.set = AsyncMock(side_effect=Exception("Connection pool exhausted"))
+        mock_redis_client.set = AsyncMock(
+            side_effect=Exception("Connection pool exhausted")
+        )
 
         result = await service.set("test_key", "test_value")
 
@@ -402,8 +423,10 @@ class TestRedisService:
     @pytest.mark.asyncio
     async def test_reconnect_after_disconnect(self, service):
         """Test service can reconnect after disconnect."""
-        with patch('app.services.redis_service.redis.ConnectionPool.from_url') as mock_pool:
-            with patch('app.services.redis_service.redis.Redis') as mock_redis:
+        with patch(
+            "app.services.redis_service.redis.ConnectionPool.from_url"
+        ) as mock_pool:
+            with patch("app.services.redis_service.redis.Redis") as mock_redis:
                 mock_client = AsyncMock()
                 mock_client.ping = AsyncMock(return_value=True)
                 mock_client.close = AsyncMock()
@@ -484,16 +507,18 @@ class TestRedisServiceSingleton:
     @pytest.mark.asyncio
     async def test_get_redis_service_creates_and_connects(self):
         """Test get_redis_service creates and connects service."""
-        with patch('app.services.redis_service.RedisService') as MockService:
+        with patch("app.services.redis_service.RedisService") as MockService:
             mock_instance = MagicMock()
             mock_instance.connect = AsyncMock()
             MockService.return_value = mock_instance
 
             # Reset singleton
             import app.services.redis_service as redis_module
+
             redis_module._redis_service = None
 
             from app.services.redis_service import get_redis_service
+
             service = await get_redis_service()
 
             mock_instance.connect.assert_awaited_once()
@@ -509,8 +534,9 @@ class TestRedisServiceSingleton:
         existing._client = MagicMock()  # Pretend connected
         redis_module._redis_service = existing
 
-        with patch.object(existing, 'connect', new=AsyncMock()) as mock_connect:
+        with patch.object(existing, "connect", new=AsyncMock()) as mock_connect:
             from app.services.redis_service import get_redis_service
+
             service = await get_redis_service()
 
             # Should not call connect again

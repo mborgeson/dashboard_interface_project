@@ -377,7 +377,7 @@ def _to_frontend_property(prop: Property) -> dict:
     closing_costs = acq.get("closingCosts") or round(purchase_price * 0.02, 2)
     acquisition_fee = acq.get("acquisitionFee") or 0
     # If acquisitionFee is a rate (< 1), convert to dollar amount
-    if isinstance(acquisition_fee, (int, float)) and acquisition_fee < 1:
+    if isinstance(acquisition_fee, int | float) and acquisition_fee < 1:
         acquisition_fee = round(purchase_price * acquisition_fee, 2)
 
     ltv = fin.get("ltv") or (

@@ -146,7 +146,9 @@ async def test_crud_deal_get_by_stage(db_session, multiple_deals):
 @pytest.mark.asyncio
 async def test_crud_deal_get_multi_filtered(db_session, multiple_deals):
     """Test getting deals with multiple filters."""
-    deals = await deal_crud.get_multi_filtered(db_session, stage="initial_review", limit=10)
+    deals = await deal_crud.get_multi_filtered(
+        db_session, stage="initial_review", limit=10
+    )
 
     for deal in deals:
         assert deal.stage == DealStage.INITIAL_REVIEW

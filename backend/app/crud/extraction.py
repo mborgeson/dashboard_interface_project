@@ -177,7 +177,7 @@ class ExtractedValueCRUD:
             if value is None or (isinstance(value, float) and np.isnan(value)):
                 is_error = True
                 value_text = None
-            elif isinstance(value, (int, float)):
+            elif isinstance(value, int | float):
                 value_numeric = float(value)
                 value_text = str(value)
             elif isinstance(value, datetime):

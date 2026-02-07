@@ -107,7 +107,9 @@ class TestMemoryRateLimitBackend:
         assert retry_after > 0
 
     @pytest.mark.asyncio
-    async def test_separate_keys_have_separate_limits(self, memory_backend, rate_config):
+    async def test_separate_keys_have_separate_limits(
+        self, memory_backend, rate_config
+    ):
         """Different keys should have independent rate limits."""
         # Use up limit for key1
         for _ in range(rate_config.requests):
@@ -118,7 +120,9 @@ class TestMemoryRateLimitBackend:
         assert is_limited is True
 
         # key2 should not be limited
-        is_limited, remaining, _ = await memory_backend.is_rate_limited("key2", rate_config)
+        is_limited, remaining, _ = await memory_backend.is_rate_limited(
+            "key2", rate_config
+        )
         assert is_limited is False
         assert remaining == rate_config.requests - 1
 
@@ -140,7 +144,9 @@ class TestMemoryRateLimitBackend:
         await asyncio.sleep(1.1)
 
         # Should be allowed again
-        is_limited, remaining, _ = await memory_backend.is_rate_limited("test_key", config)
+        is_limited, remaining, _ = await memory_backend.is_rate_limited(
+            "test_key", config
+        )
         assert is_limited is False
         assert remaining == 1
 
@@ -162,7 +168,9 @@ class TestMemoryRateLimitBackend:
         # Key should be removed (no valid timestamps remain)
         # Note: cleanup uses max_window of 3600, so we need to verify differently
         # The timestamps should be empty after sliding window logic
-        is_limited, remaining, _ = await memory_backend.is_rate_limited("test_key", config)
+        is_limited, remaining, _ = await memory_backend.is_rate_limited(
+            "test_key", config
+        )
         assert is_limited is False
         assert remaining == 1
 

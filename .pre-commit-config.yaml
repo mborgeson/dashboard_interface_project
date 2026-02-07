@@ -8,10 +8,22 @@ repos:
     rev: v0.8.6
     hooks:
       - id: ruff
-        args: [check, --fix]
-        files: ^backend/
+        args: [--fix]
+        files: ^backend/app/
       - id: ruff-format
-        files: ^backend/
+        files: ^backend/app/
+
+  # Mypy — Python type checking (backend)
+  - repo: local
+    hooks:
+      - id: mypy-check
+        name: Mypy type check
+        entry: /home/mattb/miniconda3/envs/dashboard-backend/bin/mypy --ignore-missing-imports
+        language: system
+        types: [python]
+        files: ^backend/app/
+        pass_filenames: false
+        args: [backend/app/]
 
   # Frontend checks
   - repo: local

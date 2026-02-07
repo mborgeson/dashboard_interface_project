@@ -1,4 +1,5 @@
 """Tests for core security module."""
+
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -128,7 +129,9 @@ class TestAccessToken:
 
         # Expiration should be within the custom delta range
         # JWT exp is in seconds, so we need to account for sub-second timing
-        expected_min = (before_creation + custom_delta).replace(microsecond=0) - timedelta(seconds=1)
+        expected_min = (before_creation + custom_delta).replace(
+            microsecond=0
+        ) - timedelta(seconds=1)
         expected_max = after_creation + custom_delta + timedelta(seconds=2)
 
         assert exp_time >= expected_min
@@ -137,9 +140,7 @@ class TestAccessToken:
     def test_create_access_token_additional_claims(self):
         """Test token with additional claims."""
         additional_claims = {"role": "admin", "department": "IT"}
-        token = create_access_token(
-            subject="123", additional_claims=additional_claims
-        )
+        token = create_access_token(subject="123", additional_claims=additional_claims)
 
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
@@ -169,7 +170,9 @@ class TestAccessToken:
 
         expected_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         # JWT exp is in seconds, so we need to account for sub-second timing
-        expected_min = (before_creation + expected_delta).replace(microsecond=0) - timedelta(seconds=1)
+        expected_min = (before_creation + expected_delta).replace(
+            microsecond=0
+        ) - timedelta(seconds=1)
         expected_max = after_creation + expected_delta + timedelta(seconds=2)
 
         assert exp_time >= expected_min

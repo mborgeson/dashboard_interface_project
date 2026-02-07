@@ -8,6 +8,7 @@ Tests WebSocketManager functionality including:
 - Event notifications
 - Heartbeat management
 """
+
 import asyncio
 from datetime import datetime, timezone
 from typing import Dict, Set
@@ -23,6 +24,7 @@ class TestWebSocketManager:
     def manager(self):
         """Create WebSocketManager instance."""
         from app.services.websocket_service import WebSocketManager
+
         return WebSocketManager()
 
     @pytest.fixture
@@ -59,14 +61,14 @@ class TestWebSocketManager:
     @pytest.mark.asyncio
     async def test_connect_accepts_websocket(self, manager, mock_websocket):
         """Test connect accepts the WebSocket."""
-        with patch.object(manager, '_heartbeat_loop', new=AsyncMock()):
+        with patch.object(manager, "_heartbeat_loop", new=AsyncMock()):
             conn_id = await manager.connect(mock_websocket)
             mock_websocket.accept.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_connect_returns_connection_id(self, manager, mock_websocket):
         """Test connect returns a connection ID."""
-        with patch.object(manager, '_heartbeat_loop', new=AsyncMock()):
+        with patch.object(manager, "_heartbeat_loop", new=AsyncMock()):
             conn_id = await manager.connect(mock_websocket)
             assert conn_id is not None
             assert isinstance(conn_id, str)
@@ -74,21 +76,21 @@ class TestWebSocketManager:
     @pytest.mark.asyncio
     async def test_connect_with_user_id(self, manager, mock_websocket):
         """Test connect with user_id includes user in ID."""
-        with patch.object(manager, '_heartbeat_loop', new=AsyncMock()):
+        with patch.object(manager, "_heartbeat_loop", new=AsyncMock()):
             conn_id = await manager.connect(mock_websocket, user_id=123)
             assert "user_123" in conn_id
 
     @pytest.mark.asyncio
     async def test_connect_without_user_id(self, manager, mock_websocket):
         """Test connect without user_id creates anon ID."""
-        with patch.object(manager, '_heartbeat_loop', new=AsyncMock()):
+        with patch.object(manager, "_heartbeat_loop", new=AsyncMock()):
             conn_id = await manager.connect(mock_websocket)
             assert "anon_" in conn_id
 
     @pytest.mark.asyncio
     async def test_connect_registers_connection(self, manager, mock_websocket):
         """Test connect registers the connection."""
-        with patch.object(manager, '_heartbeat_loop', new=AsyncMock()):
+        with patch.object(manager, "_heartbeat_loop", new=AsyncMock()):
             conn_id = await manager.connect(mock_websocket)
             assert conn_id in manager._connections
             assert manager._connections[conn_id] is mock_websocket
@@ -96,8 +98,10 @@ class TestWebSocketManager:
     @pytest.mark.asyncio
     async def test_connect_stores_metadata(self, manager, mock_websocket):
         """Test connect stores connection metadata."""
-        with patch.object(manager, '_heartbeat_loop', new=AsyncMock()):
-            conn_id = await manager.connect(mock_websocket, user_id=456, rooms=["deals"])
+        with patch.object(manager, "_heartbeat_loop", new=AsyncMock()):
+            conn_id = await manager.connect(
+                mock_websocket, user_id=456, rooms=["deals"]
+            )
 
             assert conn_id in manager._metadata
             metadata = manager._metadata[conn_id]
@@ -108,7 +112,7 @@ class TestWebSocketManager:
     @pytest.mark.asyncio
     async def test_connect_tracks_user_connections(self, manager, mock_websocket):
         """Test connect tracks user connections."""
-        with patch.object(manager, '_heartbeat_loop', new=AsyncMock()):
+        with patch.object(manager, "_heartbeat_loop", new=AsyncMock()):
             conn_id = await manager.connect(mock_websocket, user_id=789)
 
             assert 789 in manager._user_connections
@@ -117,7 +121,7 @@ class TestWebSocketManager:
     @pytest.mark.asyncio
     async def test_connect_subscribes_to_rooms(self, manager, mock_websocket):
         """Test connect subscribes to specified rooms."""
-        with patch.object(manager, '_heartbeat_loop', new=AsyncMock()):
+        with patch.object(manager, "_heartbeat_loop", new=AsyncMock()):
             conn_id = await manager.connect(mock_websocket, rooms=["room1", "room2"])
 
             assert "room1" in manager._rooms
@@ -150,7 +154,9 @@ class TestWebSocketManager:
         assert conn_id not in manager._metadata
 
     @pytest.mark.asyncio
-    async def test_disconnect_removes_from_user_connections(self, manager, mock_websocket):
+    async def test_disconnect_removes_from_user_connections(
+        self, manager, mock_websocket
+    ):
         """Test disconnect removes from user connections."""
         conn_id = "test_conn"
         user_id = 123
@@ -397,7 +403,7 @@ class TestWebSocketManager:
         conn_id = "test_conn"
         manager._connections[conn_id] = mock_websocket
 
-        with patch('app.services.websocket_service.settings') as mock_settings:
+        with patch("app.services.websocket_service.settings") as mock_settings:
             mock_settings.WS_HEARTBEAT_INTERVAL = 0.01  # Very short for testing
 
             # Run heartbeat for a brief period
@@ -422,7 +428,7 @@ class TestWebSocketManager:
         conn_id = "test_conn"
         manager._connections[conn_id] = mock_websocket
 
-        with patch('app.services.websocket_service.settings') as mock_settings:
+        with patch("app.services.websocket_service.settings") as mock_settings:
             mock_settings.WS_HEARTBEAT_INTERVAL = 0.01
 
             # Start heartbeat
@@ -442,12 +448,14 @@ class TestWebSocketManager:
                     pass
 
     @pytest.mark.asyncio
-    async def test_heartbeat_loop_handles_cancelled_error(self, manager, mock_websocket):
+    async def test_heartbeat_loop_handles_cancelled_error(
+        self, manager, mock_websocket
+    ):
         """Test heartbeat loop handles cancellation gracefully."""
         conn_id = "test_conn"
         manager._connections[conn_id] = mock_websocket
 
-        with patch('app.services.websocket_service.settings') as mock_settings:
+        with patch("app.services.websocket_service.settings") as mock_settings:
             mock_settings.WS_HEARTBEAT_INTERVAL = 0.01
 
             task = asyncio.create_task(manager._heartbeat_loop(conn_id))
@@ -470,7 +478,7 @@ class TestWebSocketManager:
         # Make send fail
         mock_websocket.send_json.side_effect = Exception("Connection lost")
 
-        with patch('app.services.websocket_service.settings') as mock_settings:
+        with patch("app.services.websocket_service.settings") as mock_settings:
             mock_settings.WS_HEARTBEAT_INTERVAL = 0.01
 
             # Run heartbeat - should handle error and disconnect

@@ -73,9 +73,9 @@ class TestCellMappingAccuracy:
             if not cell_pattern.match(cell_address):
                 invalid_cells.append((field_name, cell_address))
 
-        assert len(invalid_cells) == 0, (
-            f"Found {len(invalid_cells)} invalid cell addresses: {invalid_cells[:10]}"
-        )
+        assert (
+            len(invalid_cells) == 0
+        ), f"Found {len(invalid_cells)} invalid cell addresses: {invalid_cells[:10]}"
 
     def test_all_mapped_sheets_not_empty(
         self, mappings: dict[str, CellMapping]
@@ -91,9 +91,9 @@ class TestCellMappingAccuracy:
 
         # Allow some tolerance for missing sheet names
         max_allowed = len(mappings) * 0.05  # 5% tolerance
-        assert len(empty_sheets) <= max_allowed, (
-            f"Too many mappings with empty sheet names: {len(empty_sheets)}"
-        )
+        assert (
+            len(empty_sheets) <= max_allowed
+        ), f"Too many mappings with empty sheet names: {len(empty_sheets)}"
 
     @pytest.mark.slow
     def test_all_mapped_sheets_exist(
@@ -156,9 +156,9 @@ class TestCellMappingAccuracy:
             if not valid_pattern.match(field_name):
                 invalid_names.append(field_name)
 
-        assert len(invalid_names) == 0, (
-            f"Found {len(invalid_names)} invalid field names: {invalid_names[:10]}"
-        )
+        assert (
+            len(invalid_names) == 0
+        ), f"Found {len(invalid_names)} invalid field names: {invalid_names[:10]}"
 
     def test_categories_consistent(self, mappings: dict[str, CellMapping]) -> None:
         """Verify field categories match expected values."""
@@ -177,9 +177,9 @@ class TestCellMappingAccuracy:
         )
         uncategorized_rate = uncategorized_count / len(mappings)
 
-        assert uncategorized_rate < 0.1, (
-            f"Too many uncategorized mappings: {uncategorized_rate*100:.1f}%"
-        )
+        assert (
+            uncategorized_rate < 0.1
+        ), f"Too many uncategorized mappings: {uncategorized_rate*100:.1f}%"
 
     def test_cell_address_ranges(self, mappings: dict[str, CellMapping]) -> None:
         """Verify cell addresses are within reasonable Excel ranges."""
@@ -225,14 +225,14 @@ class TestCellMappingAccuracy:
             sheet_name = mapping.sheet_name
 
             # No leading/trailing whitespace
-            assert sheet_name == sheet_name.strip(), (
-                f"{field_name}: Sheet name has whitespace: '{sheet_name}'"
-            )
+            assert (
+                sheet_name == sheet_name.strip()
+            ), f"{field_name}: Sheet name has whitespace: '{sheet_name}'"
 
             # Not "nan" string
-            assert sheet_name.lower() != "nan" or mapping.sheet_name == "Unknown", (
-                f"{field_name}: Sheet name is 'nan'"
-            )
+            assert (
+                sheet_name.lower() != "nan" or mapping.sheet_name == "Unknown"
+            ), f"{field_name}: Sheet name is 'nan'"
 
     def test_duplicate_tracking(self, parser: CellMappingParser | None) -> None:
         """Verify duplicate field names are properly tracked."""
@@ -310,7 +310,9 @@ class TestCellMappingParser:
 
         for sheet_name, expected in test_cases:
             result = parser._abbreviate_sheet_name(sheet_name)
-            assert result == expected, f"'{sheet_name}' should abbreviate to '{expected}'"
+            assert (
+                result == expected
+            ), f"'{sheet_name}' should abbreviate to '{expected}'"
 
     def test_validation_report_structure(
         self, parser: CellMappingParser | None

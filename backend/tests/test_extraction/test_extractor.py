@@ -51,8 +51,8 @@ class TestCellMappingParser:
         field_names = list(mappings.keys())
         unique_names = set(field_names)
 
-        assert len(field_names) == len(
-            unique_names
+        assert (
+            len(field_names) == len(unique_names)
         ), f"Duplicate field names found: {len(field_names)} total, {len(unique_names)} unique"
         print(f"✓ All {len(field_names)} field names are unique")
 

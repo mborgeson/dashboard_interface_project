@@ -1,4 +1,5 @@
 """Tests for User CRUD operations."""
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -13,6 +14,7 @@ from app.schemas.user import UserCreate, UserUpdate
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest_asyncio.fixture
 async def crud_user():
@@ -96,6 +98,7 @@ class TestCRUDUserCreate:
         assert user.hashed_password != plain_password
         # Should be verifiable
         from app.core.security import verify_password
+
         assert verify_password(plain_password, user.hashed_password)
 
 
@@ -123,7 +126,9 @@ class TestCRUDUserUpdate:
         assert updated.department == "New Department"
 
     @pytest.mark.asyncio
-    async def test_update_user_with_schema(self, db_session, crud_user, test_user_in_db):
+    async def test_update_user_with_schema(
+        self, db_session, crud_user, test_user_in_db
+    ):
         """Test updating user with Pydantic schema."""
         update_in = UserUpdate(full_name="Schema Updated", role="admin")
 
@@ -135,7 +140,9 @@ class TestCRUDUserUpdate:
         assert updated.role == "admin"
 
     @pytest.mark.asyncio
-    async def test_update_user_password_hashed(self, db_session, crud_user, test_user_in_db):
+    async def test_update_user_password_hashed(
+        self, db_session, crud_user, test_user_in_db
+    ):
         """Test that updating password hashes it."""
         new_password = "newpassword456"
         update_data = {"password": new_password}
@@ -146,6 +153,7 @@ class TestCRUDUserUpdate:
 
         # New password should be verifiable
         from app.core.security import verify_password
+
         assert verify_password(new_password, updated.hashed_password)
 
 
@@ -205,7 +213,9 @@ class TestCRUDUserGetMulti:
         assert isinstance(users, list)
 
     @pytest.mark.asyncio
-    async def test_get_multi_with_pagination(self, db_session, crud_user, test_user_in_db):
+    async def test_get_multi_with_pagination(
+        self, db_session, crud_user, test_user_in_db
+    ):
         """Test pagination works correctly."""
         # Create multiple users
         for i in range(5):
@@ -215,7 +225,7 @@ class TestCRUDUserGetMulti:
                     "email": f"multiuser{i}@test.com",
                     "password": "password123",
                     "full_name": f"Multi User {i}",
-                }
+                },
             )
 
         # Get first 3
@@ -245,7 +255,7 @@ class TestCRUDUserAuthenticate:
                 "email": "authtest@test.com",
                 "password": "correctpassword",
                 "full_name": "Auth Test",
-            }
+            },
         )
 
         user = await crud_user.authenticate(
@@ -256,7 +266,9 @@ class TestCRUDUserAuthenticate:
         assert user.email == "authtest@test.com"
 
     @pytest.mark.asyncio
-    async def test_authenticate_wrong_password(self, db_session, crud_user, test_user_in_db):
+    async def test_authenticate_wrong_password(
+        self, db_session, crud_user, test_user_in_db
+    ):
         """Test authentication with wrong password."""
         user = await crud_user.authenticate(
             db_session, email=test_user_in_db.email, password="wrongpassword"
@@ -355,7 +367,7 @@ class TestCRUDUserRemove:
                 "email": "removetest@test.com",
                 "password": "password123",
                 "full_name": "Remove Test",
-            }
+            },
         )
         user_id = user.id
 
@@ -395,8 +407,7 @@ class TestCRUDUserCount:
     async def test_count_with_filters(self, db_session, crud_user, test_user_in_db):
         """Test counting users with filters."""
         count = await crud_user.count(
-            db_session,
-            filters={"email": test_user_in_db.email}
+            db_session, filters={"email": test_user_in_db.email}
         )
 
         assert count == 1

@@ -1,4 +1,5 @@
 """Tests for job queue service."""
+
 import asyncio
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -641,6 +642,7 @@ class TestJobQueueSingleton:
     def test_get_job_queue_returns_instance(self):
         """Test get_job_queue returns an instance."""
         import app.services.batch.job_queue as module
+
         module._job_queue = None
 
         queue = get_job_queue()
@@ -649,6 +651,7 @@ class TestJobQueueSingleton:
     def test_get_job_queue_returns_same_instance(self):
         """Test get_job_queue returns cached singleton."""
         import app.services.batch.job_queue as module
+
         module._job_queue = None
 
         queue1 = get_job_queue()

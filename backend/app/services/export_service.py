@@ -355,9 +355,9 @@ class ExcelExportService:
                     cell.number_format = '"$"#,##0'
                 elif fmt == "percent" and value:
                     cell.number_format = "0.0%"
-                    if isinstance(value, (int, float)) and value > 1:
+                    if isinstance(value, int | float) and value > 1:
                         cell.value = value
-                    elif isinstance(value, (int, float)):
+                    elif isinstance(value, int | float):
                         cell.value = value * 100 if value < 1 else value
                 elif fmt == "date" and value:
                     cell.number_format = "YYYY-MM-DD"
