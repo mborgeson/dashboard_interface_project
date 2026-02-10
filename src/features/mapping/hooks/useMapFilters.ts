@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import type { Property, PhoenixSubmarket } from '@/types';
+import type { Property } from '@/types';
 
 // Phoenix city center fallback coordinates used by the backend for missing lat/lng
 const FALLBACK_LAT = 33.45;
@@ -13,14 +13,14 @@ function hasValidCoordinates(property: Property): boolean {
 
 export interface MapFilters {
   propertyClasses: Set<'A' | 'B' | 'C'>;
-  submarkets: Set<PhoenixSubmarket>;
+  submarkets: Set<string>;
   valueRange: [number, number];
   occupancyRange: [number, number];
 }
 
 const DEFAULT_FILTERS: MapFilters = {
   propertyClasses: new Set(['A', 'B', 'C']),
-  submarkets: new Set<PhoenixSubmarket>([
+  submarkets: new Set<string>([
     'Tempe',
     'East Valley',
     'Downtown Phoenix',
@@ -112,7 +112,7 @@ export function useMapFilters(properties: Property[]) {
     });
   };
 
-  const toggleSubmarket = (submarket: PhoenixSubmarket) => {
+  const toggleSubmarket = (submarket: string) => {
     setFilters(prev => {
       const newSubmarkets = new Set(prev.submarkets);
       if (newSubmarkets.has(submarket)) {

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { X, Filter, RotateCcw } from 'lucide-react';
-import type { PhoenixSubmarket } from '@/types';
 import type { MapFilters } from '../hooks/useMapFilters';
 import { formatCurrency } from '@/lib/utils/formatters';
 
@@ -10,7 +9,7 @@ interface MapFilterPanelProps {
   totalCount: number;
   valueRange: [number, number];
   onTogglePropertyClass: (propertyClass: 'A' | 'B' | 'C') => void;
-  onToggleSubmarket: (submarket: PhoenixSubmarket) => void;
+  onToggleSubmarket: (submarket: string) => void;
   onValueRangeChange: (range: [number, number]) => void;
   onOccupancyRangeChange: (range: [number, number]) => void;
   onReset: () => void;
@@ -29,7 +28,7 @@ export function MapFilterPanel({
 }: MapFilterPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const submarkets: PhoenixSubmarket[] = [
+  const submarkets: string[] = [
     'Tempe',
     'East Valley',
     'Downtown Phoenix',

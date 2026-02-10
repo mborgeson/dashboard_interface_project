@@ -45,7 +45,7 @@ export interface Property {
     zip: string;
     latitude: number;
     longitude: number;
-    submarket: PhoenixSubmarket;
+    submarket: string;
   };
   propertyDetails: {
     units: number;
@@ -53,7 +53,7 @@ export interface Property {
     averageUnitSize: number;
     yearBuilt: number;
     propertyClass: 'A' | 'B' | 'C';
-    assetType: 'Garden' | 'Mid-Rise' | 'High-Rise';
+    assetType: string;
     amenities: string[];
   };
   acquisition: {
@@ -136,23 +136,6 @@ export interface Property {
     gallery: string[];
   };
 }
-
-export type PhoenixSubmarket =
-  | 'Tempe'
-  | 'East Valley'
-  | 'South West Valley'
-  | 'Downtown Phoenix'
-  | 'North Phoenix'
-  | 'Deer Valley'
-  | 'Chandler'
-  | 'North Scottsdale'
-  | 'Gilbert'
-  | 'Old Town Scottsdale'
-  | 'North West Valley'
-  | 'South Phoenix'
-  | 'West Maricopa County'
-  | 'Camelback'
-  | 'Southeast Valley';
 
 export interface PropertySummaryStats {
   totalProperties: number;
