@@ -9,24 +9,6 @@ import { dateString, nullableDateString } from './common';
 
 // ---------- Nested sub-schemas ----------
 
-const submarkets = [
-  'Tempe',
-  'East Valley',
-  'South West Valley',
-  'Downtown Phoenix',
-  'North Phoenix',
-  'Deer Valley',
-  'Chandler',
-  'North Scottsdale',
-  'Gilbert',
-  'Old Town Scottsdale',
-  'North West Valley',
-  'South Phoenix',
-  'West Maricopa County',
-  'Camelback',
-  'Southeast Valley',
-] as const;
-
 const addressSchema = z.object({
   street: z.string(),
   city: z.string(),
@@ -34,7 +16,7 @@ const addressSchema = z.object({
   zip: z.string(),
   latitude: z.number(),
   longitude: z.number(),
-  submarket: z.enum(submarkets),
+  submarket: z.string(),
 });
 
 const propertyDetailsSchema = z.object({
@@ -43,7 +25,7 @@ const propertyDetailsSchema = z.object({
   averageUnitSize: z.number(),
   yearBuilt: z.number(),
   propertyClass: z.enum(['A', 'B', 'C']),
-  assetType: z.enum(['Garden', 'Mid-Rise', 'High-Rise']),
+  assetType: z.string(),
   amenities: z.array(z.string()),
 });
 

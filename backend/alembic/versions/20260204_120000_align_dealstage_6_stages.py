@@ -15,7 +15,7 @@ from typing import Union
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "c3d4e5f6a7b8"
+revision: str = "b2c3d4e5f6a7"
 down_revision: str | None = "8e6fdd43a452"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None

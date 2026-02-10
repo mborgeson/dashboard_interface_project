@@ -50,7 +50,7 @@ class Deal(Base, TimestampMixin, SoftDeleteMixin):
 
     # Pipeline Stage
     stage: Mapped[DealStage] = mapped_column(
-        Enum(DealStage),
+        Enum(DealStage, values_callable=lambda e: [m.value for m in e]),
         default=DealStage.INITIAL_REVIEW,
         nullable=False,
         index=True,

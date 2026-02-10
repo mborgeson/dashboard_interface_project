@@ -13,6 +13,7 @@ import {
   ReportingSuitePage,
   ExtractionDashboard,
   DealComparisonPage,
+  SalesAnalysisPage,
   routerOptions,
 } from './routes';
 
@@ -137,6 +138,14 @@ const router = createBrowserRouter(
           element: (
             <LazyRoute>
               <ExtractionDashboard />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'sales-analysis',
+          element: (
+            <LazyRoute>
+              <SalesAnalysisPage />
             </LazyRoute>
           ),
         },

@@ -37,6 +37,9 @@ export const ExtractionDashboard = lazy(() =>
 export const DealComparisonPage = lazy(() =>
   import('@/features/deals/DealComparisonPage').then(m => ({ default: m.DealComparisonPage }))
 );
+export const SalesAnalysisPage = lazy(() =>
+  import('@/features/sales-analysis').then(m => ({ default: m.SalesAnalysisPage }))
+);
 
 // Router configuration options
 export const routerOptions = {
@@ -60,6 +63,7 @@ export const ROUTES = {
   REPORTING: '/reporting',
   EXTRACTION: '/extraction',
   EXTRACTION_PROPERTY: '/extraction/:propertyName',
+  SALES_ANALYSIS: '/sales-analysis',
 } as const;
 
 export type RoutePath = typeof ROUTES[keyof typeof ROUTES];

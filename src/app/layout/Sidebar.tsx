@@ -36,6 +36,7 @@ const navigation = [
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Interest Rates', href: '/interest-rates', icon: Percent },
   { name: 'Market', href: '/market', icon: TrendingUp },
+  { name: 'Sales Analysis', href: '/sales-analysis', icon: FileSpreadsheet },
   { name: 'Mapping', href: '/mapping', icon: Map },
 ];
 

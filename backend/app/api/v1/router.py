@@ -18,6 +18,7 @@ from app.api.v1.endpoints import (
     monitoring,
     properties,
     reporting,
+    sales_analysis,
     transactions,
     users,
 )
@@ -52,3 +53,6 @@ api_router.include_router(market_data.router, prefix="/market", tags=["market-da
 api_router.include_router(reporting.router, prefix="/reporting", tags=["reporting"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 api_router.include_router(market_data_admin.router)
+api_router.include_router(
+    sales_analysis.router, prefix="/sales-analysis", tags=["sales-analysis"]
+)

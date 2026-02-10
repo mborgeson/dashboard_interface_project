@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "c3d4e5f6a7b8"
-down_revision: str | None = "a1b2c3d4e5f6"
+down_revision: str | None = "b2c3d4e5f6a7"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -107,9 +107,7 @@ def upgrade() -> None:
     )
 
     # Seed the singleton defaults row
-    op.execute(
-        "INSERT INTO report_settings (id) VALUES (1)"
-    )
+    op.execute("INSERT INTO report_settings (id) VALUES (1)")
 
 
 def downgrade() -> None:

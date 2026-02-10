@@ -22,6 +22,9 @@ from .report_template import (
     ScheduleFrequency,
 )
 
+# Sales Analysis Models
+from .sales_data import SalesData
+
 # Underwriting Models
 from .underwriting import (
     AnnualCashflow,
@@ -80,4 +83,6 @@ __all__ = [
     "ReportFormat",
     "ReportStatus",
     "ScheduleFrequency",
+    # Sales Analysis Models
+    "SalesData",
 ]
