@@ -73,6 +73,13 @@ class ExtractionRun(Base, TimestampMixin):
     # Error summary (JSON for flexibility)
     error_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
+    # Per-file processing status for retry/resume support
+    # {"file_path": {"status": "completed"|"failed"|"skipped", "error": "..."}}
+    per_file_status: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+    # Aggregated file metadata (durations, value counts, error categories)
+    file_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
     # Relationships
     extracted_values: Mapped[list["ExtractedValue"]] = relationship(
         "ExtractedValue", back_populates="extraction_run", cascade="all, delete-orphan"

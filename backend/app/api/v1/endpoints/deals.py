@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import CurrentUser, get_current_user
@@ -16,7 +16,7 @@ from app.crud.crud_activity import watchlist as watchlist_crud
 from app.db.session import get_db
 from app.models import Property
 from app.models.deal import DealStage
-from app.models.extraction import ExtractedValue
+from app.models.extraction import ExtractedValue, ExtractionRun
 from app.schemas.activity import WatchlistToggleResponse
 from app.schemas.comparison import (
     ComparisonSummary,
@@ -46,7 +46,7 @@ async def _enrich_deals_with_extraction(
     if not prop_ids:
         return deal_responses
 
-    # Fetch needed extraction fields in one query
+    # Fetch needed extraction fields from the latest completed run per property
     needed_fields = [
         "TOTAL_UNITS",
         "AVERAGE_UNIT_SF",
@@ -57,9 +57,34 @@ async def _enrich_deals_with_extraction(
         "LP_RETURNS_IRR",
         "LP_RETURNS_MOIC",
     ]
-    stmt = select(ExtractedValue).where(
-        ExtractedValue.property_id.in_(prop_ids),
-        ExtractedValue.field_name.in_(needed_fields),
+
+    # Subquery: latest completed extraction_run_id per property_id
+    latest_run_subq = (
+        select(
+            ExtractedValue.property_id,
+            func.max(ExtractionRun.completed_at).label("max_completed"),
+        )
+        .join(ExtractionRun, ExtractedValue.extraction_run_id == ExtractionRun.id)
+        .where(
+            ExtractedValue.property_id.in_(prop_ids),
+            ExtractionRun.status == "completed",
+        )
+        .group_by(ExtractedValue.property_id)
+        .subquery()
+    )
+
+    stmt = (
+        select(ExtractedValue)
+        .join(ExtractionRun, ExtractedValue.extraction_run_id == ExtractionRun.id)
+        .join(
+            latest_run_subq,
+            (ExtractedValue.property_id == latest_run_subq.c.property_id)
+            & (ExtractionRun.completed_at == latest_run_subq.c.max_completed),
+        )
+        .where(
+            ExtractedValue.property_id.in_(prop_ids),
+            ExtractedValue.field_name.in_(needed_fields),
+        )
     )
     result = await db.execute(stmt)
     rows = result.scalars().all()

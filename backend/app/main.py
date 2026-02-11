@@ -23,6 +23,7 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.middleware.rate_limiter import RateLimitMiddleware
+from app.services.data_extraction.scheduler import MarketDataScheduler
 from app.services.extraction.monitor_scheduler import get_monitor_scheduler
 from app.services.extraction.scheduler import (
     get_extraction_scheduler,
@@ -137,12 +138,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         auto_extract=settings.AUTO_EXTRACT_ON_CHANGE,
     )
 
+    # Initialize market data scheduler
+    market_data_scheduler = MarketDataScheduler(settings)
+    await market_data_scheduler.start()
+    logger.info(
+        "Market data scheduler initialized",
+        enabled=settings.MARKET_DATA_EXTRACTION_ENABLED,
+    )
+
     logger.info("Application startup complete")
 
     yield
 
     # Shutdown
     logger.info("Shutting down application...")
+
+    # Shutdown market data scheduler
+    await market_data_scheduler.stop()
+    logger.info("Market data scheduler shutdown complete")
 
     # Shutdown file monitor scheduler
     await monitor_scheduler.shutdown()

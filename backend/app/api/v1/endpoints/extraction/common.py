@@ -9,7 +9,9 @@ This module contains:
 """
 
 import asyncio
+import hashlib
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from uuid import UUID
 
@@ -23,6 +25,7 @@ from app.extraction.sharepoint import (
     SharePointClient,
     SharePointFile,
 )
+from app.services.extraction.metrics import FileMetrics, RunMetrics
 
 logger = structlog.get_logger().bind(component="extraction_api")
 
@@ -58,7 +61,7 @@ async def discover_sharepoint_files() -> list[SharePointFile]:
 
 async def download_sharepoint_file(
     client: SharePointClient, file: SharePointFile, temp_dir: str
-) -> str:
+) -> tuple[str, str]:
     """
     Download a SharePoint file to a temporary directory.
 
@@ -68,18 +71,35 @@ async def download_sharepoint_file(
         temp_dir: Temporary directory path.
 
     Returns:
-        Path to the downloaded file.
+        Tuple of (local file path, SHA-256 content hash).
     """
     content = await client.download_file(file)
+    content_hash = hashlib.sha256(content).hexdigest()
     local_path = Path(temp_dir) / file.name
     local_path.write_bytes(content)
     logger.info(
         "sharepoint_file_downloaded",
         name=file.name,
         size=len(content),
+        content_hash=content_hash[:12],
         deal_name=file.deal_name,
     )
-    return str(local_path)
+    return str(local_path), content_hash
+
+
+def _extract_single_file(
+    extractor, file_path: str, deal_name: str
+) -> tuple[str, str, dict | None, str | None]:
+    """Extract data from a single Excel file (CPU-bound, thread-safe).
+
+    Returns:
+        Tuple of (file_path, deal_name, extracted_data_or_None, error_message_or_None).
+    """
+    try:
+        result = extractor.extract_from_file(file_path)
+        return (file_path, deal_name, result, None)
+    except Exception as e:
+        return (file_path, deal_name, None, str(e))
 
 
 def process_files(
@@ -89,15 +109,15 @@ def process_files(
     mappings: dict,
     ExtractionRunCRUD,
     ExtractedValueCRUD,
+    max_workers: int = 4,
+    resume_run_id: UUID | None = None,
 ):
     """
     Process a list of files and extract data with per-deal change detection.
 
-    For each deal:
-    1. Extract data from Excel
-    2. Compare extracted data hash vs. latest DB data hash
-    3. If identical → skip (no insertion), move to next deal
-    4. If different → bulk_insert ALL values for this deal
+    Excel extraction is parallelized across threads (CPU-bound). DB
+    operations (change detection + bulk_insert) remain sequential to
+    avoid session conflicts.
 
     Args:
         db: Database session.
@@ -106,6 +126,8 @@ def process_files(
         mappings: Cell mappings for extraction.
         ExtractionRunCRUD: CRUD class for extraction runs.
         ExtractedValueCRUD: CRUD class for extracted values.
+        max_workers: Maximum parallel extraction threads (default 4).
+        resume_run_id: If provided, skip files already completed in that run.
     """
     from app.extraction import ExcelDataExtractor
     from app.services.extraction.change_detector import should_extract_deal
@@ -120,66 +142,175 @@ def process_files(
     skipped = 0
     failed = 0
     file_errors: list[dict] = []
+    per_file_status: dict[str, dict] = {}
+    run_metrics = RunMetrics(files_total=len(files_to_process))
 
-    for file_info in files_to_process:
-        file_path = file_info["file_path"]
-        deal_name = file_info.get("deal_name", "")
-
-        try:
-            # Extract data from Excel
-            result = extractor.extract_from_file(file_path)
-
-            # Get property name from extracted data or use deal name
-            property_name = (
-                result.get("PROPERTY_NAME", deal_name) or Path(file_path).stem
-            )
-
-            # Per-deal change detection: compare extracted vs DB
-            needs_update, reason = should_extract_deal(db, str(property_name), result)
-
-            if not needs_update:
-                skipped += 1
-                logger.info(
-                    "file_skipped_unchanged",
-                    file=Path(file_path).name,
-                    property=property_name,
-                )
-                # Count as processed (successfully evaluated)
-                processed += 1
-                continue
-
-            # Data changed or new deal — insert ALL values
-            source_file = file_info.get("sharepoint_path", file_path)
-
-            ExtractedValueCRUD.bulk_insert(
-                db,
-                extraction_run_id=run_id,
-                extracted_data=result,
-                mappings=mappings,
-                property_name=str(property_name),
-                source_file=source_file,
-            )
-
-            processed += 1
+    # Resume support: skip files already completed in a previous run
+    completed_files: set[str] = set()
+    if resume_run_id:
+        prev_run = ExtractionRunCRUD.get(db, resume_run_id)
+        if prev_run and prev_run.per_file_status:
+            completed_files = {
+                fp
+                for fp, info in prev_run.per_file_status.items()
+                if info.get("status") == "completed"
+            }
             logger.info(
-                "file_processed",
-                file=Path(file_path).name,
-                property=property_name,
-                fields_extracted=len(result),
-                change_reason=reason,
+                "resume_skipping_completed",
+                resume_run_id=str(resume_run_id),
+                files_skipped=len(completed_files),
             )
 
-        except Exception as e:
+    # Filter out already-completed files for resume
+    if completed_files:
+        files_to_process = [
+            fi for fi in files_to_process if fi["file_path"] not in completed_files
+        ]
+
+    # Build a file_path → file_info lookup for source_file resolution
+    file_info_map = {fi["file_path"]: fi for fi in files_to_process}
+
+    # Phase 1: Parallel extraction (CPU-bound Excel parsing)
+    extraction_results: list[tuple[str, str, dict | None, str | None]] = []
+
+    if len(files_to_process) > 1:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(
+                    _extract_single_file,
+                    extractor,
+                    fi["file_path"],
+                    fi.get("deal_name", ""),
+                ): fi["file_path"]
+                for fi in files_to_process
+            }
+            for future in as_completed(futures):
+                extraction_results.append(future.result())
+    else:
+        # Single file — no threading overhead needed
+        for fi in files_to_process:
+            extraction_results.append(
+                _extract_single_file(
+                    extractor, fi["file_path"], fi.get("deal_name", "")
+                )
+            )
+
+    # Phase 2: Sequential DB operations (change detection + insert)
+    # Track property → source_file for collision detection (Issue 4.2)
+    processed_properties: dict[str, str] = {}
+
+    for file_path, deal_name, result, error_msg in extraction_results:
+        file_info = file_info_map[file_path]
+
+        if error_msg is not None:
+            # Extraction failed
             failed += 1
             file_name = Path(file_path).name
-            error_msg = str(e)
             file_errors.append({"file": file_name, "error": error_msg})
+            per_file_status[file_path] = {"status": "failed", "error": error_msg}
+            run_metrics.record_file(
+                FileMetrics(
+                    file_path=file_path,
+                    deal_name=deal_name,
+                    status="failed",
+                )
+            )
             logger.error(
                 "file_processing_failed",
                 file=file_name,
                 error=error_msg,
-                exc_info=True,
             )
+        else:
+            try:
+                assert result is not None  # guaranteed when error_msg is None
+                # Get property name from extracted data or use deal name
+                property_name = (
+                    result.get("PROPERTY_NAME", deal_name) or Path(file_path).stem
+                )
+
+                # Collision detection: warn if another file already wrote
+                # to the same property_name (last-file-wins via upsert)
+                prop_key = str(property_name)
+                if prop_key in processed_properties:
+                    logger.warning(
+                        "property_name_collision",
+                        property=prop_key,
+                        previous_file=processed_properties[prop_key],
+                        current_file=Path(file_path).name,
+                        run_id=str(run_id),
+                    )
+                processed_properties[prop_key] = Path(file_path).name
+
+                # Per-deal change detection: compare extracted vs DB
+                needs_update, reason = should_extract_deal(
+                    db, str(property_name), result
+                )
+
+                if not needs_update:
+                    skipped += 1
+                    per_file_status[file_path] = {"status": "skipped"}
+                    run_metrics.record_file(
+                        FileMetrics(
+                            file_path=file_path,
+                            deal_name=deal_name,
+                            status="skipped",
+                        )
+                    )
+                    logger.info(
+                        "file_skipped_unchanged",
+                        file=Path(file_path).name,
+                        property=property_name,
+                    )
+                    processed += 1
+                else:
+                    # Data changed or new deal — insert ALL values
+                    source_file = file_info.get("sharepoint_path", file_path)
+
+                    ExtractedValueCRUD.bulk_insert(
+                        db,
+                        extraction_run_id=run_id,
+                        extracted_data=result,
+                        mappings=mappings,
+                        property_name=str(property_name),
+                        source_file=source_file,
+                    )
+
+                    processed += 1
+                    per_file_status[file_path] = {"status": "completed"}
+                    run_metrics.record_file(
+                        FileMetrics(
+                            file_path=file_path,
+                            deal_name=deal_name,
+                            status="completed",
+                            values_count=len(result),
+                        )
+                    )
+                    logger.info(
+                        "file_processed",
+                        file=Path(file_path).name,
+                        property=property_name,
+                        fields_extracted=len(result),
+                        change_reason=reason,
+                    )
+
+            except Exception as e:
+                failed += 1
+                file_name = Path(file_path).name
+                file_errors.append({"file": file_name, "error": str(e)})
+                per_file_status[file_path] = {"status": "failed", "error": str(e)}
+                run_metrics.record_file(
+                    FileMetrics(
+                        file_path=file_path,
+                        deal_name=deal_name,
+                        status="failed",
+                    )
+                )
+                logger.error(
+                    "file_processing_failed",
+                    file=file_name,
+                    error=str(e),
+                    exc_info=True,
+                )
 
         # Update progress after each file
         try:
@@ -201,6 +332,10 @@ def process_files(
             "total_failures": len(file_errors),
         }
 
+    # Emit structured metrics and build metadata
+    run_metrics.emit_run_metrics(str(run_id))
+    file_metadata = run_metrics.to_metadata()
+
     # Mark complete with error summary including skip stats
     ExtractionRunCRUD.complete(
         db,
@@ -208,6 +343,8 @@ def process_files(
         files_processed=processed,
         files_failed=failed,
         error_summary=error_summary,
+        per_file_status=per_file_status if per_file_status else None,
+        file_metadata=file_metadata,
     )
     logger.info(
         "extraction_completed",
@@ -270,25 +407,41 @@ def run_extraction_task(run_id: UUID, source: str, file_paths: list | None = Non
                     files_to_process = []
 
                     with tempfile.TemporaryDirectory(prefix="uw_models_") as temp_dir:
-                        for sp_file in sharepoint_files:
-                            try:
-                                local_path = loop.run_until_complete(
-                                    download_sharepoint_file(client, sp_file, temp_dir)
+                        # Concurrent downloads with semaphore limit
+                        sem = asyncio.Semaphore(5)
+
+                        async def _download_one(sp_file):
+                            async with sem:
+                                return sp_file, await download_sharepoint_file(
+                                    client, sp_file, temp_dir
                                 )
-                                files_to_process.append(
-                                    {
-                                        "file_path": local_path,
-                                        "deal_name": sp_file.deal_name,
-                                        "deal_stage": sp_file.deal_stage,
-                                        "sharepoint_path": sp_file.path,
-                                    }
+
+                        async def _download_all():
+                            async with client:
+                                return await asyncio.gather(
+                                    *[_download_one(f) for f in sharepoint_files],
+                                    return_exceptions=True,
                                 )
-                            except Exception as e:
+
+                        results = loop.run_until_complete(_download_all())
+
+                        for result in results:
+                            if isinstance(result, Exception):
                                 logger.error(
                                     "sharepoint_download_failed",
-                                    file=sp_file.name,
-                                    error=str(e),
+                                    error=str(result),
                                 )
+                                continue
+                            sp_file, (local_path, content_hash) = result
+                            files_to_process.append(
+                                {
+                                    "file_path": local_path,
+                                    "deal_name": sp_file.deal_name,
+                                    "deal_stage": sp_file.deal_stage,
+                                    "sharepoint_path": sp_file.path,
+                                    "content_hash": content_hash,
+                                }
+                            )
 
                         process_files(
                             db,

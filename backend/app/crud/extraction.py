@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models.extraction import ExtractedValue, ExtractionRun
+from app.models.property import Property
 
 
 class ExtractionRunCRUD:
@@ -46,6 +47,20 @@ class ExtractionRunCRUD:
     def get_latest(db: Session) -> ExtractionRun | None:
         """Get most recent extraction run."""
         stmt = select(ExtractionRun).order_by(ExtractionRun.started_at.desc()).limit(1)
+        return db.execute(stmt).scalar_one_or_none()
+
+    @staticmethod
+    def get_latest_completed(db: Session) -> ExtractionRun | None:
+        """Get most recent completed extraction run."""
+        stmt = (
+            select(ExtractionRun)
+            .where(ExtractionRun.status == "completed")
+            .order_by(
+                ExtractionRun.completed_at.desc().nullslast(),
+                ExtractionRun.started_at.desc(),
+            )
+            .limit(1)
+        )
         return db.execute(stmt).scalar_one_or_none()
 
     @staticmethod
@@ -92,6 +107,8 @@ class ExtractionRunCRUD:
         files_processed: int,
         files_failed: int,
         error_summary: dict | None = None,
+        per_file_status: dict | None = None,
+        file_metadata: dict | None = None,
     ) -> ExtractionRun | None:
         """Mark extraction run as completed."""
         run = db.get(ExtractionRun, run_id)
@@ -101,6 +118,10 @@ class ExtractionRunCRUD:
             run.files_processed = files_processed
             run.files_failed = files_failed
             run.error_summary = error_summary
+            if per_file_status is not None:
+                run.per_file_status = per_file_status
+            if file_metadata is not None:
+                run.file_metadata = file_metadata
             db.commit()
             db.refresh(run)
         return run
@@ -142,6 +163,7 @@ class ExtractedValueCRUD:
         mappings: dict[str, Any],
         property_name: str,
         source_file: str | None = None,
+        error_categories: dict[str, str] | None = None,
     ) -> int:
         """
         Bulk insert extracted values from a single file extraction.
@@ -153,10 +175,17 @@ class ExtractedValueCRUD:
             mappings: Dict of field_name -> CellMapping objects
             property_name: Name of the property extracted
             source_file: Path to source file
+            error_categories: Optional dict of field_name -> error category string
 
         Returns:
             Number of values inserted
         """
+        # Resolve property_id from the Property table (if match exists)
+        prop_row = db.execute(
+            select(Property.id).where(Property.name == property_name).limit(1)
+        ).scalar_one_or_none()
+        property_id: int | None = prop_row if prop_row is not None else None
+
         values_to_insert = []
 
         for field_name, value in extracted_data.items():
@@ -186,9 +215,17 @@ class ExtractedValueCRUD:
             else:
                 value_text = str(value)
 
+            # Resolve error_category from the error_categories dict if present
+            error_cat = (
+                error_categories.get(field_name)
+                if error_categories and is_error
+                else None
+            )
+
             values_to_insert.append(
                 {
                     "extraction_run_id": extraction_run_id,
+                    "property_id": property_id,
                     "property_name": property_name,
                     "field_name": field_name,
                     "field_category": mapping.category if mapping else None,
@@ -198,6 +235,7 @@ class ExtractedValueCRUD:
                     "value_numeric": value_numeric,
                     "value_date": value_date,
                     "is_error": is_error,
+                    "error_category": error_cat,
                     "source_file": source_file,
                 }
             )
@@ -209,10 +247,12 @@ class ExtractedValueCRUD:
             stmt = stmt.on_conflict_do_update(
                 constraint="uq_extracted_value",
                 set_={
+                    "property_id": stmt.excluded.property_id,
                     "value_text": stmt.excluded.value_text,
                     "value_numeric": stmt.excluded.value_numeric,
                     "value_date": stmt.excluded.value_date,
                     "is_error": stmt.excluded.is_error,
+                    "error_category": stmt.excluded.error_category,
                     "updated_at": datetime.now(UTC),
                 },
             )

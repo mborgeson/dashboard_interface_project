@@ -118,6 +118,9 @@ class SharePointClient:
         self._site_id: str | None = None
         self._drive_id: str | None = None
 
+        # Shared HTTP session (created lazily, reused across requests)
+        self._session: aiohttp.ClientSession | None = None
+
     @property
     def file_filter(self) -> "FileFilter":
         """Get or create file filter instance."""
@@ -126,6 +129,33 @@ class SharePointClient:
 
             self._file_filter = get_file_filter()
         return self._file_filter
+
+    async def __aenter__(self) -> "SharePointClient":
+        """Enter async context — creates a shared HTTP session."""
+        self._session = aiohttp.ClientSession()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Exit async context — closes the shared HTTP session."""
+        await self.close()
+
+    async def close(self) -> None:
+        """Close the shared HTTP session if open."""
+        if self._session and not self._session.closed:
+            await self._session.close()
+            self._session = None
+
+    def _get_session(self) -> aiohttp.ClientSession:
+        """Get or create an HTTP session.
+
+        If the client was entered as an async context manager, reuses the
+        shared session. Otherwise creates a new per-request session that
+        the caller must close.
+        """
+        if self._session and not self._session.closed:
+            return self._session
+        # Fallback: create a new session (caller is responsible for closing)
+        return aiohttp.ClientSession()
 
     def set_file_filter(self, file_filter: "FileFilter") -> None:
         """Set custom file filter instance."""
@@ -189,23 +219,30 @@ class SharePointClient:
 
         url = f"{self.GRAPH_BASE_URL}{endpoint}"
 
-        async with (
-            aiohttp.ClientSession() as session,
-            session.request(method, url, headers=headers, **kwargs) as response,
-        ):
-            if response.status == 401:
-                # Token may have expired, clear cache and retry once
-                self._access_token = None
-                token = await self._get_access_token()
-                headers["Authorization"] = f"Bearer {token}"
-                async with session.request(
-                    method, url, headers=headers, **kwargs
-                ) as retry_response:
-                    retry_response.raise_for_status()
-                    return await retry_response.json()
+        # Use shared session if available, otherwise create a temporary one
+        session = self._get_session()
+        owns_session = session is not self._session
 
-            response.raise_for_status()
-            return await response.json()
+        try:
+            async with session.request(
+                method, url, headers=headers, **kwargs
+            ) as response:
+                if response.status == 401:
+                    # Token may have expired, clear cache and retry once
+                    self._access_token = None
+                    token = await self._get_access_token()
+                    headers["Authorization"] = f"Bearer {token}"
+                    async with session.request(
+                        method, url, headers=headers, **kwargs
+                    ) as retry_response:
+                        retry_response.raise_for_status()
+                        return await retry_response.json()
+
+                response.raise_for_status()
+                return await response.json()
+        finally:
+            if owns_session:
+                await session.close()
 
     async def _get_site_id(self) -> str:
         """Get SharePoint site ID from site URL"""
@@ -577,13 +614,16 @@ class SharePointClient:
             raise ValueError(f"No download URL available for {file.name}")
 
         # Download using the pre-authenticated URL
-        # Download using the pre-authenticated URL
-        async with (
-            aiohttp.ClientSession() as session,
-            session.get(file.download_url) as response,
-        ):
-            response.raise_for_status()
-            content = await response.read()
+        session = self._get_session()
+        owns_session = session is not self._session
+
+        try:
+            async with session.get(file.download_url) as response:
+                response.raise_for_status()
+                content = await response.read()
+        finally:
+            if owns_session:
+                await session.close()
 
         self.logger.info("file_downloaded", name=file.name, size=len(content))
         return content

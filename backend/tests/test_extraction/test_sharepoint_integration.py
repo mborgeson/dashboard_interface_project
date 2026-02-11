@@ -465,13 +465,11 @@ class TestSharePointFileDownload:
                 __aexit__=AsyncMock(return_value=None),
             )
         )
+        mock_session.closed = False
 
         with patch(
             "aiohttp.ClientSession",
-            return_value=AsyncMock(
-                __aenter__=AsyncMock(return_value=mock_session),
-                __aexit__=AsyncMock(return_value=None),
-            ),
+            return_value=mock_session,
         ):
             content = await client.download_file(test_file)
 

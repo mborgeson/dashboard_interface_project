@@ -171,8 +171,23 @@ class SharePointFileMonitor:
             # Update stored state with current files
             await self._update_stored_state(current_files)
 
-            # Log changes to audit trail
-            await self._log_changes(changes)
+            # Trigger extraction BEFORE logging so we can record the run_id
+            extraction_run_id = None
+            extraction_triggered = False
+            if (
+                changes
+                and auto_trigger_extraction
+                and getattr(settings, "AUTO_EXTRACT_ON_CHANGE", True)
+            ):
+                extraction_run_id = await self._trigger_extraction(changes)
+                extraction_triggered = extraction_run_id is not None
+
+            # Log changes to audit trail (with extraction info)
+            await self._log_changes(
+                changes,
+                extraction_triggered=extraction_triggered,
+                extraction_run_id=extraction_run_id,
+            )
 
             # Calculate duration
             duration = time.time() - start_time
@@ -182,17 +197,9 @@ class SharePointFileMonitor:
                 files_checked=discovery_result.total_scanned,
                 folders_scanned=discovery_result.folders_scanned,
                 check_duration_seconds=round(duration, 2),
+                extraction_triggered=extraction_triggered,
+                extraction_run_id=extraction_run_id,
             )
-
-            # Trigger extraction if configured and changes detected
-            if (
-                changes
-                and auto_trigger_extraction
-                and getattr(settings, "AUTO_EXTRACT_ON_CHANGE", True)
-            ):
-                extraction_run_id = await self._trigger_extraction(changes)
-                result.extraction_triggered = extraction_run_id is not None
-                result.extraction_run_id = extraction_run_id
 
             self.logger.info(
                 "file_monitor_check_completed",
@@ -378,14 +385,28 @@ class SharePointFileMonitor:
         await self.db.commit()
         self.logger.debug("stored_state_updated", file_count=len(files))
 
-    async def _log_changes(self, changes: list[FileChange]) -> None:
+    async def _log_changes(
+        self,
+        changes: list[FileChange],
+        extraction_triggered: bool = False,
+        extraction_run_id: UUID | None = None,
+    ) -> None:
         """
         Log detected changes to the audit trail.
 
         Args:
             changes: List of detected FileChange objects
+            extraction_triggered: Whether extraction was triggered for these changes
+            extraction_run_id: ID of the triggered extraction run (if any)
         """
         for change in changes:
+            # Only set extraction fields on added/modified (not deleted)
+            triggered = extraction_triggered and change.change_type in (
+                "added",
+                "modified",
+            )
+            run_id = extraction_run_id if triggered else None
+
             log_entry = FileChangeLog(
                 file_path=change.file_path,
                 file_name=change.file_name,
@@ -396,6 +417,8 @@ class SharePointFileMonitor:
                 old_size_bytes=change.old_size_bytes,
                 new_size_bytes=change.new_size_bytes,
                 detected_at=change.detected_at or datetime.now(UTC),
+                extraction_triggered=triggered,
+                extraction_run_id=run_id,
             )
             self.db.add(log_entry)
 
@@ -411,6 +434,7 @@ class SharePointFileMonitor:
         Trigger extraction for changed files.
 
         Only triggers for added or modified files (not deleted).
+        Skips if an extraction is already running.
 
         Args:
             changes: List of detected changes
@@ -431,13 +455,32 @@ class SharePointFileMonitor:
 
         try:
             # Import here to avoid circular imports
-            from app.crud.extraction import ExtractionRunCRUD  # noqa: F401
+            from app.crud.extraction import ExtractionRunCRUD
+            from app.db.session import SessionLocal
 
-            # Note: Actual extraction triggering would integrate with
-            # the extraction API/scheduler here
+            # Use a sync session for the sync CRUD operations
+            sync_db = SessionLocal()
+            try:
+                # Check if an extraction is already running — skip if busy
+                running = ExtractionRunCRUD.get_running(sync_db)
+                if running:
+                    self.logger.info(
+                        "extraction_skipped_already_running",
+                        running_run_id=str(running.id),
+                    )
+                    return None
 
-            # For now, we mark files as pending extraction
-            # The scheduled extraction will pick them up
+                # Create a new extraction run triggered by the file monitor
+                run = ExtractionRunCRUD.create(
+                    sync_db,
+                    trigger_type="file_monitor",
+                    files_discovered=len(extractable),
+                )
+                run_id = run.id
+            finally:
+                sync_db.close()
+
+            # Mark files as pending extraction
             file_paths = [c.file_path for c in extractable]
             stmt = (
                 update(MonitoredFile)
@@ -448,13 +491,12 @@ class SharePointFileMonitor:
             await self.db.commit()
 
             self.logger.info(
-                "files_marked_for_extraction",
-                count=len(file_paths),
+                "extraction_triggered",
+                run_id=str(run_id),
+                file_count=len(file_paths),
             )
 
-            # Note: Full integration would call the extraction service here
-            # For now, return None to indicate extraction is pending
-            return None
+            return run_id
 
         except Exception as e:
             self.logger.error("extraction_trigger_failed", error=str(e))

@@ -111,10 +111,31 @@ def get_db_values_hash(db: Session, property_name: str) -> str | None:
     if not rows:
         return None
 
-    # Build pairs matching the format used by compute_extraction_hash
-    pairs = sorted((row[0], row[1] if row[1] is not None else "NULL") for row in rows)
+    # Build pairs matching the format used by compute_extraction_hash.
+    # Apply the same normalization as _normalize_value() so float-containing
+    # value_text strings (e.g. "1234.5") match the extraction-side format
+    # ("1234.5000").
+    pairs = sorted((row[0], _normalize_value_from_text(row[1])) for row in rows)
     payload = json.dumps(pairs, sort_keys=True)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _normalize_value_from_text(value_text: str | None) -> str:
+    """Normalize a DB value_text string to match compute_extraction_hash format.
+
+    Parses numeric strings back to float and applies the same 4-decimal
+    normalization used by _normalize_value(), ensuring hash consistency
+    between freshly-extracted and DB-stored values.
+    """
+    if value_text is None:
+        return "NULL"
+    try:
+        fval = float(value_text)
+        if np.isnan(fval):
+            return "NaN"
+        return f"{fval:.4f}"
+    except (ValueError, TypeError):
+        return value_text
 
 
 def should_extract_deal(

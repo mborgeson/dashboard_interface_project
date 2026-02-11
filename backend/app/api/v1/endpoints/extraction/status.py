@@ -162,10 +162,10 @@ async def list_extracted_properties(
 
     Returns ExtractedProperty objects (not just strings) to match frontend expectations.
     """
-    # Determine which run to query
+    # Determine which run to query — use latest *completed* run by default
     target_run_id = run_id
     if not target_run_id:
-        latest = ExtractionRunCRUD.get_latest(db)
+        latest = ExtractionRunCRUD.get_latest_completed(db)
         if latest:
             target_run_id = latest.id
 
@@ -244,10 +244,10 @@ async def get_property_data(
 
     Returns full ExtractedValue objects with categories and totals.
     """
-    # Determine run_id
+    # Determine run_id — use latest *completed* run by default
     target_run_id = run_id
     if not target_run_id:
-        latest = ExtractionRunCRUD.get_latest(db)
+        latest = ExtractionRunCRUD.get_latest_completed(db)
         if latest:
             target_run_id = latest.id
 
