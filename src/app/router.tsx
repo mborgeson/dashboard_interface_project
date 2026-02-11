@@ -14,6 +14,7 @@ import {
   ExtractionDashboard,
   DealComparisonPage,
   SalesAnalysisPage,
+  ConstructionPipelinePage,
   routerOptions,
 } from './routes';
 
@@ -146,6 +147,14 @@ const router = createBrowserRouter(
           element: (
             <LazyRoute>
               <SalesAnalysisPage />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'construction-pipeline',
+          element: (
+            <LazyRoute>
+              <ConstructionPipelinePage />
             </LazyRoute>
           ),
         },

@@ -22,6 +22,7 @@ import {
   FileSpreadsheet,
   Search,
   Database,
+  HardHat,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo } from 'react';
@@ -37,6 +38,7 @@ const navigation = [
   { name: 'Interest Rates', href: '/interest-rates', icon: Percent },
   { name: 'Market', href: '/market', icon: TrendingUp },
   { name: 'Sales Analysis', href: '/sales-analysis', icon: FileSpreadsheet },
+  { name: 'Construction', href: '/construction-pipeline', icon: HardHat },
   { name: 'Mapping', href: '/mapping', icon: Map },
 ];
 

@@ -41,6 +41,7 @@ from app.services.extraction.scheduler import get_extraction_scheduler  # noqa: 
 from .common import run_extraction_task  # noqa: F401
 from .extract import router as extract_router
 from .filters import router as filters_router
+from .grouping import router as grouping_router
 from .monitor import router as monitor_router
 from .scheduler import router as scheduler_router
 from .status import router as status_router
@@ -56,6 +57,7 @@ router.include_router(status_router)
 router.include_router(scheduler_router)
 router.include_router(filters_router)
 router.include_router(monitor_router)
+router.include_router(grouping_router)
 
 __all__ = [
     "router",

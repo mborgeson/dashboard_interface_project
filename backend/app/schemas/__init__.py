@@ -23,6 +23,18 @@ from .comparison import (
     QuickCompareResponse,
 )
 from .deal import DealCreate, DealResponse, DealStageUpdate, DealUpdate
+from .grouping import (
+    ConflictCheckResponse,
+    DiscoveryResponse,
+    FingerprintResponse,
+    GroupDetailResponse,
+    GroupExtractionRequest,
+    GroupExtractionResponse,
+    GroupListResponse,
+    GroupSummary,
+    PipelineStatusResponse,
+    ReferenceMappingResponse,
+)
 from .property import PropertyCreate, PropertyResponse, PropertyUpdate
 from .user import UserCreate, UserInDB, UserResponse, UserUpdate
 
@@ -60,4 +72,15 @@ __all__ = [
     "DealComparisonResponse",
     "DealComparisonRequest",
     "QuickCompareResponse",
+    # Grouping schemas
+    "GroupSummary",
+    "DiscoveryResponse",
+    "FingerprintResponse",
+    "GroupListResponse",
+    "GroupDetailResponse",
+    "ReferenceMappingResponse",
+    "ConflictCheckResponse",
+    "GroupExtractionRequest",
+    "GroupExtractionResponse",
+    "PipelineStatusResponse",
 ]

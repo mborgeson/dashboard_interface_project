@@ -26,6 +26,14 @@ class Base(DeclarativeBase):
 
 # Import all models here for Alembic to detect them  # noqa: E402
 # noqa comments prevent unused import warnings
+# Construction Pipeline Models
+from app.models.construction import (  # noqa: E402, F401
+    ConstructionBrokerageMetrics,
+    ConstructionEmploymentData,
+    ConstructionPermitData,
+    ConstructionProject,
+    ConstructionSourceLog,
+)
 from app.models.deal import Deal  # noqa: E402, F401
 from app.models.document import Document  # noqa: E402, F401
 

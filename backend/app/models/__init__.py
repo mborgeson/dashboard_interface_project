@@ -3,6 +3,17 @@
 # Activity models - imported last to avoid circular imports with db/base.py
 from .activity import ActivityType, DealActivity, PropertyActivity, UserWatchlist
 from .base import SoftDeleteMixin, TimestampMixin
+
+# Construction Pipeline Models
+from .construction import (
+    ConstructionBrokerageMetrics,
+    ConstructionEmploymentData,
+    ConstructionPermitData,
+    ConstructionProject,
+    ConstructionSourceLog,
+    PipelineStatus,
+    ProjectClassification,
+)
 from .deal import Deal, DealStage
 from .document import Document, DocumentType
 
@@ -85,4 +96,12 @@ __all__ = [
     "ScheduleFrequency",
     # Sales Analysis Models
     "SalesData",
+    # Construction Pipeline Models
+    "ConstructionProject",
+    "ConstructionSourceLog",
+    "ConstructionPermitData",
+    "ConstructionEmploymentData",
+    "ConstructionBrokerageMetrics",
+    "PipelineStatus",
+    "ProjectClassification",
 ]

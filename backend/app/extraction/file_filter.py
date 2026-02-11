@@ -291,8 +291,124 @@ class FileFilter:
         }
 
 
+class CandidateFileFilter:
+    """
+    Inverted file filter for UW model grouping pipeline.
+
+    Accepts files that match a broad UW model pattern but FAIL at least one
+    criterion of the production FileFilter (older date, non-vCurrent name, etc.).
+    This captures historical UW models and renamed files excluded by the
+    production pipeline.
+    """
+
+    # Broad patterns matching any UW model or Proforma file
+    CANDIDATE_PATTERNS = [
+        re.compile(r".*UW.*Model.*", re.IGNORECASE),
+        re.compile(r".*Proforma\s+vCurrent.*", re.IGNORECASE),
+    ]
+
+    # Substrings to always exclude (working copies, drafts, backups)
+    ALWAYS_EXCLUDE = [
+        "~$",
+        "notes",
+        "backup",
+        "copy",
+        "draft",
+        "template",
+    ]
+
+    def __init__(self, production_filter: FileFilter):
+        """
+        Initialize with a production FileFilter instance.
+
+        Args:
+            production_filter: The existing FileFilter used by the production pipeline.
+        """
+        self.production_filter = production_filter
+        self.logger = structlog.get_logger().bind(component="CandidateFileFilter")
+
+    def should_process(
+        self,
+        filename: str,
+        size_bytes: int = 0,
+        modified_date: datetime | None = None,
+    ) -> FilterResult:
+        """
+        Determine if a file is a candidate for group extraction.
+
+        A candidate must:
+        1. Match at least one CANDIDATE_PATTERN
+        2. Have a valid Excel extension
+        3. NOT match any ALWAYS_EXCLUDE substring
+        4. FAIL at least one production filter criterion (otherwise it's
+           already handled by the production pipeline)
+
+        Returns:
+            FilterResult indicating candidacy.
+        """
+        filename_lower = filename.lower()
+
+        # Check valid extension first
+        ext = self._get_extension(filename)
+        if ext not in FileFilter.SUPPORTED_EXTENSIONS:
+            return FilterResult(
+                should_process=False,
+                skip_reason=SkipReason.INVALID_EXTENSION,
+                skip_details=f"extension '{ext}' not supported",
+            )
+
+        # Check always-exclude patterns
+        for exclude in self.ALWAYS_EXCLUDE:
+            if exclude in filename_lower:
+                return FilterResult(
+                    should_process=False,
+                    skip_reason=SkipReason.EXCLUDED_PATTERN,
+                    skip_details=f"matches always-exclude pattern '{exclude}'",
+                )
+
+        # Must match at least one candidate pattern
+        matches_candidate = any(p.match(filename) for p in self.CANDIDATE_PATTERNS)
+        if not matches_candidate:
+            return FilterResult(
+                should_process=False,
+                skip_reason=SkipReason.PATTERN_MISMATCH,
+                skip_details="does not match any UW model candidate pattern",
+            )
+
+        # Must FAIL the production filter (otherwise it's handled by production)
+        prod_result = self.production_filter.should_process(
+            filename, size_bytes, modified_date
+        )
+        if prod_result.should_process:
+            return FilterResult(
+                should_process=False,
+                skip_reason=SkipReason.PATTERN_MISMATCH,
+                skip_details="already handled by production pipeline",
+            )
+
+        # File is a candidate
+        self.logger.debug(
+            "candidate_accepted",
+            filename=filename,
+            production_skip_reason=prod_result.reason_message,
+        )
+        return FilterResult(should_process=True)
+
+    @staticmethod
+    def _get_extension(filename: str) -> str:
+        """Extract lowercase file extension from filename."""
+        if "." not in filename:
+            return ""
+        return "." + filename.rsplit(".", 1)[-1].lower()
+
+
 def get_file_filter() -> FileFilter:
     """Create FileFilter instance using application settings."""
     from app.core.config import settings
 
     return FileFilter(settings)
+
+
+def get_candidate_file_filter() -> CandidateFileFilter:
+    """Create CandidateFileFilter using a production FileFilter."""
+    return CandidateFileFilter(get_file_filter())

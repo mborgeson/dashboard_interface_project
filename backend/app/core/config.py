@@ -157,6 +157,19 @@ class Settings(BaseSettings):
     FRED_API_KEY: str | None = None  # Set via FRED_API_KEY env var
     CENSUS_API_KEY: str | None = None  # Set via CENSUS_API_KEY env var
 
+    # Construction Pipeline Settings
+    CONSTRUCTION_DATA_DIR: str = "data/construction"
+    CONSTRUCTION_API_ENABLED: bool = False
+    CONSTRUCTION_CENSUS_CRON: str = "0 4 15 * *"  # Monthly 15th 4 AM
+    CONSTRUCTION_FRED_CRON: str = "0 4 15 * *"  # Monthly 15th 4 AM
+    CONSTRUCTION_BLS_CRON: str = "0 5 15 * *"  # Monthly 15th 5 AM
+    BLS_API_KEY: str | None = None  # Optional — increases rate limit
+    CONSTRUCTION_MUNICIPAL_CRON: str = "0 6 16 * *"  # Monthly 16th 6 AM
+    MESA_SODA_DATASET_ID: str = "h2sj-gt3d"
+    MESA_SODA_APP_TOKEN: str | None = None  # Optional Socrata app token
+    TEMPE_BLDS_LAYER_URL: str | None = None  # Tempe ArcGIS feature layer URL
+    GILBERT_ARCGIS_LAYER_URL: str | None = None  # Gilbert ArcGIS feature layer URL
+
     # Market Data Extraction Settings
     COSTAR_DATA_DIR: str = "data/costar"
     MARKET_DATA_EXTRACTION_ENABLED: bool = False
@@ -202,6 +215,14 @@ class Settings(BaseSettings):
     EXTRACTION_SCHEDULE_ENABLED: bool = True
     EXTRACTION_SCHEDULE_CRON: str = "0 17 * * *"  # Daily at 5 PM
     EXTRACTION_SCHEDULE_TIMEZONE: str = "America/Phoenix"
+
+    # Group Extraction Settings (UW Model File Grouping & Data Extraction)
+    GROUP_EXTRACTION_DATA_DIR: str = "data/extraction_groups"
+    GROUP_FINGERPRINT_WORKERS: int = 4
+    GROUP_IDENTITY_THRESHOLD: float = 0.95
+    GROUP_VARIANT_THRESHOLD: float = 0.80
+    GROUP_EMPTY_TEMPLATE_THRESHOLD: int = 20
+    GROUP_MAX_BATCH_SIZE: int = 500
 
     # File Monitoring Settings
     FILE_MONITOR_ENABLED: bool = False

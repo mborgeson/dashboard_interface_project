@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     admin,
     analytics,
     auth,
+    construction_pipeline,
     deals,
     documents,
     exports,
@@ -55,4 +56,9 @@ api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 api_router.include_router(market_data_admin.router)
 api_router.include_router(
     sales_analysis.router, prefix="/sales-analysis", tags=["sales-analysis"]
+)
+api_router.include_router(
+    construction_pipeline.router,
+    prefix="/construction-pipeline",
+    tags=["construction-pipeline"],
 )
