@@ -150,10 +150,13 @@ def group_fingerprints(
             methodology=_generate_methodology(identity_threshold, variant_threshold),
         )
 
-    # Step 1: Cluster by identical sheet signatures
+    # Step 1: Cluster by sorted sheet names (structural signal).
+    # Using sheet_name_key instead of combined_signature because the full
+    # signature includes deal-specific labels (property names, addresses)
+    # which make every file unique even when they share the same template.
     sig_clusters: dict[str, list[FileFingerprint]] = {}
     for fp in populated:
-        sig = fp.combined_signature
+        sig = fp.sheet_name_key
         sig_clusters.setdefault(sig, []).append(fp)
 
     groups: list[FileGroup] = []
@@ -349,8 +352,8 @@ def _generate_methodology(identity_threshold: float, variant_threshold: float) -
 1. **Population classification**: Files with <20 populated data-region cells
    are classified as empty templates and excluded from grouping.
 
-2. **Sheet signature clustering**: Files are first clustered by identical
-   combined sheet signatures (MD5 hash of sheet name + dimensions + labels).
+2. **Sheet name clustering**: Files are first clustered by identical
+   sorted sheet names (ignoring deal-specific labels and dimensions).
 
 3. **Structural overlap analysis**: Within clusters, pairwise Jaccard-like
    overlap is computed using normalized header and column-A labels.

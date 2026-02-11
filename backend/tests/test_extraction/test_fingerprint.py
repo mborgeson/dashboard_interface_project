@@ -295,8 +295,9 @@ class TestFingerprintFile:
         assert fp1.content_hash != fp2.content_hash
 
 
+@pytest.mark.slow
 class TestFingerprintRealFixtures:
-    """Tests using real .xlsb fixture files."""
+    """Tests using real .xlsb fixture files (slow — excluded from CI)."""
 
     @pytest.fixture
     def fixture_files(self):

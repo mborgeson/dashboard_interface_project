@@ -42,7 +42,7 @@ class SheetFingerprint:
             "|".join(sorted(self.header_labels)),
             "|".join(sorted(self.col_a_labels)),
         ]
-        return hashlib.md5(";".join(parts).encode()).hexdigest()
+        return hashlib.md5(";".join(parts).encode(), usedforsecurity=False).hexdigest()
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -86,8 +86,18 @@ class FileFingerprint:
 
     @property
     def combined_signature(self) -> str:
-        """Combined signature of all sheets for grouping."""
+        """Combined signature of all sheets (includes labels — exact match)."""
         return "|".join(sorted(self.sheet_signatures))
+
+    @property
+    def sheet_name_key(self) -> str:
+        """Key based on sorted sheet names only (ignores deal-specific labels).
+
+        Used for initial clustering in the grouping algorithm. Files from
+        the same template share sheet names (e.g. "Summary", "Cash Flow")
+        but differ in deal-specific data within those sheets.
+        """
+        return "|".join(sorted(s.name for s in self.sheets))
 
 
 def fingerprint_file(

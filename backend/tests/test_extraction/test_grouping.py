@@ -274,3 +274,47 @@ class TestIntraGroupVariances:
         variances = compute_intra_group_variances(group)
         assert variances["varying_sheet_count"] > 0
         assert "Sheet2" in variances["varying_sheets"] or "Sheet3" in variances["varying_sheets"]
+
+
+class TestSheetNameClustering:
+    """Tests for sheet-name-based clustering (regression: deal-specific labels)."""
+
+    def test_same_sheets_different_labels_grouped(self):
+        """Files with same sheet names but different deal-specific labels should group."""
+        # Simulates Proforma files: same template structure, different deal data
+        common_sheets = ["Summary", "Cash Flow", "Rent Roll", "Debt", "Assumptions"]
+        base_structural_labels = [f"Label{i}" for i in range(30)]
+
+        fps = []
+        for deal in ["Dobson", "Jerome", "Cordova"]:
+            sheets = []
+            for sname in common_sheets:
+                # Same structural labels + deal-specific data in column A
+                sheets.append(SheetFingerprint(
+                    name=sname,
+                    row_count=150,
+                    col_count=20,
+                    header_labels=base_structural_labels[:10],
+                    col_a_labels=base_structural_labels + [f"{deal} Property", f"{deal} Address"],
+                ))
+            fps.append(_make_fp(f"{deal}_Proforma", sheets=sheets))
+
+        result = group_fingerprints(fps)
+        assert len(result.groups) == 1
+        assert len(result.groups[0].files) == 3
+        assert len(result.ungrouped) == 0
+
+    def test_different_sheet_names_not_grouped(self):
+        """Files with different sheet names should not be grouped together."""
+        fp1 = _make_fp("uw_model", sheets=[
+            SheetFingerprint(name="Summary", header_labels=["A", "B"], col_a_labels=["R1"]),
+            SheetFingerprint(name="Cash Flow", header_labels=["C", "D"], col_a_labels=["R2"]),
+        ])
+        fp2 = _make_fp("proforma", sheets=[
+            SheetFingerprint(name="AnnProforma", header_labels=["A", "B"], col_a_labels=["R1"]),
+            SheetFingerprint(name="Capex", header_labels=["C", "D"], col_a_labels=["R2"]),
+        ])
+
+        result = group_fingerprints([fp1, fp2])
+        assert len(result.groups) == 0
+        assert len(result.ungrouped) == 2
