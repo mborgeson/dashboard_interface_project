@@ -14,6 +14,7 @@ import {
   useTriggerImport,
   useReminderStatus,
   useDismissReminder,
+  useFilterOptions,
 } from './hooks/useSalesData';
 import type { SalesFilters } from './types';
 import { SalesTable } from './components/SalesTable';
@@ -23,6 +24,7 @@ import { BuyerActivityAnalysis } from './components/BuyerActivityAnalysis';
 import { DistributionAnalysis } from './components/DistributionAnalysis';
 import { DataQualitySummary } from './components/DataQualitySummary';
 import { SalesMap } from './components/SalesMap';
+import { SalesFilterPanel } from './components/SalesFilterPanel';
 import { ImportNotificationBanner } from './components/ImportNotificationBanner';
 import { MonthlyReminderBanner } from './components/MonthlyReminderBanner';
 
@@ -31,7 +33,14 @@ export function SalesAnalysisPage() {
   const [page, setPage] = useState(1);
   const pageSize = 50;
 
+  // Reset page to 1 when filters change
+  const handleFiltersChange = (newFilters: SalesFilters) => {
+    setFilters(newFilters);
+    setPage(1);
+  };
+
   // Data hooks
+  const filterOptionsQuery = useFilterOptions();
   const salesQuery = useSalesData(filters, page, pageSize);
   const timeSeriesQuery = useTimeSeriesAnalytics(filters);
   const submarketQuery = useSubmarketComparison(filters);
@@ -192,28 +201,13 @@ export function SalesAnalysisPage() {
         </Card>
       </div>
 
-      {/* Filters placeholder */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Filters — coming in Wave 3. Use the tabs below to explore data.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFilters({});
-                  setPage(1);
-                }}
-              >
-                Clear Filters
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filters */}
+      <SalesFilterPanel
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        filterOptions={filterOptionsQuery.data}
+        isLoadingOptions={filterOptionsQuery.isLoading}
+      />
 
       {/* Tabs: Table, Charts, Map */}
       <Tabs defaultValue="table">

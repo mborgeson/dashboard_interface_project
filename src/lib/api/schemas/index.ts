@@ -19,4 +19,5 @@ export {
   importStatusSchema,
   reminderStatusSchema,
   triggerImportResponseSchema,
+  filterOptionsSchema,
 } from './sales';

@@ -10,6 +10,7 @@ import {
   triggerImport,
   fetchReminderStatus,
   dismissReminder,
+  fetchFilterOptions,
 } from '@/lib/api/sales';
 import type { SalesFilters } from '../types';
 
@@ -34,6 +35,7 @@ export const salesKeys = {
   dataQuality: () => [...salesKeys.all, 'data-quality'] as const,
   importStatus: () => [...salesKeys.all, 'import-status'] as const,
   reminderStatus: () => [...salesKeys.all, 'reminder-status'] as const,
+  filterOptions: () => [...salesKeys.all, 'filter-options'] as const,
 };
 
 // ============================================================================
@@ -119,6 +121,15 @@ export function useTriggerImport() {
       queryClient.invalidateQueries({ queryKey: salesKeys.analytics() });
       queryClient.invalidateQueries({ queryKey: salesKeys.dataQuality() });
     },
+  });
+}
+
+/** Filter options (distinct submarkets, etc.) */
+export function useFilterOptions() {
+  return useQuery({
+    queryKey: salesKeys.filterOptions(),
+    queryFn: fetchFilterOptions,
+    staleTime: 1000 * 60 * 30,
   });
 }
 

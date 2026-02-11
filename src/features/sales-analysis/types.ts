@@ -33,15 +33,21 @@ export interface SalesResponse {
 export interface SalesFilters {
   search?: string;
   submarkets?: string[];
-  starRatings?: string[];
   minUnits?: number;
   maxUnits?: number;
   minPrice?: number;
   maxPrice?: number;
+  minPricePerUnit?: number;
+  maxPricePerUnit?: number;
   dateFrom?: string;
   dateTo?: string;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
+}
+
+/** Filter dropdown options from backend */
+export interface FilterOptions {
+  submarkets: string[];
 }
 
 /** Analytics response types */

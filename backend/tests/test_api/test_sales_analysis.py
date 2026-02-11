@@ -383,13 +383,31 @@ async def test_list_sales_nrsf_calculation(sales_client, sample_sales_data):
 
 
 @pytest.mark.asyncio
-async def test_list_sales_star_ratings_filter(sales_client, sample_sales_data):
-    """Test filtering by star_ratings (comma-separated)."""
-    response = await sales_client.get(f"{BASE_URL}/", params={"star_ratings": "5 Star"})
+async def test_list_sales_price_per_unit_filter(sales_client, sample_sales_data):
+    """Test filtering by min/max price_per_unit."""
+    response = await sales_client.get(
+        f"{BASE_URL}/",
+        params={"min_price_per_unit": 100000, "max_price_per_unit": 200000},
+    )
     assert response.status_code == 200
     data = response.json()
-    assert data["total"] == 1
-    assert data["data"][0]["star_rating"] == "5 Star"
+    # All returned records should have price_per_unit in range
+    for rec in data["data"]:
+        if rec["price_per_unit"] is not None:
+            assert 100000 <= rec["price_per_unit"] <= 200000
+
+
+@pytest.mark.asyncio
+async def test_filter_options(sales_client, sample_sales_data):
+    """Test GET /filter-options returns distinct submarkets."""
+    response = await sales_client.get(f"{BASE_URL}/filter-options")
+    assert response.status_code == 200
+    data = response.json()
+    assert "submarkets" in data
+    assert isinstance(data["submarkets"], list)
+    assert len(data["submarkets"]) > 0
+    # Should be sorted alphabetically
+    assert data["submarkets"] == sorted(data["submarkets"])
 
 
 @pytest.mark.asyncio

@@ -87,11 +87,12 @@ describe('Sales Analysis Types', () => {
     const full: SalesFilters = {
       search: 'phoenix',
       submarkets: ['Tempe', 'Scottsdale'],
-      starRatings: ['4 Star'],
       minUnits: 100,
       maxUnits: 500,
       minPrice: 10000000,
       maxPrice: 100000000,
+      minPricePerUnit: 50000,
+      maxPricePerUnit: 500000,
       dateFrom: '2023-01-01',
       dateTo: '2024-12-31',
       sortBy: 'sale_price',

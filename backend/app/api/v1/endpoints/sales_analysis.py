@@ -120,6 +120,32 @@ class ReminderStatusResponse(BaseModel):
     last_imported_file_date: str | None = None
 
 
+class FilterOptionsResponse(BaseModel):
+    submarkets: list[str]
+
+
+# ── 0. GET /filter-options — Distinct values for filter dropdowns ────────────
+
+
+@router.get("/filter-options", response_model=FilterOptionsResponse)
+async def filter_options(
+    db: AsyncSession = Depends(get_db),
+):
+    """Return distinct submarket values for filter dropdowns."""
+    stmt = (
+        select(SalesData.submarket_cluster)
+        .where(
+            SalesData.submarket_cluster.isnot(None),
+            SalesData.submarket_cluster != "",
+        )
+        .distinct()
+        .order_by(SalesData.submarket_cluster)
+    )
+    result = await db.execute(stmt)
+    submarkets = [row[0] for row in result.all()]
+    return FilterOptionsResponse(submarkets=submarkets)
+
+
 # ── Shared filter helper ──────────────────────────────────────────────────────
 
 
@@ -127,11 +153,12 @@ def _apply_filters(
     stmt,
     search: str | None = None,
     submarkets: str | None = None,
-    star_ratings: str | None = None,
     min_units: int | None = None,
     max_units: int | None = None,
     min_price: float | None = None,
     max_price: float | None = None,
+    min_price_per_unit: float | None = None,
+    max_price_per_unit: float | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
 ):
@@ -150,10 +177,6 @@ def _apply_filters(
         sub_list = [s.strip() for s in submarkets.split(",") if s.strip()]
         if sub_list:
             stmt = stmt.where(SalesData.submarket_cluster.in_(sub_list))
-    if star_ratings:
-        rating_list = [s.strip() for s in star_ratings.split(",") if s.strip()]
-        if rating_list:
-            stmt = stmt.where(SalesData.star_rating.in_(rating_list))
     if min_units is not None:
         stmt = stmt.where(SalesData.number_of_units >= min_units)
     if max_units is not None:
@@ -162,6 +185,10 @@ def _apply_filters(
         stmt = stmt.where(SalesData.sale_price >= min_price)
     if max_price is not None:
         stmt = stmt.where(SalesData.sale_price <= max_price)
+    if min_price_per_unit is not None:
+        stmt = stmt.where(SalesData.price_per_unit >= min_price_per_unit)
+    if max_price_per_unit is not None:
+        stmt = stmt.where(SalesData.price_per_unit <= max_price_per_unit)
     if date_from is not None:
         stmt = stmt.where(SalesData.sale_date >= date_from)
     if date_to is not None:
@@ -198,11 +225,12 @@ async def list_sales(
     sort_dir: str = Query("desc"),
     search: str | None = None,
     submarkets: str | None = None,
-    star_ratings: str | None = None,
     min_units: int | None = None,
     max_units: int | None = None,
     min_price: float | None = None,
     max_price: float | None = None,
+    min_price_per_unit: float | None = None,
+    max_price_per_unit: float | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     db: AsyncSession = Depends(get_db),
@@ -215,11 +243,12 @@ async def list_sales(
         count_stmt,
         search,
         submarkets,
-        star_ratings,
         min_units,
         max_units,
         min_price,
         max_price,
+        min_price_per_unit,
+        max_price_per_unit,
         date_from,
         date_to,
     )
@@ -231,11 +260,12 @@ async def list_sales(
         data_stmt,
         search,
         submarkets,
-        star_ratings,
         min_units,
         max_units,
         min_price,
         max_price,
+        min_price_per_unit,
+        max_price_per_unit,
         date_from,
         date_to,
     )
@@ -304,11 +334,12 @@ async def time_series(
     granularity: str = Query("year", pattern="^(month|quarter|year)$"),
     search: str | None = None,
     submarkets: str | None = None,
-    star_ratings: str | None = None,
     min_units: int | None = None,
     max_units: int | None = None,
     min_price: float | None = None,
     max_price: float | None = None,
+    min_price_per_unit: float | None = None,
+    max_price_per_unit: float | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     db: AsyncSession = Depends(get_db),
@@ -348,11 +379,12 @@ async def time_series(
         stmt,
         search,
         submarkets,
-        star_ratings,
         min_units,
         max_units,
         min_price,
         max_price,
+        min_price_per_unit,
+        max_price_per_unit,
         date_from,
         date_to,
     )
@@ -430,11 +462,12 @@ async def buyer_activity(
     limit: int = Query(20, ge=1, le=100),
     search: str | None = None,
     submarkets: str | None = None,
-    star_ratings: str | None = None,
     min_units: int | None = None,
     max_units: int | None = None,
     min_price: float | None = None,
     max_price: float | None = None,
+    min_price_per_unit: float | None = None,
+    max_price_per_unit: float | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     db: AsyncSession = Depends(get_db),
@@ -466,11 +499,12 @@ async def buyer_activity(
         stmt,
         search,
         submarkets,
-        star_ratings,
         min_units,
         max_units,
         min_price,
         max_price,
+        min_price_per_unit,
+        max_price_per_unit,
         date_from,
         date_to,
     )
@@ -499,11 +533,12 @@ async def distributions(
     group_by: str = Query("vintage", pattern="^(vintage|unit_count|star_rating)$"),
     search: str | None = None,
     submarkets: str | None = None,
-    star_ratings: str | None = None,
     min_units: int | None = None,
     max_units: int | None = None,
     min_price: float | None = None,
     max_price: float | None = None,
+    min_price_per_unit: float | None = None,
+    max_price_per_unit: float | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     db: AsyncSession = Depends(get_db),
@@ -547,11 +582,12 @@ async def distributions(
         stmt,
         search,
         submarkets,
-        star_ratings,
         min_units,
         max_units,
         min_price,
         max_price,
+        min_price_per_unit,
+        max_price_per_unit,
         date_from,
         date_to,
     )

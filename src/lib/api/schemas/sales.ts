@@ -174,3 +174,7 @@ export const triggerImportResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
 });
+
+export const filterOptionsSchema = z.object({
+  submarkets: z.array(z.string()),
+});

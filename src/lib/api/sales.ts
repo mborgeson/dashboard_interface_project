@@ -12,6 +12,7 @@ import {
   importStatusSchema,
   triggerImportResponseSchema,
   reminderStatusSchema,
+  filterOptionsSchema,
 } from './schemas/sales';
 import type {
   SalesFilters,
@@ -23,6 +24,7 @@ import type {
   DataQualityReport,
   ImportStatus,
   ReminderStatus,
+  FilterOptions,
 } from '@/features/sales-analysis/types';
 import { z } from 'zod';
 
@@ -32,11 +34,12 @@ function filtersToParams(
   return {
     search: filters.search,
     submarkets: filters.submarkets?.join(','),
-    star_ratings: filters.starRatings?.join(','),
     min_units: filters.minUnits,
     max_units: filters.maxUnits,
     min_price: filters.minPrice,
     max_price: filters.maxPrice,
+    min_price_per_unit: filters.minPricePerUnit,
+    max_price_per_unit: filters.maxPricePerUnit,
     date_from: filters.dateFrom,
     date_to: filters.dateTo,
     sort_by: filters.sortBy,
@@ -123,4 +126,10 @@ export async function dismissReminder(): Promise<void> {
 export async function fetchReminderStatus(): Promise<ReminderStatus> {
   const raw = await apiClient.get<unknown>('/sales-analysis/reminder/status');
   return reminderStatusSchema.parse(raw);
+}
+
+/** Fetch filter options (distinct submarkets, etc.) */
+export async function fetchFilterOptions(): Promise<FilterOptions> {
+  const raw = await apiClient.get<unknown>('/sales-analysis/filter-options');
+  return filterOptionsSchema.parse(raw);
 }
