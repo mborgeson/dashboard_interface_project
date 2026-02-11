@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,27 +32,40 @@ export function SalesFilterPanel({
   const [localDateFrom, setLocalDateFrom] = useState(filters.dateFrom ?? '');
   const [localDateTo, setLocalDateTo] = useState(filters.dateTo ?? '');
 
-  // Sync local state when individual filter values change externally (e.g. Clear Filters)
-  useEffect(() => { setSearchInput(filters.search ?? ''); }, [filters.search]);
-  useEffect(() => { setLocalMinUnits(String(filters.minUnits ?? '')); }, [filters.minUnits]);
-  useEffect(() => { setLocalMaxUnits(String(filters.maxUnits ?? '')); }, [filters.maxUnits]);
-  useEffect(() => { setLocalMinPrice(String(filters.minPrice ?? '')); }, [filters.minPrice]);
-  useEffect(() => { setLocalMaxPrice(String(filters.maxPrice ?? '')); }, [filters.maxPrice]);
-  useEffect(() => { setLocalMinPPU(String(filters.minPricePerUnit ?? '')); }, [filters.minPricePerUnit]);
-  useEffect(() => { setLocalMaxPPU(String(filters.maxPricePerUnit ?? '')); }, [filters.maxPricePerUnit]);
-  useEffect(() => { setLocalDateFrom(filters.dateFrom ?? ''); }, [filters.dateFrom]);
-  useEffect(() => { setLocalDateTo(filters.dateTo ?? ''); }, [filters.dateTo]);
+  // Sync local state from props during render (React-recommended pattern,
+  // avoids useEffect + setState which violates react-hooks/set-state-in-effect)
+  const [prevFilters, setPrevFilters] = useState(filters);
+  if (filters !== prevFilters) {
+    setPrevFilters(filters);
+    setSearchInput(filters.search ?? '');
+    setLocalMinUnits(String(filters.minUnits ?? ''));
+    setLocalMaxUnits(String(filters.maxUnits ?? ''));
+    setLocalMinPrice(String(filters.minPrice ?? ''));
+    setLocalMaxPrice(String(filters.maxPrice ?? ''));
+    setLocalMinPPU(String(filters.minPricePerUnit ?? ''));
+    setLocalMaxPPU(String(filters.maxPricePerUnit ?? ''));
+    setLocalDateFrom(filters.dateFrom ?? '');
+    setLocalDateTo(filters.dateTo ?? '');
+  }
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const trimmed = searchInput.trim() || undefined;
-      if (trimmed !== filters.search) {
-        onFiltersChange({ ...filters, search: trimmed });
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Debounced search: schedule filter update via ref-based timer from onChange handler
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchInput(value);
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = setTimeout(() => {
+        const trimmed = value.trim() || undefined;
+        if (trimmed !== filtersRef.current.search) {
+          onFiltersChange({ ...filtersRef.current, search: trimmed });
+        }
+      }, 300);
+    },
+    [onFiltersChange]
+  );
 
   const activeFilterCount = [
     filters.search,
@@ -73,38 +86,38 @@ export function SalesFilterPanel({
 
   const toggleSubmarket = useCallback(
     (submarket: string, checked: boolean) => {
-      const current = filters.submarkets ?? [];
+      const current = filtersRef.current.submarkets ?? [];
       const updated = checked
         ? [...current, submarket]
         : current.filter((s) => s !== submarket);
       onFiltersChange({
-        ...filters,
+        ...filtersRef.current,
         submarkets: updated.length > 0 ? updated : undefined,
       });
     },
-    [filters, onFiltersChange]
+    [onFiltersChange]
   );
 
   /** Commit a numeric field on blur */
   const commitNumeric = useCallback(
     (key: keyof SalesFilters, localValue: string) => {
       const num = localValue === '' ? undefined : Number(localValue);
-      if (num !== filters[key]) {
-        onFiltersChange({ ...filters, [key]: num });
+      if (num !== filtersRef.current[key]) {
+        onFiltersChange({ ...filtersRef.current, [key]: num });
       }
     },
-    [filters, onFiltersChange]
+    [onFiltersChange]
   );
 
-  /** Commit a date field on blur / change */
+  /** Commit a date field on change */
   const commitDate = useCallback(
     (key: 'dateFrom' | 'dateTo', localValue: string) => {
       const val = localValue || undefined;
-      if (val !== filters[key]) {
-        onFiltersChange({ ...filters, [key]: val });
+      if (val !== filtersRef.current[key]) {
+        onFiltersChange({ ...filtersRef.current, [key]: val });
       }
     },
-    [filters, onFiltersChange]
+    [onFiltersChange]
   );
 
   return (
@@ -147,7 +160,7 @@ export function SalesFilterPanel({
                 id="sales-search"
                 placeholder="Property name, address, buyer, seller..."
                 value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="h-9"
               />
             </div>
