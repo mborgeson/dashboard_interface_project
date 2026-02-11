@@ -8,7 +8,7 @@ Provides endpoints for:
 - Performance statistics
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any  # noqa: F401 - used for type hints in collectors
 
 from fastapi import APIRouter, Depends, Response
@@ -72,7 +72,7 @@ async def liveness_probe():
     """
     return {
         "status": "alive",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
@@ -91,7 +91,7 @@ async def readiness_probe(db: AsyncSession = Depends(get_db)):
     """
     checks = {
         "database": False,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     # Check database connectivity
@@ -140,7 +140,7 @@ async def detailed_health_check(db: AsyncSession = Depends(get_db)):
     # Build health response
     health: dict[str, Any] = {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "application": {
             "name": settings.APP_NAME,
             "version": settings.APP_VERSION,
@@ -211,7 +211,7 @@ async def performance_stats():
     system_metrics = await collector_registry.system.collect()
 
     return {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "system": system_metrics,
         "note": "For detailed metrics, use /monitoring/metrics endpoint",
     }

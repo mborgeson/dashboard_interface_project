@@ -1,6 +1,6 @@
 """Tests for monitoring collectors."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -200,7 +200,7 @@ class TestApplicationMetricsCollector:
         """Test that collect uses cached metrics."""
         collector = ApplicationMetricsCollector()
         collector._cached_metrics = {"cached": True, "timestamp": "test"}
-        collector._last_collection = datetime.utcnow()
+        collector._last_collection = datetime.now(UTC)
 
         metrics = await collector.collect()
 

@@ -11,7 +11,7 @@ Uses a database-backed state store to track file metadata between checks.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -26,6 +26,18 @@ from app.extraction.sharepoint import (
     SharePointFile,
 )
 from app.models.file_monitor import FileChangeLog, MonitoredFile
+
+
+def _ensure_aware(dt: datetime) -> datetime:
+    """Ensure a datetime is timezone-aware (assume UTC if naive).
+
+    SQLite strips timezone info, so datetimes read back from the test DB
+    are naive even when stored as aware.  PostgreSQL with DateTime(timezone=True)
+    always returns aware datetimes, so this is a no-op in production.
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
 
 
 @dataclass
@@ -44,7 +56,7 @@ class FileChange:
 
     def __post_init__(self):
         if self.detected_at is None:
-            self.detected_at = datetime.utcnow()
+            self.detected_at = datetime.now(UTC)
 
 
 @dataclass
@@ -280,7 +292,8 @@ class SharePointFileMonitor:
                 # Check if file has been modified
                 # Compare modified_date and size
                 if (
-                    file.modified_date > stored.modified_date
+                    _ensure_aware(file.modified_date)
+                    > _ensure_aware(stored.modified_date)
                     or file.size != stored.size_bytes
                 ):
                     changes.append(
@@ -318,7 +331,7 @@ class SharePointFileMonitor:
         Args:
             files: List of SharePointFile objects from discovery
         """
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         current_paths = {f.path for f in files}
 
         # Get existing records
@@ -382,7 +395,7 @@ class SharePointFileMonitor:
                 new_modified_date=change.new_modified_date,
                 old_size_bytes=change.old_size_bytes,
                 new_size_bytes=change.new_size_bytes,
-                detected_at=change.detected_at or datetime.utcnow(),
+                detected_at=change.detected_at or datetime.now(UTC),
             )
             self.db.add(log_entry)
 
@@ -481,7 +494,7 @@ class SharePointFileMonitor:
             .where(MonitoredFile.file_path == file_path)
             .values(
                 extraction_pending=False,
-                last_extracted=datetime.utcnow(),
+                last_extracted=datetime.now(UTC),
                 extraction_run_id=extraction_run_id,
             )
         )

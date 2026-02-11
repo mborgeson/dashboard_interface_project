@@ -8,7 +8,7 @@ Supports task registration, timeout handling, and graceful shutdown.
 import asyncio
 import contextlib
 from collections.abc import Callable, Coroutine
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from loguru import logger
@@ -314,7 +314,7 @@ async def report_generation_handler(job: Job) -> dict[str, Any]:
         "report_type": report_type,
         "entity_id": entity_id,
         "format": output_format,
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         **result,
     }
 
@@ -340,7 +340,7 @@ async def data_export_handler(job: Job) -> dict[str, Any]:
         "export_type": export_type,
         "format": output_format,
         "record_count": 0,  # Would be actual count
-        "exported_at": datetime.utcnow().isoformat(),
+        "exported_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -364,7 +364,7 @@ async def data_import_handler(job: Job) -> dict[str, Any]:
         "import_type": import_type,
         "source": source,
         "record_count": 0,  # Would be actual count
-        "imported_at": datetime.utcnow().isoformat(),
+        "imported_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -391,7 +391,7 @@ async def email_notification_handler(job: Job) -> dict[str, Any]:
     return {
         "template": template,
         "recipients": to if isinstance(to, list) else [to],
-        "sent_at": datetime.utcnow().isoformat(),
+        "sent_at": datetime.now(UTC).isoformat(),
     }
 
 

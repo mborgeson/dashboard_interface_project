@@ -16,7 +16,7 @@ Run with: pytest tests/test_api/test_extraction.py -v
 """
 
 from collections.abc import Generator
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -107,8 +107,8 @@ def extraction_run(sync_db_session: Session) -> ExtractionRun:
         files_discovered=8,
         files_processed=7,
         files_failed=1,
-        started_at=datetime.utcnow(),
-        completed_at=datetime.utcnow(),
+        started_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
     )
     sync_db_session.add(run)
     sync_db_session.commit()
@@ -126,7 +126,7 @@ def running_extraction(sync_db_session: Session) -> ExtractionRun:
         files_discovered=10,
         files_processed=5,
         files_failed=0,
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(UTC),
     )
     sync_db_session.add(run)
     sync_db_session.commit()
@@ -588,7 +588,7 @@ class TestSchedulerEnable:
                     "enabled": True,
                     "cron_expression": "0 2 * * *",
                     "timezone": "America/Phoenix",
-                    "next_run": datetime.utcnow().isoformat(),
+                    "next_run": datetime.now(UTC).isoformat(),
                     "last_run": None,
                     "last_run_id": None,
                     "running": False,
@@ -658,7 +658,7 @@ class TestSchedulerConfig:
                     "enabled": True,
                     "cron_expression": "0 3 * * *",
                     "timezone": "UTC",
-                    "next_run": datetime.utcnow().isoformat(),
+                    "next_run": datetime.now(UTC).isoformat(),
                     "last_run": None,
                     "last_run_id": None,
                     "running": False,

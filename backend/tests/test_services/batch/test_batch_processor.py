@@ -1,7 +1,7 @@
 """Tests for batch processor service."""
 
 import asyncio
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -115,7 +115,7 @@ class TestBatchProgress:
         """Test duration while in progress."""
         progress = BatchProgress(
             batch_id="test",
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(UTC),
         )
         duration = progress.duration_seconds
         assert duration is not None
@@ -123,7 +123,7 @@ class TestBatchProgress:
 
     def test_duration_seconds_completed(self):
         """Test duration when completed."""
-        start = datetime.utcnow()
+        start = datetime.now(UTC)
         progress = BatchProgress(
             batch_id="test",
             started_at=start,

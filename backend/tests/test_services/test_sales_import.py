@@ -370,7 +370,7 @@ def _make_test_excel(filepath: str, rows: list[dict], include_all_headers: bool 
         # Ensure every row has all 101 CoStar headers (missing ones get None)
         full_rows = []
         for row in rows:
-            full_row = {header: None for header in COSTAR_COLUMN_MAP}
+            full_row = dict.fromkeys(COSTAR_COLUMN_MAP)
             full_row.update(row)
             full_rows.append(full_row)
         df = pd.DataFrame(full_rows)
@@ -521,7 +521,7 @@ class TestImportSalesFile:
         all_headers = list(COSTAR_COLUMN_MAP.keys())
         # Remove 5 columns to trigger warning but not "too many missing" error
         removed = all_headers[-5:]
-        included = {h: None for h in all_headers[:-5]}
+        included = dict.fromkeys(all_headers[:-5])
         included["Comp ID"] = "C-PART"
         included["Property Name"] = "Partial Data"
         _make_test_excel(filepath, [included], include_all_headers=False)

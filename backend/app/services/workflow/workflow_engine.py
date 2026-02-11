@@ -7,7 +7,7 @@ Core execution engine for workflow automation.
 import asyncio
 import contextlib
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from loguru import logger
@@ -257,7 +257,7 @@ class WorkflowEngine:
             return False
 
         instance.status = WorkflowStatus.RUNNING
-        instance.started_at = instance.started_at or datetime.utcnow()
+        instance.started_at = instance.started_at or datetime.now(UTC)
         instance.current_step = definition.start_step
 
         await self._save_instance(instance)
@@ -304,7 +304,7 @@ class WorkflowEngine:
                 await task
 
         instance.status = WorkflowStatus.CANCELLED
-        instance.completed_at = datetime.utcnow()
+        instance.completed_at = datetime.now(UTC)
         await self._save_instance(instance)
         await self._emit_event("instance_cancelled", instance)
 
@@ -391,7 +391,7 @@ class WorkflowEngine:
                 if not next_step:
                     # No more steps - workflow completed
                     instance.status = WorkflowStatus.COMPLETED
-                    instance.completed_at = datetime.utcnow()
+                    instance.completed_at = datetime.now(UTC)
 
                 await self._save_instance(instance)
 
@@ -409,7 +409,7 @@ class WorkflowEngine:
         except Exception as e:
             logger.exception(f"Workflow execution error: {e}")
             instance.status = WorkflowStatus.FAILED
-            instance.completed_at = datetime.utcnow()
+            instance.completed_at = datetime.now(UTC)
             await self._save_instance(instance)
             await self._emit_event("instance_failed", instance)
 
@@ -426,7 +426,7 @@ class WorkflowEngine:
         if execution is None:
             return {"success": False, "error": f"No execution found for step {step.id}"}
         execution.status = StepStatus.RUNNING
-        execution.started_at = datetime.utcnow()
+        execution.started_at = datetime.now(UTC)
 
         await self._emit_event("step_started", instance, step)
 
@@ -450,7 +450,7 @@ class WorkflowEngine:
                 execution.status = StepStatus.FAILED
                 execution.error = result.get("error")
 
-            execution.completed_at = datetime.utcnow()
+            execution.completed_at = datetime.now(UTC)
             await self._emit_event("step_completed", instance, step, result)
 
             return result
@@ -458,14 +458,14 @@ class WorkflowEngine:
         except TimeoutError:
             execution.status = StepStatus.FAILED
             execution.error = f"Step timed out after {step.timeout_seconds} seconds"
-            execution.completed_at = datetime.utcnow()
+            execution.completed_at = datetime.now(UTC)
             await self._emit_event("step_failed", instance, step)
             return {"success": False, "error": execution.error}
 
         except Exception as e:
             execution.status = StepStatus.FAILED
             execution.error = str(e)
-            execution.completed_at = datetime.utcnow()
+            execution.completed_at = datetime.now(UTC)
             execution.retries += 1
             await self._emit_event("step_failed", instance, step)
             return {"success": False, "error": str(e), "retries": execution.retries}
@@ -526,7 +526,7 @@ class WorkflowEngine:
 
         # Update execution
         execution.status = StepStatus.COMPLETED
-        execution.completed_at = datetime.utcnow()
+        execution.completed_at = datetime.now(UTC)
         execution.result = {"approved_by": approved_by, "comment": comment}
 
         # Set next step
@@ -559,11 +559,11 @@ class WorkflowEngine:
             return False
 
         execution.status = StepStatus.FAILED
-        execution.completed_at = datetime.utcnow()
+        execution.completed_at = datetime.now(UTC)
         execution.error = f"Rejected by {rejected_by}: {comment or 'No reason given'}"
 
         instance.status = WorkflowStatus.FAILED
-        instance.completed_at = datetime.utcnow()
+        instance.completed_at = datetime.now(UTC)
 
         await self._save_instance(instance)
         await self._emit_event("step_rejected", instance)

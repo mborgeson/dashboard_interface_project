@@ -8,7 +8,7 @@ import asyncio
 import contextlib
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any
 from uuid import uuid4
@@ -57,7 +57,7 @@ class ScheduledTask:
     run_count: int = 0
     error_count: int = 0
     last_error: str | None = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -104,14 +104,14 @@ class ScheduledTask:
             created_at=(
                 datetime.fromisoformat(data["created_at"])
                 if data.get("created_at")
-                else datetime.utcnow()
+                else datetime.now(UTC)
             ),
             metadata=data.get("metadata", {}),
         )
 
     def calculate_next_run(self) -> datetime:
         """Calculate next run time based on interval."""
-        base_time = self.last_run or datetime.utcnow()
+        base_time = self.last_run or datetime.now(UTC)
         return base_time + timedelta(seconds=self.interval_seconds)
 
 
@@ -268,7 +268,7 @@ class TaskScheduler:
 
         # Calculate first run time
         if run_immediately:
-            task.next_run = datetime.utcnow()
+            task.next_run = datetime.now(UTC)
         else:
             task.next_run = task.calculate_next_run()
 
@@ -365,7 +365,7 @@ class TaskScheduler:
         """Main scheduler loop."""
         while self._running:
             try:
-                now = datetime.utcnow()
+                now = datetime.now(UTC)
 
                 # Find due tasks
                 due_tasks = [
@@ -400,7 +400,7 @@ class TaskScheduler:
         try:
             await handler(task.payload)
             task.run_count += 1
-            task.last_run = datetime.utcnow()
+            task.last_run = datetime.now(UTC)
             task.next_run = task.calculate_next_run()
             task.last_error = None
             logger.info(f"Scheduled task completed: {task.name}")
@@ -408,7 +408,7 @@ class TaskScheduler:
         except Exception as e:
             task.error_count += 1
             task.last_error = str(e)
-            task.last_run = datetime.utcnow()
+            task.last_run = datetime.now(UTC)
             task.next_run = task.calculate_next_run()
             logger.exception(f"Scheduled task failed: {task.name} - {e}")
 

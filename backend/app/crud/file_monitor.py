@@ -6,7 +6,7 @@ Provides database operations for:
 - FileChangeLog records (audit trail of detected changes)
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -30,7 +30,7 @@ class MonitoredFileCRUD:
         deal_stage: str | None = None,
     ) -> MonitoredFile:
         """Create a new monitored file record."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         file = MonitoredFile(
             file_path=file_path,
             file_name=file_name,
@@ -116,7 +116,7 @@ class MonitoredFileCRUD:
             Tuple of (MonitoredFile, is_new) where is_new indicates if created
         """
         existing = await MonitoredFileCRUD.get_by_path(db, file_path)
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         if existing:
             # Check if file was modified
@@ -169,7 +169,7 @@ class MonitoredFileCRUD:
             .where(MonitoredFile.file_path == file_path)
             .values(
                 extraction_pending=False,
-                last_extracted=datetime.utcnow(),
+                last_extracted=datetime.now(UTC),
                 extraction_run_id=extraction_run_id,
             )
             .returning(MonitoredFile)
@@ -187,7 +187,7 @@ class MonitoredFileCRUD:
         file = await MonitoredFileCRUD.get_by_path(db, file_path)
         if file:
             file.is_active = False
-            file.last_checked = datetime.utcnow()
+            file.last_checked = datetime.now(UTC)
             await db.commit()
             await db.refresh(file)
         return file
@@ -201,7 +201,7 @@ class MonitoredFileCRUD:
         stmt = (
             update(MonitoredFile)
             .where(MonitoredFile.file_path.in_(file_paths))
-            .values(last_checked=datetime.utcnow())
+            .values(last_checked=datetime.now(UTC))
         )
         result = await db.execute(stmt)
         await db.commit()
@@ -277,7 +277,7 @@ class FileChangeLogCRUD:
             new_modified_date=new_modified_date,
             old_size_bytes=old_size_bytes,
             new_size_bytes=new_size_bytes,
-            detected_at=datetime.utcnow(),
+            detected_at=datetime.now(UTC),
             monitored_file_id=monitored_file_id,
         )
         db.add(log)

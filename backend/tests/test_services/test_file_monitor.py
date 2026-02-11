@@ -16,7 +16,7 @@ Tests cover:
 Run with: pytest tests/test_services/test_file_monitor.py -v
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -60,9 +60,9 @@ async def monitored_file(db_session: AsyncSession) -> MonitoredFile:
         file_name="UW Model vCurrent.xlsb",
         deal_name="Deal A",
         size_bytes=1024000,
-        modified_date=datetime.utcnow() - timedelta(days=1),
-        first_seen=datetime.utcnow() - timedelta(days=7),
-        last_checked=datetime.utcnow() - timedelta(hours=2),
+        modified_date=datetime.now(UTC) - timedelta(days=1),
+        first_seen=datetime.now(UTC) - timedelta(days=7),
+        last_checked=datetime.now(UTC) - timedelta(hours=2),
         is_active=True,
         extraction_pending=False,
         deal_stage="active_review",
@@ -82,9 +82,9 @@ async def pending_file(db_session: AsyncSession) -> MonitoredFile:
         file_name="UW Model vCurrent.xlsb",
         deal_name="Deal B",
         size_bytes=2048000,
-        modified_date=datetime.utcnow(),
-        first_seen=datetime.utcnow() - timedelta(days=1),
-        last_checked=datetime.utcnow() - timedelta(hours=1),
+        modified_date=datetime.now(UTC),
+        first_seen=datetime.now(UTC) - timedelta(days=1),
+        last_checked=datetime.now(UTC) - timedelta(hours=1),
         is_active=True,
         extraction_pending=True,
         deal_stage="under_contract",
@@ -104,11 +104,11 @@ async def file_change_log(db_session: AsyncSession) -> FileChangeLog:
         file_name="UW Model v2.xlsb",
         deal_name="Deal C",
         change_type="modified",
-        old_modified_date=datetime.utcnow() - timedelta(days=2),
-        new_modified_date=datetime.utcnow(),
+        old_modified_date=datetime.now(UTC) - timedelta(days=2),
+        new_modified_date=datetime.now(UTC),
         old_size_bytes=1000000,
         new_size_bytes=1500000,
-        detected_at=datetime.utcnow(),
+        detected_at=datetime.now(UTC),
     )
     db_session.add(log)
     await db_session.commit()
@@ -132,7 +132,7 @@ class TestFileChange:
             change_type="added",
             deal_name="Deal A",
             old_modified_date=None,
-            new_modified_date=datetime.utcnow(),
+            new_modified_date=datetime.now(UTC),
             new_size_bytes=1024000,
         )
 
@@ -143,8 +143,8 @@ class TestFileChange:
 
     def test_create_modified_change(self) -> None:
         """Creates a file modified change."""
-        old_date = datetime.utcnow() - timedelta(days=1)
-        new_date = datetime.utcnow()
+        old_date = datetime.now(UTC) - timedelta(days=1)
+        new_date = datetime.now(UTC)
 
         change = FileChange(
             file_path="/sites/deals/DealB/UW Model.xlsb",
@@ -168,7 +168,7 @@ class TestFileChange:
             file_name="UW Model.xlsb",
             change_type="deleted",
             deal_name="Deal C",
-            old_modified_date=datetime.utcnow() - timedelta(days=1),
+            old_modified_date=datetime.now(UTC) - timedelta(days=1),
             new_modified_date=None,
             old_size_bytes=1024000,
         )
@@ -178,7 +178,7 @@ class TestFileChange:
 
     def test_detected_at_auto_set(self) -> None:
         """Automatically sets detected_at timestamp."""
-        before = datetime.utcnow()
+        before = datetime.now(UTC)
 
         change = FileChange(
             file_path="/path/file.xlsb",
@@ -186,10 +186,10 @@ class TestFileChange:
             change_type="added",
             deal_name="Deal",
             old_modified_date=None,
-            new_modified_date=datetime.utcnow(),
+            new_modified_date=datetime.now(UTC),
         )
 
-        after = datetime.utcnow()
+        after = datetime.now(UTC)
         assert change.detected_at >= before
         assert change.detected_at <= after
 
@@ -203,7 +203,7 @@ class TestFileChange:
             change_type="added",
             deal_name="Deal",
             old_modified_date=None,
-            new_modified_date=datetime.utcnow(),
+            new_modified_date=datetime.now(UTC),
             detected_at=custom_time,
         )
 
@@ -227,15 +227,15 @@ class TestMonitorCheckResult:
                 change_type="added",
                 deal_name="Deal A",
                 old_modified_date=None,
-                new_modified_date=datetime.utcnow(),
+                new_modified_date=datetime.now(UTC),
             ),
             FileChange(
                 file_path="/path/b.xlsb",
                 file_name="b.xlsb",
                 change_type="modified",
                 deal_name="Deal B",
-                old_modified_date=datetime.utcnow() - timedelta(days=1),
-                new_modified_date=datetime.utcnow(),
+                old_modified_date=datetime.now(UTC) - timedelta(days=1),
+                new_modified_date=datetime.now(UTC),
             ),
         ]
 
@@ -257,7 +257,7 @@ class TestMonitorCheckResult:
                 change_type="added",
                 deal_name="Deal A",
                 old_modified_date=None,
-                new_modified_date=datetime.utcnow(),
+                new_modified_date=datetime.now(UTC),
             ),
             FileChange(
                 file_path="/path/b.xlsb",
@@ -265,15 +265,15 @@ class TestMonitorCheckResult:
                 change_type="added",
                 deal_name="Deal B",
                 old_modified_date=None,
-                new_modified_date=datetime.utcnow(),
+                new_modified_date=datetime.now(UTC),
             ),
             FileChange(
                 file_path="/path/c.xlsb",
                 file_name="c.xlsb",
                 change_type="modified",
                 deal_name="Deal C",
-                old_modified_date=datetime.utcnow() - timedelta(days=1),
-                new_modified_date=datetime.utcnow(),
+                old_modified_date=datetime.now(UTC) - timedelta(days=1),
+                new_modified_date=datetime.now(UTC),
             ),
         ]
 
@@ -294,8 +294,8 @@ class TestMonitorCheckResult:
                 file_name="a.xlsb",
                 change_type="modified",
                 deal_name="Deal A",
-                old_modified_date=datetime.utcnow() - timedelta(days=1),
-                new_modified_date=datetime.utcnow(),
+                old_modified_date=datetime.now(UTC) - timedelta(days=1),
+                new_modified_date=datetime.now(UTC),
             ),
         ]
 
@@ -316,7 +316,7 @@ class TestMonitorCheckResult:
                 file_name="a.xlsb",
                 change_type="deleted",
                 deal_name="Deal A",
-                old_modified_date=datetime.utcnow() - timedelta(days=1),
+                old_modified_date=datetime.now(UTC) - timedelta(days=1),
                 new_modified_date=None,
             ),
             FileChange(
@@ -324,7 +324,7 @@ class TestMonitorCheckResult:
                 file_name="b.xlsb",
                 change_type="deleted",
                 deal_name="Deal B",
-                old_modified_date=datetime.utcnow() - timedelta(days=2),
+                old_modified_date=datetime.now(UTC) - timedelta(days=2),
                 new_modified_date=None,
             ),
         ]
@@ -396,9 +396,9 @@ class TestGetStoredState:
             file_name="UW Model.xlsb",
             deal_name="Inactive Deal",
             size_bytes=1024000,
-            modified_date=datetime.utcnow(),
-            first_seen=datetime.utcnow(),
-            last_checked=datetime.utcnow(),
+            modified_date=datetime.now(UTC),
+            first_seen=datetime.now(UTC),
+            last_checked=datetime.now(UTC),
             is_active=False,  # Inactive
             extraction_pending=False,
         )
@@ -426,7 +426,7 @@ class TestDetectChanges:
         current_file.path = "/sites/deals/NewDeal/UW Model.xlsb"
         current_file.name = "UW Model.xlsb"
         current_file.deal_name = "New Deal"
-        current_file.modified_date = datetime.utcnow()
+        current_file.modified_date = datetime.now(UTC)
         current_file.size = 1500000
 
         stored_files = {}  # Empty stored state
@@ -465,7 +465,7 @@ class TestDetectChanges:
         current_file.path = monitored_file.file_path
         current_file.name = monitored_file.file_name
         current_file.deal_name = monitored_file.deal_name
-        current_file.modified_date = datetime.utcnow()  # Newer than stored
+        current_file.modified_date = datetime.now(UTC)  # Newer than stored
         current_file.size = monitored_file.size_bytes
 
         stored_files = {monitored_file.file_path: monitored_file}
@@ -648,8 +648,8 @@ class TestGetRecentChanges:
                 file_name="UW Model.xlsb",
                 deal_name=f"Deal {i}",
                 change_type="added",
-                new_modified_date=datetime.utcnow(),
-                detected_at=datetime.utcnow() - timedelta(hours=i),
+                new_modified_date=datetime.now(UTC),
+                detected_at=datetime.now(UTC) - timedelta(hours=i),
             )
             db_session.add(log)
         await db_session.commit()
@@ -690,7 +690,7 @@ class TestLogChanges:
                 change_type="added",
                 deal_name="Deal X",
                 old_modified_date=None,
-                new_modified_date=datetime.utcnow(),
+                new_modified_date=datetime.now(UTC),
                 new_size_bytes=1024000,
             ),
         ]
@@ -725,9 +725,9 @@ class TestMonitoredFileNeedsExtraction:
             file_name="file.xlsb",
             deal_name="Deal",
             size_bytes=1000,
-            modified_date=datetime.utcnow(),
-            first_seen=datetime.utcnow(),
-            last_checked=datetime.utcnow(),
+            modified_date=datetime.now(UTC),
+            first_seen=datetime.now(UTC),
+            last_checked=datetime.now(UTC),
             is_active=True,
             extraction_pending=True,
         )
@@ -742,9 +742,9 @@ class TestMonitoredFileNeedsExtraction:
             file_name="file.xlsb",
             deal_name="Deal",
             size_bytes=1000,
-            modified_date=datetime.utcnow(),
-            first_seen=datetime.utcnow(),
-            last_checked=datetime.utcnow(),
+            modified_date=datetime.now(UTC),
+            first_seen=datetime.now(UTC),
+            last_checked=datetime.now(UTC),
             is_active=True,
             extraction_pending=False,
             last_extracted=None,  # Never extracted
@@ -754,8 +754,8 @@ class TestMonitoredFileNeedsExtraction:
 
     def test_needs_extraction_modified_after_extraction(self) -> None:
         """Returns True when modified after last extraction."""
-        last_extracted = datetime.utcnow() - timedelta(days=1)
-        modified_date = datetime.utcnow()  # After last_extracted
+        last_extracted = datetime.now(UTC) - timedelta(days=1)
+        modified_date = datetime.now(UTC)  # After last_extracted
 
         file = MonitoredFile(
             id=uuid4(),
@@ -764,8 +764,8 @@ class TestMonitoredFileNeedsExtraction:
             deal_name="Deal",
             size_bytes=1000,
             modified_date=modified_date,
-            first_seen=datetime.utcnow() - timedelta(days=7),
-            last_checked=datetime.utcnow(),
+            first_seen=datetime.now(UTC) - timedelta(days=7),
+            last_checked=datetime.now(UTC),
             is_active=True,
             extraction_pending=False,
             last_extracted=last_extracted,
@@ -775,8 +775,8 @@ class TestMonitoredFileNeedsExtraction:
 
     def test_needs_extraction_up_to_date(self) -> None:
         """Returns False when file is up to date."""
-        modified_date = datetime.utcnow() - timedelta(days=2)
-        last_extracted = datetime.utcnow() - timedelta(days=1)  # After modified
+        modified_date = datetime.now(UTC) - timedelta(days=2)
+        last_extracted = datetime.now(UTC) - timedelta(days=1)  # After modified
 
         file = MonitoredFile(
             id=uuid4(),
@@ -785,8 +785,8 @@ class TestMonitoredFileNeedsExtraction:
             deal_name="Deal",
             size_bytes=1000,
             modified_date=modified_date,
-            first_seen=datetime.utcnow() - timedelta(days=7),
-            last_checked=datetime.utcnow(),
+            first_seen=datetime.now(UTC) - timedelta(days=7),
+            last_checked=datetime.now(UTC),
             is_active=True,
             extraction_pending=False,
             last_extracted=last_extracted,
@@ -802,9 +802,9 @@ class TestMonitoredFileNeedsExtraction:
             file_name="file.xlsb",
             deal_name="Deal",
             size_bytes=1000,
-            modified_date=datetime.utcnow(),
-            first_seen=datetime.utcnow(),
-            last_checked=datetime.utcnow(),
+            modified_date=datetime.now(UTC),
+            first_seen=datetime.now(UTC),
+            last_checked=datetime.now(UTC),
             is_active=False,  # Inactive
             extraction_pending=True,  # Would otherwise need extraction
         )
@@ -867,7 +867,7 @@ class TestCheckForChangesIntegration:
         mock_file.name = "UW Model.xlsb"
         mock_file.deal_name = "New Deal"
         mock_file.deal_stage = "active_review"
-        mock_file.modified_date = datetime.utcnow()
+        mock_file.modified_date = datetime.now(UTC)
         mock_file.size = 1500000
 
         mock_result = MagicMock()

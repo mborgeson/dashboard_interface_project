@@ -1,7 +1,7 @@
 """Tests for task scheduler service."""
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -90,7 +90,7 @@ class TestScheduledTask:
 
     def test_task_to_dict_with_timestamps(self):
         """Test to_dict includes formatted timestamps."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         task = ScheduledTask(last_run=now, next_run=now)
 
         d = task.to_dict()
@@ -123,7 +123,7 @@ class TestScheduledTask:
 
     def test_task_from_dict_with_timestamps(self):
         """Test creating task from dict with timestamps."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         data = {
             "last_run": now.isoformat(),
             "next_run": now.isoformat(),
@@ -147,7 +147,7 @@ class TestScheduledTask:
     def test_calculate_next_run_no_last_run(self):
         """Test calculating next run without last run."""
         task = ScheduledTask(interval_seconds=3600)
-        before = datetime.utcnow()
+        before = datetime.now(UTC)
 
         next_run = task.calculate_next_run()
 
@@ -290,7 +290,7 @@ class TestTaskManagement:
     async def test_add_task_run_immediately(self):
         """Test adding task with run immediately flag."""
         scheduler = TaskScheduler()
-        before = datetime.utcnow()
+        before = datetime.now(UTC)
 
         task = await scheduler.add_task(
             name="Immediate Task",

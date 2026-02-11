@@ -8,7 +8,7 @@ Supports both in-memory and Redis-backed storage.
 import asyncio
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import Enum, StrEnum
 from heapq import heappop, heappush
 from typing import Any
@@ -67,7 +67,7 @@ class Job:
     payload: dict[str, Any] = field(default_factory=dict)
     priority: JobPriority = JobPriority.NORMAL
     status: JobStatus = JobStatus.PENDING
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     started_at: datetime | None = None
     completed_at: datetime | None = None
     result: Any | None = None
@@ -119,7 +119,7 @@ class Job:
             created_at=(
                 datetime.fromisoformat(data["created_at"])
                 if data.get("created_at")
-                else datetime.utcnow()
+                else datetime.now(UTC)
             ),
             started_at=(
                 datetime.fromisoformat(data["started_at"])
@@ -294,7 +294,7 @@ class JobQueue:
                     JobStatus.RETRY,
                 ]:
                     stored_job.status = JobStatus.RUNNING
-                    stored_job.started_at = datetime.utcnow()
+                    stored_job.started_at = datetime.now(UTC)
 
                     if self._use_redis:
                         await self._save_to_redis(stored_job)
@@ -320,7 +320,7 @@ class JobQueue:
                 return None
 
             job.status = JobStatus.COMPLETED
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(UTC)
             job.result = result
 
             # Add to history
@@ -363,7 +363,7 @@ class JobQueue:
             else:
                 # Max retries exceeded
                 job.status = JobStatus.FAILED
-                job.completed_at = datetime.utcnow()
+                job.completed_at = datetime.now(UTC)
                 self._history.append(job)
                 if len(self._history) > self._max_history:
                     self._history.pop(0)
@@ -394,7 +394,7 @@ class JobQueue:
                 return job
 
             job.status = JobStatus.CANCELLED
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(UTC)
 
             if self._use_redis:
                 await self._save_to_redis(job)
@@ -448,7 +448,7 @@ class JobQueue:
         Returns:
             Number of jobs cleared
         """
-        cutoff = datetime.utcnow() - older_than if older_than else None
+        cutoff = datetime.now(UTC) - older_than if older_than else None
         cleared = 0
 
         async with self._lock:

@@ -7,7 +7,7 @@ Tracks the state of monitored files to detect changes:
 - Files that have been deleted
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
@@ -61,10 +61,10 @@ class MonitoredFile(Base, TimestampMixin):
 
     # Tracking timestamps
     first_seen: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
     last_checked: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
     last_extracted: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -148,7 +148,7 @@ class FileChangeLog(Base, TimestampMixin):
 
     # When the change was detected
     detected_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
 
     # Link to monitored file (if still exists)

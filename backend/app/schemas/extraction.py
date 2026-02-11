@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ExtractionStartRequest(BaseModel):
@@ -57,8 +57,7 @@ class ExtractionHistoryItem(BaseModel):
     files_failed: int
     success_rate: float | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ExtractionHistoryResponse(BaseModel):

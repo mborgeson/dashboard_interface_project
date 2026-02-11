@@ -12,7 +12,7 @@ Uses Microsoft Graph API for SharePoint access.
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -152,7 +152,7 @@ class SharePointClient:
         if (
             self._access_token
             and self._token_expires
-            and datetime.utcnow() < self._token_expires - timedelta(minutes=5)
+            and datetime.now(UTC) < self._token_expires - timedelta(minutes=5)
         ):
             return self._access_token
 
@@ -169,7 +169,7 @@ class SharePointClient:
 
         self._access_token = result["access_token"]
         # Token typically valid for 1 hour
-        self._token_expires = datetime.utcnow() + timedelta(
+        self._token_expires = datetime.now(UTC) + timedelta(
             seconds=result.get("expires_in", 3600)
         )
 

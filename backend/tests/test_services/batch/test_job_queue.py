@@ -1,7 +1,7 @@
 """Tests for job queue service."""
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -102,7 +102,7 @@ class TestJob:
 
     def test_job_comparison(self):
         """Test job comparison for heap ordering."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         job_critical = Job(priority=JobPriority.CRITICAL, created_at=now)
         job_normal = Job(priority=JobPriority.NORMAL, created_at=now)
@@ -624,7 +624,7 @@ class TestJobQueueClear:
         await queue.complete(job.id)
 
         # Set completion time to be old
-        queue._jobs[job.id].completed_at = datetime.utcnow() - timedelta(hours=2)
+        queue._jobs[job.id].completed_at = datetime.now(UTC) - timedelta(hours=2)
 
         cleared = await queue.clear_completed(older_than=timedelta(hours=1))
 

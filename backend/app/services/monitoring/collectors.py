@@ -10,7 +10,7 @@ Provides collectors for gathering metrics from various system components:
 import asyncio
 import os
 import platform
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from loguru import logger
@@ -44,7 +44,7 @@ class SystemMetricsCollector:
 
     async def collect(self) -> dict[str, Any]:
         """Collect system metrics."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         # Return cached if still valid
         if self._last_collection and now - self._last_collection < self._cache_duration:
@@ -133,7 +133,7 @@ class DatabaseMetricsCollector:
     async def collect(self) -> dict[str, Any]:
         """Collect database metrics."""
         metrics = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "connected": False,
             "pool": {},
         }
@@ -192,7 +192,7 @@ class ApplicationMetricsCollector:
 
     async def collect(self) -> dict[str, Any]:
         """Collect application metrics."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         # Return cached if still valid
         if self._last_collection and now - self._last_collection < self._cache_duration:

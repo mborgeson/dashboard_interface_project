@@ -52,7 +52,7 @@ function QuickActionsWrapper({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <QuickActionsProvider>{children}</QuickActionsProvider>
         </BrowserRouter>
       </ToastProvider>

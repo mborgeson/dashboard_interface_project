@@ -4,7 +4,7 @@ File monitoring endpoints.
 Endpoints for managing SharePoint file monitoring and change detection.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
@@ -142,7 +142,7 @@ async def trigger_monitor_check(db: AsyncSession = Depends(get_db)):
                     new_modified_date=c.new_modified_date,
                     old_size_bytes=c.old_size_bytes,
                     new_size_bytes=c.new_size_bytes,
-                    detected_at=c.detected_at or datetime.utcnow(),
+                    detected_at=c.detected_at or datetime.now(UTC),
                 )
                 for c in result.changes
             ],

@@ -9,7 +9,7 @@ Features:
 - Automatic extraction triggering on changes
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -157,7 +157,7 @@ class FileMonitorScheduler:
 
         logger.info("Starting scheduled file monitoring check")
         self._state.is_checking = True
-        self._state.last_check = datetime.utcnow()
+        self._state.last_check = datetime.now(UTC)
 
         try:
             # Import here to avoid circular imports

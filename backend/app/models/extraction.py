@@ -9,7 +9,7 @@ rather than 1,179 columns, which:
 - Simplifies queries with proper indexing
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -49,7 +49,7 @@ class ExtractionRun(Base, TimestampMixin):
 
     # Timing
     started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

@@ -8,7 +8,6 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models.sales_data import SalesData
 
-
 # =============================================================================
 # Basic Model Tests
 # =============================================================================

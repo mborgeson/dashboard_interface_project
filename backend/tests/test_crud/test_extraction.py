@@ -21,7 +21,7 @@ Run with: pytest tests/test_crud/test_extraction.py -v
 """
 
 from collections.abc import Generator
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -87,8 +87,8 @@ def extraction_run(sync_db_session: Session) -> ExtractionRun:
         files_discovered=10,
         files_processed=8,
         files_failed=2,
-        started_at=datetime.utcnow(),
-        completed_at=datetime.utcnow(),
+        started_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
     )
     sync_db_session.add(run)
     sync_db_session.commit()
@@ -106,7 +106,7 @@ def running_extraction(sync_db_session: Session) -> ExtractionRun:
         files_discovered=15,
         files_processed=5,
         files_failed=0,
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(UTC),
     )
     sync_db_session.add(run)
     sync_db_session.commit()
@@ -839,7 +839,7 @@ class TestExtractionRunProperties:
             id=uuid4(),
             status="running",
             trigger_type="manual",
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(UTC),
         )
         sync_db_session.add(run)
         sync_db_session.commit()

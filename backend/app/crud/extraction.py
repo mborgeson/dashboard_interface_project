@@ -7,7 +7,7 @@ Provides database operations for:
 - Querying extraction history and results
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -97,7 +97,7 @@ class ExtractionRunCRUD:
         run = db.get(ExtractionRun, run_id)
         if run:
             run.status = "completed"
-            run.completed_at = datetime.utcnow()
+            run.completed_at = datetime.now(UTC)
             run.files_processed = files_processed
             run.files_failed = files_failed
             run.error_summary = error_summary
@@ -113,7 +113,7 @@ class ExtractionRunCRUD:
         run = db.get(ExtractionRun, run_id)
         if run:
             run.status = "failed"
-            run.completed_at = datetime.utcnow()
+            run.completed_at = datetime.now(UTC)
             run.error_summary = error_summary
             db.commit()
             db.refresh(run)
@@ -125,7 +125,7 @@ class ExtractionRunCRUD:
         run = db.get(ExtractionRun, run_id)
         if run and run.status == "running":
             run.status = "cancelled"
-            run.completed_at = datetime.utcnow()
+            run.completed_at = datetime.now(UTC)
             db.commit()
             db.refresh(run)
         return run
@@ -213,7 +213,7 @@ class ExtractedValueCRUD:
                     "value_numeric": stmt.excluded.value_numeric,
                     "value_date": stmt.excluded.value_date,
                     "is_error": stmt.excluded.is_error,
-                    "updated_at": datetime.utcnow(),
+                    "updated_at": datetime.now(UTC),
                 },
             )
             db.execute(stmt)

@@ -5,7 +5,7 @@ Defines the data structures for workflow definitions and instances.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 from uuid import uuid4
@@ -133,8 +133,8 @@ class WorkflowDefinition:
     start_step: str = ""
     variables: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def get_step(self, step_id: str) -> StepDefinition | None:
         """Get step by ID."""
@@ -172,10 +172,10 @@ class WorkflowDefinition:
             metadata=data.get("metadata", {}),
             created_at=datetime.fromisoformat(data["created_at"])
             if data.get("created_at")
-            else datetime.utcnow(),
+            else datetime.now(UTC),
             updated_at=datetime.fromisoformat(data["updated_at"])
             if data.get("updated_at")
-            else datetime.utcnow(),
+            else datetime.now(UTC),
         )
 
 
@@ -244,7 +244,7 @@ class WorkflowInstance:
     current_step: str | None = None
     variables: dict[str, Any] = field(default_factory=dict)
     step_executions: dict[str, StepExecution] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     started_at: datetime | None = None
     completed_at: datetime | None = None
     created_by: str | None = None
@@ -263,7 +263,7 @@ class WorkflowInstance:
         """Get execution duration in seconds."""
         if not self.started_at:
             return None
-        end_time = self.completed_at or datetime.utcnow()
+        end_time = self.completed_at or datetime.now(UTC)
         return (end_time - self.started_at).total_seconds()
 
     @property
@@ -334,7 +334,7 @@ class WorkflowInstance:
             step_executions=step_executions,
             created_at=datetime.fromisoformat(data["created_at"])
             if data.get("created_at")
-            else datetime.utcnow(),
+            else datetime.now(UTC),
             started_at=datetime.fromisoformat(data["started_at"])
             if data.get("started_at")
             else None,
@@ -368,7 +368,7 @@ class ApprovalRequest:
     workflow_instance_id: str = ""
     step_id: str = ""
     approvers: list[str] = field(default_factory=list)
-    requested_at: datetime = field(default_factory=datetime.utcnow)
+    requested_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     approved_at: datetime | None = None
     approved_by: str | None = None
     status: str = "pending"  # pending, approved, rejected

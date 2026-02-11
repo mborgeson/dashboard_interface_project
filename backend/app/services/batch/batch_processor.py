@@ -7,7 +7,7 @@ Handles bulk data operations with progress tracking and chunking.
 import asyncio
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Generic, TypeVar
 from uuid import uuid4
@@ -62,7 +62,7 @@ class BatchProgress:
         """Get processing duration in seconds."""
         if not self.started_at:
             return None
-        end_time = self.completed_at or datetime.utcnow()
+        end_time = self.completed_at or datetime.now(UTC)
         return (end_time - self.started_at).total_seconds()
 
     def to_dict(self) -> dict[str, Any]:
@@ -152,7 +152,7 @@ class BatchProcessor(Generic[T, R]):
             batch_id=batch_id,
             total_items=len(items),
             status=BatchStatus.PROCESSING,
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(UTC),
         )
 
         self._active_batches[batch_id] = progress
@@ -199,12 +199,12 @@ class BatchProcessor(Generic[T, R]):
                 {
                     "type": "batch_error",
                     "message": str(e),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
             )
 
         finally:
-            progress.completed_at = datetime.utcnow()
+            progress.completed_at = datetime.now(UTC)
             self._cleanup_batch(batch_id)
 
         logger.info(
@@ -253,7 +253,7 @@ class BatchProcessor(Generic[T, R]):
                         {
                             "item_index": index,
                             "message": str(e),
-                            "timestamp": datetime.utcnow().isoformat(),
+                            "timestamp": datetime.now(UTC).isoformat(),
                         }
                     )
 
@@ -367,7 +367,7 @@ class BatchProcessor(Generic[T, R]):
             batch_id=batch_id,
             total_items=estimated_total,
             status=BatchStatus.PROCESSING,
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(UTC),
         )
 
         self._active_batches[batch_id] = progress
@@ -426,12 +426,12 @@ class BatchProcessor(Generic[T, R]):
                 {
                     "type": "stream_error",
                     "message": str(e),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
             )
 
         finally:
-            progress.completed_at = datetime.utcnow()
+            progress.completed_at = datetime.now(UTC)
             self._cleanup_batch(batch_id)
 
         return BatchResult(
