@@ -93,6 +93,8 @@ describe('Sales Analysis Types', () => {
       maxPrice: 100000000,
       minPricePerUnit: 50000,
       maxPricePerUnit: 500000,
+      minYearBuilt: 2000,
+      maxYearBuilt: 2020,
       dateFrom: '2023-01-01',
       dateTo: '2024-12-31',
       sortBy: 'sale_price',

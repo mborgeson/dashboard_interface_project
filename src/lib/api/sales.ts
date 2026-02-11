@@ -40,6 +40,8 @@ function filtersToParams(
     max_price: filters.maxPrice,
     min_price_per_unit: filters.minPricePerUnit,
     max_price_per_unit: filters.maxPricePerUnit,
+    min_year_built: filters.minYearBuilt,
+    max_year_built: filters.maxYearBuilt,
     date_from: filters.dateFrom,
     date_to: filters.dateTo,
     sort_by: filters.sortBy,

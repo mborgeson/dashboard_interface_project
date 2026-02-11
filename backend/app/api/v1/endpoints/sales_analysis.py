@@ -159,6 +159,8 @@ def _apply_filters(
     max_price: float | None = None,
     min_price_per_unit: float | None = None,
     max_price_per_unit: float | None = None,
+    min_year_built: int | None = None,
+    max_year_built: int | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
 ):
@@ -189,6 +191,10 @@ def _apply_filters(
         stmt = stmt.where(SalesData.price_per_unit >= min_price_per_unit)
     if max_price_per_unit is not None:
         stmt = stmt.where(SalesData.price_per_unit <= max_price_per_unit)
+    if min_year_built is not None:
+        stmt = stmt.where(SalesData.year_built >= min_year_built)
+    if max_year_built is not None:
+        stmt = stmt.where(SalesData.year_built <= max_year_built)
     if date_from is not None:
         stmt = stmt.where(SalesData.sale_date >= date_from)
     if date_to is not None:
@@ -231,6 +237,8 @@ async def list_sales(
     max_price: float | None = None,
     min_price_per_unit: float | None = None,
     max_price_per_unit: float | None = None,
+    min_year_built: int | None = None,
+    max_year_built: int | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     db: AsyncSession = Depends(get_db),
@@ -249,6 +257,8 @@ async def list_sales(
         max_price,
         min_price_per_unit,
         max_price_per_unit,
+        min_year_built,
+        max_year_built,
         date_from,
         date_to,
     )
@@ -266,6 +276,8 @@ async def list_sales(
         max_price,
         min_price_per_unit,
         max_price_per_unit,
+        min_year_built,
+        max_year_built,
         date_from,
         date_to,
     )
@@ -340,6 +352,8 @@ async def time_series(
     max_price: float | None = None,
     min_price_per_unit: float | None = None,
     max_price_per_unit: float | None = None,
+    min_year_built: int | None = None,
+    max_year_built: int | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     db: AsyncSession = Depends(get_db),
@@ -385,6 +399,8 @@ async def time_series(
         max_price,
         min_price_per_unit,
         max_price_per_unit,
+        min_year_built,
+        max_year_built,
         date_from,
         date_to,
     )
@@ -468,6 +484,8 @@ async def buyer_activity(
     max_price: float | None = None,
     min_price_per_unit: float | None = None,
     max_price_per_unit: float | None = None,
+    min_year_built: int | None = None,
+    max_year_built: int | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     db: AsyncSession = Depends(get_db),
@@ -505,6 +523,8 @@ async def buyer_activity(
         max_price,
         min_price_per_unit,
         max_price_per_unit,
+        min_year_built,
+        max_year_built,
         date_from,
         date_to,
     )
@@ -539,6 +559,8 @@ async def distributions(
     max_price: float | None = None,
     min_price_per_unit: float | None = None,
     max_price_per_unit: float | None = None,
+    min_year_built: int | None = None,
+    max_year_built: int | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     db: AsyncSession = Depends(get_db),
@@ -588,6 +610,8 @@ async def distributions(
         max_price,
         min_price_per_unit,
         max_price_per_unit,
+        min_year_built,
+        max_year_built,
         date_from,
         date_to,
     )

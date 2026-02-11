@@ -398,6 +398,20 @@ async def test_list_sales_price_per_unit_filter(sales_client, sample_sales_data)
 
 
 @pytest.mark.asyncio
+async def test_list_sales_year_built_filter(sales_client, sample_sales_data):
+    """Test filtering by min/max year_built (inclusive)."""
+    response = await sales_client.get(
+        f"{BASE_URL}/",
+        params={"min_year_built": 2000, "max_year_built": 2010},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    for rec in data["data"]:
+        if rec["year_built"] is not None:
+            assert 2000 <= rec["year_built"] <= 2010
+
+
+@pytest.mark.asyncio
 async def test_filter_options(sales_client, sample_sales_data):
     """Test GET /filter-options returns distinct submarkets."""
     response = await sales_client.get(f"{BASE_URL}/filter-options")

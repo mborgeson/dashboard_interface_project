@@ -29,6 +29,8 @@ export function SalesFilterPanel({
   const [localMaxPrice, setLocalMaxPrice] = useState(String(filters.maxPrice ?? ''));
   const [localMinPPU, setLocalMinPPU] = useState(String(filters.minPricePerUnit ?? ''));
   const [localMaxPPU, setLocalMaxPPU] = useState(String(filters.maxPricePerUnit ?? ''));
+  const [localMinYearBuilt, setLocalMinYearBuilt] = useState(String(filters.minYearBuilt ?? ''));
+  const [localMaxYearBuilt, setLocalMaxYearBuilt] = useState(String(filters.maxYearBuilt ?? ''));
   const [localDateFrom, setLocalDateFrom] = useState(filters.dateFrom ?? '');
   const [localDateTo, setLocalDateTo] = useState(filters.dateTo ?? '');
 
@@ -44,6 +46,8 @@ export function SalesFilterPanel({
     setLocalMaxPrice(String(filters.maxPrice ?? ''));
     setLocalMinPPU(String(filters.minPricePerUnit ?? ''));
     setLocalMaxPPU(String(filters.maxPricePerUnit ?? ''));
+    setLocalMinYearBuilt(String(filters.minYearBuilt ?? ''));
+    setLocalMaxYearBuilt(String(filters.maxYearBuilt ?? ''));
     setLocalDateFrom(filters.dateFrom ?? '');
     setLocalDateTo(filters.dateTo ?? '');
   }
@@ -60,6 +64,8 @@ export function SalesFilterPanel({
     filters.maxPrice,
     filters.minPricePerUnit,
     filters.maxPricePerUnit,
+    filters.minYearBuilt,
+    filters.maxYearBuilt,
     filters.dateFrom,
     filters.dateTo,
   ].filter(Boolean).length;
@@ -153,7 +159,7 @@ export function SalesFilterPanel({
             </div>
 
             {/* Grid of range filters + date range */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {/* Unit Count Range */}
               <div>
                 <Label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -224,6 +230,31 @@ export function SalesFilterPanel({
                     value={localMaxPPU}
                     onChange={(e) => setLocalMaxPPU(e.target.value)}
                     onBlur={() => commitNumeric('maxPricePerUnit', localMaxPPU)}
+                    className="h-9"
+                  />
+                </div>
+              </div>
+
+              {/* Year Built Range */}
+              <div>
+                <Label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  Year Built
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    value={localMinYearBuilt}
+                    onChange={(e) => setLocalMinYearBuilt(e.target.value)}
+                    onBlur={() => commitNumeric('minYearBuilt', localMinYearBuilt)}
+                    className="h-9"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={localMaxYearBuilt}
+                    onChange={(e) => setLocalMaxYearBuilt(e.target.value)}
+                    onBlur={() => commitNumeric('maxYearBuilt', localMaxYearBuilt)}
                     className="h-9"
                   />
                 </div>

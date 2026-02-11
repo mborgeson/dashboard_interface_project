@@ -39,6 +39,8 @@ export interface SalesFilters {
   maxPrice?: number;
   minPricePerUnit?: number;
   maxPricePerUnit?: number;
+  minYearBuilt?: number;
+  maxYearBuilt?: number;
   dateFrom?: string;
   dateTo?: string;
   sortBy?: string;
