@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,8 +32,8 @@ export function SalesFilterPanel({
   const [localDateFrom, setLocalDateFrom] = useState(filters.dateFrom ?? '');
   const [localDateTo, setLocalDateTo] = useState(filters.dateTo ?? '');
 
-  // Sync local state from props during render (React-recommended pattern,
-  // avoids useEffect + setState which violates react-hooks/set-state-in-effect)
+  // Sync local state from props during render (React-recommended pattern
+  // for adjusting state when props change — no useEffect needed)
   const [prevFilters, setPrevFilters] = useState(filters);
   if (filters !== prevFilters) {
     setPrevFilters(filters);
@@ -48,24 +48,8 @@ export function SalesFilterPanel({
     setLocalDateTo(filters.dateTo ?? '');
   }
 
-  // Debounced search: schedule filter update via ref-based timer from onChange handler
+  // Timer ref for search debounce — only accessed inside event handlers, never during render
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const filtersRef = useRef(filters);
-  filtersRef.current = filters;
-
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setSearchInput(value);
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-      searchTimerRef.current = setTimeout(() => {
-        const trimmed = value.trim() || undefined;
-        if (trimmed !== filtersRef.current.search) {
-          onFiltersChange({ ...filtersRef.current, search: trimmed });
-        }
-      }, 300);
-    },
-    [onFiltersChange]
-  );
 
   const activeFilterCount = [
     filters.search,
@@ -80,45 +64,48 @@ export function SalesFilterPanel({
     filters.dateTo,
   ].filter(Boolean).length;
 
-  const clearFilters = useCallback(() => {
+  // Event handlers — plain functions closing over current filters (no useCallback needed
+  // since these are passed to native DOM elements, not memoized children)
+
+  function handleSearchChange(value: string) {
+    setSearchInput(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      const trimmed = value.trim() || undefined;
+      if (trimmed !== filters.search) {
+        onFiltersChange({ ...filters, search: trimmed });
+      }
+    }, 300);
+  }
+
+  function clearFilters() {
     onFiltersChange({});
-  }, [onFiltersChange]);
+  }
 
-  const toggleSubmarket = useCallback(
-    (submarket: string, checked: boolean) => {
-      const current = filtersRef.current.submarkets ?? [];
-      const updated = checked
-        ? [...current, submarket]
-        : current.filter((s) => s !== submarket);
-      onFiltersChange({
-        ...filtersRef.current,
-        submarkets: updated.length > 0 ? updated : undefined,
-      });
-    },
-    [onFiltersChange]
-  );
+  function toggleSubmarket(submarket: string, checked: boolean) {
+    const current = filters.submarkets ?? [];
+    const updated = checked
+      ? [...current, submarket]
+      : current.filter((s) => s !== submarket);
+    onFiltersChange({
+      ...filters,
+      submarkets: updated.length > 0 ? updated : undefined,
+    });
+  }
 
-  /** Commit a numeric field on blur */
-  const commitNumeric = useCallback(
-    (key: keyof SalesFilters, localValue: string) => {
-      const num = localValue === '' ? undefined : Number(localValue);
-      if (num !== filtersRef.current[key]) {
-        onFiltersChange({ ...filtersRef.current, [key]: num });
-      }
-    },
-    [onFiltersChange]
-  );
+  function commitNumeric(key: keyof SalesFilters, localValue: string) {
+    const num = localValue === '' ? undefined : Number(localValue);
+    if (num !== filters[key]) {
+      onFiltersChange({ ...filters, [key]: num });
+    }
+  }
 
-  /** Commit a date field on change */
-  const commitDate = useCallback(
-    (key: 'dateFrom' | 'dateTo', localValue: string) => {
-      const val = localValue || undefined;
-      if (val !== filtersRef.current[key]) {
-        onFiltersChange({ ...filtersRef.current, [key]: val });
-      }
-    },
-    [onFiltersChange]
-  );
+  function commitDate(key: 'dateFrom' | 'dateTo', localValue: string) {
+    const val = localValue || undefined;
+    if (val !== filters[key]) {
+      onFiltersChange({ ...filters, [key]: val });
+    }
+  }
 
   return (
     <Card>
