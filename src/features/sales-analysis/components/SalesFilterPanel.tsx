@@ -32,18 +32,16 @@ export function SalesFilterPanel({
   const [localDateFrom, setLocalDateFrom] = useState(filters.dateFrom ?? '');
   const [localDateTo, setLocalDateTo] = useState(filters.dateTo ?? '');
 
-  // Sync local state when filters are reset externally (e.g. Clear Filters)
-  useEffect(() => {
-    setSearchInput(filters.search ?? '');
-    setLocalMinUnits(String(filters.minUnits ?? ''));
-    setLocalMaxUnits(String(filters.maxUnits ?? ''));
-    setLocalMinPrice(String(filters.minPrice ?? ''));
-    setLocalMaxPrice(String(filters.maxPrice ?? ''));
-    setLocalMinPPU(String(filters.minPricePerUnit ?? ''));
-    setLocalMaxPPU(String(filters.maxPricePerUnit ?? ''));
-    setLocalDateFrom(filters.dateFrom ?? '');
-    setLocalDateTo(filters.dateTo ?? '');
-  }, [filters]);
+  // Sync local state when individual filter values change externally (e.g. Clear Filters)
+  useEffect(() => { setSearchInput(filters.search ?? ''); }, [filters.search]);
+  useEffect(() => { setLocalMinUnits(String(filters.minUnits ?? '')); }, [filters.minUnits]);
+  useEffect(() => { setLocalMaxUnits(String(filters.maxUnits ?? '')); }, [filters.maxUnits]);
+  useEffect(() => { setLocalMinPrice(String(filters.minPrice ?? '')); }, [filters.minPrice]);
+  useEffect(() => { setLocalMaxPrice(String(filters.maxPrice ?? '')); }, [filters.maxPrice]);
+  useEffect(() => { setLocalMinPPU(String(filters.minPricePerUnit ?? '')); }, [filters.minPricePerUnit]);
+  useEffect(() => { setLocalMaxPPU(String(filters.maxPricePerUnit ?? '')); }, [filters.maxPricePerUnit]);
+  useEffect(() => { setLocalDateFrom(filters.dateFrom ?? ''); }, [filters.dateFrom]);
+  useEffect(() => { setLocalDateTo(filters.dateTo ?? ''); }, [filters.dateTo]);
 
   // Debounce search input
   useEffect(() => {
