@@ -23,6 +23,17 @@ const STATUS_LABELS: Record<string, string> = {
   delivered: 'Delivered',
 };
 
+const CLASSIFICATION_LABELS: Record<string, string> = {
+  CONV_MR: 'Conventional/Market-Rate',
+  CONV_CONDO: 'Conventional/Condo',
+  BTR: 'Build-to-Rent',
+  LIHTC: 'LIHTC (Affordable)',
+  AGE_55: 'Age-Restricted (55+)',
+  WORKFORCE: 'Workforce Housing',
+  MIXED_USE: 'Mixed-Use',
+  CONVERSION: 'Conversion',
+};
+
 const STATUS_COLORS: Record<string, string> = {
   proposed: 'bg-gray-100 text-gray-800',
   final_planning: 'bg-yellow-100 text-yellow-800',
@@ -100,7 +111,11 @@ export function PipelineTable({ data, isLoading }: PipelineTableProps) {
                     <TableCell>
                       <StatusBadge status={r.pipelineStatus} />
                     </TableCell>
-                    <TableCell>{r.primaryClassification ?? '--'}</TableCell>
+                    <TableCell>
+                      {r.primaryClassification
+                        ? CLASSIFICATION_LABELS[r.primaryClassification] ?? r.primaryClassification
+                        : '--'}
+                    </TableCell>
                     <TableCell className="text-right">
                       {r.numberOfUnits ? numFmt.format(r.numberOfUnits) : '--'}
                     </TableCell>

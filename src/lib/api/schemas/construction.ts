@@ -180,6 +180,18 @@ export const classificationBreakdownItemSchema = z
     totalUnits: r.total_units,
   }));
 
+export const deliveryTimelineItemSchema = z
+  .object({
+    quarter: z.string(),
+    total_units: z.number(),
+    project_count: z.number(),
+  })
+  .transform((r) => ({
+    quarter: r.quarter,
+    totalUnits: r.total_units,
+    projectCount: r.project_count,
+  }));
+
 export const constructionDataQualitySchema = z
   .object({
     total_projects: z.number(),

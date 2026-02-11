@@ -101,6 +101,12 @@ export interface ClassificationBreakdownItem {
   totalUnits: number;
 }
 
+export interface DeliveryTimelineItem {
+  quarter: string;
+  totalUnits: number;
+  projectCount: number;
+}
+
 export interface ConstructionDataQuality {
   totalProjects: number;
   projectsBySource: Record<string, number>;

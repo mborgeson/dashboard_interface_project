@@ -21,6 +21,17 @@ const STATUS_LABELS: Record<string, string> = {
   delivered: 'Delivered',
 };
 
+const CLASSIFICATION_LABELS: Record<string, string> = {
+  CONV_MR: 'Conventional/Market-Rate',
+  CONV_CONDO: 'Conventional/Condo',
+  BTR: 'Build-to-Rent',
+  LIHTC: 'LIHTC (Affordable)',
+  AGE_55: 'Age-Restricted (55+)',
+  WORKFORCE: 'Workforce Housing',
+  MIXED_USE: 'Mixed-Use',
+  CONVERSION: 'Conversion',
+};
+
 export function PipelineFilterPanel({
   filters,
   onFiltersChange,
@@ -165,7 +176,7 @@ export function PipelineFilterPanel({
                             handleCheckboxToggle('classifications', c, !!checked)
                           }
                         />
-                        {c}
+                        {CLASSIFICATION_LABELS[c] ?? c}
                       </label>
                     ))}
                   </div>

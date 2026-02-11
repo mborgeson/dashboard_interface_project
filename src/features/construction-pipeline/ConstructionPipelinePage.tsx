@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   useProjects,
+  useAllProjects,
   usePipelineSummary,
   usePipelineFunnel,
   usePermitTrends,
   useEmploymentOverlay,
   useSubmarketPipeline,
   useClassificationBreakdown,
+  useDeliveryTimeline,
   useConstructionDataQuality,
   useConstructionImportStatus,
   useTriggerConstructionImport,
@@ -24,6 +26,7 @@ import { PermitTrends } from './components/PermitTrends';
 import { EmploymentOverlay } from './components/EmploymentOverlay';
 import { SubmarketPipeline } from './components/SubmarketPipeline';
 import { ClassificationBreakdown } from './components/ClassificationBreakdown';
+import { DeliveryTimeline } from './components/DeliveryTimeline';
 import { SourceFreshness } from './components/SourceFreshness';
 import { PipelineMap } from './components/PipelineMap';
 
@@ -56,7 +59,9 @@ export function ConstructionPipelinePage() {
   const employmentQuery = useEmploymentOverlay();
   const submarketQuery = useSubmarketPipeline(filters);
   const classificationQuery = useClassificationBreakdown(filters);
+  const deliveryTimelineQuery = useDeliveryTimeline(filters);
   const dataQualityQuery = useConstructionDataQuality();
+  const allProjectsQuery = useAllProjects(filters);
   const importStatusQuery = useConstructionImportStatus();
 
   // Mutations
@@ -229,6 +234,10 @@ export function ConstructionPipelinePage() {
             data={funnelQuery.data ?? []}
             isLoading={funnelQuery.isLoading}
           />
+          <DeliveryTimeline
+            data={deliveryTimelineQuery.data ?? []}
+            isLoading={deliveryTimelineQuery.isLoading}
+          />
           <div className="grid gap-6 lg:grid-cols-2">
             <PermitTrends
               data={permitTrendsQuery.data ?? []}
@@ -251,8 +260,8 @@ export function ConstructionPipelinePage() {
 
         <TabsContent value="map">
           <PipelineMap
-            data={projectsData?.data ?? []}
-            isLoading={projectsQuery.isLoading}
+            data={allProjectsQuery.data?.data ?? []}
+            isLoading={allProjectsQuery.isLoading}
           />
         </TabsContent>
 

@@ -11,6 +11,7 @@ import {
   employmentPointSchema,
   submarketPipelineItemSchema,
   classificationBreakdownItemSchema,
+  deliveryTimelineItemSchema,
   constructionDataQualitySchema,
   constructionImportStatusSchema,
   triggerConstructionImportResponseSchema,
@@ -25,6 +26,7 @@ import type {
   EmploymentPoint,
   SubmarketPipelineItem,
   ClassificationBreakdownItem,
+  DeliveryTimelineItem,
   ConstructionDataQuality,
   ConstructionImportStatus,
 } from '@/features/construction-pipeline/types';
@@ -128,6 +130,16 @@ export async function fetchClassificationBreakdown(
     params: filtersToParams(filters),
   });
   return z.array(classificationBreakdownItemSchema).parse(raw);
+}
+
+/** Fetch delivery timeline (quarterly) */
+export async function fetchDeliveryTimeline(
+  filters: ConstructionFilters
+): Promise<DeliveryTimelineItem[]> {
+  const raw = await apiClient.get<unknown>(`${BASE}/analytics/delivery-timeline`, {
+    params: filtersToParams(filters),
+  });
+  return z.array(deliveryTimelineItemSchema).parse(raw);
 }
 
 /** Fetch data quality report */

@@ -97,12 +97,12 @@ class TestDiscoveryEndpoint:
     def test_discover_with_files(self, client):
         """Discovery with valid files should accept candidates."""
         files = [{
-            "name": "Deal UW Model v2.xlsb",
+            "name": "Deal Proforma vCurrent.xlsb",
             "path": "/test/model.xlsb",
             "size": 5000000,
             "modified_date": "2023-01-15T00:00:00",
             "deal_name": "Deal",
-            "deal_stage": "Active",
+            "deal_stage": "Dead",
         }]
         response = client.post("/extraction/grouping/discover", json=files)
         assert response.status_code == 200

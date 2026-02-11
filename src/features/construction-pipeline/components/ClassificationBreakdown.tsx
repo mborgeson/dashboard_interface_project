@@ -18,7 +18,23 @@ interface ClassificationBreakdownProps {
 
 const numFmt = new Intl.NumberFormat('en-US');
 
+const CLASSIFICATION_LABELS: Record<string, string> = {
+  CONV_MR: 'Conventional/Market-Rate',
+  CONV_CONDO: 'Conventional/Condo',
+  BTR: 'Build-to-Rent',
+  LIHTC: 'LIHTC (Affordable)',
+  AGE_55: 'Age-Restricted (55+)',
+  WORKFORCE: 'Workforce Housing',
+  MIXED_USE: 'Mixed-Use',
+  CONVERSION: 'Conversion',
+};
+
 export function ClassificationBreakdown({ data, isLoading }: ClassificationBreakdownProps) {
+  // Map raw classification codes to human-readable labels for chart display
+  const chartData = data.map((item) => ({
+    ...item,
+    classification: CLASSIFICATION_LABELS[item.classification] ?? item.classification,
+  }));
   if (isLoading) {
     return (
       <Card>
@@ -52,10 +68,10 @@ export function ClassificationBreakdown({ data, isLoading }: ClassificationBreak
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
+          <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis type="number" tickFormatter={(v) => numFmt.format(v)} />
-            <YAxis type="category" dataKey="classification" width={100} />
+            <YAxis type="category" dataKey="classification" width={180} />
             <Tooltip
               formatter={(value: number) => [numFmt.format(value), 'Units']}
             />

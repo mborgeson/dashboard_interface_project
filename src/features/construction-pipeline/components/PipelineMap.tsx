@@ -43,6 +43,17 @@ const STATUS_LABELS: Record<string, string> = {
   delivered: 'Delivered',
 };
 
+const CLASSIFICATION_LABELS: Record<string, string> = {
+  CONV_MR: 'Conventional/Market-Rate',
+  CONV_CONDO: 'Conventional/Condo',
+  BTR: 'Build-to-Rent',
+  LIHTC: 'LIHTC (Affordable)',
+  AGE_55: 'Age-Restricted (55+)',
+  WORKFORCE: 'Workforce Housing',
+  MIXED_USE: 'Mixed-Use',
+  CONVERSION: 'Conversion',
+};
+
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -67,7 +78,9 @@ function buildPopupContent(record: ProjectRecord): string {
   const status = record.pipelineStatus
     ? STATUS_LABELS[record.pipelineStatus] ?? record.pipelineStatus
     : 'N/A';
-  const classification = record.primaryClassification ?? 'N/A';
+  const classification = record.primaryClassification
+    ? CLASSIFICATION_LABELS[record.primaryClassification] ?? record.primaryClassification
+    : 'N/A';
   const developer = record.developerName ?? 'N/A';
   const units =
     record.numberOfUnits != null ? numFmt.format(record.numberOfUnits) : 'N/A';

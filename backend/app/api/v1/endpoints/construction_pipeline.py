@@ -135,6 +135,12 @@ class ClassificationBreakdownItem(BaseModel):
     total_units: int
 
 
+class DeliveryTimelineItem(BaseModel):
+    quarter: str  # e.g. "Q1 2026"
+    total_units: int
+    project_count: int
+
+
 class DataQualityReport(BaseModel):
     total_projects: int
     projects_by_source: dict[str, int]
@@ -767,6 +773,84 @@ async def classification_breakdown(
         )
         for r in result.all()
     ]
+
+
+# ── 8b. GET /analytics/delivery-timeline ──────────────────────────────────────
+
+
+@router.get(
+    "/analytics/delivery-timeline",
+    response_model=list[DeliveryTimelineItem],
+)
+async def delivery_timeline(
+    search: str | None = None,
+    statuses: str | None = None,
+    classifications: str | None = None,
+    submarkets: str | None = None,
+    cities: str | None = None,
+    min_units: int | None = None,
+    max_units: int | None = None,
+    rent_type: str | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delivery timeline: units by quarter over the next 3 years."""
+    from dateutil.relativedelta import relativedelta
+
+    today = date.today()
+    horizon = today + relativedelta(years=3)
+
+    stmt = select(
+        ConstructionProject.estimated_delivery_date,
+        ConstructionProject.number_of_units,
+    ).where(
+        ConstructionProject.estimated_delivery_date.isnot(None),
+        ConstructionProject.estimated_delivery_date >= today,
+        ConstructionProject.estimated_delivery_date <= horizon,
+    )
+    stmt = _apply_filters(
+        stmt,
+        search,
+        statuses,
+        classifications,
+        submarkets,
+        cities,
+        min_units,
+        max_units,
+        None,
+        None,
+        rent_type,
+    )
+    result = await db.execute(stmt)
+
+    # Bucket into quarters
+    quarter_buckets: dict[str, dict] = {}
+    for row in result.all():
+        dt = row[0]
+        units = row[1] or 0
+        q = (dt.month - 1) // 3 + 1
+        key = f"Q{q} {dt.year}"
+        if key not in quarter_buckets:
+            quarter_buckets[key] = {"total_units": 0, "project_count": 0}
+        quarter_buckets[key]["total_units"] += units
+        quarter_buckets[key]["project_count"] += 1
+
+    # Build complete timeline with all quarters in range (even empty ones)
+    items: list[DeliveryTimelineItem] = []
+    cursor = date(today.year, ((today.month - 1) // 3) * 3 + 1, 1)
+    while cursor <= horizon:
+        q = (cursor.month - 1) // 3 + 1
+        key = f"Q{q} {cursor.year}"
+        bucket = quarter_buckets.get(key, {"total_units": 0, "project_count": 0})
+        items.append(
+            DeliveryTimelineItem(
+                quarter=key,
+                total_units=bucket["total_units"],
+                project_count=bucket["project_count"],
+            )
+        )
+        cursor += relativedelta(months=3)
+
+    return items
 
 
 # ── 9. GET /analytics/data-quality ────────────────────────────────────────────

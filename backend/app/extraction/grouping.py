@@ -237,6 +237,11 @@ def group_fingerprints(
         if not merged:
             still_ungrouped.append(fp)
 
+    # Split low-overlap groups into tighter sub-groups
+    groups = _split_low_overlap_groups(
+        groups, still_ungrouped, group_counter, variant_threshold
+    )
+
     # Compute variances for each group
     for group in groups:
         group.variances = compute_intra_group_variances(group)
@@ -257,6 +262,101 @@ def group_fingerprints(
         ungrouped=len(still_ungrouped),
         empty_templates=len(empty_templates),
     )
+
+    return result
+
+
+def _split_low_overlap_groups(
+    groups: list[FileGroup],
+    ungrouped: list[FileFingerprint],
+    start_counter: int,
+    min_overlap: float,
+) -> list[FileGroup]:
+    """
+    Split groups with low structural overlap into tighter sub-groups.
+
+    Uses greedy clustering: for each file in a low-overlap group, assign it
+    to the first sub-group where it has >= min_overlap with the representative
+    (first file). If no match, start a new sub-group. Files that don't fit
+    any sub-group are moved to ungrouped.
+
+    Args:
+        groups: Current groups (modified in place for splits).
+        ungrouped: List to append truly ungrouped files to.
+        start_counter: Counter for generating new group names.
+        min_overlap: Minimum overlap for sub-group membership.
+
+    Returns:
+        Updated list of groups (tight groups unchanged, loose groups split).
+    """
+    result: list[FileGroup] = []
+    counter = start_counter
+
+    for group in groups:
+        if group.structural_overlap >= min_overlap or len(group.files) <= 2:
+            result.append(group)
+            continue
+
+        logger.info(
+            "splitting_low_overlap_group",
+            group=group.group_name,
+            files=len(group.files),
+            overlap=f"{group.structural_overlap:.0%}",
+        )
+
+        # Greedy clustering within this group
+        sub_groups: list[list[FileFingerprint]] = []
+
+        for fp in group.files:
+            placed = False
+            for sg in sub_groups:
+                # Check overlap with representative (first file in sub-group)
+                overlap = compute_structural_overlap(fp, sg[0])
+                if overlap >= min_overlap:
+                    sg.append(fp)
+                    placed = True
+                    break
+            if not placed:
+                sub_groups.append([fp])
+
+        # Convert sub-groups back to FileGroup objects
+        for sg in sub_groups:
+            if len(sg) == 1:
+                ungrouped.append(sg[0])
+                continue
+
+            counter += 1
+
+            # Compute minimum pairwise overlap
+            sg_min_overlap = 1.0
+            sg_sub_variants: list[str] = []
+            for i in range(len(sg)):
+                for j in range(i + 1, len(sg)):
+                    ov = compute_structural_overlap(sg[i], sg[j])
+                    sg_min_overlap = min(sg_min_overlap, ov)
+                    if ov < 0.95:
+                        sg_sub_variants.append(sg[j].file_name)
+
+            era = _compute_era(sg)
+            name = _generate_group_name(sg, counter)
+
+            result.append(
+                FileGroup(
+                    group_name=name,
+                    files=sg,
+                    sheet_signature=sg[0].sheet_name_key,
+                    structural_overlap=sg_min_overlap,
+                    era=era,
+                    sub_variants=list(set(sg_sub_variants)),
+                )
+            )
+
+        logger.info(
+            "split_complete",
+            original_group=group.group_name,
+            sub_groups=len([sg for sg in sub_groups if len(sg) > 1]),
+            singletons=len([sg for sg in sub_groups if len(sg) == 1]),
+        )
 
     return result
 

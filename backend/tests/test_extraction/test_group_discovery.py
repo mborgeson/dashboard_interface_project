@@ -83,8 +83,8 @@ class TestDiscovery:
     def test_discovery_accepts_old_uw_model(self, pipeline):
         """Old UW model (before cutoff) should be accepted."""
         files = [{
-            "name": "Deal UW Model v2.xlsb",
-            "path": "/deals/Deal UW Model v2.xlsb",
+            "name": "Deal UW Model vCurrent.xlsb",
+            "path": "/deals/Deal UW Model vCurrent.xlsb",
             "size": 5_000_000,
             "modified_date": datetime(2023, 1, 15),
             "deal_name": "Deal",
@@ -111,16 +111,16 @@ class TestDiscovery:
         """Files with same size and date should be deduplicated."""
         files = [
             {
-                "name": "Deal A UW Model v2.xlsb",
-                "path": "/path1/Deal A UW Model v2.xlsb",
+                "name": "Deal A UW Model vCurrent.xlsb",
+                "path": "/path1/Deal A UW Model vCurrent.xlsb",
                 "size": 5_000_000,
                 "modified_date": datetime(2023, 1, 15),
                 "deal_name": "Deal A",
                 "content_hash": "abc123",
             },
             {
-                "name": "Deal B UW Model v2.xlsb",
-                "path": "/path2/Deal B UW Model v2.xlsb",
+                "name": "Deal B UW Model vCurrent.xlsb",
+                "path": "/path2/Deal B UW Model vCurrent.xlsb",
                 "size": 5_000_000,
                 "modified_date": datetime(2023, 1, 15),
                 "deal_name": "Deal B",
@@ -134,7 +134,7 @@ class TestDiscovery:
         """Files with same size+date but different hash should be kept."""
         files = [
             {
-                "name": "Deal A UW Model v2.xlsb",
+                "name": "Deal A UW Model vCurrent.xlsb",
                 "path": "/path1/a.xlsb",
                 "size": 5_000_000,
                 "modified_date": datetime(2023, 1, 15),
@@ -142,7 +142,7 @@ class TestDiscovery:
                 "content_hash": "hash_a",
             },
             {
-                "name": "Deal B UW Model v2.xlsb",
+                "name": "Deal B UW Model vCurrent.xlsb",
                 "path": "/path2/b.xlsb",
                 "size": 5_000_000,
                 "modified_date": datetime(2023, 1, 15),
@@ -157,7 +157,7 @@ class TestDiscovery:
     def test_discovery_manifest_persisted(self, pipeline):
         """Manifest should be written to disk."""
         files = [{
-            "name": "Deal UW Model v2.xlsb",
+            "name": "Deal UW Model vCurrent.xlsb",
             "path": "/deals/model.xlsb",
             "size": 5_000_000,
             "modified_date": datetime(2023, 1, 15),
@@ -173,7 +173,7 @@ class TestDiscovery:
     def test_discovery_updates_config(self, pipeline):
         """Config should be updated after discovery."""
         files = [{
-            "name": "Deal UW Model v2.xlsb",
+            "name": "Deal UW Model vCurrent.xlsb",
             "path": "/deals/model.xlsb",
             "size": 5_000_000,
             "modified_date": datetime(2023, 1, 15),
@@ -189,7 +189,7 @@ class TestDiscovery:
         """Files exceeding batch size should trigger batching info."""
         files = [
             {
-                "name": f"Deal {i} UW Model v2.xlsb",
+                "name": f"Deal {i} UW Model vCurrent.xlsb",
                 "path": f"/deals/{i}.xlsb",
                 "size": 5_000_000 + i,  # Different sizes to avoid dedup
                 "modified_date": datetime(2023, 1, i + 1),
@@ -206,7 +206,7 @@ class TestDiscovery:
     def test_discovery_multiple_runs_overwrite(self, pipeline):
         """Running discovery again should overwrite manifest."""
         files1 = [{
-            "name": "Deal A UW Model v2.xlsb",
+            "name": "Deal A UW Model vCurrent.xlsb",
             "path": "/a.xlsb",
             "size": 5_000_000,
             "modified_date": datetime(2023, 1, 15),
@@ -216,7 +216,7 @@ class TestDiscovery:
 
         files2 = [
             {
-                "name": f"Deal {c} UW Model v2.xlsb",
+                "name": f"Deal {c} UW Model vCurrent.xlsb",
                 "path": f"/{c}.xlsb",
                 "size": 5_000_000 + i,
                 "modified_date": datetime(2023, 2, i + 1),

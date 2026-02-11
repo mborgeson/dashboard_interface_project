@@ -193,7 +193,7 @@ class ConstructionProject(Base, TimestampMixin):
     parking_ratio: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # ── Flood / FEMA ─────────────────────────────────────────────────────
-    fema_flood_zone: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    fema_flood_zone: Mapped[str | None] = mapped_column(Text, nullable=True)
     flood_risk_area: Mapped[str | None] = mapped_column(String(200), nullable=True)
     in_sfha: Mapped[str | None] = mapped_column(String(50), nullable=True)
 

@@ -149,9 +149,9 @@ class GroupExtractionPipeline:
         Returns:
             Discovery manifest dict.
         """
-        from .file_filter import CandidateFileFilter, get_file_filter
+        from .file_filter import CandidateFileFilter
 
-        candidate_filter = CandidateFileFilter(get_file_filter())
+        candidate_filter = CandidateFileFilter()
 
         accepted: list[dict[str, Any]] = []
         skipped: list[dict[str, Any]] = []

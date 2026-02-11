@@ -293,38 +293,53 @@ class FileFilter:
 
 class CandidateFileFilter:
     """
-    Inverted file filter for UW model grouping pipeline.
+    File filter for UW model grouping pipeline — Old UW Model Files.
 
-    Accepts files that match a broad UW model pattern but FAIL at least one
-    criterion of the production FileFilter (older date, non-vCurrent name, etc.).
-    This captures historical UW models and renamed files excluded by the
-    production pipeline.
+    Accepts files matching ALL of:
+      1a. Filename contains "vCurrent.xlsb" (case-insensitive)
+      1b. Filename contains at least one of: "Model", "UW", "Proforma"
+      3.  Modified before 2024-07-15
+      4.  Extension is .xlsb
+
+    Rejects files containing ANY of the excluded substrings.
     """
 
-    # Broad patterns matching any UW model or Proforma file
-    CANDIDATE_PATTERNS = [
-        re.compile(r".*UW.*Model.*", re.IGNORECASE),
-        re.compile(r".*Proforma\s+vCurrent.*", re.IGNORECASE),
-    ]
+    # Required: filename must contain "vCurrent.xlsb"
+    REQUIRED_SEQUENCE = "vcurrent.xlsb"
 
-    # Substrings to always exclude (working copies, drafts, backups)
-    ALWAYS_EXCLUDE = [
-        "~$",
-        "notes",
-        "backup",
-        "copy",
-        "draft",
+    # Required: filename must contain at least one of these words
+    REQUIRED_WORDS = ["model", "uw", "proforma"]
+
+    # Only .xlsb files
+    VALID_EXTENSIONS = {".xlsb"}
+
+    # Files modified before this date are candidates (old files)
+    CUTOFF_DATE = datetime(2024, 7, 15)
+
+    # Excluded substrings (case-insensitive)
+    EXCLUDE_SUBSTRINGS = [
+        "[deal name]",
+        "settlement statement",
+        "due diligence tracker",
+        "autorecovered",
+        "speedboat",
+        "vold",
+        "tax",
+        "cashflows",
+        "development",
+        "portfolio",
         "template",
+        "~$",  # Office temp/lock files
     ]
 
-    def __init__(self, production_filter: FileFilter):
+    def __init__(self, production_filter: "FileFilter | None" = None):
         """
-        Initialize with a production FileFilter instance.
+        Initialize candidate file filter.
 
         Args:
-            production_filter: The existing FileFilter used by the production pipeline.
+            production_filter: Optional — kept for backward compatibility
+                but no longer used. Criteria are now self-contained.
         """
-        self.production_filter = production_filter
         self.logger = structlog.get_logger().bind(component="CandidateFileFilter")
 
     def should_process(
@@ -336,62 +351,69 @@ class CandidateFileFilter:
         """
         Determine if a file is a candidate for group extraction.
 
-        A candidate must:
-        1. Match at least one CANDIDATE_PATTERN
-        2. Have a valid Excel extension
-        3. NOT match any ALWAYS_EXCLUDE substring
-        4. FAIL at least one production filter criterion (otherwise it's
-           already handled by the production pipeline)
-
         Returns:
             FilterResult indicating candidacy.
         """
         filename_lower = filename.lower()
 
-        # Check valid extension first
+        # 4. Extension must be .xlsb
         ext = self._get_extension(filename)
-        if ext not in FileFilter.SUPPORTED_EXTENSIONS:
+        if ext not in self.VALID_EXTENSIONS:
             return FilterResult(
                 should_process=False,
                 skip_reason=SkipReason.INVALID_EXTENSION,
-                skip_details=f"extension '{ext}' not supported",
+                skip_details=f"extension '{ext}' — only .xlsb accepted",
             )
 
-        # Check always-exclude patterns
-        for exclude in self.ALWAYS_EXCLUDE:
+        # 2. Check excluded substrings
+        for exclude in self.EXCLUDE_SUBSTRINGS:
             if exclude in filename_lower:
                 return FilterResult(
                     should_process=False,
                     skip_reason=SkipReason.EXCLUDED_PATTERN,
-                    skip_details=f"matches always-exclude pattern '{exclude}'",
+                    skip_details=f"contains excluded substring '{exclude}'",
                 )
 
-        # Must match at least one candidate pattern
-        matches_candidate = any(p.match(filename) for p in self.CANDIDATE_PATTERNS)
-        if not matches_candidate:
+        # 1a. Must contain "vCurrent.xlsb"
+        if self.REQUIRED_SEQUENCE not in filename_lower:
             return FilterResult(
                 should_process=False,
                 skip_reason=SkipReason.PATTERN_MISMATCH,
-                skip_details="does not match any UW model candidate pattern",
+                skip_details="does not contain 'vCurrent.xlsb'",
             )
 
-        # Must FAIL the production filter (otherwise it's handled by production)
-        prod_result = self.production_filter.should_process(
-            filename, size_bytes, modified_date
-        )
-        if prod_result.should_process:
+        # 1b. Must contain at least one of: Model, UW, Proforma
+        if not any(word in filename_lower for word in self.REQUIRED_WORDS):
             return FilterResult(
                 should_process=False,
                 skip_reason=SkipReason.PATTERN_MISMATCH,
-                skip_details="already handled by production pipeline",
+                skip_details="does not contain 'Model', 'UW', or 'Proforma'",
             )
 
-        # File is a candidate
-        self.logger.debug(
-            "candidate_accepted",
-            filename=filename,
-            production_skip_reason=prod_result.reason_message,
-        )
+        # 3. Must be modified before 2024-07-15
+        if modified_date is not None:
+            mod_date = modified_date
+            # Parse string dates from JSON
+            if isinstance(mod_date, str):
+                try:
+                    mod_date = datetime.fromisoformat(mod_date.replace("Z", "+00:00"))
+                except ValueError:
+                    mod_date = None
+            if (
+                mod_date is not None
+                and hasattr(mod_date, "tzinfo")
+                and mod_date.tzinfo is not None
+            ):
+                mod_date = mod_date.replace(tzinfo=None)
+            if mod_date is not None and mod_date >= self.CUTOFF_DATE:
+                return FilterResult(
+                    should_process=False,
+                    skip_reason=SkipReason.TOO_OLD,
+                    skip_details=f"modified {mod_date.date()} — not before cutoff {self.CUTOFF_DATE.date()}",
+                )
+
+        # All criteria met
+        self.logger.debug("candidate_accepted", filename=filename)
         return FilterResult(should_process=True)
 
     @staticmethod
@@ -410,5 +432,5 @@ def get_file_filter() -> FileFilter:
 
 
 def get_candidate_file_filter() -> CandidateFileFilter:
-    """Create CandidateFileFilter using a production FileFilter."""
-    return CandidateFileFilter(get_file_filter())
+    """Create CandidateFileFilter with self-contained criteria."""
+    return CandidateFileFilter()

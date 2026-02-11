@@ -8,6 +8,7 @@ import {
   fetchEmploymentOverlay,
   fetchSubmarketPipeline,
   fetchClassificationBreakdown,
+  fetchDeliveryTimeline,
   fetchConstructionDataQuality,
   fetchConstructionImportStatus,
   triggerConstructionImport,
@@ -36,6 +37,8 @@ export const constructionKeys = {
     [...constructionKeys.analytics(), 'submarket-pipeline', filters] as const,
   classificationBreakdown: (filters: ConstructionFilters) =>
     [...constructionKeys.analytics(), 'classification-breakdown', filters] as const,
+  deliveryTimeline: (filters: ConstructionFilters) =>
+    [...constructionKeys.analytics(), 'delivery-timeline', filters] as const,
   dataQuality: () => [...constructionKeys.all, 'data-quality'] as const,
   importStatus: () => [...constructionKeys.all, 'import-status'] as const,
   filterOptions: () => [...constructionKeys.all, 'filter-options'] as const,
@@ -54,6 +57,15 @@ export function useProjects(
   return useQuery({
     queryKey: constructionKeys.list(filters, page, pageSize),
     queryFn: () => fetchProjects(filters, page, pageSize),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/** All projects (for map — no pagination) */
+export function useAllProjects(filters: ConstructionFilters) {
+  return useQuery({
+    queryKey: [...constructionKeys.lists(), 'all', filters] as const,
+    queryFn: () => fetchProjects(filters, 1, 10000),
     staleTime: 1000 * 60 * 5,
   });
 }
@@ -117,6 +129,15 @@ export function useClassificationBreakdown(filters: ConstructionFilters) {
   return useQuery({
     queryKey: constructionKeys.classificationBreakdown(filters),
     queryFn: () => fetchClassificationBreakdown(filters),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/** Delivery timeline (quarterly) */
+export function useDeliveryTimeline(filters: ConstructionFilters) {
+  return useQuery({
+    queryKey: constructionKeys.deliveryTimeline(filters),
+    queryFn: () => fetchDeliveryTimeline(filters),
     staleTime: 1000 * 60 * 5,
   });
 }
