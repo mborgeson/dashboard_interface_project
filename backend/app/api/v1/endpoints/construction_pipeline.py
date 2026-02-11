@@ -794,10 +794,8 @@ async def delivery_timeline(
     db: AsyncSession = Depends(get_db),
 ):
     """Delivery timeline: units by quarter over the next 3 years."""
-    from dateutil.relativedelta import relativedelta
-
     today = date.today()
-    horizon = today + relativedelta(years=3)
+    horizon = date(today.year + 3, today.month, today.day)
 
     stmt = select(
         ConstructionProject.estimated_delivery_date,
@@ -836,10 +834,11 @@ async def delivery_timeline(
 
     # Build complete timeline with all quarters in range (even empty ones)
     items: list[DeliveryTimelineItem] = []
-    cursor = date(today.year, ((today.month - 1) // 3) * 3 + 1, 1)
-    while cursor <= horizon:
-        q = (cursor.month - 1) // 3 + 1
-        key = f"Q{q} {cursor.year}"
+    cur_year = today.year
+    cur_month = ((today.month - 1) // 3) * 3 + 1  # Start of current quarter
+    while date(cur_year, cur_month, 1) <= horizon:
+        q = (cur_month - 1) // 3 + 1
+        key = f"Q{q} {cur_year}"
         bucket = quarter_buckets.get(key, {"total_units": 0, "project_count": 0})
         items.append(
             DeliveryTimelineItem(
@@ -848,7 +847,10 @@ async def delivery_timeline(
                 project_count=bucket["project_count"],
             )
         )
-        cursor += relativedelta(months=3)
+        cur_month += 3
+        if cur_month > 12:
+            cur_month -= 12
+            cur_year += 1
 
     return items
 
