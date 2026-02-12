@@ -263,7 +263,7 @@ export function SalesAnalysisPage() {
             isLoading={buyerQuery.isLoading}
           />
           <DistributionAnalysis
-            data={distributionsQuery.data ?? []}
+            data={distributionsQuery.data}
             isLoading={distributionsQuery.isLoading}
           />
         </TabsContent>

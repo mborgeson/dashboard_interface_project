@@ -21,6 +21,8 @@ import type {
   SubmarketComparisonRow,
   BuyerActivityRow,
   DistributionBucket,
+  DistributionGroupBy,
+  AllDistributions,
   DataQualityReport,
   ImportStatus,
   ReminderStatus,
@@ -91,14 +93,34 @@ export async function fetchBuyerActivity(
   return z.array(buyerActivityRowSchema).parse(raw);
 }
 
-/** Fetch distribution analysis data */
+/** Fetch distribution analysis data for a specific group */
+export async function fetchDistributionsByGroup(
+  filters: SalesFilters,
+  groupBy: DistributionGroupBy
+): Promise<DistributionBucket[]> {
+  const raw = await apiClient.get<unknown>('/sales-analysis/analytics/distributions', {
+    params: { ...filtersToParams(filters), group_by: groupBy },
+  });
+  return z.array(distributionBucketSchema).parse(raw);
+}
+
+/** Fetch all distribution types in parallel */
+export async function fetchAllDistributions(
+  filters: SalesFilters
+): Promise<AllDistributions> {
+  const [vintage, unitCount, starRating] = await Promise.all([
+    fetchDistributionsByGroup(filters, 'vintage'),
+    fetchDistributionsByGroup(filters, 'unit_count'),
+    fetchDistributionsByGroup(filters, 'star_rating'),
+  ]);
+  return { vintage, unitCount, starRating };
+}
+
+/** @deprecated Use fetchAllDistributions instead */
 export async function fetchDistributions(
   filters: SalesFilters
 ): Promise<DistributionBucket[]> {
-  const raw = await apiClient.get<unknown>('/sales-analysis/analytics/distributions', {
-    params: filtersToParams(filters),
-  });
-  return z.array(distributionBucketSchema).parse(raw);
+  return fetchDistributionsByGroup(filters, 'vintage');
 }
 
 /** Fetch data quality report */

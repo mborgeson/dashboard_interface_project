@@ -27,7 +27,11 @@ vi.mock('@/lib/api/sales', () => ({
   fetchTimeSeriesAnalytics: vi.fn().mockResolvedValue([]),
   fetchSubmarketComparison: vi.fn().mockResolvedValue([]),
   fetchBuyerActivity: vi.fn().mockResolvedValue([]),
-  fetchDistributions: vi.fn().mockResolvedValue([]),
+  fetchAllDistributions: vi.fn().mockResolvedValue({
+    vintage: [],
+    unitCount: [],
+    starRating: [],
+  }),
   fetchDataQuality: vi.fn().mockResolvedValue({
     totalRecords: 0,
     recordsByFile: {},
@@ -238,7 +242,11 @@ describe('useDistributions', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.data).toEqual([]);
+    expect(result.current.data).toEqual({
+      vintage: [],
+      unitCount: [],
+      starRating: [],
+    });
     expect(result.current.error).toBeNull();
   });
 });

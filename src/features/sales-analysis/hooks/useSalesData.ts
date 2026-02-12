@@ -4,7 +4,7 @@ import {
   fetchTimeSeriesAnalytics,
   fetchSubmarketComparison,
   fetchBuyerActivity,
-  fetchDistributions,
+  fetchAllDistributions,
   fetchDataQuality,
   fetchImportStatus,
   triggerImport,
@@ -82,11 +82,11 @@ export function useBuyerActivity(filters: SalesFilters) {
   });
 }
 
-/** Distribution analysis */
+/** Distribution analysis - fetches all distribution types */
 export function useDistributions(filters: SalesFilters) {
   return useQuery({
     queryKey: salesKeys.distributions(filters),
-    queryFn: () => fetchDistributions(filters),
+    queryFn: () => fetchAllDistributions(filters),
     staleTime: 1000 * 60 * 5,
   });
 }

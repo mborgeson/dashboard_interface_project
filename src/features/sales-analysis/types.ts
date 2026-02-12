@@ -83,6 +83,16 @@ export interface DistributionBucket {
   avgPricePerUnit: number | null;
 }
 
+/** Distribution group types supported by the API */
+export type DistributionGroupBy = 'vintage' | 'unit_count' | 'star_rating';
+
+/** All distributions data keyed by group type */
+export interface AllDistributions {
+  vintage: DistributionBucket[];
+  unitCount: DistributionBucket[];
+  starRating: DistributionBucket[];
+}
+
 export interface DataQualityReport {
   totalRecords: number;
   recordsByFile: Record<string, number>;
