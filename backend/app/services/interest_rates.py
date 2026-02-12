@@ -330,25 +330,64 @@ class InterestRatesService:
             logger.warning(f"DB historical query failed: {e}")
             return None
 
-    # ── Public methods ──
+    # ── DB write-back ──
 
-    async def get_key_rates(self) -> dict:
-        """Get current key interest rates. DB -> FRED API -> error."""
-        cache_key = "key_rates"
-        cached = self._get_cached(cache_key)
-        if cached:
-            return cached
+    def _write_rates_to_db(self, records: list[dict]) -> int:
+        """Upsert FRED observations into ``fred_timeseries``.
 
-        # Tier 1: Try DB first
-        await self._get_db_engine()
-        series_ids = list(_RATE_DISPLAY.keys())
-        db_rates = self._get_rates_from_db(series_ids)
+        Each record must have keys: ``series_id``, ``date``, ``value``.
+        Returns number of rows upserted.
+        """
+        if not self._db_available or not self._market_db_engine or not records:
+            return 0
 
-        if db_rates and len(db_rates) >= 5:
-            rates = []
-            for sid, config in _RATE_DISPLAY.items():
-                if sid in db_rates:
-                    current, previous, as_of = db_rates[sid]
+        try:
+            from sqlalchemy import text
+
+            count = 0
+            with self._market_db_engine.begin() as conn:
+                for rec in records:
+                    conn.execute(
+                        text("""
+                            INSERT INTO fred_timeseries (series_id, date, value)
+                            VALUES (:series_id, :date::date, :value)
+                            ON CONFLICT (series_id, date)
+                            DO UPDATE SET value = EXCLUDED.value, imported_at = NOW()
+                        """),
+                        rec,
+                    )
+                    count += 1
+            logger.info("Wrote FRED rates to DB", count=count)
+            return count
+        except Exception as e:
+            logger.warning(f"Failed to write rates to DB: {e}")
+            return 0
+
+    # ── FRED API fetch helpers for key rates ──
+
+    async def _fetch_key_rates_from_fred(self) -> tuple[list[dict], list[dict]]:
+        """Fetch key rates from FRED API.
+
+        Returns (rates_list, db_records) where db_records are suitable
+        for ``_write_rates_to_db``.
+        """
+        rates: list[dict] = []
+        db_records: list[dict] = []
+
+        for sid, config in _RATE_DISPLAY.items():
+            obs = await self._fetch_from_fred(sid)
+            if obs and len(obs) > 0:
+                current = (
+                    float(obs[0].get("value", 0))
+                    if obs[0].get("value", ".") != "."
+                    else 0
+                )
+                previous = (
+                    float(obs[1].get("value", 0))
+                    if len(obs) > 1 and obs[1].get("value", ".") != "."
+                    else current
+                )
+                if current > 0:
                     change = round(current - previous, 2)
                     change_pct = round((change / previous * 100) if previous else 0, 2)
                     rates.append(
@@ -358,62 +397,70 @@ class InterestRatesService:
                             "previous_value": previous,
                             "change": change,
                             "change_percent": change_pct,
-                            "as_of_date": as_of,
-                            "description": "From market database",
+                            "as_of_date": obs[0].get("date", ""),
+                            "description": "Live from FRED API",
                         }
                     )
+                    # Collect records for DB write-back
+                    for o in obs:
+                        if o.get("value", ".") != ".":
+                            db_records.append(
+                                {
+                                    "series_id": sid,
+                                    "date": o["date"],
+                                    "value": float(o["value"]),
+                                }
+                            )
+        return rates, db_records
 
-            if rates:
-                logger.info(
-                    "Key rates sourced from database",
-                    count=len(rates),
+    def _build_key_rates_from_db(
+        self, db_rates: dict[str, tuple[float, float, str]]
+    ) -> list[dict]:
+        """Build key rates response list from DB query results."""
+        rates: list[dict] = []
+        for sid, config in _RATE_DISPLAY.items():
+            if sid in db_rates:
+                current, previous, as_of = db_rates[sid]
+                change = round(current - previous, 2)
+                change_pct = round((change / previous * 100) if previous else 0, 2)
+                rates.append(
+                    {
+                        **config,
+                        "current_value": current,
+                        "previous_value": previous,
+                        "change": change,
+                        "change_percent": change_pct,
+                        "as_of_date": as_of,
+                        "description": "From market database",
+                    }
                 )
-                data = {
-                    "key_rates": rates,
-                    "last_updated": datetime.now(UTC).isoformat(),
-                    "source": "database",
-                    "data_source": "database",
-                }
-                self._set_cache(cache_key, data)
-                return data
+        return rates
 
-        # Tier 2: Try FRED API directly
-        if self._fred_api_key:
-            rates = []
-            for sid, config in _RATE_DISPLAY.items():
-                obs = await self._fetch_from_fred(sid)
-                if obs and len(obs) > 0:
-                    current = (
-                        float(obs[0].get("value", 0))
-                        if obs[0].get("value", ".") != "."
-                        else 0
-                    )
-                    previous = (
-                        float(obs[1].get("value", 0))
-                        if len(obs) > 1 and obs[1].get("value", ".") != "."
-                        else current
-                    )
-                    if current > 0:
-                        change = round(current - previous, 2)
-                        change_pct = round(
-                            (change / previous * 100) if previous else 0, 2
-                        )
-                        rates.append(
-                            {
-                                **config,
-                                "current_value": current,
-                                "previous_value": previous,
-                                "change": change,
-                                "change_percent": change_pct,
-                                "as_of_date": obs[0].get("date", ""),
-                                "description": "Live from FRED API",
-                            }
-                        )
+    # ── Public methods ──
 
+    async def get_key_rates(self, force_refresh: bool = False) -> dict:
+        """Get current key interest rates.
+
+        When ``force_refresh`` is True: FRED API first, DB fallback.
+        Otherwise: cache → DB → FRED API.
+        """
+        cache_key = "key_rates"
+        if not force_refresh:
+            cached = self._get_cached(cache_key)
+            if cached:
+                return cached
+
+        await self._get_db_engine()
+        series_ids = list(_RATE_DISPLAY.keys())
+
+        if force_refresh and self._fred_api_key:
+            # Tier 1 (refresh): FRED API first
+            rates, db_records = await self._fetch_key_rates_from_fred()
             if len(rates) >= 5:
+                # Write back to DB for subsequent non-refresh reads
+                self._write_rates_to_db(db_records)
                 logger.info(
-                    "Key rates sourced from FRED API",
-                    count=len(rates),
+                    "Key rates sourced from FRED API (force_refresh)", count=len(rates)
                 )
                 data = {
                     "key_rates": rates,
@@ -423,6 +470,54 @@ class InterestRatesService:
                 }
                 self._set_cache(cache_key, data)
                 return data
+
+            # Tier 2 (refresh): fall back to DB
+            db_rates = self._get_rates_from_db(series_ids)
+            if db_rates and len(db_rates) >= 5:
+                rates = self._build_key_rates_from_db(db_rates)
+                if rates:
+                    logger.info(
+                        "Key rates sourced from database (FRED unavailable)",
+                        count=len(rates),
+                    )
+                    data = {
+                        "key_rates": rates,
+                        "last_updated": datetime.now(UTC).isoformat(),
+                        "source": "database",
+                        "data_source": "database",
+                    }
+                    self._set_cache(cache_key, data)
+                    return data
+        else:
+            # Tier 1 (normal): DB first
+            db_rates = self._get_rates_from_db(series_ids)
+            if db_rates and len(db_rates) >= 5:
+                rates = self._build_key_rates_from_db(db_rates)
+                if rates:
+                    logger.info("Key rates sourced from database", count=len(rates))
+                    data = {
+                        "key_rates": rates,
+                        "last_updated": datetime.now(UTC).isoformat(),
+                        "source": "database",
+                        "data_source": "database",
+                    }
+                    self._set_cache(cache_key, data)
+                    return data
+
+            # Tier 2 (normal): FRED API
+            if self._fred_api_key:
+                rates, db_records = await self._fetch_key_rates_from_fred()
+                if len(rates) >= 5:
+                    self._write_rates_to_db(db_records)
+                    logger.info("Key rates sourced from FRED API", count=len(rates))
+                    data = {
+                        "key_rates": rates,
+                        "last_updated": datetime.now(UTC).isoformat(),
+                        "source": "fred_api",
+                        "data_source": "fred_api",
+                    }
+                    self._set_cache(cache_key, data)
+                    return data
 
         # Tier 3: No data available
         logger.warning("Key rates unavailable — both database and FRED API failed")
@@ -435,51 +530,26 @@ class InterestRatesService:
         }
         return data
 
-    async def get_yield_curve(self) -> dict:
-        """Get Treasury yield curve. DB -> FRED API -> error."""
-        cache_key = "yield_curve"
-        cached = self._get_cached(cache_key)
-        if cached:
-            return cached
+    async def get_yield_curve(self, force_refresh: bool = False) -> dict:
+        """Get Treasury yield curve.
 
-        # Tier 1: Try DB
+        When ``force_refresh`` is True: FRED API first, DB fallback.
+        Otherwise: cache → DB → FRED API.
+        """
+        cache_key = "yield_curve"
+        if not force_refresh:
+            cached = self._get_cached(cache_key)
+            if cached:
+                return cached
+
         await self._get_db_engine()
         series_ids = [s[0] for s in _YIELD_CURVE_SERIES]
-        db_rates = self._get_rates_from_db(series_ids)
 
-        if db_rates and len(db_rates) >= 6:
-            curve = []
-            for sid, label, months in _YIELD_CURVE_SERIES:
-                if sid in db_rates:
-                    current, previous, _ = db_rates[sid]
-                    curve.append(
-                        {
-                            "maturity": label,
-                            "yield": current,
-                            "previous_yield": previous,
-                            "maturity_months": months,
-                        }
-                    )
-
-            if curve:
-                as_of = db_rates["DGS10"][2] if "DGS10" in db_rates else ""
-                logger.info(
-                    "Yield curve sourced from database",
-                    points=len(curve),
-                )
-                data = {
-                    "yield_curve": curve,
-                    "as_of_date": as_of,
-                    "last_updated": datetime.now(UTC).isoformat(),
-                    "source": "database",
-                    "data_source": "database",
-                }
-                self._set_cache(cache_key, data)
-                return data
-
-        # Tier 2: Try FRED API for each yield curve maturity
-        if self._fred_api_key:
-            curve = []
+        async def _fetch_curve_from_fred() -> tuple[list[dict], list[dict], str]:
+            """Returns (curve_points, db_records, as_of_date)."""
+            curve: list[dict] = []
+            db_recs: list[dict] = []
+            as_of = ""
             for sid, label, maturity_months in _YIELD_CURVE_SERIES:
                 obs = await self._fetch_from_fred(sid)
                 if obs and len(obs) > 0:
@@ -499,19 +569,43 @@ class InterestRatesService:
                                 "maturity_months": maturity_months,
                             }
                         )
+                        for o in obs:
+                            if o.get("value", ".") != ".":
+                                db_recs.append(
+                                    {
+                                        "series_id": sid,
+                                        "date": o["date"],
+                                        "value": float(o["value"]),
+                                    }
+                                )
+                        if sid == "DGS10":
+                            as_of = obs[0].get("date", "")
+            return curve, db_recs, as_of
 
+        def _build_curve_from_db(
+            db_rates: dict[str, tuple[float, float, str]],
+        ) -> tuple[list[dict], str]:
+            curve: list[dict] = []
+            for sid, label, months in _YIELD_CURVE_SERIES:
+                if sid in db_rates:
+                    current, previous, _ = db_rates[sid]
+                    curve.append(
+                        {
+                            "maturity": label,
+                            "yield": current,
+                            "previous_yield": previous,
+                            "maturity_months": months,
+                        }
+                    )
+            as_of = db_rates["DGS10"][2] if "DGS10" in db_rates else ""
+            return curve, as_of
+
+        if force_refresh and self._fred_api_key:
+            curve, db_records, as_of = await _fetch_curve_from_fred()
             if len(curve) >= 6:
-                as_of = ""
-                # Extract as_of_date from the 10Y observation if available
-                for sid, _label, _m in _YIELD_CURVE_SERIES:
-                    if sid == "DGS10":
-                        ten_yr_obs = await self._fetch_from_fred(sid)
-                        if ten_yr_obs:
-                            as_of = ten_yr_obs[0].get("date", "")
-                        break
-
+                self._write_rates_to_db(db_records)
                 logger.info(
-                    "Yield curve sourced from FRED API",
+                    "Yield curve sourced from FRED API (force_refresh)",
                     points=len(curve),
                 )
                 data = {
@@ -523,6 +617,57 @@ class InterestRatesService:
                 }
                 self._set_cache(cache_key, data)
                 return data
+
+            # Fallback to DB
+            db_rates = self._get_rates_from_db(series_ids)
+            if db_rates and len(db_rates) >= 6:
+                curve, as_of = _build_curve_from_db(db_rates)
+                if curve:
+                    logger.info(
+                        "Yield curve sourced from database (FRED unavailable)",
+                        points=len(curve),
+                    )
+                    data = {
+                        "yield_curve": curve,
+                        "as_of_date": as_of,
+                        "last_updated": datetime.now(UTC).isoformat(),
+                        "source": "database",
+                        "data_source": "database",
+                    }
+                    self._set_cache(cache_key, data)
+                    return data
+        else:
+            # Normal: DB first
+            db_rates = self._get_rates_from_db(series_ids)
+            if db_rates and len(db_rates) >= 6:
+                curve, as_of = _build_curve_from_db(db_rates)
+                if curve:
+                    logger.info("Yield curve sourced from database", points=len(curve))
+                    data = {
+                        "yield_curve": curve,
+                        "as_of_date": as_of,
+                        "last_updated": datetime.now(UTC).isoformat(),
+                        "source": "database",
+                        "data_source": "database",
+                    }
+                    self._set_cache(cache_key, data)
+                    return data
+
+            # Normal: FRED API
+            if self._fred_api_key:
+                curve, db_records, as_of = await _fetch_curve_from_fred()
+                if len(curve) >= 6:
+                    self._write_rates_to_db(db_records)
+                    logger.info("Yield curve sourced from FRED API", points=len(curve))
+                    data = {
+                        "yield_curve": curve,
+                        "as_of_date": as_of,
+                        "last_updated": datetime.now(UTC).isoformat(),
+                        "source": "fred_api",
+                        "data_source": "fred_api",
+                    }
+                    self._set_cache(cache_key, data)
+                    return data
 
         # Tier 3: No data available
         logger.warning("Yield curve unavailable — both database and FRED API failed")
@@ -536,40 +681,28 @@ class InterestRatesService:
         }
         return data
 
-    async def get_historical_rates(self, months: int = 12) -> dict:
-        """Get historical rates. DB -> FRED API -> error."""
+    async def get_historical_rates(
+        self, months: int = 12, force_refresh: bool = False
+    ) -> dict:
+        """Get historical rates.
+
+        When ``force_refresh`` is True: FRED API first, DB fallback.
+        Otherwise: cache → DB → FRED API.
+        """
         cache_key = f"historical_rates_{months}"
-        cached = self._get_cached(cache_key)
-        if cached:
-            return cached
+        if not force_refresh:
+            cached = self._get_cached(cache_key)
+            if cached:
+                return cached
 
-        # Tier 1: Try DB
         await self._get_db_engine()
-        db_historical = self._get_historical_from_db(months)
 
-        if db_historical:
-            logger.info(
-                "Historical rates sourced from database",
-                months=months,
-                rows=len(db_historical),
-            )
-            data = {
-                "rates": db_historical,
-                "start_date": db_historical[0]["date"],
-                "end_date": db_historical[-1]["date"],
-                "last_updated": datetime.now(UTC).isoformat(),
-                "source": "database",
-                "data_source": "database",
-            }
-            self._set_cache(cache_key, data)
-            return data
-
-        # Tier 2: Try FRED API for historical data
-        if self._fred_api_key:
+        if force_refresh and self._fred_api_key:
+            # FRED first
             fred_historical = await self._fetch_historical_rates_from_fred(months)
             if fred_historical:
                 logger.info(
-                    "Historical rates sourced from FRED API",
+                    "Historical rates sourced from FRED API (force_refresh)",
                     months=months,
                     rows=len(fred_historical),
                 )
@@ -583,6 +716,64 @@ class InterestRatesService:
                 }
                 self._set_cache(cache_key, data)
                 return data
+
+            # Fallback to DB
+            db_historical = self._get_historical_from_db(months)
+            if db_historical:
+                logger.info(
+                    "Historical rates sourced from database (FRED unavailable)",
+                    months=months,
+                    rows=len(db_historical),
+                )
+                data = {
+                    "rates": db_historical,
+                    "start_date": db_historical[0]["date"],
+                    "end_date": db_historical[-1]["date"],
+                    "last_updated": datetime.now(UTC).isoformat(),
+                    "source": "database",
+                    "data_source": "database",
+                }
+                self._set_cache(cache_key, data)
+                return data
+        else:
+            # Normal: DB first
+            db_historical = self._get_historical_from_db(months)
+            if db_historical:
+                logger.info(
+                    "Historical rates sourced from database",
+                    months=months,
+                    rows=len(db_historical),
+                )
+                data = {
+                    "rates": db_historical,
+                    "start_date": db_historical[0]["date"],
+                    "end_date": db_historical[-1]["date"],
+                    "last_updated": datetime.now(UTC).isoformat(),
+                    "source": "database",
+                    "data_source": "database",
+                }
+                self._set_cache(cache_key, data)
+                return data
+
+            # Normal: FRED API
+            if self._fred_api_key:
+                fred_historical = await self._fetch_historical_rates_from_fred(months)
+                if fred_historical:
+                    logger.info(
+                        "Historical rates sourced from FRED API",
+                        months=months,
+                        rows=len(fred_historical),
+                    )
+                    data = {
+                        "rates": fred_historical,
+                        "start_date": fred_historical[0]["date"],
+                        "end_date": fred_historical[-1]["date"],
+                        "last_updated": datetime.now(UTC).isoformat(),
+                        "source": "fred_api",
+                        "data_source": "fred_api",
+                    }
+                    self._set_cache(cache_key, data)
+                    return data
 
         # Tier 3: No data available
         logger.warning(

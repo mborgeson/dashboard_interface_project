@@ -175,27 +175,23 @@ class MarketDataScheduler:
             return {"status": "error", "message": str(exc)}
 
     async def run_costar_extraction(self) -> dict[str, Any]:
-        """Run CoStar extraction job (full re-parse from Excel files).
+        """Log a reminder that CoStar data extraction is due.
 
-        Delegates to the sync CoStar parser via ``asyncio.to_thread``,
-        refreshes the ``costar_latest`` materialized view, and logs the
-        outcome.
+        CoStar data requires manual Excel file placement. This scheduled
+        job serves as a reminder rather than running automated extraction.
         """
-        self._log.info("costar_extraction_started")
-        try:
-            from app.services.data_extraction.costar_parser import (
-                run_costar_extraction_sync,
-            )
-
-            # CoStar parser is synchronous — run in thread pool
-            result = await asyncio.to_thread(run_costar_extraction_sync)
-
-            # Materialized view refresh is handled inside run_costar_extraction
-            self._log.info("costar_extraction_completed", result=result)
-            return result
-        except Exception as exc:
-            self._log.error("costar_extraction_failed", error=str(exc))
-            return {"status": "error", "message": str(exc)}
+        self._log.info(
+            "costar_extraction_reminder",
+            message="REMINDER: CoStar data extraction is due. "
+            "Place updated Excel files in the CoStar data directory "
+            "and trigger extraction manually via the admin API.",
+        )
+        return {
+            "status": "reminder",
+            "message": "REMINDER: CoStar data extraction is due. "
+            "Place updated Excel files in the CoStar data directory "
+            "and trigger extraction manually via the admin API.",
+        }
 
     async def run_census_extraction(self) -> dict[str, Any]:
         """Run Census extraction job.

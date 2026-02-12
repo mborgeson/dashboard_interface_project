@@ -123,12 +123,21 @@ class CensusExtractor:
         return summary
 
     async def extract_year(self, year: int) -> int:
-        """Fetch ACS 5-Year data for a specific year.
+        """Fetch ACS data for a specific year.
 
+        Tries ACS 1-Year first, falls back to ACS 5-Year if unavailable.
         Returns number of records upserted.
         """
         var_codes = list(self.VARIABLES.keys())
-        data = await self._fetch_acs_data(year, var_codes)
+
+        # Try ACS 1-Year first (more recent, but limited geographies)
+        data = await self._fetch_acs_data(year, var_codes, dataset="acs1")
+        dataset_used = "acs1"
+
+        if data is None:
+            # Fall back to ACS 5-Year (broader coverage)
+            data = await self._fetch_acs_data(year, var_codes, dataset="acs5")
+            dataset_used = "acs5"
 
         if data is None:
             log.debug("census_no_data", year=year)
@@ -143,9 +152,10 @@ class CensusExtractor:
                         "    (variable_code, variable_name, geography, geography_code, "
                         "     year, value, dataset) "
                         "VALUES "
-                        "    (:var_code, :var_name, :geo, :geo_code, :year, :value, 'acs5') "
+                        "    (:var_code, :var_name, :geo, :geo_code, :year, :value, :dataset) "
                         "ON CONFLICT (variable_code, geography_code, year) "
-                        "DO UPDATE SET value = EXCLUDED.value, imported_at = NOW()"
+                        "DO UPDATE SET value = EXCLUDED.value, "
+                        "    dataset = EXCLUDED.dataset, imported_at = NOW()"
                     ),
                     {
                         "var_code": var_code,
@@ -154,20 +164,28 @@ class CensusExtractor:
                         "geo_code": self.PHOENIX_CBSA,
                         "year": year,
                         "value": value,
+                        "dataset": dataset_used,
                     },
                 )
                 count += 1
 
-        log.info("census_year_fetched", year=year, variables=count)
+        log.info(
+            "census_year_fetched", year=year, variables=count, dataset=dataset_used
+        )
         return count
 
     async def _fetch_acs_data(
-        self, year: int, variables: list[str]
+        self, year: int, variables: list[str], dataset: str = "acs1"
     ) -> dict[str, float] | None:
-        """Call Census API for ACS 5-Year estimates.
+        """Call Census API for ACS estimates.
+
+        Args:
+            year: Data year.
+            variables: List of Census variable codes.
+            dataset: ACS dataset to query — ``"acs1"`` (1-Year) or ``"acs5"`` (5-Year).
 
         URL pattern:
-          https://api.census.gov/data/{year}/acs/acs5
+          https://api.census.gov/data/{year}/acs/{dataset}
             ?get=NAME,{variable_codes}
             &for=metropolitan+statistical+area/micropolitan+statistical+area:38060
             &key={api_key}
@@ -175,7 +193,7 @@ class CensusExtractor:
         Returns parsed variable-to-value mapping, or None on error.
         """
         var_str = ",".join(["NAME"] + variables)
-        url = f"{self.BASE_URL}/{year}/acs/acs5"
+        url = f"{self.BASE_URL}/{year}/acs/{dataset}"
         params = {
             "get": var_str,
             "for": self.GEOGRAPHY["for"],
@@ -210,11 +228,12 @@ class CensusExtractor:
             log.warning(
                 "census_api_http_error",
                 year=year,
+                dataset=dataset,
                 status_code=exc.response.status_code,
             )
             return None
         except Exception as exc:
-            log.warning("census_api_error", year=year, error=str(exc))
+            log.warning("census_api_error", year=year, dataset=dataset, error=str(exc))
             return None
 
 

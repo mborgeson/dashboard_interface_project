@@ -143,11 +143,13 @@ export function useInterestRates(options: UseInterestRatesOptions = {}) {
 
       try {
         // Fetch all data in parallel
+        // When forceRefresh is true, pass it to API calls so backend
+        // queries FRED API first instead of returning cached DB data
         const [keyRatesResult, yieldCurveResult, historicalRatesResult] =
           await Promise.all([
-            fetchKeyRates(),
-            fetchYieldCurve(),
-            fetchHistoricalRates(),
+            fetchKeyRates(forceRefresh),
+            fetchYieldCurve(forceRefresh),
+            fetchHistoricalRates(forceRefresh),
           ]);
 
         const newKeyRates = keyRatesResult || [];

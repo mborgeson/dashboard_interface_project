@@ -1,11 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useMarketOverview,
   useSubmarkets,
   useMarketTrends,
+  marketDataKeys,
 } from '@/hooks/api/useMarketData';
+import { apiClient } from '@/lib/api/client';
 
 export function useMarketData() {
+  const queryClient = useQueryClient();
+
   // Fetch from API (with DB fallback on the backend)
   const { data: overviewData, isLoading: overviewLoading, error: overviewError } = useMarketOverview();
   const { data: submarketsData, isLoading: submarketsLoading, error: submarketsError } = useSubmarkets();
@@ -88,6 +93,17 @@ export function useMarketData() {
     }));
   }, [submarketMetrics]);
 
+  /**
+   * Trigger a server-side FRED extraction refresh, then invalidate
+   * all market data queries so React Query re-fetches fresh data.
+   */
+  const refreshAll = useCallback(async () => {
+    await apiClient.post<{ status: string; records_upserted: number }>(
+      '/market/refresh'
+    );
+    await queryClient.invalidateQueries({ queryKey: marketDataKeys.all });
+  }, [queryClient]);
+
   return {
     msaOverview: overviewData?.msaOverview ?? null,
     economicIndicators: overviewData?.economicIndicators ?? [],
@@ -98,5 +114,6 @@ export function useMarketData() {
     sparklineData,
     isLoading,
     error,
+    refreshAll,
   };
 }

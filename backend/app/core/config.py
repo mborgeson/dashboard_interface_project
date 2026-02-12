@@ -173,9 +173,14 @@ class Settings(BaseSettings):
     # Market Data Extraction Settings
     COSTAR_DATA_DIR: str = "data/costar"
     MARKET_DATA_EXTRACTION_ENABLED: bool = False
-    MARKET_FRED_SCHEDULE_CRON: str = "0 2 * * *"  # Daily 2 AM
-    MARKET_COSTAR_SCHEDULE_CRON: str = "0 3 15 * *"  # Monthly 15th 3 AM
-    MARKET_CENSUS_SCHEDULE_CRON: str = "0 4 15 12 *"  # Annual Dec 15th 4 AM
+    MARKET_FRED_SCHEDULE_CRON: str = "0 10 * * *"  # Daily 10 AM
+    MARKET_COSTAR_SCHEDULE_CRON: str = "0 10 15 * *"  # Monthly 15th 10 AM (reminder)
+    MARKET_CENSUS_SCHEDULE_CRON: str = "0 10 15 1 *"  # Annual Jan 15th 10 AM
+
+    # Interest Rate Scheduler (twice-daily FRED fetch)
+    INTEREST_RATE_SCHEDULE_ENABLED: bool = False
+    INTEREST_RATE_SCHEDULE_CRON_AM: str = "0 8 * * *"  # Daily 8 AM
+    INTEREST_RATE_SCHEDULE_CRON_PM: str = "0 15 * * *"  # Daily 3 PM
 
     # SharePoint/Azure AD Settings (load from .env)
     AZURE_CLIENT_ID: str | None = None

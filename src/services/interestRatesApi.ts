@@ -13,10 +13,14 @@ import type {
 
 /**
  * Fetch current key rates from backend
+ * @param forceRefresh When true, backend fetches live rates from FRED API first
  */
-export async function fetchKeyRates(): Promise<KeyRate[] | null> {
+export async function fetchKeyRates(
+  forceRefresh = false
+): Promise<KeyRate[] | null> {
   try {
-    const response = await fetch(`${API_URL}/interest-rates/current`);
+    const qs = forceRefresh ? "?force_refresh=true" : "";
+    const response = await fetch(`${API_URL}/interest-rates/current${qs}`);
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -45,10 +49,16 @@ export async function fetchKeyRates(): Promise<KeyRate[] | null> {
 
 /**
  * Fetch yield curve data from backend
+ * @param forceRefresh When true, backend fetches live data from FRED API first
  */
-export async function fetchYieldCurve(): Promise<YieldCurvePoint[] | null> {
+export async function fetchYieldCurve(
+  forceRefresh = false
+): Promise<YieldCurvePoint[] | null> {
   try {
-    const response = await fetch(`${API_URL}/interest-rates/yield-curve`);
+    const qs = forceRefresh ? "?force_refresh=true" : "";
+    const response = await fetch(
+      `${API_URL}/interest-rates/yield-curve${qs}`
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -70,11 +80,15 @@ export async function fetchYieldCurve(): Promise<YieldCurvePoint[] | null> {
 
 /**
  * Fetch historical rate data from backend
+ * @param forceRefresh When true, backend fetches live data from FRED API first
  */
-export async function fetchHistoricalRates(): Promise<HistoricalRate[] | null> {
+export async function fetchHistoricalRates(
+  forceRefresh = false
+): Promise<HistoricalRate[] | null> {
   try {
+    const qs = forceRefresh ? "&force_refresh=true" : "";
     const response = await fetch(
-      `${API_URL}/interest-rates/historical?months=12`
+      `${API_URL}/interest-rates/historical?months=12${qs}`
     );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);

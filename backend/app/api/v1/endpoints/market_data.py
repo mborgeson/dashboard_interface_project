@@ -3,6 +3,7 @@ Market data endpoints for market analytics and comparables.
 """
 
 from fastapi import APIRouter, Query
+from loguru import logger
 
 from app.schemas.market_data import (
     ComparablesResponse,
@@ -13,6 +14,47 @@ from app.schemas.market_data import (
 from app.services.market_data import market_data_service
 
 router = APIRouter()
+
+
+@router.post("/refresh")
+async def refresh_market_data():
+    """
+    Trigger an incremental FRED extraction to refresh market data.
+
+    Runs synchronously so the frontend knows when the refresh is complete
+    and can re-fetch updated data.
+
+    Returns:
+        Status summary with records upserted count.
+    """
+    try:
+        from app.services.data_extraction.fred_extractor import (
+            run_fred_extraction_async,
+        )
+        from app.services.data_extraction.scheduler import _get_engine
+
+        engine = _get_engine()
+        result = await run_fred_extraction_async(engine=engine, incremental=True)
+        logger.info("Market data refresh completed", result=result)
+        return {
+            "status": result.get("status", "success"),
+            "records_upserted": result.get("records_upserted", 0),
+            "message": "Market data refresh completed successfully",
+        }
+    except RuntimeError as exc:
+        logger.warning(f"Market refresh skipped — DB not configured: {exc}")
+        return {
+            "status": "error",
+            "records_upserted": 0,
+            "message": f"Database not configured: {exc}",
+        }
+    except Exception as exc:
+        logger.error(f"Market data refresh failed: {exc}")
+        return {
+            "status": "error",
+            "records_upserted": 0,
+            "message": str(exc),
+        }
 
 
 @router.get("/overview", response_model=MarketOverviewResponse)

@@ -29,6 +29,7 @@ from app.services.extraction.scheduler import (
     get_extraction_scheduler,
     run_scheduled_extraction,
 )
+from app.services.interest_rate_scheduler import InterestRateScheduler
 from app.services.monitoring import MetricsMiddleware, get_metrics_manager
 
 
@@ -146,12 +147,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         enabled=settings.MARKET_DATA_EXTRACTION_ENABLED,
     )
 
+    # Initialize interest rate scheduler
+    interest_rate_scheduler = InterestRateScheduler(settings)
+    await interest_rate_scheduler.start()
+    logger.info(
+        "Interest rate scheduler initialized",
+        enabled=settings.INTEREST_RATE_SCHEDULE_ENABLED,
+    )
+
     logger.info("Application startup complete")
 
     yield
 
     # Shutdown
     logger.info("Shutting down application...")
+
+    # Shutdown interest rate scheduler
+    await interest_rate_scheduler.stop()
+    logger.info("Interest rate scheduler shutdown complete")
 
     # Shutdown market data scheduler
     await market_data_scheduler.stop()

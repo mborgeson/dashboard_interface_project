@@ -28,7 +28,11 @@ router = APIRouter()
 
 
 @router.get("/current", response_model=KeyRatesResponse)
-async def get_current_rates():
+async def get_current_rates(
+    force_refresh: bool = Query(
+        False, description="When true, fetch live rates from FRED API first"
+    ),
+):
     """
     Get current key interest rates.
 
@@ -36,9 +40,11 @@ async def get_current_rates():
     SOFR rates, and mortgage rates with change from previous values.
 
     Rates are cached for 5 minutes and sourced from database or FRED API.
+    When force_refresh=true, the FRED API is queried first and results
+    are written back to the database.
     """
     service = get_interest_rates_service()
-    data = await service.get_key_rates()
+    data = await service.get_key_rates(force_refresh=force_refresh)
 
     last_updated_str = data.get("last_updated", datetime.now(UTC).isoformat())
     if isinstance(last_updated_str, str):
@@ -57,7 +63,11 @@ async def get_current_rates():
 
 
 @router.get("/yield-curve", response_model=YieldCurveResponse)
-async def get_yield_curve():
+async def get_yield_curve(
+    force_refresh: bool = Query(
+        False, description="When true, fetch live data from FRED API first"
+    ),
+):
     """
     Get current Treasury yield curve.
 
@@ -70,7 +80,7 @@ async def get_yield_curve():
     - Inverted curve: Potential recession indicator
     """
     service = get_interest_rates_service()
-    data = await service.get_yield_curve()
+    data = await service.get_yield_curve(force_refresh=force_refresh)
 
     last_updated_str = data.get("last_updated", datetime.now(UTC).isoformat())
     if isinstance(last_updated_str, str):
@@ -94,6 +104,9 @@ async def get_historical_rates(
     months: int = Query(
         12, ge=1, le=60, description="Number of months of historical data"
     ),
+    force_refresh: bool = Query(
+        False, description="When true, fetch live data from FRED API first"
+    ),
 ):
     """
     Get historical interest rate data.
@@ -106,9 +119,10 @@ async def get_historical_rates(
 
     Args:
         months: Number of months of data to return (1-60, default 12)
+        force_refresh: When true, fetch from FRED API first
     """
     service = get_interest_rates_service()
-    data = await service.get_historical_rates(months)
+    data = await service.get_historical_rates(months, force_refresh=force_refresh)
 
     last_updated_str = data.get("last_updated", datetime.now(UTC).isoformat())
     if isinstance(last_updated_str, str):

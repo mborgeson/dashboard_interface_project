@@ -6,7 +6,7 @@ import { EconomicIndicators } from './components/EconomicIndicators';
 import { MarketTrendsChart } from './components/MarketTrendsChart';
 import { SubmarketComparison } from './components/SubmarketComparison';
 import { MarketHeatmap } from './components/MarketHeatmap';
-import { Download, TrendingUp } from 'lucide-react';
+import { Download, RefreshCw, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
 import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
@@ -49,6 +49,7 @@ export { MarketSubNav };
 
 export function MarketPage() {
   const [showReportWizard, setShowReportWizard] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     msaOverview,
@@ -58,7 +59,17 @@ export function MarketPage() {
     sparklineData,
     isLoading,
     error,
+    refreshAll,
   } = useMarketData();
+
+  async function handleRefresh() {
+    setIsRefreshing(true);
+    try {
+      await refreshAll();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
 
   // Show error state
   if (error) {
@@ -131,6 +142,15 @@ export function MarketPage() {
         </div>
         <div className="flex items-center gap-3">
           <MarketSubNav />
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+          </Button>
           <Button className="flex items-center gap-2" onClick={() => setShowReportWizard(true)}>
             <Download className="h-4 w-4" />
             Export Report
