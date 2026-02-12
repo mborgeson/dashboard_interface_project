@@ -341,32 +341,43 @@ async def test_delete_deal_not_found(client):
 
 
 @pytest.mark.asyncio
-async def test_add_deal_activity(client, test_deal):
+async def test_add_deal_activity(client, test_deal, auth_headers):
     """Test adding an activity log entry to a deal."""
     activity = {
-        "type": "note",
-        "message": "Follow-up call scheduled",
-        "user_id": 1,
+        "deal_id": test_deal.id,
+        "activity_type": "comment",
+        "description": "Follow-up call scheduled",
+        "comment_text": "Scheduled call for next week",
     }
 
     response = await client.post(
-        f"/api/v1/deals/{test_deal.id}/activity", json=activity
+        f"/api/v1/deals/{test_deal.id}/activity",
+        json=activity,
+        headers=auth_headers,
     )
 
     assert response.status_code == 200
     data = response.json()
 
-    assert "activity" in data
-    assert data["activity"]["type"] == "note"
-    assert "timestamp" in data["activity"]
+    assert data["activity_type"] == "comment"
+    assert data["description"] == "Follow-up call scheduled"
+    assert "created_at" in data
 
 
 @pytest.mark.asyncio
-async def test_add_deal_activity_not_found(client):
+async def test_add_deal_activity_not_found(client, auth_headers):
     """Test adding activity to non-existent deal returns 404."""
-    activity = {"type": "note", "message": "Test"}
+    activity = {
+        "deal_id": 999999,
+        "activity_type": "comment",
+        "description": "Test activity",
+    }
 
-    response = await client.post("/api/v1/deals/999999/activity", json=activity)
+    response = await client.post(
+        "/api/v1/deals/999999/activity",
+        json=activity,
+        headers=auth_headers,
+    )
 
     assert response.status_code == 404
 
