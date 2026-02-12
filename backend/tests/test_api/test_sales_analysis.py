@@ -604,7 +604,7 @@ async def test_time_series_mocked(sales_client, db_session):
     mock_row.period = "2024"
     mock_row.count = 10
     mock_row.total_volume = 50000000.0
-    mock_row.median_price_per_unit = 150000.0
+    mock_row.avg_price_per_unit = 150000.0  # Changed from median to avg
 
     mock_result = MagicMock()
     mock_result.all.return_value = [mock_row]
@@ -620,7 +620,7 @@ async def test_time_series_mocked(sales_client, db_session):
     assert data[0]["period"] == "2024"
     assert data[0]["count"] == 10
     assert data[0]["total_volume"] == 50000000.0
-    assert data[0]["median_price_per_unit"] == 150000.0
+    assert data[0]["avg_price_per_unit"] == 150000.0  # Changed from median to avg
 
 
 @pytest.mark.asyncio
@@ -629,7 +629,7 @@ async def test_submarket_comparison_mocked(sales_client, db_session):
     mock_row = MagicMock()
     mock_row.submarket = "Central Phoenix"
     mock_row.year = 2024
-    mock_row.median_price_per_unit = 175000.0
+    mock_row.avg_price_per_unit = 175000.0  # Changed from median to avg
     mock_row.sales_count = 15
     mock_row.total_volume = 40000000.0
 
@@ -681,8 +681,7 @@ async def test_distributions_mocked(sales_client, db_session):
     mock_row = MagicMock()
     mock_row.label = "2005-2020"
     mock_row.count = 20
-    mock_row.median_price_per_unit = 130000.0
-    mock_row.avg_price_per_unit = 135000.0
+    mock_row.avg_price_per_unit = 135000.0  # Changed from median to avg (removed median_price_per_unit)
 
     mock_result = MagicMock()
     mock_result.all.return_value = [mock_row]

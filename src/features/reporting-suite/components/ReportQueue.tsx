@@ -39,9 +39,13 @@ const formatIcons: Record<string, React.ComponentType<{ className?: string }>> =
 };
 
 export function ReportQueue() {
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // Fetch queued reports from API (with mock fallback)
   const { data: queueData, isLoading, error, refetch } = useQueuedReports();
   const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<QueuedReport> | null>>({});
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedReport, setSelectedReport] = useState<QueuedReport | null>(null);
 
   // Loading state
   if (isLoading) {
@@ -76,9 +80,6 @@ export function ReportQueue() {
   const reports = (queueData?.reports ?? [])
     .filter(r => localOverrides[r.id] !== null)
     .map(r => (localOverrides[r.id] ? { ...r, ...localOverrides[r.id] } : r));
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedReport, setSelectedReport] = useState<QueuedReport | null>(null);
 
   const filteredReports = reports.filter(report => {
     const matchesSearch =

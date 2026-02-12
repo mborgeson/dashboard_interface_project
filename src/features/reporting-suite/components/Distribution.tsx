@@ -59,11 +59,30 @@ const formatIcons: Record<string, React.ComponentType<{ className?: string }>> =
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function Distribution() {
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // Fetch distribution schedules and templates from API (with mock fallback)
   const { data: scheduleData, isLoading, error, refetch } = useDistributionSchedules();
   const { data: templateData } = useReportTemplates();
   const templates = templateData?.templates ?? [];
   const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<DistributionSchedule> | null>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [frequencyFilter, setFrequencyFilter] = useState<FrequencyFilter>('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<DistributionSchedule | null>(null);
+
+  const { success, error: showError } = useToast();
+  const createSchedule = useCreateDistributionSchedule();
+  const updateSchedule = useUpdateDistributionSchedule();
+  const deleteSchedule = useDeleteDistributionSchedule();
+  const generateReport = useGenerateReport();
+
+  // Form refs for modal
+  const nameRef = useRef<HTMLInputElement>(null);
+  const templateRef = useRef<HTMLSelectElement>(null);
+  const frequencyRef = useRef<HTMLSelectElement>(null);
+  const timeRef = useRef<HTMLInputElement>(null);
+  const formatRef = useRef<string>('pdf');
+  const recipientsRef = useRef<HTMLTextAreaElement>(null);
 
   // Loading state
   if (isLoading) {
@@ -98,10 +117,6 @@ export function Distribution() {
   const schedules = (scheduleData?.schedules ?? [])
     .filter(s => localOverrides[s.id] !== null)
     .map(s => (localOverrides[s.id] ? { ...s, ...localOverrides[s.id] } as DistributionSchedule : s));
-  const [searchQuery, setSearchQuery] = useState('');
-  const [frequencyFilter, setFrequencyFilter] = useState<FrequencyFilter>('all');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingSchedule, setEditingSchedule] = useState<DistributionSchedule | null>(null);
 
   const filteredSchedules = schedules.filter(schedule => {
     const matchesSearch =
@@ -110,20 +125,6 @@ export function Distribution() {
     const matchesFrequency = frequencyFilter === 'all' || schedule.frequency === frequencyFilter;
     return matchesSearch && matchesFrequency;
   });
-
-  const { success, error: showError } = useToast();
-  const createSchedule = useCreateDistributionSchedule();
-  const updateSchedule = useUpdateDistributionSchedule();
-  const deleteSchedule = useDeleteDistributionSchedule();
-  const generateReport = useGenerateReport();
-
-  // Form refs for modal
-  const nameRef = useRef<HTMLInputElement>(null);
-  const templateRef = useRef<HTMLSelectElement>(null);
-  const frequencyRef = useRef<HTMLSelectElement>(null);
-  const timeRef = useRef<HTMLInputElement>(null);
-  const formatRef = useRef<string>('pdf');
-  const recipientsRef = useRef<HTMLTextAreaElement>(null);
 
   const activeCount = schedules.filter(s => s.isActive).length;
   const inactiveCount = schedules.filter(s => !s.isActive).length;

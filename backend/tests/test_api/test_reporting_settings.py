@@ -49,10 +49,15 @@ async def test_get_report_settings_defaults(client, db_session, seed_report_sett
 
 
 @pytest.mark.asyncio
-async def test_get_report_settings_404_when_missing(client, db_session):
-    """GET /settings returns 404 when no row exists."""
+async def test_get_report_settings_auto_initializes_when_missing(client, db_session):
+    """GET /settings auto-initializes default settings when no row exists."""
     response = await client.get("/api/v1/reporting/settings")
-    assert response.status_code == 404
+    assert response.status_code == 200
+    data = response.json()
+    # Verify default values are returned
+    assert data["company_name"] == "B&R Capital"
+    assert data["primary_color"] == "#1e40af"
+    assert data["default_font"] == "Inter"
 
 
 # =============================================================================
