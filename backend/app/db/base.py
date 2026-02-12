@@ -27,6 +27,8 @@ class Base(DeclarativeBase):
 # Import all models here for Alembic to detect them  # noqa: E402
 # noqa comments prevent unused import warnings
 # Construction Pipeline Models
+# Activity Log Model (UUID-based)
+from app.models.activity_log import ActivityLog  # noqa: E402, F401
 from app.models.construction import (  # noqa: E402, F401
     ConstructionBrokerageMetrics,
     ConstructionEmploymentData,

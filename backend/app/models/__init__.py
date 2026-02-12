@@ -2,6 +2,7 @@
 
 # Activity models - imported last to avoid circular imports with db/base.py
 from .activity import ActivityType, DealActivity, PropertyActivity, UserWatchlist
+from .activity_log import ActivityAction, ActivityLog
 from .base import SoftDeleteMixin, TimestampMixin
 
 # Construction Pipeline Models
@@ -70,6 +71,9 @@ __all__ = [
     "PropertyActivity",
     "DealActivity",
     "UserWatchlist",
+    # Activity Log Models (UUID-based)
+    "ActivityAction",
+    "ActivityLog",
     # File Monitoring Models
     "MonitoredFile",
     "FileChangeLog",

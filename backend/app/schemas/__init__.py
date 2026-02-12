@@ -13,6 +13,12 @@ from .activity import (
     WatchlistResponse,
     WatchlistToggleResponse,
 )
+from .activity_log import (
+    ActivityAction,
+    ActivityLogCreate,
+    ActivityLogListResponse,
+    ActivityLogResponse,
+)
 from .auth import LoginRequest, Token, TokenPayload
 from .comparison import (
     ComparisonSummary,
@@ -65,6 +71,11 @@ __all__ = [
     "WatchlistResponse",
     "WatchlistListResponse",
     "WatchlistToggleResponse",
+    # Activity Log schemas (UUID-based)
+    "ActivityAction",
+    "ActivityLogCreate",
+    "ActivityLogResponse",
+    "ActivityLogListResponse",
     # Comparison schemas
     "DealMetrics",
     "MetricComparison",

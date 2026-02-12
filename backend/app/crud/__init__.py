@@ -4,6 +4,7 @@ CRUD (Create, Read, Update, Delete) operations for database models.
 
 from app.crud.base import CRUDBase
 from app.crud.crud_activity import deal_activity, property_activity, watchlist
+from app.crud.crud_activity_log import activity_log
 from app.crud.crud_deal import deal
 from app.crud.crud_document import document
 from app.crud.crud_property import property
@@ -29,4 +30,6 @@ __all__ = [
     "property_activity",
     "deal_activity",
     "watchlist",
+    # Activity Log CRUD (UUID-based)
+    "activity_log",
 ]
