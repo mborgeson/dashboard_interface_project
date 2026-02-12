@@ -1,32 +1,7 @@
 {
   "memories": [],
   "manual_memories": [],
-  "realtime_memories": [
-    {
-      "type": "claude_response",
-      "content": "Memory consolidated: 17 realtime → 0, 5 signal memories kept and updated. Removed all session-specific conversation fragments. Updated `completed_features` with dashboard fixes, `remaining_tasks` with",
-      "added_at": "2026-02-11T23:25:56.014981",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>bc24c92</task-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project-backend/tasks/bc24c92.output</output-file> <status>completed</status> <sum",
-      "added_at": "2026-02-11T23:25:56.015013",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "That's the known `test_parallel_fingerprint_fixtures` timeout — a pre-existing issue with the concurrent futures test that times out in CI/local runs. This isn't related to our changes.\n\nThe previous ",
-      "added_at": "2026-02-11T23:31:25.384569",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Please run git commit and push commands to memorialize this major update, as well as the current state of the project. After you've done that, please confirm that you implemented real-time interest ra",
-      "added_at": "2026-02-11T23:31:25.384608",
-      "source": "realtime_capture"
-    }
-  ],
+  "realtime_memories": [],
   "created_at": "2026-01-07T02:50:12.455355",
-  "updated_at": "2026-02-11T23:31:25.384610"
+  "updated_at": "2026-02-12T04:00:00.000000"
 }
