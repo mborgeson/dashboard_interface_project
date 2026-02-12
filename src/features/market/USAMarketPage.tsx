@@ -51,6 +51,7 @@ export function USAMarketPage() {
     economicIndicators,
     marketTrends,
     sparklineData,
+    isSparklinePlaceholder,
     isLoading,
     error,
   } = useUSAMarketData();
@@ -138,6 +139,7 @@ export function USAMarketPage() {
       <EconomicIndicators
         indicators={economicIndicators}
         sparklineData={sparklineData}
+        isSparklinePlaceholder={isSparklinePlaceholder}
       />
 
       {/* Market Trends Chart */}

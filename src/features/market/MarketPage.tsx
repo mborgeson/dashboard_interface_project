@@ -66,6 +66,7 @@ export function MarketPage() {
     marketTrends,
     submarketMetrics,
     sparklineData,
+    isSparklinePlaceholder,
     isLoading,
     error,
     refreshAll,
@@ -189,6 +190,7 @@ export function MarketPage() {
       <EconomicIndicators
         indicators={economicIndicators}
         sparklineData={sparklineData}
+        isSparklinePlaceholder={isSparklinePlaceholder}
         timeframe={timeframe}
       />
 

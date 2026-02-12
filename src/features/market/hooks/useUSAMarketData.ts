@@ -134,31 +134,40 @@ export function useUSAMarketData() {
   const monthlyData = useMemo(() => trendsData?.monthlyData ?? [], [trendsData]);
 
   // Derive sparkline data from monthly API data (last 6 data points)
-  const sparklineData = useMemo(() => {
+  const { sparklineData, isSparklinePlaceholder } = useMemo(() => {
     if (monthlyData.length >= 2) {
       const last6 = monthlyData.slice(-6);
       return {
-        unemployment: last6.map(m => m.rentGrowth), // rent_growth holds unemployment for USA
-        jobGrowth: last6.map(m => m.employment),
-        incomeGrowth: last6.map(m => m.capRate), // cap_rate holds mortgage rate for USA
-        populationGrowth: last6.map(m => m.population),
+        sparklineData: {
+          unemployment: last6.map(m => m.rentGrowth), // rent_growth holds unemployment for USA
+          jobGrowth: last6.map(m => m.employment),
+          incomeGrowth: last6.map(m => m.capRate), // cap_rate holds mortgage rate for USA
+          populationGrowth: last6.map(m => m.population),
+        },
+        isSparklinePlaceholder: false,
       };
     }
     if (trends.length >= 2) {
       const last6 = trends.slice(-6);
       return {
-        unemployment: last6.map(t => t.rentGrowth),
-        jobGrowth: last6.map(t => t.occupancy * 100),
-        incomeGrowth: last6.map(t => t.capRate),
-        populationGrowth: last6.map(t => t.occupancy * 50),
+        sparklineData: {
+          unemployment: last6.map(t => t.rentGrowth),
+          jobGrowth: last6.map(t => t.occupancy * 100),
+          incomeGrowth: last6.map(t => t.capRate),
+          populationGrowth: last6.map(t => t.occupancy * 50),
+        },
+        isSparklinePlaceholder: false,
       };
     }
-    // Static seed values for USA
+    // No data available - return empty arrays (no fake/placeholder data)
     return {
-      unemployment: [4.1, 4.0, 3.9, 3.9, 3.8, 3.9],
-      jobGrowth: [1.4, 1.5, 1.6, 1.6, 1.7, 1.7],
-      incomeGrowth: [7.1, 7.0, 6.9, 6.8, 6.8, 6.8],
-      populationGrowth: [0.5, 0.5, 0.6, 0.6, 0.6, 0.6],
+      sparklineData: {
+        unemployment: [],
+        jobGrowth: [],
+        incomeGrowth: [],
+        populationGrowth: [],
+      },
+      isSparklinePlaceholder: true,
     };
   }, [monthlyData, trends]);
 
@@ -177,6 +186,7 @@ export function useUSAMarketData() {
     economicIndicators: overviewData?.economicIndicators ?? [],
     marketTrends: formattedTrends,
     sparklineData,
+    isSparklinePlaceholder,
     isLoading,
     error,
   };

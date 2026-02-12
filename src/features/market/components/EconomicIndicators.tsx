@@ -1,5 +1,5 @@
 import { Card } from '@/components/ui/card';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import type { EconomicIndicator } from '@/types/market';
 import type { TimeframeComparison } from '../MarketPage';
@@ -18,10 +18,11 @@ interface EconomicIndicatorsProps {
     incomeGrowth: number[];
     populationGrowth: number[];
   };
+  isSparklinePlaceholder?: boolean;
   timeframe?: TimeframeComparison;
 }
 
-export function EconomicIndicators({ indicators, sparklineData, timeframe = 'yoy' }: EconomicIndicatorsProps) {
+export function EconomicIndicators({ indicators, sparklineData, isSparklinePlaceholder = false, timeframe = 'yoy' }: EconomicIndicatorsProps) {
   const formatValue = (value: number, unit: string): string => {
     if (unit === '$') {
       return `$${(value / 1000).toFixed(0)}K`;
@@ -60,7 +61,15 @@ export function EconomicIndicators({ indicators, sparklineData, timeframe = 'yoy
 
   return (
     <div>
-      <h2 className="text-section-title text-primary-500 mb-4">Key Economic Indicators</h2>
+      <div className="flex items-center gap-3 mb-4">
+        <h2 className="text-section-title text-primary-500">Key Economic Indicators</h2>
+        {isSparklinePlaceholder && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-amber-700 bg-amber-100 rounded-full">
+            <AlertTriangle className="h-3 w-3" />
+            No trend data available
+          </span>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {indicators.map((indicator) => {
@@ -91,21 +100,29 @@ export function EconomicIndicators({ indicators, sparklineData, timeframe = 'yoy
 
                 {/* Sparkline */}
                 <div className="h-12 -mx-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={sparkData}>
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke={sparkColor}
-                        strokeWidth={2}
-                        dot={false}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {sparkData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={sparkData}>
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          stroke={sparkColor}
+                          strokeWidth={2}
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-xs text-neutral-400">
+                      No trend data
+                    </div>
+                  )}
                 </div>
 
-                <p className="text-xs text-neutral-400">Last 6 months</p>
+                <p className="text-xs text-neutral-400">
+                  {sparkData.length === 0 ? 'Data unavailable' : isSparklinePlaceholder ? 'Sample trend' : 'Last 6 months'}
+                </p>
               </div>
             </Card>
           );

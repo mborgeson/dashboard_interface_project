@@ -24,34 +24,43 @@ export function useMarketData() {
 
   // Derive sparkline data from monthly API data (last 6 data points).
   // monthlyData includes employment/population fields from /api/v1/market/trends.
-  // Falls back to trends-based approximation, then to static seed values.
-  const sparklineData = useMemo(() => {
+  // Falls back to trends-based approximation, then to static placeholder values.
+  const { sparklineData, isSparklinePlaceholder } = useMemo(() => {
     // Prefer monthlyData which has employment & population fields
     if (monthlyData.length >= 2) {
       const last6 = monthlyData.slice(-6);
       return {
-        unemployment: last6.map(m => (1 - m.occupancy) * 100),
-        jobGrowth: last6.map(m => m.employment),
-        incomeGrowth: last6.map(m => m.rentGrowth * 100),
-        populationGrowth: last6.map(m => m.population),
+        sparklineData: {
+          unemployment: last6.map(m => (1 - m.occupancy) * 100),
+          jobGrowth: last6.map(m => m.employment),
+          incomeGrowth: last6.map(m => m.rentGrowth * 100),
+          populationGrowth: last6.map(m => m.population),
+        },
+        isSparklinePlaceholder: false,
       };
     }
     // Fall back to basic trends if monthlyData is unavailable
     if (trends.length >= 2) {
       const last6 = trends.slice(-6);
       return {
-        unemployment: last6.map(t => (1 - t.occupancy) * 100),
-        jobGrowth: last6.map(t => t.rentGrowth * 100),
-        incomeGrowth: last6.map(t => t.rentGrowth * 100),
-        populationGrowth: last6.map(t => t.rentGrowth * 50),
+        sparklineData: {
+          unemployment: last6.map(t => (1 - t.occupancy) * 100),
+          jobGrowth: last6.map(t => t.rentGrowth * 100),
+          incomeGrowth: last6.map(t => t.rentGrowth * 100),
+          populationGrowth: last6.map(t => t.rentGrowth * 50),
+        },
+        isSparklinePlaceholder: false,
       };
     }
-    // TODO: Remove when DB pipeline confirmed — temporary seed values
+    // No data available - return empty arrays (no fake/placeholder data)
     return {
-      unemployment: [4.2, 4.0, 3.9, 3.8, 3.7, 3.6],
-      jobGrowth: [2.1, 2.4, 2.6, 2.8, 3.0, 3.2],
-      incomeGrowth: [3.8, 4.0, 4.1, 4.2, 4.3, 4.5],
-      populationGrowth: [2.0, 2.1, 2.1, 2.2, 2.2, 2.3],
+      sparklineData: {
+        unemployment: [],
+        jobGrowth: [],
+        incomeGrowth: [],
+        populationGrowth: [],
+      },
+      isSparklinePlaceholder: true,
     };
   }, [monthlyData, trends]);
 
@@ -112,6 +121,7 @@ export function useMarketData() {
     monthlyMarketData: monthlyData,
     aggregateMetrics,
     sparklineData,
+    isSparklinePlaceholder,
     isLoading,
     error,
     refreshAll,
