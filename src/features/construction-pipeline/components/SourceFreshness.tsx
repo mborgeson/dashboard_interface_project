@@ -75,7 +75,7 @@ export function SourceFreshness({ data, isLoading }: SourceFreshnessProps) {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Employment Records</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Units under Construction</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{numFmt.format(data.employmentDataCount)}</div>

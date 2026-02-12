@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Database } from 'lucide-react';
 import {
   useProjects,
   useAllProjects,
@@ -272,6 +273,18 @@ export function ConstructionPipelinePage() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Data Sources Footer */}
+      <div className="flex items-start gap-3 p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
+        <Database className="h-5 w-5 text-primary-500 flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-neutral-600">
+          <p className="font-medium text-neutral-900 mb-1">Construction Data Sources</p>
+          <p>
+            Data sourced from CoStar, Census BPS (Building Permits Survey), FRED (Federal Reserve Economic Data),
+            and BLS (Bureau of Labor Statistics). Pipeline metrics reflect the Phoenix MSA multifamily market (50+ units).
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
