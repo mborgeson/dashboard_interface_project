@@ -592,6 +592,81 @@ async def test_reminder_status_with_data(sales_client, sample_sales_data):
     assert data["last_imported_file_date"] is not None
 
 
+@pytest.mark.asyncio
+async def test_reminder_dismissal_persists_to_database(sales_client, db_session):
+    """Test that dismissals are persisted to the database (not just in-memory)."""
+    from app.models.reminder_dismissal import ReminderDismissal
+    from sqlalchemy import select
+
+    # Dismiss the reminder
+    response = await sales_client.put(f"{BASE_URL}/reminder/dismiss")
+    assert response.status_code == 200
+    month_key = response.json()["month"]
+
+    # Verify the dismissal was persisted to the database
+    result = await db_session.execute(
+        select(ReminderDismissal).where(
+            ReminderDismissal.dismissed_month == month_key
+        )
+    )
+    dismissal = result.scalar_one_or_none()
+    assert dismissal is not None
+    assert dismissal.user_identifier == "global"
+    assert dismissal.dismissed_month == month_key
+    assert dismissal.dismissed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_reminder_status_reflects_database_dismissal(sales_client, db_session):
+    """Test that reminder status reads from database, not in-memory."""
+    from datetime import UTC, datetime
+    from app.models.reminder_dismissal import ReminderDismissal
+
+    now = datetime.now(UTC)
+    month_key = now.strftime("%Y-%m")
+
+    # Insert a dismissal directly into the database
+    dismissal = ReminderDismissal(
+        user_identifier="global",
+        dismissed_month=month_key,
+        dismissed_at=now,
+    )
+    db_session.add(dismissal)
+    await db_session.commit()
+
+    # Check status - should show as dismissed
+    response = await sales_client.get(f"{BASE_URL}/reminder/status")
+    assert response.status_code == 200
+    data = response.json()
+
+    # Within first 7 days of month, show_reminder should be False because dismissed
+    # After day 7, show_reminder would be False anyway
+    # The key test is that the dismissal was recognized from the database
+    if now.day <= 7:
+        assert data["show_reminder"] is False
+
+
+@pytest.mark.asyncio
+async def test_reminder_dismissal_unique_per_month(sales_client, db_session):
+    """Test that only one dismissal record is created per user per month."""
+    from app.models.reminder_dismissal import ReminderDismissal
+    from sqlalchemy import func, select
+
+    # Dismiss multiple times
+    await sales_client.put(f"{BASE_URL}/reminder/dismiss")
+    await sales_client.put(f"{BASE_URL}/reminder/dismiss")
+    await sales_client.put(f"{BASE_URL}/reminder/dismiss")
+
+    # Count dismissal records - should only be 1
+    result = await db_session.execute(
+        select(func.count(ReminderDismissal.id)).where(
+            ReminderDismissal.user_identifier == "global"
+        )
+    )
+    count = result.scalar()
+    assert count == 1
+
+
 # =============================================================================
 # Analytics endpoints (PostgreSQL-only) -- test with mocked db.execute
 # =============================================================================

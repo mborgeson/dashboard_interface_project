@@ -143,10 +143,8 @@ describe('Sales Analysis Types', () => {
     const bucket: DistributionBucket = {
       label: '100-199',
       count: 34,
-      medianPricePerUnit: null,
       avgPricePerUnit: 205000,
     };
-    expect(bucket.medianPricePerUnit).toBeNull();
     expect(bucket.avgPricePerUnit).toBe(205000);
   });
 

@@ -19,6 +19,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db, get_sync_db
+from app.models.reminder_dismissal import ReminderDismissal
 from app.models.sales_data import SalesData
 
 router = APIRouter()
@@ -90,7 +91,6 @@ class BuyerActivity(BaseModel):
 class DistributionBucket(BaseModel):
     label: str
     count: int
-    median_price_per_unit: float | None = None
     avg_price_per_unit: float | None = None
 
 
@@ -587,9 +587,6 @@ async def distributions(
         select(
             label_expr.label("label"),
             func.count().label("count"),
-            func.percentile_cont(0.5)
-            .within_group(SalesData.price_per_unit)
-            .label("median_price_per_unit"),
             func.avg(SalesData.price_per_unit).label("avg_price_per_unit"),
         )
         .group_by(label_expr)
@@ -619,9 +616,6 @@ async def distributions(
         DistributionBucket(
             label=str(r.label),
             count=r.count,  # type: ignore[arg-type]
-            median_price_per_unit=float(r.median_price_per_unit)
-            if r.median_price_per_unit is not None
-            else None,
             avg_price_per_unit=round(float(r.avg_price_per_unit), 2)
             if r.avg_price_per_unit is not None
             else None,
@@ -774,16 +768,39 @@ async def import_status(
 
 # ── 9. PUT /reminder/dismiss ─────────────────────────────────────────────────
 
-# Store dismissals in-memory keyed by month for simplicity.
-# For production, this should be persisted in a DB table.
-_reminder_dismissals: dict[str, datetime] = {}
+# Default user identifier for global dismissals (when no user auth is implemented)
+DEFAULT_USER_IDENTIFIER = "global"
 
 
 @router.put("/reminder/dismiss")
-async def dismiss_reminder():
-    """Dismiss the monthly import reminder for the current month."""
-    month_key = datetime.now(UTC).strftime("%Y-%m")
-    _reminder_dismissals[month_key] = datetime.now(UTC)
+async def dismiss_reminder(
+    db: AsyncSession = Depends(get_db),
+    user_identifier: str = DEFAULT_USER_IDENTIFIER,
+):
+    """Dismiss the monthly import reminder for the current month.
+
+    Persists the dismissal to the database so it survives server restarts.
+    """
+    now = datetime.now(UTC)
+    month_key = now.strftime("%Y-%m")
+
+    # Check if already dismissed
+    existing = await db.execute(
+        select(ReminderDismissal).where(
+            ReminderDismissal.user_identifier == user_identifier,
+            ReminderDismissal.dismissed_month == month_key,
+        )
+    )
+    if existing.scalar_one_or_none() is None:
+        # Create new dismissal record
+        dismissal = ReminderDismissal(
+            user_identifier=user_identifier,
+            dismissed_month=month_key,
+            dismissed_at=now,
+        )
+        db.add(dismissal)
+        await db.commit()
+
     return {"dismissed": True, "month": month_key}
 
 
@@ -793,13 +810,20 @@ async def dismiss_reminder():
 @router.get("/reminder/status", response_model=ReminderStatusResponse)
 async def reminder_status(
     db: AsyncSession = Depends(get_db),
+    user_identifier: str = DEFAULT_USER_IDENTIFIER,
 ):
     """Check if the import reminder should be shown this month."""
     now = datetime.now(UTC)
     month_key = now.strftime("%Y-%m")
 
-    # Check if dismissed this month
-    dismissed = month_key in _reminder_dismissals
+    # Check if dismissed this month (query database)
+    dismissal_result = await db.execute(
+        select(ReminderDismissal).where(
+            ReminderDismissal.user_identifier == user_identifier,
+            ReminderDismissal.dismissed_month == month_key,
+        )
+    )
+    dismissed = dismissal_result.scalar_one_or_none() is not None
 
     # Show reminder on the 1st of the month (or if not dismissed)
     show_reminder = (now.day <= 7) and not dismissed

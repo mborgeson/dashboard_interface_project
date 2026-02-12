@@ -122,13 +122,11 @@ export const distributionBucketSchema = z
   .object({
     label: z.string(),
     count: z.number(),
-    median_price_per_unit: z.number().nullable(),
     avg_price_per_unit: z.number().nullable(),
   })
   .transform((s) => ({
     label: s.label,
     count: s.count,
-    medianPricePerUnit: s.median_price_per_unit,
     avgPricePerUnit: s.avg_price_per_unit,
   }));
 

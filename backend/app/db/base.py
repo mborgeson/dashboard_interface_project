@@ -49,6 +49,7 @@ from app.models.file_monitor import (  # noqa: E402, F401
     MonitoredFile,
 )
 from app.models.property import Property  # noqa: E402, F401
+from app.models.reminder_dismissal import ReminderDismissal  # noqa: E402, F401
 from app.models.report_settings import ReportSettings  # noqa: E402, F401
 from app.models.sales_data import SalesData  # noqa: E402, F401
 

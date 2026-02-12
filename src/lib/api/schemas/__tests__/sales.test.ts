@@ -88,7 +88,6 @@ function makeDistributionBucket(overrides: Record<string, unknown> = {}) {
   return {
     label: '100-199 units',
     count: 34,
-    median_price_per_unit: 195000,
     avg_price_per_unit: 205000,
     ...overrides,
   };
@@ -366,18 +365,15 @@ describe('distributionBucketSchema', () => {
 
     expect(result.label).toBe('100-199 units');
     expect(result.count).toBe(34);
-    expect(result.medianPricePerUnit).toBe(195000);
     expect(result.avgPricePerUnit).toBe(205000);
   });
 
-  it('handles nullable median and avg price', () => {
+  it('handles nullable avg price', () => {
     const result = distributionBucketSchema.parse(
       makeDistributionBucket({
-        median_price_per_unit: null,
         avg_price_per_unit: null,
       }),
     );
-    expect(result.medianPricePerUnit).toBeNull();
     expect(result.avgPricePerUnit).toBeNull();
   });
 

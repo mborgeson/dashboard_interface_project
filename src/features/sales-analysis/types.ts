@@ -80,7 +80,6 @@ export interface BuyerActivityRow {
 export interface DistributionBucket {
   label: string;
   count: number;
-  medianPricePerUnit: number | null;
   avgPricePerUnit: number | null;
 }
 

@@ -21,6 +21,9 @@ from .document import Document, DocumentType
 from .file_monitor import FileChangeLog, MonitoredFile
 from .property import Property
 
+# Sales Analysis Models
+from .reminder_dismissal import ReminderDismissal
+
 # Reporting Models
 from .report_settings import ReportSettings
 from .report_template import (
@@ -32,8 +35,6 @@ from .report_template import (
     ReportTemplate,
     ScheduleFrequency,
 )
-
-# Sales Analysis Models
 from .sales_data import SalesData
 
 # Underwriting Models
@@ -95,6 +96,7 @@ __all__ = [
     "ReportStatus",
     "ScheduleFrequency",
     # Sales Analysis Models
+    "ReminderDismissal",
     "SalesData",
     # Construction Pipeline Models
     "ConstructionProject",
