@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 import { TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { YieldCurvePoint } from '@/data/mockInterestRates';
+import type { YieldCurvePoint } from '../types';
 
 interface TreasuryYieldCurveProps {
   data: YieldCurvePoint[];

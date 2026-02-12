@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { KeyRate } from '@/data/mockInterestRates';
+import type { KeyRate } from '../types';
 
 interface KeyRatesSnapshotProps {
   rates: KeyRate[];

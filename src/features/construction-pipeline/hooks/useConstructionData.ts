@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchProjects,
+  fetchAllProjects,
   fetchConstructionFilterOptions,
   fetchPipelineSummary,
   fetchPipelineFunnel,
@@ -65,7 +66,7 @@ export function useProjects(
 export function useAllProjects(filters: ConstructionFilters) {
   return useQuery({
     queryKey: [...constructionKeys.lists(), 'all', filters] as const,
-    queryFn: () => fetchProjects(filters, 1, 10000),
+    queryFn: () => fetchAllProjects(filters),
     staleTime: 1000 * 60 * 5,
   });
 }

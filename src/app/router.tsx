@@ -8,6 +8,7 @@ import {
   MappingPage,
   DealsPage,
   MarketPage,
+  USAMarketPage,
   DocumentsPage,
   InterestRatesPage,
   ReportingSuitePage,
@@ -99,6 +100,14 @@ const router = createBrowserRouter(
           element: (
             <LazyRoute>
               <MarketPage />
+            </LazyRoute>
+          ),
+        },
+        {
+          path: 'market/usa',
+          element: (
+            <LazyRoute>
+              <USAMarketPage />
             </LazyRoute>
           ),
         },

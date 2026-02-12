@@ -1,11 +1,9 @@
-import { useState, lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useMarketData } from './hooks/useMarketData';
+import { useUSAMarketData } from './hooks/useUSAMarketData';
 import { MarketOverview } from './components/MarketOverview';
 import { EconomicIndicators } from './components/EconomicIndicators';
 import { MarketTrendsChart } from './components/MarketTrendsChart';
-import { SubmarketComparison } from './components/SubmarketComparison';
-import { MarketHeatmap } from './components/MarketHeatmap';
 import { Download, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
@@ -45,20 +43,17 @@ function MarketSubNav() {
   );
 }
 
-export { MarketSubNav };
-
-export function MarketPage() {
+export function USAMarketPage() {
   const [showReportWizard, setShowReportWizard] = useState(false);
 
   const {
     msaOverview,
     economicIndicators,
     marketTrends,
-    submarketMetrics,
     sparklineData,
     isLoading,
     error,
-  } = useMarketData();
+  } = useUSAMarketData();
 
   // Show error state
   if (error) {
@@ -68,14 +63,14 @@ export function MarketPage() {
           <div>
             <h1 className="text-page-title text-primary-500">Market Data</h1>
             <p className="text-sm text-neutral-600 mt-1">
-              Phoenix MSA real estate market analysis and economic indicators
+              United States national economic indicators
             </p>
           </div>
           <MarketSubNav />
         </div>
         <ErrorState
           title="Failed to load market data"
-          description="Unable to fetch market data. Please try again later."
+          description="Unable to fetch national market data. Please try again later."
           onRetry={() => window.location.reload()}
         />
       </div>
@@ -91,7 +86,7 @@ export function MarketPage() {
           <div>
             <h1 className="text-page-title text-primary-500">Market Data</h1>
             <p className="text-sm text-neutral-600 mt-1">
-              Phoenix MSA real estate market analysis and economic indicators
+              United States national economic indicators
             </p>
           </div>
           <MarketSubNav />
@@ -113,8 +108,6 @@ export function MarketPage() {
 
         {/* Charts Skeleton */}
         <ChartSkeleton height={384} />
-        <ChartSkeleton height={384} />
-        <ChartSkeleton height={500} />
       </div>
     );
   }
@@ -126,7 +119,7 @@ export function MarketPage() {
         <div>
           <h1 className="text-page-title text-primary-500">Market Data</h1>
           <p className="text-sm text-neutral-600 mt-1">
-            Phoenix MSA real estate market analysis and economic indicators
+            United States national economic indicators
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -138,8 +131,8 @@ export function MarketPage() {
         </div>
       </div>
 
-      {/* Phoenix MSA Overview */}
-      {msaOverview && <MarketOverview overview={msaOverview} />}
+      {/* National Overview */}
+      {msaOverview && <MarketOverview overview={msaOverview} regionLabel="United States" />}
 
       {/* Economic Indicators */}
       <EconomicIndicators
@@ -148,13 +141,7 @@ export function MarketPage() {
       />
 
       {/* Market Trends Chart */}
-      <MarketTrendsChart trends={marketTrends} />
-
-      {/* Market Performance Heatmap */}
-      <MarketHeatmap submarkets={submarketMetrics} />
-
-      {/* Submarket Comparison */}
-      <SubmarketComparison submarkets={submarketMetrics} />
+      <MarketTrendsChart trends={marketTrends} regionLabel="United States" />
 
       {/* Footer Note */}
       <div className="flex items-start gap-3 p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
@@ -162,8 +149,9 @@ export function MarketPage() {
         <div className="text-sm text-neutral-600">
           <p className="font-medium text-neutral-900 mb-1">Market Data Sources</p>
           <p>
-            Data sourced from CoStar, FRED (Federal Reserve), and U.S. Census Bureau.
-            Market metrics reflect the Phoenix Metropolitan Statistical Area (MSA).
+            Data sourced from FRED (Federal Reserve Economic Data). National indicators include
+            unemployment (UNRATE), nonfarm payrolls (PAYEMS), CPI (CPIAUCSL), GDP,
+            30-year mortgage rate, Federal Funds rate, housing starts, and building permits.
           </p>
         </div>
       </div>

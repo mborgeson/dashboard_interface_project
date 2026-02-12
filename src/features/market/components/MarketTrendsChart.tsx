@@ -13,6 +13,7 @@ import type { MarketTrend } from '@/types/market';
 
 interface MarketTrendsChartProps {
   trends: Array<MarketTrend & { rentGrowthPct: number; occupancyPct: number; capRatePct: number }>;
+  regionLabel?: string;
 }
 
 type MetricType = 'rentGrowth' | 'occupancy' | 'capRate';
@@ -43,7 +44,7 @@ function CustomTooltip({ active, payload, metricLabel, metricFormat }: CustomToo
   return null;
 }
 
-export function MarketTrendsChart({ trends }: MarketTrendsChartProps) {
+export function MarketTrendsChart({ trends, regionLabel = 'Phoenix MSA' }: MarketTrendsChartProps) {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('rentGrowth');
 
   const metrics = [
@@ -122,7 +123,7 @@ export function MarketTrendsChart({ trends }: MarketTrendsChartProps) {
           <span className="text-neutral-600">{currentMetric.label}</span>
         </div>
         <div className="text-neutral-500">
-          Last 12 months • Phoenix MSA
+          Last 12 months &bull; {regionLabel}
         </div>
       </div>
     </Card>

@@ -13,14 +13,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get } from '@/lib/api';
-import {
-  mockRateSpreads,
-  realEstateLendingContext,
-  type KeyRate,
-  type YieldCurvePoint,
-  type HistoricalRate,
-  type RateDataSource,
-} from '@/data/mockInterestRates';
+import type {
+  KeyRate,
+  YieldCurvePoint,
+  HistoricalRate,
+  RateDataSource,
+} from '@/features/interest-rates/types';
 
 // ============================================================================
 // Query Key Factory
@@ -158,14 +156,32 @@ export interface DataSourcesWithFallbackResponse {
 }
 
 export interface RateSpreadsWithFallbackResponse {
-  spreads: typeof mockRateSpreads;
+  spreads: {
+    treasurySpread2s10s: Array<{ date: string; spread: number }>;
+    mortgageSpread: Array<{ date: string; spread: number }>;
+    fedFundsVsTreasury: Array<{
+      date: string;
+      fedFunds: number;
+      treasury10Y: number;
+      spread: number;
+    }>;
+  };
   lastUpdated: Date;
   source: string;
 }
 
 export interface LendingContextWithFallbackResponse {
-  typicalSpreads: typeof realEstateLendingContext.typicalSpreads;
-  currentIndicativeRates: typeof realEstateLendingContext.currentIndicativeRates;
+  typicalSpreads: Record<
+    string,
+    {
+      name: string;
+      spreadOverTreasury?: number;
+      spreadOverSOFR?: number;
+      spreadOverPrime?: number;
+      benchmark: string;
+    }
+  >;
+  currentIndicativeRates: Record<string, number>;
   lastUpdated: Date;
 }
 
@@ -291,18 +307,18 @@ function transformLendingContextFromApi(
   }
 
   return {
-    typicalSpreads: typicalSpreads as typeof realEstateLendingContext.typicalSpreads,
-    currentIndicativeRates: currentIndicativeRates as typeof realEstateLendingContext.currentIndicativeRates,
+    typicalSpreads: typicalSpreads as LendingContextWithFallbackResponse['typicalSpreads'],
+    currentIndicativeRates: currentIndicativeRates as LendingContextWithFallbackResponse['currentIndicativeRates'],
     lastUpdated: new Date(apiResponse.last_updated),
   };
 }
 
 // ============================================================================
-// Query Hooks with Mock Fallback
+// Query Hooks
 // ============================================================================
 
 /**
- * Hook to fetch current key interest rates with mock data fallback
+ * Hook to fetch current key interest rates
  * Errors propagate to React Query error state
  */
 export function useKeyRatesWithMockFallback(
@@ -320,7 +336,7 @@ export function useKeyRatesWithMockFallback(
 }
 
 /**
- * Hook to fetch Treasury yield curve with mock data fallback
+ * Hook to fetch Treasury yield curve
  */
 export function useYieldCurveWithMockFallback(
   options?: Omit<UseQueryOptions<YieldCurveWithFallbackResponse>, 'queryKey' | 'queryFn'>
@@ -337,7 +353,7 @@ export function useYieldCurveWithMockFallback(
 }
 
 /**
- * Hook to fetch historical interest rates with mock data fallback
+ * Hook to fetch historical interest rates
  */
 export function useHistoricalRatesWithMockFallback(
   months: number = 12,
@@ -357,7 +373,7 @@ export function useHistoricalRatesWithMockFallback(
 }
 
 /**
- * Hook to fetch rate data sources with mock data fallback
+ * Hook to fetch rate data sources
  */
 export function useDataSourcesWithMockFallback(
   options?: Omit<UseQueryOptions<DataSourcesWithFallbackResponse>, 'queryKey' | 'queryFn'>
@@ -374,7 +390,7 @@ export function useDataSourcesWithMockFallback(
 }
 
 /**
- * Hook to fetch rate spreads with mock data fallback
+ * Hook to fetch rate spreads
  */
 export function useRateSpreadsWithMockFallback(
   months: number = 12,
@@ -392,7 +408,7 @@ export function useRateSpreadsWithMockFallback(
 }
 
 /**
- * Hook to fetch real estate lending context with mock data fallback
+ * Hook to fetch real estate lending context
  */
 export function useLendingContextWithMockFallback(
   options?: Omit<UseQueryOptions<LendingContextWithFallbackResponse>, 'queryKey' | 'queryFn'>
@@ -545,31 +561,31 @@ export function usePrefetchYieldCurve() {
 // ============================================================================
 
 /**
- * Primary hook for key rates - uses mock fallback pattern
+ * Primary hook for key rates
  */
 export const useInterestRates = useKeyRatesWithMockFallback;
 
 /**
- * Primary hook for yield curve - uses mock fallback pattern
+ * Primary hook for yield curve
  */
 export const useYieldCurve = useYieldCurveWithMockFallback;
 
 /**
- * Primary hook for historical rates - uses mock fallback pattern
+ * Primary hook for historical rates
  */
 export const useHistoricalRates = useHistoricalRatesWithMockFallback;
 
 /**
- * Primary hook for data sources - uses mock fallback pattern
+ * Primary hook for data sources
  */
 export const useDataSources = useDataSourcesWithMockFallback;
 
 /**
- * Primary hook for rate spreads - uses mock fallback pattern
+ * Primary hook for rate spreads
  */
 export const useRateSpreads = useRateSpreadsWithMockFallback;
 
 /**
- * Primary hook for lending context - uses mock fallback pattern
+ * Primary hook for lending context
  */
 export const useLendingContext = useLendingContextWithMockFallback;

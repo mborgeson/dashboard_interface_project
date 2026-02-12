@@ -9,7 +9,7 @@ import type {
   KeyRate,
   YieldCurvePoint,
   HistoricalRate,
-} from "@/data/mockInterestRates";
+} from "@/features/interest-rates/types";
 
 /**
  * Fetch current key rates from backend

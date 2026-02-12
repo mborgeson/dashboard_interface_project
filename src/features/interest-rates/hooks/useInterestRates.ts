@@ -1,20 +1,11 @@
 /**
  * Hook for fetching and managing interest rate data
- * Automatically fetches live data if API is configured, otherwise uses mock data
+ * Fetches live data from the backend API (DB -> FRED fallback)
  * Includes localStorage caching to reduce API calls
  */
 
 import { useState, useEffect, useCallback } from "react";
-import type {
-  KeyRate,
-  YieldCurvePoint,
-  HistoricalRate,
-} from "@/data/mockInterestRates";
-import {
-  mockKeyRates,
-  mockYieldCurve,
-  mockHistoricalRates,
-} from "@/data/mockInterestRates";
+import type { KeyRate, YieldCurvePoint, HistoricalRate } from "../types";
 import {
   fetchKeyRates,
   fetchYieldCurve,
@@ -109,10 +100,10 @@ export function useInterestRates(options: UseInterestRatesOptions = {}) {
   const cachedData = getCachedData(cacheTTL);
 
   const [data, setData] = useState<InterestRatesData>({
-    keyRates: cachedData?.keyRates || mockKeyRates,
-    yieldCurve: cachedData?.yieldCurve || mockYieldCurve,
-    historicalRates: cachedData?.historicalRates || mockHistoricalRates,
-    lastUpdated: cachedData ? new Date(cachedData.timestamp) : new Date(),
+    keyRates: cachedData?.keyRates || [],
+    yieldCurve: cachedData?.yieldCurve || [],
+    historicalRates: cachedData?.historicalRates || [],
+    lastUpdated: cachedData ? new Date(cachedData.timestamp) : null,
     isLiveData: !!cachedData,
     isLoading: !cachedData, // Don't show loading if we have cached data
     error: null,
@@ -159,9 +150,9 @@ export function useInterestRates(options: UseInterestRatesOptions = {}) {
             fetchHistoricalRates(),
           ]);
 
-        const newKeyRates = keyRatesResult || mockKeyRates;
-        const newYieldCurve = yieldCurveResult || mockYieldCurve;
-        const newHistoricalRates = historicalRatesResult || mockHistoricalRates;
+        const newKeyRates = keyRatesResult || [];
+        const newYieldCurve = yieldCurveResult || [];
+        const newHistoricalRates = historicalRatesResult || [];
         const isLive = !!(
           keyRatesResult ||
           yieldCurveResult ||

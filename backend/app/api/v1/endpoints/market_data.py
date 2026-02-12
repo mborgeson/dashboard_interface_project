@@ -27,6 +27,38 @@ async def get_market_overview():
     return await market_data_service.get_market_overview()
 
 
+@router.get("/usa/overview", response_model=MarketOverviewResponse)
+async def get_usa_market_overview():
+    """
+    Get national (USA) market overview with economic indicators.
+
+    Returns:
+        National overview data including population, employment, GDP,
+        and key economic indicators using national FRED series
+        (UNRATE, PAYEMS, CPIAUCSL, GDP, MORTGAGE30US, FEDFUNDS, HOUST, PERMIT).
+    """
+    return await market_data_service.get_usa_market_overview()
+
+
+@router.get("/usa/trends", response_model=MarketTrendsResponse)
+async def get_usa_market_trends(
+    period_months: int = Query(
+        12, ge=1, le=36, description="Number of months of trend data"
+    ),
+):
+    """
+    Get national market trends over time.
+
+    Args:
+        period_months: Number of months of historical data (1-36, default 12)
+
+    Returns:
+        Monthly national trend data including unemployment rate,
+        employment rate, and 30-year mortgage rate.
+    """
+    return await market_data_service.get_usa_market_trends(period_months=period_months)
+
+
 @router.get("/submarkets", response_model=SubmarketsResponse)
 async def get_submarkets():
     """

@@ -3,6 +3,7 @@
  */
 import { apiClient } from './client';
 import {
+  projectRecordSchema,
   projectsResponseSchema,
   constructionFilterOptionsSchema,
   pipelineSummaryItemSchema,
@@ -18,6 +19,7 @@ import {
 } from './schemas/construction';
 import type {
   ConstructionFilters,
+  ProjectRecord,
   ProjectsResponse,
   ConstructionFilterOptions,
   PipelineSummaryItem,
@@ -63,6 +65,16 @@ export async function fetchProjects(
     params: { ...filtersToParams(filters), page, page_size: pageSize },
   });
   return projectsResponseSchema.parse(raw);
+}
+
+/** Fetch all projects without pagination (for map view) */
+export async function fetchAllProjects(
+  filters: ConstructionFilters
+): Promise<ProjectRecord[]> {
+  const raw = await apiClient.get<unknown>(`${BASE}/all`, {
+    params: filtersToParams(filters),
+  });
+  return z.array(projectRecordSchema).parse(raw);
 }
 
 /** Fetch filter options */

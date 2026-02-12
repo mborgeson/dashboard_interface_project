@@ -2,62 +2,37 @@
   "memories": [
     {
       "type": "completed_features",
-      "content": "Waves 1-10 COMPLETE (2026-01-14). Market Data Pipeline COMPLETE (2026-02-05, commit 9d4f961): DB dashboard_market_data on port 5432 with 253K records (CoStar 98K, FRED 155K, Census 30). 5 tables + 2 materialized views. Extractors: CoStar async Excel parser, FRED 17 series incremental, Census population+income. Scheduler: APScheduler cron (FRED daily, CoStar monthly, Census annual). 3-tier fallback: DB→API→mock. 6 admin endpoints for manual triggers. Frontend sparklines wired to API trends. Wave 2 audit COMPLETE (2026-02-04): Cash-on-Cash KPI corrected, GlobalSearch fully wired, useReporting silent fallbacks removed, DealStage 6-stage alignment, error handling on MarketPage/ReportingSuitePage/ExtractionDashboard. CI quality gates COMPLETE (2026-02-04). Git cleanup COMPLETE (2026-02-06, commit 7c1f216). Pre-commit hooks COMPLETE (2026-02-06, commit 9924d3e). Coverage thresholds COMPLETE (2026-02-06, commit 7d6da21): backend 55%, frontend 70%. ReportSettings endpoint COMPLETE (2026-02-07): model + migration c3d4e5f6a7b8 + GET/PUT /reporting/settings + frontend API module + component rewired from mock to real API. _to_frontend_property refactor COMPLETE (2026-02-07): extracted to _property_transforms.py with 5 sub-computations. Zod Runtime Validation COMPLETE (2026-02-07, commit f7375c2): Zod schemas in src/lib/api/schemas/ for properties, reporting, deals. Replaced transformPropertyDates, snakeToCamel, transformBackendDeal, parseCityState, mapBackendStage (~110 lines removed). 33 new schema tests. 1061 backend + 361 frontend tests pass.",
-      "added_at": "2026-02-07T01:58:00.000000",
+      "content": "Waves 1-10 property/deal/document CRUD (2026-01-14). Market Data Pipeline: DB dashboard_market_data with 253K records (2026-02-05). ReportSettings + property transforms refactor + Zod validation (2026-02-07). Sales Analysis Dashboard: 10 endpoints, 6 visualizations, filter panel, 205 tests (2026-02-10). DealStage enum fix + deprecation cleanup (2026-02-10). Extraction Pipeline Review: 16 issues fixed (2026-02-11). Construction Pipeline COMPLETE: 5 DB tables, CoStar import, 6 API clients (Census BPS, FRED, BLS, Mesa SODA, Tempe BLDS, Gilbert ArcGIS), scheduler, 12+3 endpoints, Leaflet map, 4 tabs (2026-02-11). UW Model Grouping Phases 1-2: 342 candidates → 30 active groups (244 files), 9 Proforma deferred, 2 Asset Mgmt excluded. Dashboard Multi-Page Fixes (2026-02-11): Pipeline Map /all endpoint (fixed 422 page_size bug), delivery date backfill via compute_delivery_date(), CONSTRUCTION_API_ENABLED=true + /fetch-all trigger, interest rates mock removal (deleted mockInterestRates.ts, removed 4 mock methods), USA Market subpage (/market/usa with national FRED series). Tests: 1522 backend + 521 frontend, zero TS errors.",
+      "added_at": "2026-02-11T23:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "user_preferences",
-      "content": "conda env: /home/mattb/miniconda3/envs/dashboard-backend. Backend port 8000, Frontend port 5173. Git: stash apply over pop, don't push unless asked. User prefers validation/testing before new features. No agent swarms for sequential dependent tasks. Be extremely clear about what actions user needs to take. User prefers directness over hedging. NO mock data, NO fake data, NO silent fallbacks anywhere. Per-page review workflow: fix issues, then parallel agents for validation. Kill port: use 'fuser -k 8000/tcp'. Dashboard purpose: comprehensive deal intelligence platform tracking ALL deals pursued (not just owned). Parallel agent strategy approved for independent tasks. Commit strategy: split by logical area, push when asked. Obsidian vault: 'Programming Vault' at /mnt/c/Users/MattBorgeson/Documents/Programming Vault/Dashboard Interface. Agent Teams enabled: CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 in ~/.bashrc.",
-      "added_at": "2026-02-07T00:50:00.000000",
+      "content": "conda env: dashboard-backend. Backend port 8000, Frontend port 5173. Git: stash apply over pop, don't push unless asked. User prefers validation/testing before new features. No agent swarms for sequential dependent tasks. Be extremely clear about required user actions. User prefers directness over hedging. NO mock data, NO fake data, NO silent fallbacks — show errors instead. Commit strategy: split by logical area, push when asked. Obsidian vault: 'Programming Vault' at /mnt/c/Users/MattBorgeson/Documents/Programming Vault/Dashboard Interface. User demands thorough validation — test ALL files, not just samples. Don't overclaim confidence without evidence. User open to parallel agent teams for independent work streams.",
+      "added_at": "2026-02-11T23:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "tech_decisions",
-      "content": "pydantic-settings 2.x: CORS_ORIGINS must be JSON array. Single .env in project root, symlinked from backend/.env. Shell env var SHAREPOINT_SITE_URL overrides .env — MUST unset before extraction. Main DB: PostgreSQL localhost:5432/dashboard_interface_data. Market DB: PostgreSQL localhost:5432/dashboard_market_data. VITE_API_URL: src/lib/config.ts appends /api/v1. Email domain: bandrcapital.com. CI: ruff check + format on backend, tsc -b + vite build on frontend. Redis warning (token blacklist) harmless — falls back to in-memory for dev. DealStage enum: 6-stage model (dead, initial_review, active_review, under_contract, closed, realized). Alembic requires PYTHONPATH=. when running from backend dir. Pre-commit: ruff hook already runs 'check' — args should be [--fix] not [check, --fix]. Vitest v8: use built-in thresholds (statements 70%, branches 65%, functions 60%, lines 70%). SQLite in tests: no server_default for created_at/updated_at — include explicitly in INSERT fixtures. Latest Alembic revision: c3d4e5f6a7b8 (report_settings), down_revision a1b2c3d4e5f6. Zod 4.3.6: z.string()/z.object() API same as Zod 3 surface. PhoenixSubmarket must use z.enum() not z.string() for TS type narrowing. Zod .transform() replaces manual transform functions AND validates at runtime.",
-      "added_at": "2026-02-07T01:58:00.000000",
+      "content": "pydantic-settings 2.x: CORS_ORIGINS must be JSON array. Single .env in project root, symlinked from backend/.env. Main DB: PostgreSQL localhost:5432/dashboard_interface_data. VITE_API_URL: src/lib/config.ts appends /api/v1. DealStage enum: 6-stage. Alembic requires PYTHONPATH=. from backend dir. Zod 4.3.6: .transform() replaces manual transforms. SQLite in tests: no server_default, DateTime(timezone=True), datetime.now(UTC). StrEnum + SQLAlchemy: dealstage lowercase → values_callable. Lazy imports: patch at source module. ThreadPoolExecutor for CPU-bound Excel, sequential DB ops. React Compiler: no setState in useEffect, no ref.current in render. Alembic head: 6f4865487bb2 (widen fema_flood_zone). Prefer stdlib over third-party (e.g., date arithmetic over dateutil.relativedelta) to avoid CI mypy stubs issues.",
+      "added_at": "2026-02-11T23:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "extraction_config",
-      "content": "SHAREPOINT EXTRACTION: 28/28 files, 0 failures. 26 properties with extraction data + 3 monitored with none. NOI = ANNUAL PER-UNIT (multiply by total_units). Filters: FILE_PATTERN=.*UW.*Model.*vCurrent.*, CUTOFF_DATE=2024-07-15. Cash-on-Cash: LP_RETURNS_PREREFI_CASH_ON_CASH (rate). Do NOT expand filter to older UW Model versions — different layouts produce errors. Cell reference file: Underwriting_Dashboard_Cell_References.xlsx in project root.",
-      "added_at": "2026-02-04T07:00:00.000000",
+      "content": "SHAREPOINT EXTRACTION: Production pipeline: FILE_PATTERN=.*UW.*Model.*vCurrent.*, CUTOFF_DATE=2024-07-15, excludes Speedboat/vOld. 28/28 files, 26 properties. Cell reference: Underwriting_Dashboard_Cell_References.xlsx (1,169 fields across 6 sheets). UW GROUPING PIPELINE: CandidateFileFilter — must contain 'vCurrent.xlsb' + one of (Model/UW/Proforma) + modified before 2024-07-15 + .xlsb only. Excludes: [Deal Name], Settlement Statement, Due Diligence Tracker, AutoRecovered, Speedboat, vOld, Tax, Cashflows, Development, Portfolio, Template, ~$. SharePoint deal stages: 0) Dead, 1) Initial UW, 2) Active UW, 3) Under Contract, 4) Closed, 5) Realized. UW files on native WSL2: /home/mattb/projects/dashboard_interface_project/backend/data/uw_model_files/. CELL VALIDATION: 244/244 files tested, 99.7% canary accuracy, 69% fields present, 31% template-version gaps (empty=gap not shift). 6 of 30 groups have True Shift issues (row insertion/deletion causing address misalignment) — need per-group mapping files. Reconciliation approach: diff shifted group fingerprints against production reference to generate group-specific cell address overrides. Proforma groups deferred.",
+      "added_at": "2026-02-11T23:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "remaining_tasks",
-      "content": "Remaining steps (in order): 1) Sales Analysis Dashboard — prompt finalized: sales_data table (101 cols, Comp ID dedup key), 34 CoStar xlsx files in backend/data/sales/Phoenix/, NRSF = Units × Avg Unit SF (not Building SF), display 15 columns, 6 analysis sections (time-series, submarket comparison, buyer activity, map, distribution, data quality), auto-detect new files with confirm banner, monthly reminder notification. 2) UW Model File Grouping & Data Extraction — prompt finalized: 4-phase process with gates (Discovery → Fingerprinting/Grouping → Reference Files → Extraction), candidates = UW Model files + Proforma vCurrent files not in existing pipeline, parallel/batch fingerprinting, label map = all text cells in used range, existing pipeline excludes files matching ALL THREE: name has 'UW Model vCurrent' AND modified >= 2024-07-15 AND excludes 'Speedboat'/'vOld'. 3) Docker Compose production config. 4) Production hosting — Oracle Cloud Free Tier (preferred) or Hetzner CX22 $4.15/mo, both with Tailscale for private access. Auth upgrade deprioritized (unnecessary behind Tailscale). 5) Mobile-friendly iOS version (post-deployment). Domain: Cabana on 99th + Tempe Metro = currently owned. Closed=owned, Realized=sold. 15 CoStar Submarket Clusters. Occupancy 0-1 in API.",
-      "added_at": "2026-02-07T05:50:00.000000",
+      "content": "1) UW Model Extraction Phase 3-4: Generate per-group mapping files for 6 shifted groups, then run extraction. Proforma groups deferred. 2) Docker Compose production config. 3) Production hosting — Oracle Cloud Free Tier or Hetzner CX22 with Tailscale. 4) Mobile-friendly iOS version (post-deployment). Domain context: Cabana on 99th + Tempe Metro = currently owned (Closed=owned, Realized=sold).",
+      "added_at": "2026-02-11T23:00:00.000000",
       "source": "consolidated"
     }
   ],
   "manual_memories": [],
-  "realtime_memories": [
-    {
-      "type": "claude_response",
-      "content": "Memory consolidated (10 realtime → 0, updated remaining_tasks with UW Model prompt details). Awaiting your answer on the pattern question above.",
-      "added_at": "2026-02-07T05:53:15.260685",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Which do you want — the exact phrase Proforma vCurrent as a contiguous substring, or the looser match where both words appear anywhere in the name? -- The exact phase \"Proforma vCurrent\" as a continuo",
-      "added_at": "2026-02-07T05:53:15.260718",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Here's the complete output with all three sections:\n\n---\n\n# 1. SALES ANALYSIS DASHBOARD — Finalized Prompt\n\n## Sales Analysis Dashboard Page\n\n### 1. Overview\n\nCreate a new dashboard page for reviewing",
-      "added_at": "2026-02-07T06:04:30.962251",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Can we run git a commit/push command to memorialize the prompt creation and revised remaining steps list.",
-      "added_at": "2026-02-07T06:04:30.962283",
-      "source": "realtime_capture"
-    }
-  ],
+  "realtime_memories": [],
   "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-02-07T06:04:30.962285"
+  "updated_at": "2026-02-11T23:00:00.000000"
 }

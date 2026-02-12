@@ -9,7 +9,7 @@ Applies 50-unit minimum filter and infers property classification.
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import numpy as np
 import pandas as pd
@@ -305,6 +305,38 @@ def _safe_bool(val) -> bool:
     return s in ("yes", "true", "1", "y")
 
 
+# ── Delivery date computation ────────────────────────────────────────────────
+
+
+def compute_delivery_date(
+    year_built: int | None,
+    month_built: int | None,
+    construction_begin: str | None,
+) -> date | None:
+    """Compute estimated delivery date from available fields.
+
+    Priority:
+    1. year_built + month_built → date(year_built, month_built, 1)
+    2. year_built only → date(year_built, 6, 15) (mid-year estimate)
+    3. construction_begin string → parse + 24 months (typical MF timeline)
+    """
+    if year_built is not None and year_built > 0:
+        if month_built is not None and 1 <= month_built <= 12:
+            return date(year_built, month_built, 1)
+        return date(year_built, 6, 15)
+
+    if construction_begin:
+        cb_date = _safe_date(construction_begin)
+        if cb_date:
+            # Add 24 months using stdlib arithmetic
+            new_month = cb_date.month + 24
+            new_year = cb_date.year + (new_month - 1) // 12
+            new_month = (new_month - 1) % 12 + 1
+            return date(new_year, new_month, min(cb_date.day, 28))
+
+    return None
+
+
 # ── Classification inference ─────────────────────────────────────────────────
 
 
@@ -462,6 +494,13 @@ def import_construction_file(
         row_dict["pipeline_status"] = map_pipeline_status(
             row_dict.get("building_status_raw"),
             row_dict.get("constr_status_raw"),
+        )
+
+        # ── Compute estimated delivery date ───────────────────────────
+        row_dict["estimated_delivery_date"] = compute_delivery_date(
+            row_dict.get("year_built"),
+            row_dict.get("month_built"),
+            row_dict.get("construction_begin"),
         )
 
         # ── Metadata ──────────────────────────────────────────────────

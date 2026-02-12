@@ -260,7 +260,7 @@ export function ConstructionPipelinePage() {
 
         <TabsContent value="map">
           <PipelineMap
-            data={allProjectsQuery.data?.data ?? []}
+            data={allProjectsQuery.data ?? []}
             isLoading={allProjectsQuery.isLoading}
           />
         </TabsContent>

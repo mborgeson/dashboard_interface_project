@@ -1,10 +1,17 @@
 import { ExternalLink, Database, Clock, CheckCircle } from 'lucide-react';
-import type { RateDataSource } from '@/data/mockInterestRates';
-import { realEstateLendingContext } from '@/data/mockInterestRates';
+import type { RateDataSource } from '../types';
 
 interface DataSourcesProps {
   sources: RateDataSource[];
 }
+
+// Typical CRE lending spreads — static industry reference data
+const typicalSpreads = [
+  { key: 'multifamilyPerm', name: 'Multifamily Permanent', spreadBps: 150, benchmark: '10Y Treasury' },
+  { key: 'multifamilyBridge', name: 'Multifamily Bridge', spreadBps: 300, benchmark: 'SOFR' },
+  { key: 'commercialPerm', name: 'Commercial Permanent', spreadBps: 175, benchmark: '10Y Treasury' },
+  { key: 'construction', name: 'Construction', spreadBps: 50, benchmark: 'Prime Rate' },
+];
 
 export function DataSources({ sources }: DataSourcesProps) {
   return (
@@ -78,20 +85,15 @@ export function DataSources({ sources }: DataSourcesProps) {
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {Object.entries(realEstateLendingContext.typicalSpreads).map(([key, spread]) => (
-            <div key={key} className="bg-white rounded-lg p-4 border border-primary-100">
+          {typicalSpreads.map((spread) => (
+            <div key={spread.key} className="bg-white rounded-lg p-4 border border-primary-100">
               <div className="flex items-center justify-between mb-2">
                 <h5 className="font-medium text-neutral-900">{spread.name}</h5>
                 <span className="text-xs text-neutral-500">vs {spread.benchmark}</span>
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-primary-700">
-                  +{'spreadOverTreasury' in spread
-                    ? (spread.spreadOverTreasury * 100).toFixed(0)
-                    : 'spreadOverSOFR' in spread
-                    ? (spread.spreadOverSOFR * 100).toFixed(0)
-                    : (spread.spreadOverPrime * 100).toFixed(0)
-                  }
+                  +{spread.spreadBps}
                 </span>
                 <span className="text-sm text-neutral-500">bps typical spread</span>
               </div>
@@ -99,38 +101,10 @@ export function DataSources({ sources }: DataSourcesProps) {
           ))}
         </div>
 
-        <div className="bg-white rounded-lg p-4 border border-primary-100">
-          <h5 className="font-medium text-neutral-900 mb-3">Current Indicative Rates</h5>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-xs text-neutral-500">Multifamily Perm</p>
-              <p className="text-lg font-semibold text-neutral-900">
-                {realEstateLendingContext.currentIndicativeRates.multifamilyPerm.toFixed(2)}%
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-neutral-500">Multifamily Bridge</p>
-              <p className="text-lg font-semibold text-neutral-900">
-                {realEstateLendingContext.currentIndicativeRates.multifamilyBridge.toFixed(2)}%
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-neutral-500">Commercial Perm</p>
-              <p className="text-lg font-semibold text-neutral-900">
-                {realEstateLendingContext.currentIndicativeRates.commercialPerm.toFixed(2)}%
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-neutral-500">Construction</p>
-              <p className="text-lg font-semibold text-neutral-900">
-                {realEstateLendingContext.currentIndicativeRates.construction.toFixed(2)}%
-              </p>
-            </div>
-          </div>
-          <p className="text-xs text-neutral-500 mt-3 italic">
-            * Indicative rates only. Actual rates depend on property type, location, sponsorship, and market conditions.
-          </p>
-        </div>
+        <p className="text-xs text-neutral-500 italic">
+          * Typical spreads only. Actual rates depend on property type, location, sponsorship, and market conditions.
+          See the Lending Context page for current indicative rates calculated from live benchmarks.
+        </p>
       </div>
 
       {/* API Integration Info */}

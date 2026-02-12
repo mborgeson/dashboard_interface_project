@@ -4,9 +4,10 @@ import type { MSAOverview } from '@/types/market';
 
 interface MarketOverviewProps {
   overview: MSAOverview;
+  regionLabel?: string;
 }
 
-export function MarketOverview({ overview }: MarketOverviewProps) {
+export function MarketOverview({ overview, regionLabel = 'Phoenix MSA' }: MarketOverviewProps) {
   const formatNumber = (value: number): string => {
     if (value >= 1000000000) {
       return `$${(value / 1000000000).toFixed(1)}B`;
@@ -35,7 +36,7 @@ export function MarketOverview({ overview }: MarketOverviewProps) {
       value: formatNumber(overview.population),
       change: overview.populationGrowth,
       icon: Users,
-      description: 'Phoenix MSA residents',
+      description: `${regionLabel} residents`,
     },
     {
       label: 'Employment',
@@ -56,7 +57,7 @@ export function MarketOverview({ overview }: MarketOverviewProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-section-title text-primary-500">Phoenix MSA Overview</h2>
+        <h2 className="text-section-title text-primary-500">{regionLabel} Overview</h2>
         <p className="text-sm text-neutral-500">
           Last updated: {new Date(overview.lastUpdated).toLocaleDateString('en-US', {
             month: 'short',

@@ -8,7 +8,7 @@ ConstructionPermitData and ConstructionEmploymentData.
 
 import math
 import os
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
@@ -162,6 +162,18 @@ class ImportStatusResponse(BaseModel):
     last_imported_file: str | None = None
     last_import_date: str | None = None
     total_projects: int = 0
+
+
+class FetchAllResponse(BaseModel):
+    success: bool
+    message: str
+    results: dict[str, Any] = {}
+
+
+class BackfillResponse(BaseModel):
+    success: bool
+    message: str
+    rows_updated: int = 0
 
 
 # ── Shared filter helper ──────────────────────────────────────────────────────
@@ -420,6 +432,73 @@ async def list_projects(
         page_size=page_size,
         total_pages=total_pages,
     )
+
+
+# ── 1b. GET /all — All projects (for map, no pagination) ─────────────────────
+
+
+@router.get("/all", response_model=list[ProjectRecord])
+async def list_all_projects(
+    search: str | None = None,
+    statuses: str | None = None,
+    classifications: str | None = None,
+    submarkets: str | None = None,
+    cities: str | None = None,
+    min_units: int | None = None,
+    max_units: int | None = None,
+    min_year_built: int | None = None,
+    max_year_built: int | None = None,
+    rent_type: str | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Return all projects without pagination (used by map view)."""
+    data_stmt = select(ConstructionProject)
+    data_stmt = _apply_filters(
+        data_stmt,
+        search,
+        statuses,
+        classifications,
+        submarkets,
+        cities,
+        min_units,
+        max_units,
+        min_year_built,
+        max_year_built,
+        rent_type,
+    )
+    data_stmt = data_stmt.order_by(ConstructionProject.id)
+
+    result = await db.execute(data_stmt)
+    rows = result.scalars().all()
+
+    return [
+        ProjectRecord(
+            id=r.id,
+            project_name=r.project_name,
+            project_address=r.project_address,
+            city=r.city,
+            submarket_cluster=r.submarket_cluster,
+            pipeline_status=r.pipeline_status,
+            primary_classification=r.primary_classification,
+            number_of_units=r.number_of_units,
+            number_of_stories=r.number_of_stories,
+            year_built=r.year_built,
+            developer_name=r.developer_name,
+            owner_name=r.owner_name,
+            latitude=r.latitude,
+            longitude=r.longitude,
+            building_sf=r.building_sf,
+            avg_unit_sf=r.avg_unit_sf,
+            star_rating=r.star_rating,
+            rent_type=r.rent_type,
+            vacancy_pct=r.vacancy_pct,
+            estimated_delivery_date=r.estimated_delivery_date,
+            construction_begin=r.construction_begin,
+            for_sale_price=r.for_sale_price,
+            source_type=r.source_type,
+        )
+        for r in rows
+    ]
 
 
 # ── 2. GET /analytics/pipeline-summary ────────────────────────────────────────
@@ -1012,4 +1091,184 @@ async def import_status(db_sync=Depends(get_sync_db)):
         last_imported_file=last_row[0] if last_row else None,
         last_import_date=str(last_row[1]) if last_row else None,
         total_projects=total,
+    )
+
+
+# ── 12. POST /fetch-all — Trigger all 6 API fetches ─────────────────────────
+
+
+@router.post("/fetch-all", response_model=FetchAllResponse)
+async def fetch_all_apis():
+    """Trigger all 6 construction API fetches on demand.
+
+    Fetches data from Census BPS, FRED permits, BLS employment,
+    and municipal permits (Mesa, Tempe, Gilbert).
+    """
+    from app.core.config import settings
+
+    results: dict[str, Any] = {}
+    errors: list[str] = []
+
+    # Census BPS
+    try:
+        from app.services.construction_api.census_bps import (
+            fetch_census_bps,
+            save_census_bps_records,
+        )
+
+        if settings.CENSUS_API_KEY:
+            result = await fetch_census_bps(settings.CENSUS_API_KEY)
+            if result["records"]:
+                from app.db.session import SessionLocal
+
+                with SessionLocal() as db:
+                    save_census_bps_records(
+                        db,
+                        result["records"],
+                        result.get("api_response_code"),
+                        result.get("errors"),
+                    )
+            results["census_bps"] = len(result["records"])
+        else:
+            errors.append("Census API key not configured")
+    except Exception as e:
+        logger.exception("census_bps_manual_fetch_error")
+        errors.append(f"Census BPS: {e}")
+
+    # FRED permits
+    try:
+        from app.services.construction_api.fred_permits import (
+            fetch_fred_permits,
+            save_fred_records,
+        )
+
+        if settings.FRED_API_KEY:
+            result = await fetch_fred_permits(settings.FRED_API_KEY)
+            if result["records"]:
+                from app.db.session import SessionLocal
+
+                with SessionLocal() as db:
+                    save_fred_records(
+                        db,
+                        result["records"],
+                        result.get("api_response_code"),
+                        result.get("errors"),
+                    )
+            results["fred_permits"] = len(result["records"])
+        else:
+            errors.append("FRED API key not configured")
+    except Exception as e:
+        logger.exception("fred_manual_fetch_error")
+        errors.append(f"FRED permits: {e}")
+
+    # BLS employment
+    try:
+        from app.services.construction_api.bls_employment import (
+            fetch_bls_employment,
+            save_bls_records,
+        )
+
+        result = await fetch_bls_employment(
+            api_key=getattr(settings, "BLS_API_KEY", None)
+        )
+        if result["records"]:
+            from app.db.session import SessionLocal
+
+            with SessionLocal() as db:
+                save_bls_records(
+                    db,
+                    result["records"],
+                    result.get("api_response_code"),
+                    result.get("errors"),
+                )
+        results["bls_employment"] = len(result["records"])
+    except Exception as e:
+        logger.exception("bls_manual_fetch_error")
+        errors.append(f"BLS employment: {e}")
+
+    # Municipal permits (Mesa, Tempe, Gilbert)
+    for name, fetch_fn_path, save_fn_path in [
+        (
+            "mesa_soda",
+            "app.services.construction_api.mesa_soda",
+            "fetch_mesa_permits",
+        ),
+        (
+            "tempe_blds",
+            "app.services.construction_api.tempe_blds",
+            "fetch_tempe_permits",
+        ),
+        (
+            "gilbert_arcgis",
+            "app.services.construction_api.gilbert_arcgis",
+            "fetch_gilbert_permits",
+        ),
+    ]:
+        try:
+            import importlib
+
+            mod = importlib.import_module(fetch_fn_path)
+            fetch_fn = getattr(mod, save_fn_path)
+            save_fn = getattr(mod, f"save_{name.split('_')[0]}_records")
+
+            result = await fetch_fn()
+            if result["records"]:
+                from app.db.session import SessionLocal
+
+                with SessionLocal() as db:
+                    save_fn(db, result["records"])
+            results[name] = len(result["records"])
+        except Exception as e:
+            logger.exception(f"{name}_manual_fetch_error")
+            errors.append(f"{name}: {e}")
+
+    msg = f"Fetched data from {len(results)} sources"
+    if errors:
+        msg += f" ({len(errors)} errors: {'; '.join(errors)})"
+
+    return FetchAllResponse(
+        success=len(errors) == 0,
+        message=msg,
+        results=results,
+    )
+
+
+# ── 13. POST /backfill-delivery-dates — Compute delivery dates ──────────────
+
+
+@router.post("/backfill-delivery-dates", response_model=BackfillResponse)
+async def backfill_delivery_dates(db: AsyncSession = Depends(get_db)):
+    """Backfill estimated_delivery_date for projects that have year_built or construction_begin.
+
+    Logic:
+    - year_built + month_built → date(year_built, month_built, 1)
+    - year_built only → date(year_built, 6, 15) (mid-year estimate)
+    - construction_begin (string) only → parse + 24 months
+    """
+    from app.services.construction_import import compute_delivery_date
+
+    # Fetch all projects missing delivery date
+    stmt = select(ConstructionProject).where(
+        ConstructionProject.estimated_delivery_date.is_(None),
+    )
+    result = await db.execute(stmt)
+    projects = result.scalars().all()
+
+    updated_count = 0
+    for proj in projects:
+        delivery = compute_delivery_date(
+            proj.year_built, proj.month_built, proj.construction_begin
+        )
+        if delivery:
+            proj.estimated_delivery_date = delivery
+            proj.updated_at = datetime.now(UTC)
+            updated_count += 1
+
+    if updated_count > 0:
+        await db.commit()
+
+    return BackfillResponse(
+        success=True,
+        message=f"Updated {updated_count} of {len(projects)} projects missing delivery dates",
+        rows_updated=updated_count,
     )

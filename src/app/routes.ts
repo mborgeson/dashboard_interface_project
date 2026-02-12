@@ -22,6 +22,9 @@ export const DealsPage = lazy(() =>
 export const MarketPage = lazy(() =>
   import('@/features/market').then(m => ({ default: m.MarketPage }))
 );
+export const USAMarketPage = lazy(() =>
+  import('@/features/market').then(m => ({ default: m.USAMarketPage }))
+);
 export const DocumentsPage = lazy(() =>
   import('@/features/documents').then(m => ({ default: m.DocumentsPage }))
 );
@@ -61,6 +64,7 @@ export const ROUTES = {
   ANALYTICS: '/analytics',
   MAPPING: '/mapping',
   MARKET: '/market',
+  MARKET_USA: '/market/usa',
   DOCUMENTS: '/documents',
   INTEREST_RATES: '/interest-rates',
   REPORTING: '/reporting',

@@ -1195,6 +1195,494 @@ class MarketDataService:
             ),
         ]
 
+    # ==================================================================
+    # USA (National) Market Overview
+    # ==================================================================
+
+    # National FRED series mapping
+    _USA_FRED_SERIES = {
+        "unemployment": "UNRATE",  # National unemployment rate (%)
+        "payrolls": "PAYEMS",  # Total nonfarm payrolls (thousands)
+        "cpi": "CPIAUCSL",  # CPI, all urban consumers (index)
+        "gdp": "GDP",  # GDP (billions)
+        "mortgage30": "MORTGAGE30US",  # 30-year fixed mortgage rate (%)
+        "treasury10": "DGS10",  # 10-year Treasury yield (%)
+        "fedfunds": "FEDFUNDS",  # Federal Funds rate (%)
+        "housing_starts": "HOUST",  # Housing starts (thousands)
+        "permits": "PERMIT",  # Building permits (thousands)
+    }
+
+    async def get_usa_market_overview(self) -> MarketOverviewResponse:
+        """Get national (USA) market overview with economic indicators.
+
+        Tries market_analysis DB first, falls back to static data.
+        """
+        engine = await self._ensure_market_db()
+
+        if engine is not None:
+            try:
+                response = await self._db_get_usa_market_overview(engine)
+                logger.info("get_usa_market_overview served from database")
+                return response
+            except Exception as exc:
+                logger.warning(
+                    f"DB query failed for USA market overview, using static fallback: {exc}"
+                )
+
+        logger.info("get_usa_market_overview served from static_fallback")
+        return self._static_get_usa_market_overview()
+
+    async def _db_get_usa_market_overview(self, engine) -> MarketOverviewResponse:
+        """Query market_analysis DB for national economic indicators from FRED."""
+        from sqlalchemy import text
+
+        async with engine.connect() as conn:
+            indicators: list[EconomicIndicator] = []
+
+            # -- Unemployment Rate (UNRATE) --
+            unemp_result = await conn.execute(
+                text("""
+                    SELECT value, date FROM fred_timeseries
+                    WHERE series_id = 'UNRATE'
+                    ORDER BY date DESC LIMIT 2
+                """)
+            )
+            unemp_rows = unemp_result.fetchall()
+            if unemp_rows:
+                current_unemp = float(unemp_rows[0][0])
+                prev_unemp = (
+                    float(unemp_rows[1][0]) if len(unemp_rows) > 1 else current_unemp
+                )
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="Unemployment Rate",
+                        value=current_unemp,
+                        yoy_change=round(current_unemp - prev_unemp, 2),
+                        unit="%",
+                    )
+                )
+
+            # -- Total Nonfarm Payrolls (PAYEMS) --
+            emp_result = await conn.execute(
+                text("""
+                    SELECT value, date FROM fred_timeseries
+                    WHERE series_id = 'PAYEMS'
+                    ORDER BY date DESC LIMIT 13
+                """)
+            )
+            emp_rows = emp_result.fetchall()
+            job_growth = 0.0
+            if emp_rows and len(emp_rows) >= 2:
+                current_emp = float(emp_rows[0][0])
+                prev_emp = float(emp_rows[-1][0])
+                job_growth = (
+                    round((current_emp - prev_emp) / prev_emp * 100, 1)
+                    if prev_emp
+                    else 0
+                )
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="Job Growth Rate",
+                        value=job_growth,
+                        yoy_change=0,
+                        unit="%",
+                    )
+                )
+
+            # -- CPI (CPIAUCSL) --
+            cpi_result = await conn.execute(
+                text("""
+                    SELECT value, date FROM fred_timeseries
+                    WHERE series_id = 'CPIAUCSL'
+                    ORDER BY date DESC LIMIT 13
+                """)
+            )
+            cpi_rows = cpi_result.fetchall()
+            if cpi_rows and len(cpi_rows) >= 2:
+                cur_cpi = float(cpi_rows[0][0])
+                prev_cpi = float(cpi_rows[-1][0])
+                cpi_change = (
+                    round((cur_cpi - prev_cpi) / prev_cpi * 100, 1) if prev_cpi else 0
+                )
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="CPI (All Urban)",
+                        value=round(cur_cpi, 1),
+                        yoy_change=cpi_change,
+                        unit="index",
+                    )
+                )
+
+            # -- 30-Year Mortgage Rate (MORTGAGE30US) --
+            mortgage_result = await conn.execute(
+                text("""
+                    SELECT value, date FROM fred_timeseries
+                    WHERE series_id = 'MORTGAGE30US'
+                    ORDER BY date DESC LIMIT 2
+                """)
+            )
+            mortgage_rows = mortgage_result.fetchall()
+            if mortgage_rows:
+                cur_mort = float(mortgage_rows[0][0])
+                prev_mort = (
+                    float(mortgage_rows[1][0]) if len(mortgage_rows) > 1 else cur_mort
+                )
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="30-Year Mortgage Rate",
+                        value=cur_mort,
+                        yoy_change=round(cur_mort - prev_mort, 2),
+                        unit="%",
+                    )
+                )
+
+            # -- Federal Funds Rate (FEDFUNDS) --
+            fedfunds_result = await conn.execute(
+                text("""
+                    SELECT value, date FROM fred_timeseries
+                    WHERE series_id = 'FEDFUNDS'
+                    ORDER BY date DESC LIMIT 2
+                """)
+            )
+            fedfunds_rows = fedfunds_result.fetchall()
+            if fedfunds_rows:
+                cur_ff = float(fedfunds_rows[0][0])
+                prev_ff = (
+                    float(fedfunds_rows[1][0]) if len(fedfunds_rows) > 1 else cur_ff
+                )
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="Federal Funds Rate",
+                        value=cur_ff,
+                        yoy_change=round(cur_ff - prev_ff, 2),
+                        unit="%",
+                    )
+                )
+
+            # -- Housing Starts (HOUST) --
+            houst_result = await conn.execute(
+                text("""
+                    SELECT value, date FROM fred_timeseries
+                    WHERE series_id = 'HOUST'
+                    ORDER BY date DESC LIMIT 2
+                """)
+            )
+            houst_rows = houst_result.fetchall()
+            if houst_rows:
+                cur_houst = float(houst_rows[0][0])
+                prev_houst = (
+                    float(houst_rows[1][0]) if len(houst_rows) > 1 else cur_houst
+                )
+                houst_change = (
+                    round((cur_houst - prev_houst) / prev_houst * 100, 1)
+                    if prev_houst
+                    else 0
+                )
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="Housing Starts",
+                        value=cur_houst,
+                        yoy_change=houst_change,
+                        unit="K",
+                    )
+                )
+
+            # -- Building Permits (PERMIT) --
+            permit_result = await conn.execute(
+                text("""
+                    SELECT value, date FROM fred_timeseries
+                    WHERE series_id = 'PERMIT'
+                    ORDER BY date DESC LIMIT 2
+                """)
+            )
+            permit_rows = permit_result.fetchall()
+            if permit_rows:
+                cur_permit = float(permit_rows[0][0])
+                prev_permit = (
+                    float(permit_rows[1][0]) if len(permit_rows) > 1 else cur_permit
+                )
+                permit_change = (
+                    round((cur_permit - prev_permit) / prev_permit * 100, 1)
+                    if prev_permit
+                    else 0
+                )
+                indicators.append(
+                    EconomicIndicator(
+                        indicator="Building Permits",
+                        value=cur_permit,
+                        yoy_change=permit_change,
+                        unit="K",
+                    )
+                )
+
+            # Fill missing indicators with static defaults
+            indicator_names = {i.indicator for i in indicators}
+            for default in self._static_get_usa_market_overview().economic_indicators:
+                if default.indicator not in indicator_names:
+                    indicators.append(default)
+
+            employment_val = (
+                int(float(emp_rows[0][0]) * 1000) if emp_rows else 157000000
+            )
+
+            # -- GDP (GDP series — quarterly, billions) --
+            gdp_val = 28000000000000  # default ~$28T
+            gdp_growth = 0.025
+            gdp_result = await conn.execute(
+                text("""
+                    SELECT value, date FROM fred_timeseries
+                    WHERE series_id = 'GDP'
+                    ORDER BY date DESC LIMIT 5
+                """)
+            )
+            gdp_rows = gdp_result.fetchall()
+            if gdp_rows:
+                gdp_val = int(float(gdp_rows[0][0]) * 1000000000)  # billions -> dollars
+                if len(gdp_rows) >= 5:
+                    prev_gdp = float(gdp_rows[-1][0])
+                    cur_gdp = float(gdp_rows[0][0])
+                    gdp_growth = (
+                        round((cur_gdp - prev_gdp) / prev_gdp, 4) if prev_gdp else 0.025
+                    )
+
+            msa_overview = MSAOverview(
+                population=331000000,
+                employment=employment_val,
+                gdp=gdp_val,
+                population_growth=0.006,
+                employment_growth=job_growth / 100 if emp_rows else 0.017,
+                gdp_growth=gdp_growth,
+                last_updated=self._market_data_freshness
+                or datetime.now().strftime("%Y-%m-%d"),
+            )
+
+            return MarketOverviewResponse(
+                msa_overview=msa_overview,
+                economic_indicators=indicators,
+                last_updated=self._last_updated,
+                source="database",
+            )
+
+    def _static_get_usa_market_overview(self) -> MarketOverviewResponse:
+        """Static fallback for national market overview."""
+        msa_overview = MSAOverview(
+            population=331000000,
+            employment=157000000,
+            gdp=28000000000000,
+            population_growth=0.006,
+            employment_growth=0.017,
+            gdp_growth=0.025,
+            last_updated=datetime.now().strftime("%Y-%m-%d"),
+        )
+
+        economic_indicators = [
+            EconomicIndicator(
+                indicator="Unemployment Rate", value=3.9, yoy_change=-0.2, unit="%"
+            ),
+            EconomicIndicator(
+                indicator="Job Growth Rate", value=1.7, yoy_change=0.3, unit="%"
+            ),
+            EconomicIndicator(
+                indicator="CPI (All Urban)", value=314.2, yoy_change=3.1, unit="index"
+            ),
+            EconomicIndicator(
+                indicator="30-Year Mortgage Rate",
+                value=6.8,
+                yoy_change=0.1,
+                unit="%",
+            ),
+            EconomicIndicator(
+                indicator="Federal Funds Rate",
+                value=5.33,
+                yoy_change=-0.25,
+                unit="%",
+            ),
+            EconomicIndicator(
+                indicator="Housing Starts",
+                value=1420,
+                yoy_change=-2.1,
+                unit="K",
+            ),
+            EconomicIndicator(
+                indicator="Building Permits",
+                value=1480,
+                yoy_change=1.5,
+                unit="K",
+            ),
+        ]
+
+        return MarketOverviewResponse(
+            msa_overview=msa_overview,
+            economic_indicators=economic_indicators,
+            last_updated=self._last_updated,
+            source="static_fallback",
+        )
+
+    # ==================================================================
+    # USA (National) Market Trends
+    # ==================================================================
+
+    async def get_usa_market_trends(
+        self, period_months: int = 12
+    ) -> MarketTrendsResponse:
+        """Get national market trends over time.
+
+        Tries market_analysis DB for national FRED series, falls back to static data.
+        """
+        engine = await self._ensure_market_db()
+
+        if engine is not None:
+            try:
+                response = await self._db_get_usa_market_trends(engine, period_months)
+                logger.info("get_usa_market_trends served from database")
+                return response
+            except Exception as exc:
+                logger.warning(
+                    f"DB query failed for USA market trends, using static fallback: {exc}"
+                )
+
+        logger.info("get_usa_market_trends served from static_fallback")
+        return self._static_get_usa_market_trends(period_months)
+
+    async def _db_get_usa_market_trends(
+        self, engine, period_months: int
+    ) -> MarketTrendsResponse:
+        """Query market_analysis DB for national trailing trend data from FRED."""
+        from sqlalchemy import text
+
+        async with engine.connect() as conn:
+            # Query key national FRED series over the period
+            result = await conn.execute(
+                text("""
+                    SELECT
+                        u.date,
+                        TO_CHAR(u.date, 'Mon YYYY') as label,
+                        u.value as unemployment,
+                        m.value as mortgage_rate,
+                        f.value as fedfunds
+                    FROM fred_timeseries u
+                    LEFT JOIN fred_timeseries m
+                        ON m.series_id = 'MORTGAGE30US' AND m.date = u.date
+                    LEFT JOIN fred_timeseries f
+                        ON f.series_id = 'FEDFUNDS' AND f.date = u.date
+                    WHERE u.series_id = 'UNRATE'
+                    ORDER BY u.date DESC
+                    LIMIT :limit
+                """),
+                {"limit": period_months},
+            )
+            rows = result.fetchall()
+
+            if not rows:
+                logger.info("No USA trend rows in DB, falling back to static")
+                return self._static_get_usa_market_trends(period_months)
+
+            # Reverse to chronological order
+            rows = list(reversed(rows))
+
+            trends = []
+            monthly_data = []
+            for row in rows:
+                unemp = float(row[2]) if row[2] is not None else 3.9
+                mortgage = float(row[3]) if row[3] is not None else 6.8
+                # Map national data into the MarketTrend shape:
+                #   rent_growth -> unemployment rate (repurposed for national view)
+                #   occupancy -> 1 - (unemployment/100) as "employment rate"
+                #   cap_rate -> mortgage rate (as a key rate metric)
+                employment_rate = round(1 - unemp / 100, 4)
+
+                trends.append(
+                    MarketTrend(
+                        month=row[1],
+                        rent_growth=round(unemp, 2),
+                        occupancy=employment_rate,
+                        cap_rate=round(mortgage, 2),
+                    )
+                )
+                monthly_data.append(
+                    MonthlyMarketData(
+                        month=row[1],
+                        rent_growth=round(unemp, 2),
+                        occupancy=employment_rate,
+                        cap_rate=round(mortgage, 2),
+                        employment=0,
+                        population=0,
+                    )
+                )
+
+            return MarketTrendsResponse(
+                trends=trends,
+                monthly_data=monthly_data,
+                period=f"{period_months}M",
+                last_updated=self._last_updated,
+                source="database",
+            )
+
+    def _static_get_usa_market_trends(self, period_months: int) -> MarketTrendsResponse:
+        """Static fallback for national trend data."""
+        months = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+        ]
+
+        base_unemployment = 4.1
+        base_employment_rate = 0.959
+        base_mortgage_rate = 7.1
+        base_employment = 156000000
+        base_population = 330000000
+
+        trends = []
+        monthly_data = []
+
+        for i, month in enumerate(months[:period_months]):
+            progress = i / 11.0
+            unemployment = base_unemployment - (0.3 * progress)
+            employment_rate = base_employment_rate + (0.003 * progress)
+            mortgage_rate = base_mortgage_rate - (0.4 * progress)
+            employment = int(base_employment + (1200000 * progress))
+            population = int(base_population + (800000 * progress))
+
+            trends.append(
+                MarketTrend(
+                    month=month,
+                    rent_growth=round(unemployment, 2),
+                    occupancy=round(employment_rate, 4),
+                    cap_rate=round(mortgage_rate, 2),
+                )
+            )
+            monthly_data.append(
+                MonthlyMarketData(
+                    month=month,
+                    rent_growth=round(unemployment, 2),
+                    occupancy=round(employment_rate, 4),
+                    cap_rate=round(mortgage_rate, 2),
+                    employment=employment,
+                    population=population,
+                )
+            )
+
+        return MarketTrendsResponse(
+            trends=trends,
+            monthly_data=monthly_data,
+            period=f"{period_months}M",
+            last_updated=self._last_updated,
+            source="static_fallback",
+        )
+
+    # ==================================================================
+    # get_comparables
+    # ==================================================================
+
     def _static_get_comparables(
         self,
         property_id: str | None = None,

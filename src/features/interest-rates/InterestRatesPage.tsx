@@ -1,12 +1,47 @@
 import { useState } from 'react';
-import { TrendingUp, LineChart, GitCompare, Database, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { TrendingUp, LineChart, GitCompare, Database, RefreshCw, Wifi, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { KeyRatesSnapshot } from './components/KeyRatesSnapshot';
 import { TreasuryYieldCurve } from './components/TreasuryYieldCurve';
 import { RateComparisons } from './components/RateComparisons';
 import { DataSources } from './components/DataSources';
 import { useInterestRates, getAsOfDate } from './hooks/useInterestRates';
-import { mockDataSources } from '@/data/mockInterestRates';
+import type { RateDataSource } from './types';
+
+const dataSources: RateDataSource[] = [
+  {
+    id: 'fred',
+    name: 'Federal Reserve Economic Data (FRED)',
+    url: 'https://fred.stlouisfed.org/',
+    description: 'Comprehensive economic database by Federal Reserve Bank of St. Louis.',
+    dataTypes: ['Federal Funds Rate', 'Treasury Yields', 'SOFR', 'Economic Indicators'],
+    updateFrequency: 'Daily',
+  },
+  {
+    id: 'treasury-gov',
+    name: 'U.S. Treasury Department',
+    url: 'https://home.treasury.gov/',
+    description: 'Official source for Treasury yield curve data.',
+    dataTypes: ['Treasury Yields', 'Yield Curve', 'Auction Results'],
+    updateFrequency: 'Daily',
+  },
+  {
+    id: 'cme-sofr',
+    name: 'CME Group - SOFR',
+    url: 'https://www.cmegroup.com/markets/interest-rates/stirs/sofr.html',
+    description: 'Official source for Term SOFR rates.',
+    dataTypes: ['Term SOFR', 'SOFR Futures'],
+    updateFrequency: 'Real-time',
+  },
+  {
+    id: 'ny-fed',
+    name: 'Federal Reserve Bank of New York',
+    url: 'https://www.newyorkfed.org/markets/reference-rates/sofr',
+    description: 'Official administrator of SOFR.',
+    dataTypes: ['SOFR', 'EFFR', 'OBFR'],
+    updateFrequency: 'Daily',
+  },
+];
 
 type TabId = 'snapshot' | 'yield-curve' | 'comparisons' | 'sources';
 
@@ -73,7 +108,7 @@ export function InterestRatesPage() {
       case 'comparisons':
         return <RateComparisons historicalData={historicalRates} />;
       case 'sources':
-        return <DataSources sources={mockDataSources} />;
+        return <DataSources sources={dataSources} />;
       default:
         return null;
     }
@@ -106,8 +141,8 @@ export function InterestRatesPage() {
                   </>
                 ) : (
                   <>
-                    <WifiOff className="w-3 h-3" />
-                    <span>Mock Data</span>
+                    <AlertCircle className="w-3 h-3" />
+                    <span>No Data</span>
                   </>
                 )}
               </div>
@@ -226,17 +261,8 @@ export function InterestRatesPage() {
       {/* Footer Note */}
       <div className="max-w-7xl mx-auto px-6 pb-8">
         <div className="text-xs text-neutral-500 text-center">
-          {isLiveData ? (
-            <>
-              Live rate data is fetched from FRED (Federal Reserve Economic Data) and updates automatically every 5 minutes.
-              Data may be delayed by up to one business day from official sources.
-            </>
-          ) : (
-            <>
-              Currently displaying mock data. Configure your FRED API key to see live rates.
-              This information is provided for educational purposes and should not be considered financial advice.
-            </>
-          )}
+          Rate data is sourced from FRED (Federal Reserve Economic Data) and the market database. Updates automatically every 5 minutes.
+          Data may be delayed by up to one business day from official sources.
         </div>
       </div>
     </div>

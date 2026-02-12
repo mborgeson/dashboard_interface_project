@@ -13,7 +13,7 @@ import {
   Area,
 } from 'recharts';
 import { cn } from '@/lib/utils';
-import type { HistoricalRate } from '@/data/mockInterestRates';
+import type { HistoricalRate } from '../types';
 
 interface RateComparisonsProps {
   historicalData: HistoricalRate[];

@@ -35,16 +35,24 @@ async def get_current_rates():
     Returns Federal Funds rate, Treasury yields (2Y, 5Y, 7Y, 10Y),
     SOFR rates, and mortgage rates with change from previous values.
 
-    Rates are cached for 5 minutes and sourced from FRED API
-    (falls back to mock data if unavailable).
+    Rates are cached for 5 minutes and sourced from database or FRED API.
     """
     service = get_interest_rates_service()
     data = await service.get_key_rates()
 
+    last_updated_str = data.get("last_updated", datetime.now(UTC).isoformat())
+    if isinstance(last_updated_str, str):
+        try:
+            last_updated = datetime.fromisoformat(last_updated_str)
+        except ValueError:
+            last_updated = datetime.now(UTC)
+    else:
+        last_updated = last_updated_str
+
     return KeyRatesResponse(
         key_rates=data["key_rates"],
-        last_updated=datetime.now(UTC),
-        source=data.get("source", "mock"),
+        last_updated=last_updated,
+        source=data.get("source", "unavailable"),
     )
 
 
@@ -64,11 +72,20 @@ async def get_yield_curve():
     service = get_interest_rates_service()
     data = await service.get_yield_curve()
 
+    last_updated_str = data.get("last_updated", datetime.now(UTC).isoformat())
+    if isinstance(last_updated_str, str):
+        try:
+            last_updated = datetime.fromisoformat(last_updated_str)
+        except ValueError:
+            last_updated = datetime.now(UTC)
+    else:
+        last_updated = last_updated_str
+
     return YieldCurveResponse(
         yield_curve=data["yield_curve"],
         as_of_date=data["as_of_date"],
-        last_updated=datetime.now(UTC),
-        source=data.get("source", "mock"),
+        last_updated=last_updated,
+        source=data.get("source", "unavailable"),
     )
 
 
@@ -93,12 +110,21 @@ async def get_historical_rates(
     service = get_interest_rates_service()
     data = await service.get_historical_rates(months)
 
+    last_updated_str = data.get("last_updated", datetime.now(UTC).isoformat())
+    if isinstance(last_updated_str, str):
+        try:
+            last_updated = datetime.fromisoformat(last_updated_str)
+        except ValueError:
+            last_updated = datetime.now(UTC)
+    else:
+        last_updated = last_updated_str
+
     return HistoricalRatesResponse(
         rates=data["rates"],
         start_date=data["start_date"],
         end_date=data["end_date"],
-        last_updated=datetime.now(UTC),
-        source=data.get("source", "mock"),
+        last_updated=last_updated,
+        source=data.get("source", "unavailable"),
     )
 
 
@@ -120,10 +146,19 @@ async def get_rate_spreads(
     service = get_interest_rates_service()
     data = await service.get_rate_spreads(months)
 
+    last_updated_str = data.get("last_updated", datetime.now(UTC).isoformat())
+    if isinstance(last_updated_str, str):
+        try:
+            last_updated = datetime.fromisoformat(last_updated_str)
+        except ValueError:
+            last_updated = datetime.now(UTC)
+    else:
+        last_updated = last_updated_str
+
     return RateSpreadsResponse(
         spreads=data["spreads"],
-        last_updated=datetime.now(UTC),
-        source=data.get("source", "mock"),
+        last_updated=last_updated,
+        source=data.get("source", "unavailable"),
     )
 
 
@@ -133,16 +168,52 @@ async def get_data_sources():
     Get list of interest rate data sources.
 
     Returns information about authoritative sources for rate data:
-    - U.S. Treasury Department
     - Federal Reserve Economic Data (FRED)
+    - U.S. Treasury Department
     - CME Group (for SOFR)
     - NY Fed
-    - Bankrate (for mortgage rates)
 
     Each source includes URL, description, data types, and update frequency.
     """
-    service = get_interest_rates_service()
-    sources = service.get_mock_data_sources()
+    sources = [
+        {
+            "id": "fred",
+            "name": "Federal Reserve Economic Data (FRED)",
+            "url": "https://fred.stlouisfed.org/",
+            "description": "Comprehensive economic database by Federal Reserve Bank of St. Louis.",
+            "data_types": [
+                "Federal Funds Rate",
+                "Treasury Yields",
+                "SOFR",
+                "Economic Indicators",
+            ],
+            "update_frequency": "Daily",
+        },
+        {
+            "id": "treasury-gov",
+            "name": "U.S. Treasury Department",
+            "url": "https://home.treasury.gov/",
+            "description": "Official source for Treasury yield curve data.",
+            "data_types": ["Treasury Yields", "Yield Curve", "Auction Results"],
+            "update_frequency": "Daily",
+        },
+        {
+            "id": "cme-sofr",
+            "name": "CME Group - SOFR",
+            "url": "https://www.cmegroup.com/markets/interest-rates/stirs/sofr.html",
+            "description": "Official source for Term SOFR rates.",
+            "data_types": ["Term SOFR", "SOFR Futures"],
+            "update_frequency": "Real-time",
+        },
+        {
+            "id": "ny-fed",
+            "name": "Federal Reserve Bank of New York",
+            "url": "https://www.newyorkfed.org/markets/reference-rates/sofr",
+            "description": "Official administrator of SOFR.",
+            "data_types": ["SOFR", "EFFR", "OBFR"],
+            "update_frequency": "Daily",
+        },
+    ]
 
     return DataSourcesResponse(sources=sources)
 
