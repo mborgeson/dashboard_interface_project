@@ -68,6 +68,8 @@ class MarketDataService:
     def update_last_refreshed(self) -> str:
         """Update the last refreshed timestamp. Called after successful data refresh."""
         self._last_updated = datetime.now()
+        # Also update market_data_freshness so MSA overview shows current date
+        self._market_data_freshness = self._last_updated.strftime("%Y-%m-%d")
         logger.info(f"Market data last_updated set to {self._last_updated}")
         return self._last_updated.strftime("%Y-%m-%d")
 

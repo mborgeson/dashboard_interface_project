@@ -123,8 +123,19 @@ function ReportWizardContent({ defaultTemplateId, onClose }: WizardContentProps)
     refetchInterval: state.generatedReportId ? 2000 : undefined,
   });
 
-  // Validation helper - must be declared before canGoNext
-  const validateParameters = useCallback((): boolean => {
+  // Check if parameters are valid (without setting state - safe to call during render)
+  const areParametersValid = useMemo((): boolean => {
+    if (!state.selectedTemplate) return false;
+    for (const param of state.selectedTemplate.parameters) {
+      if (param.required && !state.parameters[param.name]) {
+        return false;
+      }
+    }
+    return true;
+  }, [state.selectedTemplate, state.parameters]);
+
+  // Validation helper that sets error state (only call from event handlers, NOT during render)
+  const validateAndShowErrors = useCallback((): boolean => {
     if (!state.selectedTemplate) return false;
 
     const errors: Record<string, string> = {};
@@ -154,13 +165,13 @@ function ReportWizardContent({ defaultTemplateId, onClose }: WizardContentProps)
     }
   }, [state.selectedTemplate, state.selectedFormat, state.parameters, generateMutation]);
 
-  // Navigation helpers
-  const canGoNext = useCallback((): boolean => {
+  // Navigation helpers - canGoNext is called during render, so it must NOT set state
+  const canGoNext = useMemo((): boolean => {
     switch (state.step) {
       case 'template':
         return state.selectedTemplate !== null;
       case 'configure':
-        return validateParameters();
+        return areParametersValid;
       case 'format':
         return state.selectedFormat !== null;
       case 'generate':
@@ -168,11 +179,16 @@ function ReportWizardContent({ defaultTemplateId, onClose }: WizardContentProps)
       default:
         return false;
     }
-  }, [state, validateParameters]);
+  }, [state.step, state.selectedTemplate, state.selectedFormat, areParametersValid]);
 
   const goToNextStep = useCallback(() => {
     const steps: WizardStep[] = ['template', 'configure', 'format', 'generate'];
     const currentIndex = steps.indexOf(state.step);
+
+    // Validate parameters when leaving configure step (this sets error state for display)
+    if (state.step === 'configure' && !validateAndShowErrors()) {
+      return;
+    }
 
     if (currentIndex < steps.length - 1) {
       const nextStep = steps[currentIndex + 1];
@@ -187,7 +203,7 @@ function ReportWizardContent({ defaultTemplateId, onClose }: WizardContentProps)
         startGeneration();
       }
     }
-  }, [state.step, startGeneration]);
+  }, [state.step, startGeneration, validateAndShowErrors]);
 
   const goToPreviousStep = useCallback(() => {
     const steps: WizardStep[] = ['template', 'configure', 'format', 'generate'];
@@ -328,7 +344,7 @@ function ReportWizardContent({ defaultTemplateId, onClose }: WizardContentProps)
               Cancel
             </Button>
             {showNextButton && (
-              <Button onClick={goToNextStep} disabled={!canGoNext()}>
+              <Button onClick={goToNextStep} disabled={!canGoNext}>
                 {state.step === 'format' ? 'Generate' : 'Next'}
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>

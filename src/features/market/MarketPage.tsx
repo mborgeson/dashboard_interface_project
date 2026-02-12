@@ -13,12 +13,6 @@ import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
 
 export type TimeframeComparison = 'mom' | 'qoq' | 'yoy';
 
-const TIMEFRAME_OPTIONS: { value: TimeframeComparison; label: string; description: string }[] = [
-  { value: 'mom', label: 'MoM', description: 'Month-over-Month' },
-  { value: 'qoq', label: 'QoQ', description: 'Quarter-over-Quarter' },
-  { value: 'yoy', label: 'YoY', description: 'Year-over-Year' },
-];
-
 // Lazy load ReportWizard modal for code splitting
 const ReportWizard = lazy(() =>
   import('@/features/reporting-suite/components/ReportWizard/ReportWizard').then(m => ({ default: m.ReportWizard }))
@@ -58,7 +52,8 @@ export { MarketSubNav };
 export function MarketPage() {
   const [showReportWizard, setShowReportWizard] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [timeframe, setTimeframe] = useState<TimeframeComparison>('yoy');
+  // Data is always YoY from backend - MoM/QoQ would require additional API support
+  const timeframe: TimeframeComparison = 'yoy';
 
   const {
     msaOverview,
@@ -152,20 +147,10 @@ export function MarketPage() {
         </div>
         <div className="flex items-center gap-3">
           <MarketSubNav />
-          {/* Timeframe Comparison Dropdown */}
+          {/* Timeframe indicator - data is YoY from backend */}
           <div className="flex items-center gap-2 px-3 py-1.5 bg-neutral-100 rounded-lg">
             <Calendar className="h-4 w-4 text-neutral-500" />
-            <select
-              value={timeframe}
-              onChange={(e) => setTimeframe(e.target.value as TimeframeComparison)}
-              className="bg-transparent text-sm font-medium text-neutral-700 focus:outline-none cursor-pointer"
-            >
-              {TIMEFRAME_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label} ({opt.description})
-                </option>
-              ))}
-            </select>
+            <span className="text-sm font-medium text-neutral-700">YoY (Year-over-Year)</span>
           </div>
           <Button
             variant="outline"

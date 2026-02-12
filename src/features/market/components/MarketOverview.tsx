@@ -16,14 +16,17 @@ interface MarketOverviewProps {
 }
 
 export function MarketOverview({ overview, regionLabel = 'Phoenix MSA', timeframe = 'yoy' }: MarketOverviewProps) {
-  const formatNumber = (value: number): string => {
+  const formatNumber = (value: number, prefix: string = ''): string => {
     if (value >= 1000000000) {
-      return `$${(value / 1000000000).toFixed(1)}B`;
+      return `${prefix}${(value / 1000000000).toFixed(1)}B`;
     }
     if (value >= 1000000) {
-      return `${(value / 1000000).toFixed(2)}M`;
+      return `${prefix}${(value / 1000000).toFixed(1)}M`;
     }
-    return value.toLocaleString();
+    if (value >= 1000) {
+      return `${prefix}${(value / 1000).toFixed(1)}K`;
+    }
+    return `${prefix}${value.toLocaleString()}`;
   };
 
   const formatPercentage = (value: number): string => {
@@ -55,7 +58,7 @@ export function MarketOverview({ overview, regionLabel = 'Phoenix MSA', timefram
     },
     {
       label: 'GDP',
-      value: formatNumber(overview.gdp),
+      value: formatNumber(overview.gdp, '$'),
       change: overview.gdpGrowth,
       icon: DollarSign,
       description: 'Regional GDP',
