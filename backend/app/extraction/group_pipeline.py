@@ -15,8 +15,11 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from .cell_mapping import CellMapping
 
 import structlog
 from sqlalchemy.orm import Session
@@ -570,6 +573,90 @@ class GroupExtractionPipeline:
         )
         return all_conflicts
 
+    def _apply_field_remaps(
+        self,
+        group_name: str,
+        cell_mappings: dict[str, "CellMapping"],
+    ) -> tuple[dict[str, "CellMapping"], list[dict[str, Any]]]:
+        """
+        Apply field-specific cell remaps for groups with non-production layouts.
+
+        Loads field_remaps.json and adjusts cell_address in CellMapping objects
+        for fields that have custom offsets in this group.
+
+        Args:
+            group_name: Name of the group being extracted.
+            cell_mappings: Dictionary of field_name -> CellMapping objects.
+
+        Returns:
+            Tuple of (modified cell_mappings, list of applied remaps for logging).
+        """
+        remaps_path = self.data_dir / "field_remaps.json"
+        applied_remaps: list[dict[str, Any]] = []
+
+        if not remaps_path.exists():
+            logger.debug("field_remaps_not_found", path=str(remaps_path))
+            return cell_mappings, applied_remaps
+
+        try:
+            remaps_data = json.loads(remaps_path.read_text())
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(
+                "field_remaps_load_error",
+                path=str(remaps_path),
+                error=str(e),
+            )
+            return cell_mappings, applied_remaps
+
+        # Check if this group has remaps
+        group_remaps = remaps_data.get(group_name, {}).get("remaps", {})
+        if not group_remaps:
+            logger.debug(
+                "no_field_remaps_for_group",
+                group_name=group_name,
+            )
+            return cell_mappings, applied_remaps
+
+        # Apply remaps to matching fields
+        for field_name, remap_info in group_remaps.items():
+            if field_name not in cell_mappings:
+                logger.debug(
+                    "remap_field_not_in_mappings",
+                    field_name=field_name,
+                    group_name=group_name,
+                )
+                continue
+
+            # Get the group-specific cell address
+            group_cell = remap_info.get("group_cell")
+            if not group_cell:
+                continue
+
+            original_cell = cell_mappings[field_name].cell_address
+            # Update the cell_address in the CellMapping
+            cell_mappings[field_name].cell_address = group_cell
+
+            applied_remaps.append(
+                {
+                    "field_name": field_name,
+                    "original_cell": original_cell,
+                    "remapped_cell": group_cell,
+                    "offset": remap_info.get("offset", 0),
+                    "type": remap_info.get("type", "unknown"),
+                    "reason": remap_info.get("reason", ""),
+                }
+            )
+
+        if applied_remaps:
+            logger.info(
+                "field_remaps_applied",
+                group_name=group_name,
+                remap_count=len(applied_remaps),
+                fields=[r["field_name"] for r in applied_remaps],
+            )
+
+        return cell_mappings, applied_remaps
+
     def run_group_extraction(
         self,
         db: Session,
@@ -625,6 +712,11 @@ class GroupExtractionPipeline:
                 "files_processed": 0,
             }
 
+        # Apply field-specific remaps for groups with non-production layouts
+        cell_mappings, applied_remaps = self._apply_field_remaps(
+            group_name, cell_mappings
+        )
+
         # Load group files
         groups_path = self.data_dir / "groups.json"
         groups_data = json.loads(groups_path.read_text())
@@ -655,6 +747,8 @@ class GroupExtractionPipeline:
             "files_failed": 0,
             "total_values": 0,
             "per_file": {},
+            "field_remaps_applied": len(applied_remaps),
+            "field_remaps": applied_remaps if applied_remaps else None,
         }
 
         # Create extraction run if not dry-run
@@ -666,10 +760,14 @@ class GroupExtractionPipeline:
                 files_discovered=len(group_files),
             )
             run_id = run.id
-            # Store group metadata
+            # Store group metadata including field remaps
             run.file_metadata = {
                 "group_name": group_name,
                 "source": "uw_model_grouping",
+                "field_remaps_applied": len(applied_remaps),
+                "field_remaps": [r["field_name"] for r in applied_remaps]
+                if applied_remaps
+                else None,
             }
             db.commit()
 
@@ -770,6 +868,225 @@ class GroupExtractionPipeline:
             values=report["total_values"],
         )
         return report
+
+    def approve_group(self, group_name: str) -> bool:
+        """
+        Mark a group as approved for live extraction.
+
+        Updates config.json groups[group_name].approved = true.
+
+        Args:
+            group_name: Name of the group to approve.
+
+        Returns:
+            True if approval was successful, False if group not found.
+
+        Raises:
+            ValueError: If group does not exist or is not ready for approval.
+        """
+        # Verify group exists in groups.json
+        groups_path = self.data_dir / "groups.json"
+        if not groups_path.exists():
+            raise ValueError("Groups not found. Run grouping first.")
+
+        groups_data = json.loads(groups_path.read_text())
+        existing_group_names = [g["group_name"] for g in groups_data.get("groups", [])]
+
+        if group_name not in existing_group_names:
+            raise ValueError(f"Group '{group_name}' not found.")
+
+        # Verify reference mapping exists
+        group_dir = self.data_dir / group_name
+        mapping_path = group_dir / "reference_mapping.json"
+        if not mapping_path.exists():
+            raise ValueError(
+                f"Reference mapping not found for group '{group_name}'. "
+                "Run reference mapping first."
+            )
+
+        # Load full config.json (with groups tracking)
+        config_data = json.loads(self.config_path.read_text())
+
+        # Initialize groups tracking if not present
+        if "groups" not in config_data:
+            config_data["groups"] = {}
+
+        # Initialize group tracking if not present
+        if group_name not in config_data["groups"]:
+            config_data["groups"][group_name] = {
+                "reference_created": True,
+                "reference_validated": False,
+                "canary_pass": False,
+                "approved": False,
+                "extracted": False,
+                "validated": False,
+            }
+
+        # Mark as approved
+        config_data["groups"][group_name]["approved"] = True
+        config_data["groups"][group_name]["last_updated"] = datetime.now(
+            UTC
+        ).isoformat()
+        config_data["updated_at"] = datetime.now(UTC).isoformat()
+
+        # Persist
+        self.config_path.write_text(json.dumps(config_data, indent=2))
+
+        logger.info("group_approved", group=group_name)
+        return True
+
+    def get_approved_groups(self) -> list[str]:
+        """
+        Get list of all approved group names.
+
+        Returns:
+            List of group names that have been approved.
+        """
+        if not self.config_path.exists():
+            return []
+
+        config_data = json.loads(self.config_path.read_text())
+        groups_tracking = config_data.get("groups", {})
+
+        return [
+            name
+            for name, status in groups_tracking.items()
+            if status.get("approved", False)
+        ]
+
+    def run_batch_extraction(
+        self,
+        db: Session,
+        group_names: list[str] | None = None,
+        dry_run: bool = True,
+        stop_on_error: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Run extraction on multiple groups.
+
+        Args:
+            db: Database session.
+            group_names: List of group names to extract.
+                         If None, extracts all approved groups.
+            dry_run: If True, produces report without DB writes.
+            stop_on_error: If True, stops batch on first extraction error.
+
+        Returns:
+            Batch extraction report dict with keys:
+                - groups_processed: int
+                - groups_failed: int
+                - total_files: int
+                - total_values: int
+                - per_group: dict[str, extraction_report]
+        """
+        # Determine which groups to extract
+        if group_names is None:
+            group_names = self.get_approved_groups()
+            if not group_names:
+                return {
+                    "groups_processed": 0,
+                    "groups_failed": 0,
+                    "total_files": 0,
+                    "total_values": 0,
+                    "per_group": {},
+                    "error": "No approved groups found. Approve groups first.",
+                }
+
+        # Validate all requested groups exist
+        groups_path = self.data_dir / "groups.json"
+        if not groups_path.exists():
+            raise ValueError("Groups not found. Run grouping first.")
+
+        groups_data = json.loads(groups_path.read_text())
+        existing_groups = {g["group_name"] for g in groups_data.get("groups", [])}
+
+        invalid_groups = [g for g in group_names if g not in existing_groups]
+        if invalid_groups:
+            raise ValueError(f"Groups not found: {invalid_groups}")
+
+        # Run extractions
+        batch_report: dict[str, Any] = {
+            "started_at": datetime.now(UTC).isoformat(),
+            "dry_run": dry_run,
+            "groups_processed": 0,
+            "groups_failed": 0,
+            "total_files": 0,
+            "total_values": 0,
+            "per_group": {},
+        }
+
+        for gn in group_names:
+            try:
+                report = self.run_group_extraction(
+                    db=db,
+                    group_name=gn,
+                    dry_run=dry_run,
+                )
+
+                batch_report["per_group"][gn] = {
+                    "group_name": report["group_name"],
+                    "dry_run": report["dry_run"],
+                    "files_processed": report["files_processed"],
+                    "files_failed": report["files_failed"],
+                    "total_values": report["total_values"],
+                    "started_at": report.get("started_at", ""),
+                    "completed_at": report.get("completed_at", ""),
+                }
+
+                if report["files_failed"] > 0 and report["files_processed"] == 0:
+                    # Entire group failed
+                    batch_report["groups_failed"] += 1
+                    if stop_on_error:
+                        break
+                else:
+                    batch_report["groups_processed"] += 1
+
+                batch_report["total_files"] += (
+                    report["files_processed"] + report["files_failed"]
+                )
+                batch_report["total_values"] += report["total_values"]
+
+            except Exception as e:
+                logger.error(
+                    "batch_extraction_group_failed",
+                    group=gn,
+                    error=str(e),
+                )
+                batch_report["groups_failed"] += 1
+                batch_report["per_group"][gn] = {
+                    "group_name": gn,
+                    "dry_run": dry_run,
+                    "files_processed": 0,
+                    "files_failed": 0,
+                    "total_values": 0,
+                    "started_at": "",
+                    "completed_at": "",
+                    "error": str(e),
+                }
+
+                if stop_on_error:
+                    break
+
+        batch_report["completed_at"] = datetime.now(UTC).isoformat()
+
+        # Persist batch report
+        report_name = (
+            "batch_dry_run_report.json" if dry_run else "batch_extraction_log.json"
+        )
+        (self.data_dir / report_name).write_text(
+            json.dumps(batch_report, indent=2, default=str)
+        )
+
+        logger.info(
+            "batch_extraction_completed",
+            dry_run=dry_run,
+            groups_processed=batch_report["groups_processed"],
+            groups_failed=batch_report["groups_failed"],
+            total_files=batch_report["total_files"],
+            total_values=batch_report["total_values"],
+        )
+
+        return batch_report
 
     def run_cross_group_validation(self, db: Session) -> dict[str, Any]:
         """

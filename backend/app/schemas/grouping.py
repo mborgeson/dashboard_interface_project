@@ -101,3 +101,37 @@ class PipelineStatusResponse(BaseModel):
     stats: dict[str, int]
     created_at: str = ""
     updated_at: str = ""
+
+
+class GroupApprovalResponse(BaseModel):
+    """Response from group approval."""
+
+    group_name: str
+    approved: bool
+    message: str = ""
+
+
+class BatchExtractionRequest(BaseModel):
+    """Request to extract data from multiple groups."""
+
+    group_names: list[str] | None = Field(
+        default=None,
+        description="Groups to extract. If None, extracts all approved groups.",
+    )
+    dry_run: bool = Field(
+        default=True, description="If True, produces report without DB writes"
+    )
+    stop_on_error: bool = Field(
+        default=False,
+        description="If True, stops batch on first group extraction error",
+    )
+
+
+class BatchExtractionResponse(BaseModel):
+    """Response from batch extraction."""
+
+    groups_processed: int
+    groups_failed: int
+    total_files: int
+    total_values: int
+    per_group: dict[str, GroupExtractionResponse] = Field(default_factory=dict)

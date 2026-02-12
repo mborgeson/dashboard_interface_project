@@ -17,9 +17,12 @@ from sqlalchemy.orm import Session
 from app.db.session import get_sync_db
 from app.extraction.group_pipeline import GroupExtractionPipeline
 from app.schemas.grouping import (
+    BatchExtractionRequest,
+    BatchExtractionResponse,
     ConflictCheckResponse,
     DiscoveryResponse,
     FingerprintResponse,
+    GroupApprovalResponse,
     GroupDetailResponse,
     GroupExtractionRequest,
     GroupExtractionResponse,
@@ -348,6 +351,81 @@ def run_extraction(
         total_values=report["total_values"],
         started_at=report.get("started_at", ""),
         completed_at=report.get("completed_at", ""),
+    )
+
+
+@router.post("/approve/{name}", response_model=GroupApprovalResponse)
+def approve_group(
+    name: str,
+    pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+):
+    """
+    Mark a group as approved for live extraction.
+
+    Updates config.json groups[group_name].approved = true.
+    Only approved groups can be extracted with dry_run=False in batch mode.
+    """
+    try:
+        approved = pipeline.approve_group(name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error("approval_failed", group=name, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Approval failed: {e}") from e
+
+    return GroupApprovalResponse(
+        group_name=name,
+        approved=approved,
+        message=f"Group '{name}' approved for live extraction.",
+    )
+
+
+@router.post("/extract-batch", response_model=BatchExtractionResponse)
+def run_batch_extraction(
+    request: BatchExtractionRequest,
+    db: Session = Depends(get_sync_db),
+    pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+):
+    """
+    Extract data from multiple groups.
+
+    If group_names is None, extracts all approved groups.
+    Use dry_run=True (default) to preview extraction without DB writes.
+    """
+    try:
+        report = pipeline.run_batch_extraction(
+            db=db,
+            group_names=request.group_names,
+            dry_run=request.dry_run,
+            stop_on_error=request.stop_on_error,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error("batch_extraction_failed", error=str(e))
+        raise HTTPException(
+            status_code=500, detail=f"Batch extraction failed: {e}"
+        ) from e
+
+    # Convert per_group dict values to GroupExtractionResponse
+    per_group_responses: dict[str, GroupExtractionResponse] = {}
+    for group_name, group_report in report.get("per_group", {}).items():
+        per_group_responses[group_name] = GroupExtractionResponse(
+            group_name=group_report.get("group_name", group_name),
+            dry_run=group_report.get("dry_run", request.dry_run),
+            files_processed=group_report.get("files_processed", 0),
+            files_failed=group_report.get("files_failed", 0),
+            total_values=group_report.get("total_values", 0),
+            started_at=group_report.get("started_at", ""),
+            completed_at=group_report.get("completed_at", ""),
+        )
+
+    return BatchExtractionResponse(
+        groups_processed=report["groups_processed"],
+        groups_failed=report["groups_failed"],
+        total_files=report["total_files"],
+        total_values=report["total_values"],
+        per_group=per_group_responses,
     )
 
 
