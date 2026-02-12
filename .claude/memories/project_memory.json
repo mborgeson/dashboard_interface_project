@@ -2,32 +2,32 @@
   "memories": [
     {
       "type": "completed_features",
-      "content": "Waves 1-10 property/deal/document CRUD (2026-01-14). Market Data Pipeline: DB dashboard_market_data with 253K records (2026-02-05). ReportSettings + property transforms refactor + Zod validation (2026-02-07). Sales Analysis Dashboard: 10 endpoints, 6 visualizations, filter panel, 205 tests (2026-02-10). DealStage enum fix + deprecation cleanup (2026-02-10). Extraction Pipeline Review: 16 issues fixed (2026-02-11). Construction Pipeline COMPLETE: 5 DB tables, CoStar import, 6 API clients, scheduler, 15 endpoints, Leaflet map, 4 tabs (2026-02-11). UW Model Grouping Pipeline code COMPLETE: 6 new modules, 11 API endpoints, 137 tests (2026-02-11). Dashboard Multi-Page Fixes: Pipeline Map, delivery dates, interest rates live data, USA Market (2026-02-11). Real-Time Refresh + Scheduler Overhaul: force_refresh, InterestRateScheduler, FRED twice-daily (2026-02-12). UW Model Phase 3 Reference Mapping DATA COMPLETE: 30 groups validated, 2 with custom remaps. UW Model Phase 4 Extraction COMPLETE: field remaps, batch extraction, approval workflow, 51 new tests (2026-02-12). Technical Debt Cleanup (2026-02-12): reminder dismissals → DB persistence (migration d7d1ad81d3c0), removed unused medianPricePerUnit, E2E tests added (116 tests: construction, underwriting, sales-analysis). CI fixes: React hooks order. Latest commit: 1fe2d5b. Tests: 1590+ backend, 521 frontend, zero TS errors.",
-      "added_at": "2026-02-12T10:06:00.000000",
+      "content": "Waves 1-10 property/deal/document CRUD (2026-01-14). Market Data Pipeline: DB 253K records (2026-02-05). ReportSettings + Zod validation (2026-02-07). Sales Analysis Dashboard: 10 endpoints, 6 visualizations (2026-02-10). Construction Pipeline COMPLETE: 5 DB tables, CoStar, 6 API clients, scheduler, Leaflet map (2026-02-11). UW Model Grouping Pipeline: 6 modules, 11 endpoints, 137 tests (2026-02-11). UW Model Phase 3-4 COMPLETE: 30 groups, 244 files, field remaps, batch extraction, approval workflow (2026-02-12). Technical Debt Cleanup: reminder dismissals → DB, E2E tests (116), CI fixes (2026-02-12). Sparkline placeholder indicator: empty arrays instead of fake data, amber warning badge (2026-02-12). Activity logging: ActivityLog model, CRUD, 2 endpoints, 25 tests (2026-02-12). OpenAPI export: 144 endpoints, 134 schemas in docs/openapi.json (2026-02-12). Docker production config: compose, Dockerfiles, nginx, .env.example (2026-02-12). Latest commit: 684f70d. Tests: 1615+ backend, 521 frontend.",
+      "added_at": "2026-02-12T11:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "user_preferences",
-      "content": "conda env: dashboard-backend. Backend port 8000, Frontend port 5173. Git: stash apply over pop, don't push unless asked. User prefers validation/testing before new features. Be extremely clear about required user actions. User prefers directness over hedging. NO mock data, NO fake data, NO silent fallbacks — show errors instead. Commit strategy: split by logical area, push when asked. Obsidian vault: 'Programming Vault' at /mnt/c/Users/MattBorgeson/Documents/Programming Vault/Dashboard Interface. User demands thorough validation — test ALL files, not just samples. Don't overclaim confidence without evidence. User open to parallel Claude Agent Teams for independent work streams.",
-      "added_at": "2026-02-12T07:30:00.000000",
+      "content": "conda env: dashboard-backend. Backend port 8000, Frontend port 5173. Git: stash apply over pop, don't push unless asked. NO mock data, NO fake data — show errors instead. Commit strategy: split by logical area, push when asked. User demands thorough validation — test ALL files. User open to parallel Claude Agent Teams for independent work streams.",
+      "added_at": "2026-02-12T11:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "tech_decisions",
-      "content": "pydantic-settings 2.x: CORS_ORIGINS must be JSON array. Single .env in project root, symlinked from backend/.env. Main DB: PostgreSQL localhost:5432/dashboard_interface_data. VITE_API_URL: src/lib/config.ts appends /api/v1. DealStage enum: 6-stage. Alembic requires PYTHONPATH=. from backend dir. Zod 4.3.6: .transform() replaces manual transforms. SQLite in tests: no server_default, DateTime(timezone=True), datetime.now(UTC). StrEnum + SQLAlchemy: dealstage lowercase → values_callable. Lazy imports: patch at source module. ThreadPoolExecutor for CPU-bound Excel, sequential DB ops. React Compiler: no setState in useEffect, no ref.current in render. Alembic head: d7d1ad81d3c0 (reminder_dismissals). Prefer stdlib over third-party to avoid CI mypy stubs issues. Reference xlsx formula handling: use pandas read+write (not openpyxl copy+modify). Pre-commit hooks: ruff, ruff-format, mypy — all must pass. React Rules of Hooks: ALL hooks must be called before any conditional returns.",
-      "added_at": "2026-02-12T10:06:00.000000",
+      "content": "pydantic-settings 2.x: CORS_ORIGINS must be JSON array. Single .env in project root, symlinked from backend/.env. Main DB: PostgreSQL localhost:5432/dashboard_interface_data. Alembic head: 7c415cc1b77a (activity_logs). SQLite in tests: no server_default, DateTime(timezone=True), datetime.now(UTC). Pre-commit hooks: ruff, ruff-format, mypy — all must pass. React Rules of Hooks: ALL hooks before conditional returns. Schema→Model enum conversion: use ModelEnum(schema_enum.value).",
+      "added_at": "2026-02-12T11:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "extraction_config",
-      "content": "SHAREPOINT EXTRACTION: FILE_PATTERN=.*UW.*Model.*vCurrent.*, CUTOFF_DATE=2024-07-15, excludes Speedboat/vOld. Cell reference: Underwriting_Dashboard_Cell_References.xlsx (1,169 fields across 6 sheets). UW GROUPING PIPELINE: 30 active groups (244 files), 9 Proforma deferred, 2 Asset Mgmt excluded. UW files: /home/mattb/projects/dashboard_interface_project/backend/data/uw_model_files/. PHASE 3: 2 groups need custom references (group_5: 11 fields +2 row offset, group_34: 13 fields +6 row offset). 28 groups use production reference. Canary: 30/30 pass. PHASE 4 API: /grouping/approve/{name}, /grouping/extract-batch, /grouping/extract/{name}, /grouping/conflict-check, /grouping/validate.",
-      "added_at": "2026-02-12T10:06:00.000000",
+      "content": "SHAREPOINT: FILE_PATTERN=.*UW.*Model.*vCurrent.*, CUTOFF_DATE=2024-07-15. UW GROUPING: 30 active groups (244 files), 9 Proforma deferred. PHASE 3: 2 groups need custom references (group_5: +2 row, group_34: +6 row). 28 groups use production reference. PHASE 4 API: /grouping/approve, /grouping/extract-batch, /grouping/extract, /grouping/validate.",
+      "added_at": "2026-02-12T11:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "remaining_tasks",
-      "content": "MEDIUM: 1) Hardcoded seed market data fallback (src/features/market/hooks/useMarketData.ts:49-55) — remove after DB pipeline confirmed or keep as UX fallback. 2) Activity logging not implemented (deals.py:690) — create ActivityLog model. 3) Export OpenAPI spec to docs/openapi.json. LOW: 4) Docker Compose production config. 5) Hosting setup (Oracle Cloud Free Tier or Hetzner CX22 with Tailscale). FUTURE: Mobile-friendly iOS version, Proforma groups extraction.",
-      "added_at": "2026-02-12T10:06:00.000000",
+      "content": "LOW: Hosting setup (Oracle Cloud Free Tier or Hetzner CX22 with Tailscale). FUTURE: Mobile-friendly iOS version, Proforma groups extraction.",
+      "added_at": "2026-02-12T11:00:00.000000",
       "source": "consolidated"
     }
   ],
@@ -35,65 +35,17 @@
   "realtime_memories": [
     {
       "type": "claude_response",
-      "content": "Memory cleaned: 11 → 0 realtime (all noise), 5 main memories updated.\n\n---\n\nBack to your question - what would you like to tackle next from the remaining tasks?\n\n| Priority | Task |\n|----------|------",
-      "added_at": "2026-02-12T10:11:01.027210",
+      "content": "## Phase A Complete — All 4 Tasks Finished in Parallel\n\n| Task | Status | Key Results |\n|------|--------|-------------|\n| **1. Remove seed market data** | ✅ | Empty arrays instead of fake data; update",
+      "added_at": "2026-02-12T11:11:11.757006",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "In regard to the following questions -- The seed data issue (lines 49-55) is a reasonable fallback - it only triggers when both monthlyData and trends are empty. Options: 1. Remove entirely - show emp",
-      "added_at": "2026-02-12T10:11:01.027236",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Welcome back. I see you're continuing work on the dashboard_interface_project.\n\n**Current State:**\n- Branch: `main` at commit `1fe2d5b`\n- Phase 4 UW Model Extraction: Complete (244 files, 30 groups)\n-",
-      "added_at": "2026-02-12T10:17:36.999361",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "I believe the remaining tasks to work on are as follows: **Remaining tasks:** 1. MEDIUM: Remove hardcoded seed market data (useMarketData.ts:49-55) 2. MEDIUM: Implement activity logging (deals.py:690)",
-      "added_at": "2026-02-12T10:17:36.999383",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "**Confirmed.** The project memory shows the exact same task list:\n\n| # | Priority | Task | Location |\n|---|----------|------|----------|\n| 1 | MEDIUM | Remove hardcoded seed market data | `src/feature",
-      "added_at": "2026-02-12T10:19:05.421820",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Please proceed with the \"Phase A (Parallel)\" approach.",
-      "added_at": "2026-02-12T10:19:05.421836",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "**Seed data warning indicator implemented.** Build passes.\n\n**Changes made:**\n- `useMarketData.ts` — returns `isSparklinePlaceholder` flag\n- `useUSAMarketData.ts` — returns `isSparklinePlaceholder` fl",
-      "added_at": "2026-02-12T10:21:06.110836",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Would you like me to launch 3 parallel agents for tasks 1-3, with hosting setup to follow? -- Definitely!",
-      "added_at": "2026-02-12T10:21:06.110882",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "## Summary - All 3 Parallel Tasks Complete ✓\n\n| Task | Status | Details |\n|------|--------|---------|\n| **Activity Logging** | ✅ 25 tests pass | Model, schemas, CRUD, migration, 2 endpoints |\n| **Open",
-      "added_at": "2026-02-12T10:55:41.501522",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Please run git commit and push commands prior to moving on to anything else.",
-      "added_at": "2026-02-12T10:55:41.501575",
+      "content": "Please run git commit and push commands first.",
+      "added_at": "2026-02-12T11:11:11.757032",
       "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-02-12T10:55:41.501578"
+  "updated_at": "2026-02-12T11:11:11.757034"
 }
