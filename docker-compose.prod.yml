@@ -3,25 +3,24 @@
 # =============================================================================
 # Production environment with security hardening and external secrets
 # Usage: docker-compose -f docker-compose.prod.yml up -d
+# Validation: docker-compose -f docker-compose.prod.yml config
 # =============================================================================
-
-version: '3.8'
 
 services:
   # ---------------------------------------------------------------------------
-  # PostgreSQL Database
+  # PostgreSQL Database (db service)
   # ---------------------------------------------------------------------------
-  postgres:
+  db:
     image: postgres:15-alpine
-    container_name: dashboard-postgres-prod
+    container_name: dashboard-db-prod
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-dashboard_interface_data}
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-dashboard_interface_data}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,19 +31,48 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
-          memory: 1G
+          cpus: '2'
+          memory: 2G
         reservations:
           cpus: '0.5'
           memory: 512M
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=512MB
+      -c effective_cache_size=1536MB
+      -c maintenance_work_mem=128MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=2621kB
+      -c min_wal_size=512MB
+      -c max_wal_size=2GB
+      -c log_statement=mod
+      -c log_min_duration_statement=1000
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   # ---------------------------------------------------------------------------
-  # Redis Cache
+  # Redis Cache (for future caching/sessions)
   # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
     container_name: dashboard-redis-prod
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
     volumes:
       - redis_data_prod:/data
     healthcheck:
@@ -63,30 +91,38 @@ services:
           memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 256M
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
 
   # ---------------------------------------------------------------------------
-  # Backend API (FastAPI)
+  # Backend API (FastAPI with Gunicorn + Uvicorn workers)
   # ---------------------------------------------------------------------------
   backend:
     build:
       context: ./backend
-      target: production
+      dockerfile: Dockerfile.prod
     container_name: dashboard-backend-prod
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dashboard_interface_data}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-dashboard_interface_data}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - SECRET_KEY=${SECRET_KEY}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
       - ENVIRONMENT=production
       - DEBUG=false
-      - LOG_LEVEL=info
+      - LOG_LEVEL=${LOG_LEVEL:-info}
       - HOST=0.0.0.0
       - PORT=8000
       - WORKERS=${BACKEND_WORKERS:-4}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
     expose:
       - "8000"
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -106,16 +142,24 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 40s
+    volumes:
+      - backend_logs_prod:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   # ---------------------------------------------------------------------------
-  # Frontend (React + Vite via Nginx)
+  # Frontend (React + Vite built, served via Nginx)
   # ---------------------------------------------------------------------------
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-      target: production
+      args:
+        - VITE_API_URL=${VITE_API_URL:-/api}
     container_name: dashboard-frontend-prod
     ports:
       - "${FRONTEND_PORT:-80}:80"
@@ -139,6 +183,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
 
 # =============================================================================
 # Networks
@@ -149,10 +198,12 @@ networks:
     name: dashboard-network-prod
 
 # =============================================================================
-# Volumes
+# Volumes (Named volumes for data persistence)
 # =============================================================================
 volumes:
   postgres_data_prod:
     name: dashboard-postgres-data-prod
   redis_data_prod:
     name: dashboard-redis-data-prod
+  backend_logs_prod:
+    name: dashboard-backend-logs-prod

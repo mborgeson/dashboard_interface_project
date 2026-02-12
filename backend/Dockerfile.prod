@@ -1,0 +1,116 @@
+# =============================================================================
+# B&R Capital Dashboard Backend - Production Dockerfile
+# =============================================================================
+# Multi-stage build optimized for production with Gunicorn + Uvicorn workers
+# Security: Non-root user, minimal attack surface, no dev dependencies
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1: Builder - Install dependencies and build wheels
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim AS builder
+
+# Set build-time environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install gunicorn
+
+# -----------------------------------------------------------------------------
+# Stage 2: Production - Minimal runtime image with Gunicorn
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim AS production
+
+# Labels for container metadata
+LABEL maintainer="B&R Capital Development Team" \
+      version="2.0.0" \
+      description="B&R Capital Dashboard Backend API - Production"
+
+# Set runtime environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    # Application settings
+    APP_HOME=/app \
+    APP_USER=appuser \
+    APP_GROUP=appgroup \
+    # Gunicorn configuration
+    HOST=0.0.0.0 \
+    PORT=8000 \
+    WORKERS=4 \
+    WORKER_CLASS=uvicorn.workers.UvicornWorker \
+    TIMEOUT=120 \
+    GRACEFUL_TIMEOUT=30 \
+    KEEPALIVE=5 \
+    MAX_REQUESTS=10000 \
+    MAX_REQUESTS_JITTER=1000 \
+    LOG_LEVEL=info
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean \
+    && apt-get autoremove -y
+
+# Create non-root user for security
+RUN groupadd --gid 1000 ${APP_GROUP} && \
+    useradd --uid 1000 --gid ${APP_GROUP} --shell /bin/bash --create-home ${APP_USER}
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Set working directory
+WORKDIR ${APP_HOME}
+
+# Copy application code with correct ownership
+COPY --chown=${APP_USER}:${APP_GROUP} . .
+
+# Create necessary directories with correct permissions
+RUN mkdir -p logs data && \
+    chown -R ${APP_USER}:${APP_GROUP} ${APP_HOME}
+
+# Switch to non-root user
+USER ${APP_USER}
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Expose application port
+EXPOSE ${PORT}
+
+# Production command - Gunicorn with Uvicorn workers
+# This provides better process management and graceful restarts
+CMD ["sh", "-c", "gunicorn app.main:app \
+    --bind ${HOST}:${PORT} \
+    --workers ${WORKERS} \
+    --worker-class ${WORKER_CLASS} \
+    --timeout ${TIMEOUT} \
+    --graceful-timeout ${GRACEFUL_TIMEOUT} \
+    --keep-alive ${KEEPALIVE} \
+    --max-requests ${MAX_REQUESTS} \
+    --max-requests-jitter ${MAX_REQUESTS_JITTER} \
+    --log-level ${LOG_LEVEL} \
+    --access-logfile - \
+    --error-logfile - \
+    --capture-output \
+    --enable-stdio-inheritance"]
