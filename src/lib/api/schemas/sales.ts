@@ -75,27 +75,27 @@ export const timeSeriesDataPointSchema = z
     period: z.string(),
     count: z.number(),
     total_volume: z.number(),
-    median_price_per_unit: z.number().nullable(),
+    avg_price_per_unit: z.number().nullable(),
   })
   .transform((s) => ({
     period: s.period,
     count: s.count,
     totalVolume: s.total_volume,
-    medianPricePerUnit: s.median_price_per_unit,
+    avgPricePerUnit: s.avg_price_per_unit,
   }));
 
 export const submarketComparisonRowSchema = z
   .object({
     submarket: z.string(),
     year: z.number(),
-    median_price_per_unit: z.number().nullable(),
+    avg_price_per_unit: z.number().nullable(),
     sales_count: z.number(),
     total_volume: z.number(),
   })
   .transform((s) => ({
     submarket: s.submarket,
     year: s.year,
-    medianPricePerUnit: s.median_price_per_unit,
+    avgPricePerUnit: s.avg_price_per_unit,
     salesCount: s.sales_count,
     totalVolume: s.total_volume,
   }));

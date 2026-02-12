@@ -60,8 +60,8 @@ function aggregateData(
     period,
     count: points.reduce((s, p) => s + p.count, 0),
     totalVolume: points.reduce((s, p) => s + p.totalVolume, 0),
-    medianPricePerUnit:
-      points.reduce((s, p) => s + (p.medianPricePerUnit ?? 0), 0) / points.length,
+    avgPricePerUnit:
+      points.reduce((s, p) => s + (p.avgPricePerUnit ?? 0), 0) / points.length,
   }));
 }
 
@@ -194,10 +194,10 @@ export function TimeSeriesTrends({ data, isLoading }: TimeSeriesTrendsProps) {
           </ResponsiveContainer>
         </div>
 
-        {/* Median Price Per Unit Chart */}
+        {/* Average Price Per Unit Chart */}
         <div>
           <h4 className="text-sm font-medium text-muted-foreground mb-2">
-            Median Price Per Unit
+            Average Price Per Unit
           </h4>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={chartData}>
@@ -216,8 +216,8 @@ export function TimeSeriesTrends({ data, isLoading }: TimeSeriesTrendsProps) {
               />
               <Line
                 type="monotone"
-                dataKey="medianPricePerUnit"
-                name="Median $/Unit"
+                dataKey="avgPricePerUnit"
+                name="Avg $/Unit"
                 stroke="#9333ea"
                 strokeWidth={2}
                 dot={{ r: 2 }}

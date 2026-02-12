@@ -6,10 +6,18 @@ import { EconomicIndicators } from './components/EconomicIndicators';
 import { MarketTrendsChart } from './components/MarketTrendsChart';
 import { SubmarketComparison } from './components/SubmarketComparison';
 import { MarketHeatmap } from './components/MarketHeatmap';
-import { Download, RefreshCw, TrendingUp } from 'lucide-react';
+import { Download, RefreshCw, TrendingUp, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
 import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
+
+export type TimeframeComparison = 'mom' | 'qoq' | 'yoy';
+
+const TIMEFRAME_OPTIONS: { value: TimeframeComparison; label: string; description: string }[] = [
+  { value: 'mom', label: 'MoM', description: 'Month-over-Month' },
+  { value: 'qoq', label: 'QoQ', description: 'Quarter-over-Quarter' },
+  { value: 'yoy', label: 'YoY', description: 'Year-over-Year' },
+];
 
 // Lazy load ReportWizard modal for code splitting
 const ReportWizard = lazy(() =>
@@ -50,6 +58,7 @@ export { MarketSubNav };
 export function MarketPage() {
   const [showReportWizard, setShowReportWizard] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [timeframe, setTimeframe] = useState<TimeframeComparison>('yoy');
 
   const {
     msaOverview,
@@ -142,6 +151,21 @@ export function MarketPage() {
         </div>
         <div className="flex items-center gap-3">
           <MarketSubNav />
+          {/* Timeframe Comparison Dropdown */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-neutral-100 rounded-lg">
+            <Calendar className="h-4 w-4 text-neutral-500" />
+            <select
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value as TimeframeComparison)}
+              className="bg-transparent text-sm font-medium text-neutral-700 focus:outline-none cursor-pointer"
+            >
+              {TIMEFRAME_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label} ({opt.description})
+                </option>
+              ))}
+            </select>
+          </div>
           <Button
             variant="outline"
             className="flex items-center gap-2"
@@ -159,12 +183,13 @@ export function MarketPage() {
       </div>
 
       {/* Phoenix MSA Overview */}
-      {msaOverview && <MarketOverview overview={msaOverview} />}
+      {msaOverview && <MarketOverview overview={msaOverview} timeframe={timeframe} />}
 
       {/* Economic Indicators */}
       <EconomicIndicators
         indicators={economicIndicators}
         sparklineData={sparklineData}
+        timeframe={timeframe}
       />
 
       {/* Market Trends Chart */}

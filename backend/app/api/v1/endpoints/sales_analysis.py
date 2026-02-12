@@ -67,13 +67,13 @@ class TimeSeriesPoint(BaseModel):
     period: str
     count: int
     total_volume: float
-    median_price_per_unit: float | None = None
+    avg_price_per_unit: float | None = None
 
 
 class SubmarketComparison(BaseModel):
     submarket: str
     year: int
-    median_price_per_unit: float | None = None
+    avg_price_per_unit: float | None = None
     sales_count: int
     total_volume: float
 
@@ -380,9 +380,7 @@ async def time_series(
             period_expr.label("period"),
             func.count().label("count"),
             func.coalesce(func.sum(SalesData.sale_price), 0).label("total_volume"),
-            func.percentile_cont(0.5)
-            .within_group(SalesData.price_per_unit)
-            .label("median_price_per_unit"),
+            func.avg(SalesData.price_per_unit).label("avg_price_per_unit"),
         )
         .where(SalesData.sale_date.isnot(None))
         .group_by(period_expr)
@@ -413,8 +411,8 @@ async def time_series(
             period=str(r.period),
             count=r.count,  # type: ignore[arg-type]
             total_volume=float(r.total_volume or 0),
-            median_price_per_unit=float(r.median_price_per_unit)
-            if r.median_price_per_unit is not None
+            avg_price_per_unit=float(r.avg_price_per_unit)
+            if r.avg_price_per_unit is not None
             else None,
         )
         for r in rows
@@ -431,7 +429,7 @@ async def time_series(
 async def submarket_comparison(
     db: AsyncSession = Depends(get_db),
 ):
-    """Median price-per-unit and volume by submarket and year."""
+    """Average price-per-unit and volume by submarket and year."""
 
     year_expr = func.extract("year", SalesData.sale_date).cast(SAInteger)
 
@@ -439,9 +437,7 @@ async def submarket_comparison(
         select(
             SalesData.submarket_cluster.label("submarket"),
             year_expr.label("year"),
-            func.percentile_cont(0.5)
-            .within_group(SalesData.price_per_unit)
-            .label("median_price_per_unit"),
+            func.avg(SalesData.price_per_unit).label("avg_price_per_unit"),
             func.count().label("sales_count"),
             func.coalesce(func.sum(SalesData.sale_price), 0).label("total_volume"),
         )
@@ -460,8 +456,8 @@ async def submarket_comparison(
         SubmarketComparison(
             submarket=r.submarket,
             year=int(r.year),
-            median_price_per_unit=float(r.median_price_per_unit)
-            if r.median_price_per_unit is not None
+            avg_price_per_unit=float(r.avg_price_per_unit)
+            if r.avg_price_per_unit is not None
             else None,
             sales_count=r.sales_count,
             total_volume=float(r.total_volume or 0),

@@ -55,7 +55,7 @@ export function SubmarketComparison({
 
     const sortedYears = Array.from(yearSet).sort((a, b) => a - b);
     const allPrices = data
-      .map((d) => d.medianPricePerUnit)
+      .map((d) => d.avgPricePerUnit)
       .filter((p): p is number => p != null && p > 0);
     const min = allPrices.length > 0 ? Math.min(...allPrices) : 0;
     const max = allPrices.length > 0 ? Math.max(...allPrices) : 1;
@@ -65,8 +65,8 @@ export function SubmarketComparison({
       if (sortBy === 'volume') return b[1].totalVolume - a[1].totalVolume;
       // Sort by latest year median price
       const latestYear = sortedYears[sortedYears.length - 1];
-      const aPrice = a[1].byYear.get(latestYear)?.medianPricePerUnit ?? 0;
-      const bPrice = b[1].byYear.get(latestYear)?.medianPricePerUnit ?? 0;
+      const aPrice = a[1].byYear.get(latestYear)?.avgPricePerUnit ?? 0;
+      const bPrice = b[1].byYear.get(latestYear)?.avgPricePerUnit ?? 0;
       return bPrice - aPrice;
     });
 
@@ -137,7 +137,7 @@ export function SubmarketComparison({
       </CardHeader>
       <CardContent>
         <p className="text-xs text-muted-foreground mb-3">
-          Median price per unit by submarket and year. Top 20 submarkets shown.
+          Average price per unit by submarket and year. Top 20 submarkets shown.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -170,7 +170,7 @@ export function SubmarketComparison({
                   </td>
                   {years.map((year) => {
                     const cell = info.byYear.get(year);
-                    if (!cell || cell.medianPricePerUnit === 0) {
+                    if (!cell || cell.avgPricePerUnit === 0) {
                       return (
                         <td
                           key={year}
@@ -184,13 +184,13 @@ export function SubmarketComparison({
                       <td key={year} className="py-1 px-1">
                         <div
                           className={`rounded px-1.5 py-0.5 text-center text-[10px] font-medium ${getHeatColor(
-                            cell.medianPricePerUnit ?? 0,
+                            cell.avgPricePerUnit ?? 0,
                             minPrice,
                             maxPrice
                           )}`}
-                          title={`${currencyFormatter.format(cell.medianPricePerUnit ?? 0)} (${cell.salesCount} sales)`}
+                          title={`${currencyFormatter.format(cell.avgPricePerUnit ?? 0)} (${cell.salesCount} sales)`}
                         >
-                          {currencyFormatter.format(cell.medianPricePerUnit ?? 0)}
+                          {currencyFormatter.format(cell.avgPricePerUnit ?? 0)}
                         </div>
                       </td>
                     );

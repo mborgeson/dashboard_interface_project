@@ -14,6 +14,8 @@ import {
   FileSpreadsheet,
   Presentation,
   Loader2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -58,10 +60,39 @@ export function ReportTemplates() {
   const { success, error: showError } = useToast();
 
   // Fetch templates from API (with mock fallback)
-  const { data: templateData } = useReportTemplates();
+  const { data: templateData, isLoading, error, refetch } = useReportTemplates();
   const templates = templateData?.templates ?? [];
   const generateReport = useGenerateReport();
   const duplicateTemplate = useCreateReportTemplate();
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-primary-600 mr-2" />
+        <span className="text-sm text-neutral-500">Loading templates...</span>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <AlertCircle className="w-8 h-8 text-red-500" />
+        <p className="text-sm text-red-600">
+          {error instanceof Error ? error.message : 'Failed to load templates'}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   const filteredTemplates = templates.filter(template => {
     const matchesSearch =

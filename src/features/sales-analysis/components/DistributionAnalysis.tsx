@@ -126,15 +126,9 @@ export function DistributionAnalysis({
               />
               <Legend />
               <Bar
-                dataKey="medianPricePerUnit"
-                name="Median $/Unit"
-                fill="#9333ea"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
                 dataKey="avgPricePerUnit"
                 name="Avg $/Unit"
-                fill="#d946ef"
+                fill="#9333ea"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>

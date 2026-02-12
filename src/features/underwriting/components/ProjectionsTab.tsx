@@ -161,7 +161,7 @@ export function ProjectionsTab({ projections }: ProjectionsTabProps) {
         </ResponsiveContainer>
       </div>
 
-      {/* Detailed Projection Table */}
+      {/* Detailed Projection Table - Transposed (Years as columns, Line Items as rows) */}
       <div className="bg-white border border-neutral-200 rounded-lg overflow-hidden">
         <div className="px-4 py-3 bg-neutral-50 border-b border-neutral-200">
           <h4 className="text-sm font-semibold text-neutral-800">
@@ -172,54 +172,182 @@ export function ProjectionsTab({ projections }: ProjectionsTabProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-neutral-50">
-                <th className="px-3 py-2 text-left font-medium text-neutral-600">Year</th>
-                <th className="px-3 py-2 text-right font-medium text-neutral-600">Gross Income</th>
-                <th className="px-3 py-2 text-right font-medium text-neutral-600">Vacancy</th>
-                <th className="px-3 py-2 text-right font-medium text-neutral-600">EGI</th>
-                <th className="px-3 py-2 text-right font-medium text-neutral-600">OpEx</th>
-                <th className="px-3 py-2 text-right font-medium text-neutral-600">NOI</th>
-                <th className="px-3 py-2 text-right font-medium text-neutral-600">Debt Svc</th>
-                <th className="px-3 py-2 text-right font-medium text-neutral-600">Cash Flow</th>
-                <th className="px-3 py-2 text-right font-medium text-neutral-600">Property Value</th>
-                <th className="px-3 py-2 text-right font-medium text-neutral-600">Equity</th>
+                <th className="px-3 py-2 text-left font-medium text-neutral-600 sticky left-0 bg-neutral-50 min-w-[160px]">
+                  Line Item
+                </th>
+                {projections.map((p) => (
+                  <th key={p.year} className="px-3 py-2 text-right font-medium text-neutral-600 min-w-[100px]">
+                    Year {p.year}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {projections.map((p, idx) => (
-                <tr
-                  key={p.year}
-                  className={idx % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}
-                >
-                  <td className="px-3 py-2 font-medium text-neutral-900">{p.year}</td>
-                  <td className="px-3 py-2 text-right text-neutral-700">
+              {/* Gross Potential Rent */}
+              <tr className="bg-white">
+                <td className="px-3 py-2 font-medium text-neutral-900 sticky left-0 bg-white">
+                  Gross Potential Rent
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right text-neutral-700">
+                    {formatTableCurrency(p.grossPotentialRent)}
+                  </td>
+                ))}
+              </tr>
+              {/* Loss to Lease */}
+              <tr className="bg-neutral-50">
+                <td className="px-3 py-2 font-medium text-neutral-900 sticky left-0 bg-neutral-50">
+                  Loss to Lease
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right text-error-600">
+                    ({formatTableCurrency(p.lossToLease)})
+                  </td>
+                ))}
+              </tr>
+              {/* Gross Income */}
+              <tr className="bg-white">
+                <td className="px-3 py-2 font-medium text-neutral-900 sticky left-0 bg-white">
+                  Gross Income
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right text-neutral-700">
                     {formatTableCurrency(p.grossIncome)}
                   </td>
-                  <td className="px-3 py-2 text-right text-error-600">
+                ))}
+              </tr>
+              {/* Vacancy */}
+              <tr className="bg-neutral-50">
+                <td className="px-3 py-2 font-medium text-neutral-900 sticky left-0 bg-neutral-50">
+                  Vacancy
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right text-error-600">
                     ({formatTableCurrency(p.vacancy)})
                   </td>
-                  <td className="px-3 py-2 text-right text-neutral-700">
+                ))}
+              </tr>
+              {/* Concessions */}
+              <tr className="bg-white">
+                <td className="px-3 py-2 font-medium text-neutral-900 sticky left-0 bg-white">
+                  Concessions
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right text-error-600">
+                    ({formatTableCurrency(p.concessions)})
+                  </td>
+                ))}
+              </tr>
+              {/* Bad Debt */}
+              <tr className="bg-neutral-50">
+                <td className="px-3 py-2 font-medium text-neutral-900 sticky left-0 bg-neutral-50">
+                  Bad Debt
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right text-error-600">
+                    ({formatTableCurrency(p.badDebt)})
+                  </td>
+                ))}
+              </tr>
+              {/* EGI */}
+              <tr className="bg-white border-t border-neutral-200">
+                <td className="px-3 py-2 font-semibold text-neutral-900 sticky left-0 bg-white">
+                  Effective Gross Income
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right font-semibold text-neutral-900">
                     {formatTableCurrency(p.effectiveGrossIncome)}
                   </td>
-                  <td className="px-3 py-2 text-right text-error-600">
+                ))}
+              </tr>
+              {/* Operating Expenses */}
+              <tr className="bg-neutral-50">
+                <td className="px-3 py-2 font-medium text-neutral-900 sticky left-0 bg-neutral-50">
+                  Operating Expenses
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right text-error-600">
                     ({formatTableCurrency(p.operatingExpenses)})
                   </td>
-                  <td className="px-3 py-2 text-right font-medium text-success-600">
+                ))}
+              </tr>
+              {/* NOI */}
+              <tr className="bg-white border-t border-neutral-200">
+                <td className="px-3 py-2 font-semibold text-neutral-900 sticky left-0 bg-white">
+                  Net Operating Income
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right font-semibold text-success-600">
                     {formatTableCurrency(p.noi)}
                   </td>
-                  <td className="px-3 py-2 text-right text-neutral-600">
+                ))}
+              </tr>
+              {/* Debt Service */}
+              <tr className="bg-neutral-50">
+                <td className="px-3 py-2 font-medium text-neutral-900 sticky left-0 bg-neutral-50">
+                  Debt Service
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right text-neutral-600">
                     ({formatTableCurrency(p.debtService)})
                   </td>
-                  <td className={`px-3 py-2 text-right font-medium ${p.cashFlow >= 0 ? 'text-success-600' : 'text-error-600'}`}>
+                ))}
+              </tr>
+              {/* Cash Flow */}
+              <tr className="bg-white border-t border-neutral-200">
+                <td className="px-3 py-2 font-semibold text-neutral-900 sticky left-0 bg-white">
+                  Cash Flow After Debt
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className={`px-3 py-2 text-right font-semibold ${p.cashFlow >= 0 ? 'text-success-600' : 'text-error-600'}`}>
                     {formatTableCurrency(p.cashFlow)}
                   </td>
-                  <td className="px-3 py-2 text-right text-neutral-700">
+                ))}
+              </tr>
+              {/* Cumulative Cash Flow */}
+              <tr className="bg-neutral-50">
+                <td className="px-3 py-2 font-medium text-neutral-900 sticky left-0 bg-neutral-50">
+                  Cumulative Cash Flow
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className={`px-3 py-2 text-right ${p.cumulativeCashFlow >= 0 ? 'text-success-600' : 'text-error-600'}`}>
+                    {formatTableCurrency(p.cumulativeCashFlow)}
+                  </td>
+                ))}
+              </tr>
+              {/* Property Value */}
+              <tr className="bg-white border-t border-neutral-200">
+                <td className="px-3 py-2 font-semibold text-neutral-900 sticky left-0 bg-white">
+                  Property Value
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right font-semibold text-neutral-900">
                     {formatTableCurrency(p.propertyValue)}
                   </td>
-                  <td className="px-3 py-2 text-right font-medium text-primary-600">
+                ))}
+              </tr>
+              {/* Loan Balance */}
+              <tr className="bg-neutral-50">
+                <td className="px-3 py-2 font-medium text-neutral-900 sticky left-0 bg-neutral-50">
+                  Loan Balance
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right text-neutral-700">
+                    {formatTableCurrency(p.loanBalance)}
+                  </td>
+                ))}
+              </tr>
+              {/* Equity */}
+              <tr className="bg-white border-t border-neutral-200">
+                <td className="px-3 py-2 font-semibold text-neutral-900 sticky left-0 bg-white">
+                  Equity
+                </td>
+                {projections.map((p) => (
+                  <td key={p.year} className="px-3 py-2 text-right font-semibold text-primary-600">
                     {formatTableCurrency(p.equity)}
                   </td>
-                </tr>
-              ))}
+                ))}
+              </tr>
             </tbody>
           </table>
         </div>

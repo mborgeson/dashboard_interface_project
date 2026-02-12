@@ -25,7 +25,7 @@ async def refresh_market_data():
     and can re-fetch updated data.
 
     Returns:
-        Status summary with records upserted count.
+        Status summary with records upserted count and updated timestamp.
     """
     try:
         from app.services.data_extraction.fred_extractor import (
@@ -35,11 +35,14 @@ async def refresh_market_data():
 
         engine = _get_engine()
         result = await run_fred_extraction_async(engine=engine, incremental=True)
+        # Update the last refreshed timestamp in the service
+        new_timestamp = market_data_service.update_last_refreshed()
         logger.info("Market data refresh completed", result=result)
         return {
             "status": result.get("status", "success"),
             "records_upserted": result.get("records_upserted", 0),
             "message": "Market data refresh completed successfully",
+            "last_updated": new_timestamp,
         }
     except RuntimeError as exc:
         logger.warning(f"Market refresh skipped — DB not configured: {exc}")

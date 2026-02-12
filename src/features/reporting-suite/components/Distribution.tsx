@@ -17,6 +17,8 @@ import {
   Search,
   Filter,
   Loader2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -58,10 +60,39 @@ const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
 
 export function Distribution() {
   // Fetch distribution schedules and templates from API (with mock fallback)
-  const { data: scheduleData } = useDistributionSchedules();
+  const { data: scheduleData, isLoading, error, refetch } = useDistributionSchedules();
   const { data: templateData } = useReportTemplates();
   const templates = templateData?.templates ?? [];
   const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<DistributionSchedule> | null>>({});
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-primary-600 mr-2" />
+        <span className="text-sm text-neutral-500">Loading schedules...</span>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <AlertCircle className="w-8 h-8 text-red-500" />
+        <p className="text-sm text-red-600">
+          {error instanceof Error ? error.message : 'Failed to load schedules'}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   // Derive schedules from API data with local optimistic overrides
   const schedules = (scheduleData?.schedules ?? [])

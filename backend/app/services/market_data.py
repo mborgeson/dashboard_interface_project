@@ -65,6 +65,12 @@ class MarketDataService:
         self._market_data_freshness: str | None = None
         self._init_market_db()
 
+    def update_last_refreshed(self) -> str:
+        """Update the last refreshed timestamp. Called after successful data refresh."""
+        self._last_updated = datetime.now()
+        logger.info(f"Market data last_updated set to {self._last_updated}")
+        return self._last_updated.strftime("%Y-%m-%d")
+
     # ------------------------------------------------------------------
     # Engine initialisation
     # ------------------------------------------------------------------

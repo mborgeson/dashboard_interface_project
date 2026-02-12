@@ -474,15 +474,17 @@ async def delete_schedule(
 async def get_report_settings(
     db: AsyncSession = Depends(get_db),
 ):
-    """Get the current report settings (singleton row)."""
+    """Get the current report settings (singleton row), auto-initializing if not exists."""
     result = await db.execute(select(ReportSettings).where(ReportSettings.id == 1))
     settings = result.scalar_one_or_none()
 
     if not settings:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Report settings not found",
-        )
+        # Auto-initialize default settings (model has server_defaults for all fields)
+        settings = ReportSettings(id=1)
+        db.add(settings)
+        await db.commit()
+        await db.refresh(settings)
+        logger.info("Auto-initialized default report settings")
 
     return settings
 
@@ -492,15 +494,16 @@ async def update_report_settings(
     settings_data: ReportSettingsUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    """Update report settings (partial update)."""
+    """Update report settings (partial update), auto-initializing if not exists."""
     result = await db.execute(select(ReportSettings).where(ReportSettings.id == 1))
     settings = result.scalar_one_or_none()
 
     if not settings:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Report settings not found",
-        )
+        # Auto-initialize default settings before applying updates
+        settings = ReportSettings(id=1)
+        db.add(settings)
+        await db.flush()  # Flush to get defaults applied
+        logger.info("Auto-initialized default report settings before update")
 
     update_data = settings_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():

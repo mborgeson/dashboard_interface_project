@@ -57,13 +57,13 @@ export interface TimeSeriesDataPoint {
   period: string;
   count: number;
   totalVolume: number;
-  medianPricePerUnit: number | null;
+  avgPricePerUnit: number | null;
 }
 
 export interface SubmarketComparisonRow {
   submarket: string;
   year: number;
-  medianPricePerUnit: number | null;
+  avgPricePerUnit: number | null;
   salesCount: number;
   totalVolume: number;
 }

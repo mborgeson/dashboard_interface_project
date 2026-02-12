@@ -2,6 +2,13 @@ import { Card } from '@/components/ui/card';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import type { EconomicIndicator } from '@/types/market';
+import type { TimeframeComparison } from '../MarketPage';
+
+const TIMEFRAME_LABELS: Record<TimeframeComparison, string> = {
+  mom: 'MoM',
+  qoq: 'QoQ',
+  yoy: 'YoY',
+};
 
 interface EconomicIndicatorsProps {
   indicators: EconomicIndicator[];
@@ -11,9 +18,10 @@ interface EconomicIndicatorsProps {
     incomeGrowth: number[];
     populationGrowth: number[];
   };
+  timeframe?: TimeframeComparison;
 }
 
-export function EconomicIndicators({ indicators, sparklineData }: EconomicIndicatorsProps) {
+export function EconomicIndicators({ indicators, sparklineData, timeframe = 'yoy' }: EconomicIndicatorsProps) {
   const formatValue = (value: number, unit: string): string => {
     if (unit === '$') {
       return `$${(value / 1000).toFixed(0)}K`;
@@ -69,7 +77,7 @@ export function EconomicIndicators({ indicators, sparklineData }: EconomicIndica
                   <p className="text-sm font-medium text-neutral-600">{indicator.indicator}</p>
                   <div className={`flex items-center gap-1 text-xs font-medium ${trendColor}`}>
                     <TrendIcon className="h-3 w-3" />
-                    <span>{formatChange(indicator.yoyChange)}</span>
+                    <span>{formatChange(indicator.yoyChange)} {TIMEFRAME_LABELS[timeframe]}</span>
                   </div>
                 </div>
 

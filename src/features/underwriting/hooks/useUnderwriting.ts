@@ -62,8 +62,11 @@ const defaultInputs: UnderwritingInputs = {
   payrollPerUnit: 300,
   marketingPerUnit: 100,
   otherExpensesPerUnit: 200,
+  turnoverPerUnit: 150, // Make-ready/unit turnover costs
+  contractServicesPerUnit: 250, // Contract services (landscaping, pest control, etc.)
+  administrativePerUnit: 100, // Admin, legal, security expenses
   expenseGrowthPercent: 0.03,
-  capitalReservePerUnit: 300,
+  capitalReservePerUnit: 300, // Reserves for replacement
 
   // Exit Assumptions
   holdPeriod: 5,
@@ -103,12 +106,12 @@ export function useUnderwriting() {
         inputs.immediateCapEx +
         originationFee;
 
-      // Calculate debt service
-      const monthlyPayment = calculateDebtService(
-        loanAmount,
-        inputs.interestRate,
-        inputs.amortizationPeriod
-      );
+      // Calculate debt service - account for interest-only period
+      // Year 1 is always within IO period if IO period >= 1
+      const isYear1InIOPeriod = inputs.interestOnlyPeriod >= 1;
+      const monthlyPayment = isYear1InIOPeriod
+        ? (loanAmount * inputs.interestRate) / 12 // Interest-only payment
+        : calculateDebtService(loanAmount, inputs.interestRate, inputs.amortizationPeriod);
       const annualDebtService = monthlyPayment * 12;
 
       // Year 1 Revenue
@@ -130,17 +133,23 @@ export function useUnderwriting() {
       const payroll = inputs.payrollPerUnit * inputs.units;
       const marketing = inputs.marketingPerUnit * inputs.units;
       const otherExpenses = inputs.otherExpensesPerUnit * inputs.units;
+      const turnover = inputs.turnoverPerUnit * inputs.units;
+      const contractServices = inputs.contractServicesPerUnit * inputs.units;
+      const administrative = inputs.administrativePerUnit * inputs.units;
       const capitalReserve = inputs.capitalReservePerUnit * inputs.units;
 
-      const operatingExpenses = 
-        propertyTax + 
-        insurance + 
-        utilities + 
-        management + 
-        repairs + 
-        payroll + 
-        marketing + 
-        otherExpenses;
+      const operatingExpenses =
+        propertyTax +
+        insurance +
+        utilities +
+        management +
+        repairs +
+        payroll +
+        marketing +
+        otherExpenses +
+        turnover +
+        contractServices +
+        administrative;
 
       const noi = effectiveGrossIncome - operatingExpenses - capitalReserve;
       const cashFlow = noi - annualDebtService;

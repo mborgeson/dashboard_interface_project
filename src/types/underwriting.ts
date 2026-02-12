@@ -52,8 +52,11 @@ export interface UnderwritingInputs {
   payrollPerUnit: number;
   marketingPerUnit: number;
   otherExpensesPerUnit: number;
+  turnoverPerUnit: number; // Make-ready/unit turnover costs
+  contractServicesPerUnit: number; // Contract services (landscaping, pest control, etc.)
+  administrativePerUnit: number; // Admin, legal, security expenses
   expenseGrowthPercent: number;
-  capitalReservePerUnit: number;
+  capitalReservePerUnit: number; // Reserves for replacement
 
   // Exit Assumptions
   holdPeriod: number;
@@ -111,6 +114,8 @@ export interface UnderwritingResults {
 
 export interface YearlyProjection {
   year: number;
+  grossPotentialRent: number;
+  lossToLease: number; // Difference between market rent and in-place rent
   grossIncome: number;
   vacancy: number;
   concessions: number;

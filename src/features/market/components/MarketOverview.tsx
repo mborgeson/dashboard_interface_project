@@ -1,13 +1,21 @@
 import { Card } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Users, Briefcase, DollarSign } from 'lucide-react';
 import type { MSAOverview } from '@/types/market';
+import type { TimeframeComparison } from '../MarketPage';
+
+const TIMEFRAME_LABELS: Record<TimeframeComparison, string> = {
+  mom: 'MoM',
+  qoq: 'QoQ',
+  yoy: 'YoY',
+};
 
 interface MarketOverviewProps {
   overview: MSAOverview;
   regionLabel?: string;
+  timeframe?: TimeframeComparison;
 }
 
-export function MarketOverview({ overview, regionLabel = 'Phoenix MSA' }: MarketOverviewProps) {
+export function MarketOverview({ overview, regionLabel = 'Phoenix MSA', timeframe = 'yoy' }: MarketOverviewProps) {
   const formatNumber = (value: number): string => {
     if (value >= 1000000000) {
       return `$${(value / 1000000000).toFixed(1)}B`;
@@ -81,7 +89,7 @@ export function MarketOverview({ overview, regionLabel = 'Phoenix MSA' }: Market
                 </div>
                 <div className={`flex items-center gap-1 text-sm font-medium ${trendColor}`}>
                   <TrendIcon className="h-4 w-4" />
-                  <span>{formatPercentage(Math.abs(metric.change))} YoY</span>
+                  <span>{formatPercentage(Math.abs(metric.change))} {TIMEFRAME_LABELS[timeframe]}</span>
                 </div>
               </div>
 

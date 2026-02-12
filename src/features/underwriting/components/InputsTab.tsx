@@ -639,6 +639,33 @@ export function InputsTab({ inputs, updateInput }: InputsTabProps) {
               />
             </div>
 
+            <div className="grid grid-cols-3 gap-4">
+              <InputField
+                label="Turnover Costs"
+                name="turnoverPerUnit"
+                value={inputs.turnoverPerUnit}
+                onChange={(v) => updateInput('turnoverPerUnit', v as number)}
+                prefix="$"
+                tooltip="Make-ready/unit turnover costs"
+              />
+              <InputField
+                label="Contract Services"
+                name="contractServicesPerUnit"
+                value={inputs.contractServicesPerUnit}
+                onChange={(v) => updateInput('contractServicesPerUnit', v as number)}
+                prefix="$"
+                tooltip="Landscaping, pest control, elevator, etc."
+              />
+              <InputField
+                label="Admin/Legal/Security"
+                name="administrativePerUnit"
+                value={inputs.administrativePerUnit}
+                onChange={(v) => updateInput('administrativePerUnit', v as number)}
+                prefix="$"
+                tooltip="Administrative, legal, and security expenses"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <SliderField
                 label="Expense Growth"
@@ -650,12 +677,12 @@ export function InputsTab({ inputs, updateInput }: InputsTabProps) {
                 step={0.0025}
               />
               <InputField
-                label="CapEx Reserve"
+                label="Reserves for Replacement"
                 name="capitalReservePerUnit"
                 value={inputs.capitalReservePerUnit}
                 onChange={(v) => updateInput('capitalReservePerUnit', v as number)}
                 prefix="$"
-                tooltip="Annual capital reserve per unit"
+                tooltip="Annual reserves for replacement per unit"
               />
             </div>
           </CollapsibleSection>
