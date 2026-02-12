@@ -56,7 +56,7 @@ function makeTimeSeriesPoint(overrides: Record<string, unknown> = {}) {
     period: '2024-Q1',
     count: 15,
     total_volume: 350000000,
-    median_price_per_unit: 210000,
+    avg_price_per_unit: 210000,
     ...overrides,
   };
 }
@@ -65,7 +65,7 @@ function makeSubmarketRow(overrides: Record<string, unknown> = {}) {
   return {
     submarket: 'Tempe',
     year: 2024,
-    median_price_per_unit: 225000,
+    avg_price_per_unit: 225000,
     sales_count: 42,
     total_volume: 500000000,
     ...overrides,
@@ -266,14 +266,14 @@ describe('timeSeriesDataPointSchema', () => {
     expect(result.period).toBe('2024-Q1');
     expect(result.count).toBe(15);
     expect(result.totalVolume).toBe(350000000);
-    expect(result.medianPricePerUnit).toBe(210000);
+    expect(result.avgPricePerUnit).toBe(210000);
   });
 
-  it('handles nullable median_price_per_unit', () => {
+  it('handles nullable avg_price_per_unit', () => {
     const result = timeSeriesDataPointSchema.parse(
-      makeTimeSeriesPoint({ median_price_per_unit: null }),
+      makeTimeSeriesPoint({ avg_price_per_unit: null }),
     );
-    expect(result.medianPricePerUnit).toBeNull();
+    expect(result.avgPricePerUnit).toBeNull();
   });
 
   it('throws on missing period', () => {
@@ -299,16 +299,16 @@ describe('submarketComparisonRowSchema', () => {
 
     expect(result.submarket).toBe('Tempe');
     expect(result.year).toBe(2024);
-    expect(result.medianPricePerUnit).toBe(225000);
+    expect(result.avgPricePerUnit).toBe(225000);
     expect(result.salesCount).toBe(42);
     expect(result.totalVolume).toBe(500000000);
   });
 
-  it('handles nullable median_price_per_unit', () => {
+  it('handles nullable avg_price_per_unit', () => {
     const result = submarketComparisonRowSchema.parse(
-      makeSubmarketRow({ median_price_per_unit: null }),
+      makeSubmarketRow({ avg_price_per_unit: null }),
     );
-    expect(result.medianPricePerUnit).toBeNull();
+    expect(result.avgPricePerUnit).toBeNull();
   });
 
   it('throws on missing submarket', () => {

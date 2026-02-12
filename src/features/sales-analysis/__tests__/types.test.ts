@@ -109,21 +109,21 @@ describe('Sales Analysis Types', () => {
       period: '2024-Q1',
       count: 15,
       totalVolume: 350000000,
-      medianPricePerUnit: 210000,
+      avgPricePerUnit: 210000,
     };
     expect(point.period).toBe('2024-Q1');
-    expect(point.medianPricePerUnit).toBe(210000);
+    expect(point.avgPricePerUnit).toBe(210000);
   });
 
   it('SubmarketComparisonRow matches expected shape', () => {
     const row: SubmarketComparisonRow = {
       submarket: 'Tempe',
       year: 2024,
-      medianPricePerUnit: null,
+      avgPricePerUnit: null,
       salesCount: 42,
       totalVolume: 500000000,
     };
-    expect(row.medianPricePerUnit).toBeNull();
+    expect(row.avgPricePerUnit).toBeNull();
   });
 
   it('BuyerActivityRow matches expected shape', () => {
