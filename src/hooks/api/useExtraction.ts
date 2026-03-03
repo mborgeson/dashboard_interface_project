@@ -44,7 +44,7 @@ export function useExtractionStatus(
     // Poll every 2 seconds while extraction is in progress
     refetchInterval: (query) => {
       const data = query.state.data;
-      if (data && (data.status === 'pending' || data.status === 'processing')) {
+      if (data && data.status === 'running') {
         return 2000;
       }
       return false;
@@ -251,7 +251,7 @@ export function useIsPropertyExtracting(propertyId: string): boolean {
 
   return (
     data?.some(
-      (run) => run.status === 'pending' || run.status === 'processing'
+      (run) => run.status === 'running'
     ) ?? false
   );
 }
@@ -264,7 +264,7 @@ export function useIsDealExtracting(dealId: string): boolean {
 
   return (
     data?.some(
-      (run) => run.status === 'pending' || run.status === 'processing'
+      (run) => run.status === 'running'
     ) ?? false
   );
 }

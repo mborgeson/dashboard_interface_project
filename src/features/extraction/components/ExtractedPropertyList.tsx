@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useExtractedProperties } from '../hooks/useExtraction';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -221,6 +221,13 @@ interface PropertyListItemProps {
 }
 
 function PropertyListItem({ property, onClick }: PropertyListItemProps) {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick?.();
+    }
+  }, [onClick]);
+
   return (
     <div
       className={cn(
@@ -231,6 +238,9 @@ function PropertyListItem({ property, onClick }: PropertyListItemProps) {
         onClick && "cursor-pointer"
       )}
       onClick={onClick}
+      onKeyDown={onClick ? handleKeyDown : undefined}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div

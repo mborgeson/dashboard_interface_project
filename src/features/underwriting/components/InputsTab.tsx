@@ -59,9 +59,26 @@ function InputField({
           id={name}
           type={type}
           value={value}
-          onChange={(e) =>
-            onChange(type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)
-          }
+          onChange={(e) => {
+            if (type === 'number') {
+              const rawValue = e.target.value;
+              // Allow empty string during typing (will use 0 as default)
+              if (rawValue === '' || rawValue === '-') {
+                onChange(0);
+                return;
+              }
+              const parsed = parseFloat(rawValue);
+              if (isNaN(parsed)) return; // Ignore invalid input
+              // Apply bounds if provided
+              const bounded = Math.max(
+                min ?? -Infinity,
+                Math.min(max ?? Infinity, parsed)
+              );
+              onChange(bounded);
+            } else {
+              onChange(e.target.value);
+            }
+          }}
           step={step}
           min={min}
           max={max}

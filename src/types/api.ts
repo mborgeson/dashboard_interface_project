@@ -250,8 +250,7 @@ export interface DealStageUpdateInput {
 // ============================================================================
 
 export type ExtractionStatus =
-  | 'pending'
-  | 'processing'
+  | 'running'
   | 'completed'
   | 'failed'
   | 'cancelled';

@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { formatExtractedValue } from '../hooks/useExtraction';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +61,13 @@ export function ExtractedValueCard({
   const typeColorClasses = getDataTypeColor(value.data_type);
   const formattedValue = formatExtractedValue(value);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick?.();
+    }
+  }, [onClick]);
+
   if (compact) {
     return (
       <div
@@ -72,6 +80,9 @@ export function ExtractedValueCard({
           className
         )}
         onClick={onClick}
+        onKeyDown={onClick ? handleKeyDown : undefined}
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div
@@ -127,6 +138,9 @@ export function ExtractedValueCard({
         className
       )}
       onClick={onClick}
+      onKeyDown={onClick ? handleKeyDown : undefined}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
