@@ -78,12 +78,39 @@ async def extraction_client(sync_db_session: Session) -> AsyncClient:
     """
     Create an async test client with sync database dependency override.
     This is needed because extraction endpoints use get_sync_db.
+
+    Also overrides authentication dependencies to allow unauthenticated access
+    for testing purposes.
     """
+    from app.core.permissions import (
+        CurrentUser,
+        Role,
+        require_analyst,
+        require_manager,
+    )
+
+    # Create a mock user for testing
+    mock_user = CurrentUser(
+        id=1,
+        email="test@example.com",
+        role=Role.ADMIN,  # Use admin role to pass all permission checks
+        full_name="Test User",
+        is_active=True,
+    )
 
     def override_get_sync_db():
         yield sync_db_session
 
+    # Override authentication dependencies to return mock user
+    async def override_require_analyst():
+        return mock_user
+
+    async def override_require_manager():
+        return mock_user
+
     app.dependency_overrides[get_sync_db] = override_get_sync_db
+    app.dependency_overrides[require_analyst] = override_require_analyst
+    app.dependency_overrides[require_manager] = override_require_manager
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

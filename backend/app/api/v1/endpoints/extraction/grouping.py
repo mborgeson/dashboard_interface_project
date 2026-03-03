@@ -14,6 +14,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.permissions import CurrentUser, require_analyst, require_manager
 from app.db.session import get_sync_db
 from app.extraction.group_pipeline import GroupExtractionPipeline
 from app.schemas.grouping import (
@@ -48,7 +49,10 @@ def _get_pipeline() -> GroupExtractionPipeline:
 
 
 @router.get("/status", response_model=PipelineStatusResponse)
-def get_pipeline_status(pipeline: GroupExtractionPipeline = Depends(_get_pipeline)):
+def get_pipeline_status(
+    pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_analyst),
+):
     """Get current pipeline status including phase completion and stats."""
     status = pipeline.get_status()
     return PipelineStatusResponse(**status)
@@ -63,6 +67,7 @@ def get_pipeline_status(pipeline: GroupExtractionPipeline = Depends(_get_pipelin
 def run_discovery(
     files: list[dict[str, Any]] | None = None,
     pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Phase 1: Discover candidate UW model files.
@@ -89,7 +94,10 @@ def run_discovery(
 
 
 @router.get("/manifest")
-def get_manifest(pipeline: GroupExtractionPipeline = Depends(_get_pipeline)):
+def get_manifest(
+    pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_analyst),
+):
     """View the discovery manifest."""
     import json
 
@@ -112,6 +120,7 @@ def get_manifest(pipeline: GroupExtractionPipeline = Depends(_get_pipeline)):
 def run_fingerprint(
     file_paths: list[str] | None = None,
     pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Phase 2: Fingerprint candidate files and auto-group them.
@@ -170,7 +179,10 @@ def run_fingerprint(
 
 
 @router.get("/groups", response_model=GroupListResponse)
-def list_groups(pipeline: GroupExtractionPipeline = Depends(_get_pipeline)):
+def list_groups(
+    pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_analyst),
+):
     """List all file groups."""
     import json
 
@@ -205,6 +217,7 @@ def list_groups(pipeline: GroupExtractionPipeline = Depends(_get_pipeline)):
 def get_group_detail(
     name: str,
     pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """Get detailed info for a specific group."""
     import json
@@ -238,6 +251,7 @@ def get_group_detail(
 def run_reference_map(
     reference_file_path: str | None = None,
     pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """Phase 3.1-3.3: Auto-map groups to canonical field vocabulary."""
     cfg = pipeline.config
@@ -273,6 +287,7 @@ def run_reconciliation(
     known_properties: list[str],
     max_edit_distance: int = 3,
     pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """Phase 3.4: Reconcile property names to known DB properties."""
     try:
@@ -298,6 +313,7 @@ def run_reconciliation(
 def run_conflict_check(
     db: Session = Depends(get_sync_db),
     pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """Phase 4.1: Check for conflicts with existing extraction data."""
     cfg = pipeline.config
@@ -329,6 +345,7 @@ def run_extraction(
     request: GroupExtractionRequest = GroupExtractionRequest(),
     db: Session = Depends(get_sync_db),
     pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """Phase 4.2: Extract data from a group (dry-run by default)."""
     try:
@@ -358,6 +375,7 @@ def run_extraction(
 def approve_group(
     name: str,
     pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Mark a group as approved for live extraction.
@@ -385,6 +403,7 @@ def run_batch_extraction(
     request: BatchExtractionRequest,
     db: Session = Depends(get_sync_db),
     pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Extract data from multiple groups.
@@ -433,6 +452,7 @@ def run_batch_extraction(
 def run_validation(
     db: Session = Depends(get_sync_db),
     pipeline: GroupExtractionPipeline = Depends(_get_pipeline),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """Phase 4.3: Cross-group validation."""
     try:

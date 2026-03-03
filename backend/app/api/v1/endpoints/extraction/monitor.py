@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.permissions import CurrentUser, require_analyst, require_manager
 from app.db.session import get_db
 from app.extraction.sharepoint import SharePointAuthError
 from app.models.file_monitor import MonitoredFile
@@ -21,7 +22,10 @@ router = APIRouter()
 
 
 @router.get("/monitor/status")
-async def get_monitor_status(db: AsyncSession = Depends(get_db)):
+async def get_monitor_status(
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
+):
     """
     Get the current status of the file monitoring system.
 
@@ -65,6 +69,7 @@ async def get_recent_changes(
     offset: int = 0,
     change_type: str | None = None,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get recent file changes detected by monitoring.
@@ -106,7 +111,10 @@ async def get_recent_changes(
 
 
 @router.post("/monitor/check")
-async def trigger_monitor_check(db: AsyncSession = Depends(get_db)):
+async def trigger_monitor_check(
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
+):
     """
     Trigger a manual file monitoring check.
 
@@ -168,6 +176,7 @@ async def list_monitored_files(
     limit: int = 100,
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     List files being monitored.
@@ -233,7 +242,9 @@ async def list_monitored_files(
 
 
 @router.post("/monitor/enable")
-async def enable_monitor():
+async def enable_monitor(
+    current_user: CurrentUser = Depends(require_manager),
+):
     """
     Enable file monitoring.
 
@@ -264,7 +275,9 @@ async def enable_monitor():
 
 
 @router.post("/monitor/disable")
-async def disable_monitor():
+async def disable_monitor(
+    current_user: CurrentUser = Depends(require_manager),
+):
     """
     Disable file monitoring.
 
@@ -296,6 +309,7 @@ async def update_monitor_config(
     enabled: bool | None = None,
     interval_minutes: int | None = None,
     auto_extract: bool | None = None,
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Update file monitor configuration.

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 # Import from common module - these can be patched via the package __init__.py
 from app.api.v1.endpoints.extraction import common
 from app.core.config import settings
+from app.core.permissions import CurrentUser, require_manager
 from app.crud.extraction import ExtractionRunCRUD
 from app.db.session import get_sync_db
 from app.extraction.sharepoint import SharePointAuthError
@@ -33,6 +34,7 @@ async def start_extraction(
     request: ExtractionStartRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_sync_db),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Start a new extraction run.
@@ -121,7 +123,9 @@ async def start_extraction(
 
 @router.post("/cancel")
 async def cancel_extraction(
-    run_id: UUID | None = None, db: Session = Depends(get_sync_db)
+    run_id: UUID | None = None,
+    db: Session = Depends(get_sync_db),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Cancel a running extraction.

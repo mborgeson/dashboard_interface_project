@@ -80,6 +80,13 @@ def sync_db() -> Generator[Session, None, None]:
 @pytest.fixture
 def app(groups_dir, sync_db):
     """Create FastAPI app with grouping router and temp pipeline."""
+    from app.core.permissions import (
+        CurrentUser,
+        Role,
+        require_analyst,
+        require_manager,
+    )
+
     test_app = FastAPI()
     test_app.include_router(router, prefix="/extraction")
 
@@ -92,8 +99,26 @@ def app(groups_dir, sync_db):
     def _test_db():
         yield sync_db
 
+    # Create a mock user for testing
+    mock_user = CurrentUser(
+        id=1,
+        email="test@example.com",
+        role=Role.ADMIN,  # Use admin role to pass all permission checks
+        full_name="Test User",
+        is_active=True,
+    )
+
+    # Override authentication dependencies to return mock user
+    async def override_require_analyst():
+        return mock_user
+
+    async def override_require_manager():
+        return mock_user
+
     test_app.dependency_overrides[_get_pipeline] = _test_pipeline
     test_app.dependency_overrides[get_sync_db] = _test_db
+    test_app.dependency_overrides[require_analyst] = override_require_analyst
+    test_app.dependency_overrides[require_manager] = override_require_manager
 
     return test_app
 

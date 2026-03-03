@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import and_, case, func, literal, select
 from sqlalchemy.orm import Session
 
+from app.core.permissions import CurrentUser, require_analyst
 from app.crud.extraction import ExtractedValueCRUD, ExtractionRunCRUD
 from app.db.session import get_sync_db
 from app.models.extraction import ExtractedValue, ExtractionRun
@@ -36,7 +37,9 @@ def _run_to_item(run: ExtractionRun) -> dict:
 
 @router.get("/status")
 async def get_extraction_status(
-    run_id: UUID | None = None, db: Session = Depends(get_sync_db)
+    run_id: UUID | None = None,
+    db: Session = Depends(get_sync_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get status of extraction runs.
@@ -111,6 +114,7 @@ async def get_extraction_history(
     offset: int = 0,
     page: int | None = None,
     db: Session = Depends(get_sync_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get history of extraction runs.
@@ -156,6 +160,7 @@ async def list_extracted_properties(
     search: str | None = None,
     has_errors: bool | None = None,
     db: Session = Depends(get_sync_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     List all properties with extracted data, including field counts and categories.
@@ -238,6 +243,7 @@ async def get_property_data(
     property_name: str,
     run_id: UUID | None = None,
     db: Session = Depends(get_sync_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get all extracted data for a specific property.

@@ -31,6 +31,13 @@ def groups_dir(tmp_path):
 @pytest.fixture
 def app(groups_dir):
     """Create FastAPI app with grouping router and tmp pipeline."""
+    from app.core.permissions import (
+        CurrentUser,
+        Role,
+        require_analyst,
+        require_manager,
+    )
+
     test_app = FastAPI()
     test_app.include_router(router, prefix="/extraction")
 
@@ -41,7 +48,24 @@ def app(groups_dir):
         from app.extraction.group_pipeline import GroupExtractionPipeline
         return GroupExtractionPipeline(data_dir=_dir)
 
+    # Create a mock user for testing
+    mock_user = CurrentUser(
+        id=1,
+        email="test@example.com",
+        role=Role.ADMIN,
+        full_name="Test User",
+        is_active=True,
+    )
+
+    async def override_require_analyst():
+        return mock_user
+
+    async def override_require_manager():
+        return mock_user
+
     test_app.dependency_overrides[_get_pipeline] = _test_pipeline
+    test_app.dependency_overrides[require_analyst] = override_require_analyst
+    test_app.dependency_overrides[require_manager] = override_require_manager
 
     return test_app
 
