@@ -11,6 +11,7 @@ State is persisted in config.json within the data directory so phases
 can be run independently and resumed.
 """
 
+import copy
 import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -711,6 +712,9 @@ class GroupExtractionPipeline:
                 "error": "No mappings available",
                 "files_processed": 0,
             }
+
+        # Deep copy to prevent mutation affecting other groups using the same dict
+        cell_mappings = copy.deepcopy(cell_mappings)
 
         # Apply field-specific remaps for groups with non-production layouts
         cell_mappings, applied_remaps = self._apply_field_remaps(

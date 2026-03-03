@@ -181,8 +181,11 @@ class ExtractedValueCRUD:
             Number of values inserted
         """
         # Resolve property_id from the Property table (if match exists)
+        # Use case-insensitive lookup to handle variations in property names
         prop_row = db.execute(
-            select(Property.id).where(Property.name == property_name).limit(1)
+            select(Property.id)
+            .where(func.lower(Property.name) == func.lower(property_name))
+            .limit(1)
         ).scalar_one_or_none()
         property_id: int | None = prop_row if prop_row is not None else None
 
