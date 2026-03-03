@@ -639,6 +639,7 @@ class TestCrossGroupValidationCounts:
         assert report["total_extracted_values"] == 0
         assert report["unique_properties"] == 0
         assert report["validation_passed"] is True
+        assert report["issues"] == []
 
     def test_cross_group_validation_counts_group_extractions(self, pipeline, sync_db):
         """Validation should count values from group extractions."""
@@ -729,6 +730,9 @@ class TestCrossGroupValidationCounts:
         assert "total_extracted_values" in data
         assert "unique_properties" in data
         assert "validation_passed" in data
+        assert "issues" in data
+        assert "cross_group_duplicates" in data
+        assert "error_rate" in data
 
     def test_cross_group_validation_includes_per_group_counts(self, pipeline, sync_db):
         """Validation should include per-group value counts."""
@@ -751,6 +755,156 @@ class TestCrossGroupValidationCounts:
         report = pipeline.run_cross_group_validation(sync_db)
 
         assert "per_group_counts" in report
+
+    def test_cross_group_duplicates_detected(self, pipeline, sync_db):
+        """Same property+field across different group runs with different values should be flagged."""
+        # Two different group extraction runs extracting the same property+field
+        run1 = ExtractionRunCRUD.create(sync_db, trigger_type="group_extraction", files_discovered=1)
+        run1.file_metadata = {"group_name": "group_1"}
+        sync_db.commit()
+
+        run2 = ExtractionRunCRUD.create(sync_db, trigger_type="group_extraction", files_discovered=1)
+        run2.file_metadata = {"group_name": "group_2"}
+        sync_db.commit()
+
+        # Same property+field, different values → conflict
+        sync_db.add(ExtractedValue(
+            extraction_run_id=run1.id,
+            property_name="Deal A",
+            field_name="REVENUE",
+            value_text="1000000",
+            is_error=False,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        ))
+        sync_db.add(ExtractedValue(
+            extraction_run_id=run2.id,
+            property_name="Deal A",
+            field_name="REVENUE",
+            value_text="2000000",
+            is_error=False,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        ))
+        sync_db.commit()
+
+        report = pipeline.run_cross_group_validation(sync_db)
+
+        assert report["validation_passed"] is False
+        assert report["cross_group_duplicates"]["count"] > 0
+        assert len(report["issues"]) > 0
+        assert any("duplicate" in issue["type"] for issue in report["issues"])
+
+    def test_cross_group_duplicates_same_value_ok(self, pipeline, sync_db):
+        """Same property+field with same value across runs is not a conflict."""
+        run1 = ExtractionRunCRUD.create(sync_db, trigger_type="group_extraction", files_discovered=1)
+        run2 = ExtractionRunCRUD.create(sync_db, trigger_type="group_extraction", files_discovered=1)
+        sync_db.commit()
+
+        # Same property+field, same value → no conflict
+        sync_db.add(ExtractedValue(
+            extraction_run_id=run1.id,
+            property_name="Deal A",
+            field_name="REVENUE",
+            value_text="1000000",
+            is_error=False,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        ))
+        sync_db.add(ExtractedValue(
+            extraction_run_id=run2.id,
+            property_name="Deal A",
+            field_name="REVENUE",
+            value_text="1000000",
+            is_error=False,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        ))
+        sync_db.commit()
+
+        report = pipeline.run_cross_group_validation(sync_db)
+
+        assert report["cross_group_duplicates"]["count"] == 0
+        assert not any("duplicate" in issue["type"] for issue in report["issues"])
+
+    def test_cross_group_high_error_rate_flagged(self, pipeline, sync_db):
+        """Groups with >20% error rate should be flagged."""
+        run = ExtractionRunCRUD.create(sync_db, trigger_type="group_extraction", files_discovered=1)
+        run.file_metadata = {"group_name": "bad_group"}
+        sync_db.commit()
+
+        now = datetime.now(UTC)
+        # 3 good values, 2 errors → 40% error rate
+        for i, (is_err, val) in enumerate([
+            (False, "100"), (False, "200"), (False, "300"),
+            (True, None), (True, None),
+        ]):
+            sync_db.add(ExtractedValue(
+                extraction_run_id=run.id,
+                property_name="Deal A",
+                field_name=f"FIELD_{i}",
+                value_text=val,
+                is_error=is_err,
+                error_category="parse_error" if is_err else None,
+                created_at=now,
+                updated_at=now,
+            ))
+        sync_db.commit()
+
+        report = pipeline.run_cross_group_validation(sync_db)
+
+        assert report["validation_passed"] is False
+        assert report["error_rate"]["overall_pct"] > 20.0
+        assert len(report["issues"]) > 0
+        assert any("error_rate" in issue["type"] for issue in report["issues"])
+
+    def test_cross_group_low_error_rate_passes(self, pipeline, sync_db):
+        """Groups with <=20% error rate should pass."""
+        run = ExtractionRunCRUD.create(sync_db, trigger_type="group_extraction", files_discovered=1)
+        sync_db.commit()
+
+        now = datetime.now(UTC)
+        # 9 good values, 1 error → 10% error rate
+        for i in range(9):
+            sync_db.add(ExtractedValue(
+                extraction_run_id=run.id,
+                property_name="Deal A",
+                field_name=f"FIELD_{i}",
+                value_text=str(i * 100),
+                is_error=False,
+                created_at=now,
+                updated_at=now,
+            ))
+        sync_db.add(ExtractedValue(
+            extraction_run_id=run.id,
+            property_name="Deal A",
+            field_name="FIELD_BAD",
+            value_text=None,
+            is_error=True,
+            error_category="parse_error",
+            created_at=now,
+            updated_at=now,
+        ))
+        sync_db.commit()
+
+        report = pipeline.run_cross_group_validation(sync_db)
+
+        assert report["error_rate"]["overall_pct"] <= 20.0
+        assert not any("error_rate" in issue["type"] for issue in report["issues"])
+
+    def test_cross_group_empty_group_flagged(self, pipeline, sync_db):
+        """Completed group extraction runs with zero values should be flagged."""
+        run = ExtractionRunCRUD.create(sync_db, trigger_type="group_extraction", files_discovered=3)
+        run.file_metadata = {"group_name": "empty_group"}
+        sync_db.commit()
+        ExtractionRunCRUD.complete(sync_db, run.id, files_processed=3, files_failed=0)
+
+        report = pipeline.run_cross_group_validation(sync_db)
+
+        assert report["validation_passed"] is False
+        assert len(report["empty_groups"]) == 1
+        assert report["empty_groups"][0]["group_name"] == "empty_group"
+        assert any("empty_group" in issue["type"] for issue in report["issues"])
 
 
 # ============================================================================

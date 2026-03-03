@@ -1096,19 +1096,22 @@ class GroupExtractionPipeline:
         """
         Phase 4.3: Cross-group validation.
 
-        Verifies:
-        - Total record counts across all groups
-        - Spot-check records per group
-        - No auto-resolved conflicts
+        Checks:
+        1. Cross-group duplicates: same property+field extracted by different
+           group runs with conflicting values.
+        2. Error rate: flags groups where >20% of extracted values are errors.
+        3. Empty groups: completed group runs that produced zero values.
 
         Returns:
-            Validation report dict.
+            Validation report dict with validation_passed=False if any check fails.
         """
-        from sqlalchemy import func, select
+        from sqlalchemy import and_, case, func, select
 
         from app.models.extraction import ExtractedValue, ExtractionRun
 
-        # Count records from group extractions
+        issues: list[dict[str, Any]] = []
+
+        # ── 1. Aggregate counts ──────────────────────────────────────────
         stmt = (
             select(
                 func.count(ExtractedValue.id).label("total"),
@@ -1121,7 +1124,7 @@ class GroupExtractionPipeline:
         )
         row = db.execute(stmt).one()
 
-        # Per-group counts
+        # Per-group counts (JSON field access; SQLite fallback)
         group_counts_stmt = (
             select(
                 ExtractionRun.file_metadata["group_name"].label("group_name"),
@@ -1131,21 +1134,150 @@ class GroupExtractionPipeline:
             .where(ExtractionRun.trigger_type == "group_extraction")
             .group_by(ExtractionRun.file_metadata["group_name"])
         )
-
-        # For SQLite compatibility, fall back to counting all group extraction values
         try:
             group_rows = db.execute(group_counts_stmt).all()
             per_group = {str(r.group_name): r.value_count for r in group_rows}
         except Exception:
             per_group = {"all_groups": row.total}
 
+        # ── 2. Cross-group duplicate detection ───────────────────────────
+        # Find property_name+field_name pairs that appear in more than one
+        # group_extraction run with different value_text.
+        dup_stmt = (
+            select(
+                ExtractedValue.property_name,
+                ExtractedValue.field_name,
+                func.count(func.distinct(ExtractedValue.extraction_run_id)).label(
+                    "run_count"
+                ),
+                func.count(func.distinct(ExtractedValue.value_text)).label(
+                    "distinct_values"
+                ),
+            )
+            .join(ExtractionRun)
+            .where(ExtractionRun.trigger_type == "group_extraction")
+            .group_by(ExtractedValue.property_name, ExtractedValue.field_name)
+            .having(
+                and_(
+                    func.count(func.distinct(ExtractedValue.extraction_run_id)) > 1,
+                    func.count(func.distinct(ExtractedValue.value_text)) > 1,
+                )
+            )
+        )
+        dup_rows = db.execute(dup_stmt).all()
+        dup_details = [
+            {
+                "property_name": r.property_name,
+                "field_name": r.field_name,
+                "run_count": r.run_count,
+                "distinct_values": r.distinct_values,
+            }
+            for r in dup_rows
+        ]
+
+        if dup_details:
+            issues.append(
+                {
+                    "type": "cross_group_duplicate",
+                    "message": (
+                        f"{len(dup_details)} field(s) extracted by multiple groups "
+                        "with conflicting values"
+                    ),
+                    "details": dup_details,
+                }
+            )
+
+        # ── 3. Error rate ────────────────────────────────────────────────
+        error_stmt = (
+            select(
+                func.count(ExtractedValue.id).label("total"),
+                func.sum(case((ExtractedValue.is_error.is_(True), 1), else_=0)).label(
+                    "errors"
+                ),
+            )
+            .join(ExtractionRun)
+            .where(ExtractionRun.trigger_type == "group_extraction")
+        )
+        error_row = db.execute(error_stmt).one()
+        total_vals = error_row.total or 0
+        error_count = error_row.errors or 0
+        error_pct = round((error_count / total_vals * 100), 1) if total_vals else 0.0
+
+        if error_pct > 20.0:
+            issues.append(
+                {
+                    "type": "high_error_rate",
+                    "message": (
+                        f"Error rate {error_pct}% exceeds 20% threshold "
+                        f"({error_count}/{total_vals} values)"
+                    ),
+                }
+            )
+
+        # ── 4. Empty groups (completed runs with zero values) ────────────
+        empty_stmt = (
+            select(
+                ExtractionRun.id,
+                ExtractionRun.file_metadata,
+                ExtractionRun.files_processed,
+            )
+            .outerjoin(ExtractedValue)
+            .where(
+                and_(
+                    ExtractionRun.trigger_type == "group_extraction",
+                    ExtractionRun.status == "completed",
+                )
+            )
+            .group_by(
+                ExtractionRun.id,
+                ExtractionRun.file_metadata,
+                ExtractionRun.files_processed,
+            )
+            .having(func.count(ExtractedValue.id) == 0)
+        )
+        empty_rows = db.execute(empty_stmt).all()
+        empty_groups = []
+        for er in empty_rows:
+            gn = (er.file_metadata or {}).get("group_name", str(er.id))
+            empty_groups.append(
+                {
+                    "group_name": gn,
+                    "files_processed": er.files_processed,
+                }
+            )
+
+        if empty_groups:
+            names = [eg["group_name"] for eg in empty_groups]
+            issues.append(
+                {
+                    "type": "empty_group_extraction",
+                    "message": (
+                        f"{len(empty_groups)} group(s) completed extraction "
+                        f"with zero values: {names}"
+                    ),
+                }
+            )
+
+        # ── Build report ─────────────────────────────────────────────────
+        validation_passed = len(issues) == 0
+
         report = {
             "generated_at": datetime.now(UTC).isoformat(),
             "total_extracted_values": row.total,
             "unique_properties": row.properties,
             "per_group_counts": per_group,
-            "validation_passed": True,
-            "issues": [],
+            "cross_group_duplicates": {
+                "count": len(dup_details),
+                "details": dup_details,
+            },
+            "error_rate": {
+                "total_values": total_vals,
+                "error_count": error_count,
+                "overall_pct": error_pct,
+            },
+            "empty_groups": empty_groups,
+            "validation_passed": validation_passed,
+            "issues": issues,
         }
 
         # Persist
@@ -1157,5 +1289,7 @@ class GroupExtractionPipeline:
             "cross_group_validation_completed",
             total_values=row.total,
             properties=row.properties,
+            passed=validation_passed,
+            issue_count=len(issues),
         )
         return report
