@@ -864,22 +864,28 @@ class TestEdgeCases:
         self, extraction_client
     ) -> None:
         """
-        Empty file_paths falls back to fixture files.
+        Empty file_paths with source='local' triggers local discovery.
 
-        When source is 'local' but file_paths is empty, the API falls back
-        to loading files from the fixtures directory for testing purposes.
+        When source is 'local' but file_paths is empty, the API scans the
+        local OneDrive deals folder. Mock discover_local_deal_files to
+        simulate the scan in CI where the folder doesn't exist.
         """
-        with patch("app.api.v1.endpoints.extraction.common.run_extraction_task"):
+        mock_files = ["/fake/path/UW_Model_vCurrent.xlsb"]
+        with (
+            patch("app.api.v1.endpoints.extraction.common.run_extraction_task"),
+            patch(
+                "app.api.v1.endpoints.extraction.common.discover_local_deal_files",
+                return_value=mock_files,
+            ),
+        ):
             response = await extraction_client.post(
                 "/api/v1/extraction/start",
                 json={"source": "local", "file_paths": []},
             )
             assert response.status_code == 200
-            # Falls back to fixture files when no paths provided
             data = response.json()
             assert data["status"] == "running"
-            # The fixture directory contains 8 test files
-            assert data["files_discovered"] >= 0
+            assert data["files_discovered"] >= 1
 
     @pytest.mark.asyncio
     async def test_special_characters_in_property_name(

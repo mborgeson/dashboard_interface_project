@@ -174,22 +174,10 @@ export function useDeals(initialDeals: Deal[]) {
     const pipelineDeals = filteredDeals.filter(
       (d) => d.stage !== 'closed' && d.stage !== 'realized' && d.stage !== 'dead'
     );
-    const closedDeals = filteredDeals.filter((d) => d.stage === 'closed');
-    const realizedDeals = filteredDeals.filter((d) => d.stage === 'realized');
-    const deadDeals = filteredDeals.filter((d) => d.stage === 'dead');
-
     const totalPipelineValue = filteredDeals.reduce(
       (sum, deal) => sum + deal.value,
       0
     );
-
-    const avgDaysInPipeline =
-      pipelineDeals.length > 0
-        ? Math.round(
-            pipelineDeals.reduce((sum, deal) => sum + deal.totalDaysInPipeline, 0) /
-              pipelineDeals.length
-          )
-        : 0;
 
     const totalUnits = pipelineDeals.reduce((sum, deal) => sum + deal.units, 0);
 

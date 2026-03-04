@@ -106,11 +106,11 @@ async def many_activities(
 
 @pytest.mark.asyncio
 async def test_get_property_activities_without_auth(client, test_property):
-    """Test that getting property activities works without auth (public endpoint)."""
+    """Test that getting property activities without auth returns 401."""
     response = await client.get(f"/api/v1/properties/{test_property.id}/activities")
 
-    # Endpoint does not require authentication
-    assert response.status_code == 200
+    # Endpoint now requires authentication
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio

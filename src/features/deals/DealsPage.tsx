@@ -34,7 +34,6 @@ export function DealsPage() {
     filteredDeals,
     dealsByStage,
     metrics,
-    filterOptions,
   } = useDeals(deals);
 
   const formatCompactValue = (val: number): string => {

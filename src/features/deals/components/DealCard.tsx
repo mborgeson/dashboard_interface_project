@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo } from 'react';
-import type { Deal, DealStage } from '@/types/deal';
+import type { Deal } from '@/types/deal';
 import { DEAL_STAGE_LABELS, DEAL_STAGE_COLORS } from '@/types/deal';
 import { cn } from '@/lib/utils';
 import { DealQuickActions } from '@/components/quick-actions/QuickActionButton';
