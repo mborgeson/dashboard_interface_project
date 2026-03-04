@@ -36,6 +36,7 @@ function makeBackendDeal(overrides: Record<string, unknown> = {}) {
     t12_return_on_cost: 0.065,
     levered_irr: 0.18,
     levered_moic: 2.1,
+    stage_updated_at: null,
     total_equity_commitment: 5000000,
     ...overrides,
   };
@@ -88,15 +89,33 @@ describe('backendDealSchema', () => {
     expect(result.value).toBe(0);
   });
 
-  it('calculates daysInPipeline from created_at', () => {
+  it('calculates totalDaysInPipeline from created_at', () => {
     const result = backendDealSchema.parse(makeBackendDeal());
     const expected = Math.floor(
       (new Date('2025-06-01T00:00:00Z').getTime() -
         new Date('2025-01-15T10:00:00Z').getTime()) /
         86400000,
     );
-    expect(result.daysInStage).toBe(expected);
     expect(result.totalDaysInPipeline).toBe(expected);
+  });
+
+  it('calculates daysInStage from stage_updated_at when available', () => {
+    const result = backendDealSchema.parse(
+      makeBackendDeal({ stage_updated_at: '2025-04-01T00:00:00Z' }),
+    );
+    const expected = Math.floor(
+      (new Date('2025-06-01T00:00:00Z').getTime() -
+        new Date('2025-04-01T00:00:00Z').getTime()) /
+        86400000,
+    );
+    expect(result.daysInStage).toBe(expected);
+  });
+
+  it('falls back to created_at for daysInStage when stage_updated_at is null', () => {
+    const result = backendDealSchema.parse(
+      makeBackendDeal({ stage_updated_at: null }),
+    );
+    expect(result.daysInStage).toBe(result.totalDaysInPipeline);
   });
 
   it('handles null optional enrichment fields', () => {
@@ -118,6 +137,80 @@ describe('backendDealSchema', () => {
     expect(result.currentOwner).toBe('');
     expect(result.leveredIrr).toBe(0);
     expect(result.leveredMoic).toBe(0);
+  });
+
+  it('handles new enrichment fields when present', () => {
+    const result = backendDealSchema.parse(
+      makeBackendDeal({
+        submarket: 'Tempe',
+        year_built: 1998,
+        year_renovated: 2015,
+        vacancy_rate: 0.05,
+        noi_margin: 0.62,
+        purchase_price_extracted: 15000000,
+        total_acquisition_budget: 16000000,
+        basis_per_unit: 80000,
+        t12_cap_on_pp: 0.052,
+        t3_cap_on_pp: 0.048,
+        loan_amount: 10000000,
+        lp_equity: 5000000,
+        exit_months: 60,
+        exit_cap_rate: 0.055,
+        unlevered_irr: 0.125,
+        unlevered_moic: 2.1,
+        latitude: 33.4255,
+        longitude: -111.9400,
+      }),
+    );
+    expect(result.submarket).toBe('Tempe');
+    expect(result.yearBuilt).toBe(1998);
+    expect(result.yearRenovated).toBe(2015);
+    expect(result.vacancyRate).toBe(0.05);
+    expect(result.noiMargin).toBe(0.62);
+    expect(result.purchasePrice).toBe(15000000);
+    expect(result.totalAcquisitionBudget).toBe(16000000);
+    expect(result.basisPerUnit).toBe(80000);
+    expect(result.t12CapOnPp).toBe(0.052);
+    expect(result.t3CapOnPp).toBe(0.048);
+    expect(result.loanAmount).toBe(10000000);
+    expect(result.lpEquity).toBe(5000000);
+    expect(result.exitMonths).toBe(60);
+    expect(result.exitCapRate).toBe(0.055);
+    expect(result.unleveredIrr).toBe(0.125);
+    expect(result.unleveredMoic).toBe(2.1);
+    expect(result.latitude).toBe(33.4255);
+    expect(result.longitude).toBe(-111.9400);
+  });
+
+  it('handles null new enrichment fields gracefully', () => {
+    const result = backendDealSchema.parse(
+      makeBackendDeal({
+        submarket: null,
+        year_built: null,
+        latitude: null,
+        longitude: null,
+        recent_activities: null,
+      }),
+    );
+    expect(result.submarket).toBeUndefined();
+    expect(result.yearBuilt).toBeUndefined();
+    expect(result.latitude).toBeUndefined();
+    expect(result.longitude).toBeUndefined();
+    expect(result.recentActivities).toBeUndefined();
+  });
+
+  it('parses recent_activities when present', () => {
+    const result = backendDealSchema.parse(
+      makeBackendDeal({
+        recent_activities: [
+          { action: 'stage_changed', description: 'Stage changed to Active Review', created_at: '2025-03-01T10:00:00Z' },
+          { action: 'updated', description: 'Updated fields: notes', created_at: '2025-02-28T09:00:00Z' },
+        ],
+      }),
+    );
+    expect(result.recentActivities).toHaveLength(2);
+    expect(result.recentActivities![0].action).toBe('stage_changed');
+    expect(result.recentActivities![0].createdAt).toBeInstanceOf(Date);
   });
 
   it('converts null notes to undefined', () => {

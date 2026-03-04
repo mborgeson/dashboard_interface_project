@@ -12,9 +12,9 @@ from app.models import DealStage
 
 
 @pytest.mark.asyncio
-async def test_list_deals(client, multiple_deals):
+async def test_list_deals(client, multiple_deals, auth_headers):
     """Test listing all deals with pagination."""
-    response = await client.get("/api/v1/deals/")
+    response = await client.get("/api/v1/deals/", headers=auth_headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -28,9 +28,11 @@ async def test_list_deals(client, multiple_deals):
 
 
 @pytest.mark.asyncio
-async def test_list_deals_with_pagination(client, multiple_deals):
+async def test_list_deals_with_pagination(client, multiple_deals, auth_headers):
     """Test deal listing with custom pagination."""
-    response = await client.get("/api/v1/deals/", params={"page": 1, "page_size": 2})
+    response = await client.get(
+        "/api/v1/deals/", params={"page": 1, "page_size": 2}, headers=auth_headers
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -41,9 +43,11 @@ async def test_list_deals_with_pagination(client, multiple_deals):
 
 
 @pytest.mark.asyncio
-async def test_list_deals_filter_by_stage(client, multiple_deals):
+async def test_list_deals_filter_by_stage(client, multiple_deals, auth_headers):
     """Test filtering deals by stage."""
-    response = await client.get("/api/v1/deals/", params={"stage": "initial_review"})
+    response = await client.get(
+        "/api/v1/deals/", params={"stage": "initial_review"}, headers=auth_headers
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -53,9 +57,11 @@ async def test_list_deals_filter_by_stage(client, multiple_deals):
 
 
 @pytest.mark.asyncio
-async def test_list_deals_filter_by_priority(client, multiple_deals):
+async def test_list_deals_filter_by_priority(client, multiple_deals, auth_headers):
     """Test filtering deals by priority."""
-    response = await client.get("/api/v1/deals/", params={"priority": "medium"})
+    response = await client.get(
+        "/api/v1/deals/", params={"priority": "medium"}, headers=auth_headers
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -65,14 +71,23 @@ async def test_list_deals_filter_by_priority(client, multiple_deals):
 
 
 @pytest.mark.asyncio
-async def test_list_deals_sort_order(client, multiple_deals):
+async def test_list_deals_sort_order(client, multiple_deals, auth_headers):
     """Test deals sorting."""
     # Sort ascending
     response = await client.get(
-        "/api/v1/deals/", params={"sort_by": "created_at", "sort_order": "asc"}
+        "/api/v1/deals/",
+        params={"sort_by": "created_at", "sort_order": "asc"},
+        headers=auth_headers,
     )
 
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_list_deals_requires_auth(client, multiple_deals):
+    """Test that listing deals without auth returns 401."""
+    response = await client.get("/api/v1/deals/")
+    assert response.status_code == 401
 
 
 # =============================================================================
@@ -81,9 +96,9 @@ async def test_list_deals_sort_order(client, multiple_deals):
 
 
 @pytest.mark.asyncio
-async def test_get_kanban_board(client, multiple_deals):
+async def test_get_kanban_board(client, multiple_deals, auth_headers):
     """Test getting Kanban board data."""
-    response = await client.get("/api/v1/deals/kanban")
+    response = await client.get("/api/v1/deals/kanban", headers=auth_headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -95,10 +110,12 @@ async def test_get_kanban_board(client, multiple_deals):
 
 
 @pytest.mark.asyncio
-async def test_get_kanban_board_with_filter(client, multiple_deals):
+async def test_get_kanban_board_with_filter(client, multiple_deals, auth_headers):
     """Test Kanban board with deal type filter."""
     response = await client.get(
-        "/api/v1/deals/kanban", params={"deal_type": "acquisition"}
+        "/api/v1/deals/kanban",
+        params={"deal_type": "acquisition"},
+        headers=auth_headers,
     )
 
     assert response.status_code == 200
@@ -113,9 +130,11 @@ async def test_get_kanban_board_with_filter(client, multiple_deals):
 
 
 @pytest.mark.asyncio
-async def test_get_deal_by_id(client, test_deal):
+async def test_get_deal_by_id(client, test_deal, auth_headers):
     """Test getting a specific deal by ID."""
-    response = await client.get(f"/api/v1/deals/{test_deal.id}")
+    response = await client.get(
+        f"/api/v1/deals/{test_deal.id}", headers=auth_headers
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -125,9 +144,9 @@ async def test_get_deal_by_id(client, test_deal):
 
 
 @pytest.mark.asyncio
-async def test_get_deal_not_found(client):
+async def test_get_deal_not_found(client, auth_headers):
     """Test getting a non-existent deal returns 404."""
-    response = await client.get("/api/v1/deals/999999")
+    response = await client.get("/api/v1/deals/999999", headers=auth_headers)
 
     assert response.status_code == 404
     data = response.json()
@@ -140,7 +159,7 @@ async def test_get_deal_not_found(client):
 
 
 @pytest.mark.asyncio
-async def test_create_deal(client, test_user):
+async def test_create_deal(client, test_user, admin_auth_headers):
     """Test creating a new deal."""
     new_deal = {
         "name": "New Test Deal",
@@ -150,7 +169,9 @@ async def test_create_deal(client, test_user):
         "priority": "high",
     }
 
-    response = await client.post("/api/v1/deals/", json=new_deal)
+    response = await client.post(
+        "/api/v1/deals/", json=new_deal, headers=admin_auth_headers
+    )
 
     assert response.status_code == 201
     data = response.json()
@@ -163,28 +184,32 @@ async def test_create_deal(client, test_user):
 
 
 @pytest.mark.asyncio
-async def test_create_deal_minimal(client):
+async def test_create_deal_minimal(client, admin_auth_headers):
     """Test creating a deal with minimal required fields."""
     new_deal = {
         "name": "Minimal Deal",
         "deal_type": "acquisition",
     }
 
-    response = await client.post("/api/v1/deals/", json=new_deal)
+    response = await client.post(
+        "/api/v1/deals/", json=new_deal, headers=admin_auth_headers
+    )
 
     # May succeed or fail validation depending on required fields
     assert response.status_code in [201, 422]
 
 
 @pytest.mark.asyncio
-async def test_create_deal_missing_required_field(client):
+async def test_create_deal_missing_required_field(client, admin_auth_headers):
     """Test creating a deal without required name fails."""
     new_deal = {
         "deal_type": "acquisition",
         "priority": "high",
     }
 
-    response = await client.post("/api/v1/deals/", json=new_deal)
+    response = await client.post(
+        "/api/v1/deals/", json=new_deal, headers=admin_auth_headers
+    )
 
     assert response.status_code == 422
 
@@ -195,14 +220,16 @@ async def test_create_deal_missing_required_field(client):
 
 
 @pytest.mark.asyncio
-async def test_update_deal(client, test_deal):
+async def test_update_deal(client, test_deal, admin_auth_headers):
     """Test updating an existing deal."""
     update_data = {
         "name": "Updated Deal Name",
         "priority": "low",
     }
 
-    response = await client.put(f"/api/v1/deals/{test_deal.id}", json=update_data)
+    response = await client.put(
+        f"/api/v1/deals/{test_deal.id}", json=update_data, headers=admin_auth_headers
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -212,11 +239,13 @@ async def test_update_deal(client, test_deal):
 
 
 @pytest.mark.asyncio
-async def test_update_deal_not_found(client):
+async def test_update_deal_not_found(client, admin_auth_headers):
     """Test updating a non-existent deal returns 404."""
     update_data = {"name": "Won't Work"}
 
-    response = await client.put("/api/v1/deals/999999", json=update_data)
+    response = await client.put(
+        "/api/v1/deals/999999", json=update_data, headers=admin_auth_headers
+    )
 
     assert response.status_code == 404
 
@@ -227,11 +256,13 @@ async def test_update_deal_not_found(client):
 
 
 @pytest.mark.asyncio
-async def test_patch_deal(client, test_deal):
+async def test_patch_deal(client, test_deal, admin_auth_headers):
     """Test partially updating an existing deal."""
     patch_data = {"priority": "low"}
 
-    response = await client.patch(f"/api/v1/deals/{test_deal.id}", json=patch_data)
+    response = await client.patch(
+        f"/api/v1/deals/{test_deal.id}", json=patch_data, headers=admin_auth_headers
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -241,11 +272,13 @@ async def test_patch_deal(client, test_deal):
 
 
 @pytest.mark.asyncio
-async def test_patch_deal_not_found(client):
+async def test_patch_deal_not_found(client, admin_auth_headers):
     """Test patching a non-existent deal returns 404."""
     patch_data = {"priority": "low"}
 
-    response = await client.patch("/api/v1/deals/999999", json=patch_data)
+    response = await client.patch(
+        "/api/v1/deals/999999", json=patch_data, headers=admin_auth_headers
+    )
 
     assert response.status_code == 404
 
@@ -256,12 +289,14 @@ async def test_patch_deal_not_found(client):
 
 
 @pytest.mark.asyncio
-async def test_update_deal_stage(client, test_deal):
+async def test_update_deal_stage(client, test_deal, admin_auth_headers):
     """Test updating a deal's stage (Kanban drag-and-drop)."""
     stage_data = {"stage": "under_contract"}
 
     response = await client.patch(
-        f"/api/v1/deals/{test_deal.id}/stage", json=stage_data
+        f"/api/v1/deals/{test_deal.id}/stage",
+        json=stage_data,
+        headers=admin_auth_headers,
     )
 
     assert response.status_code == 200
@@ -271,13 +306,15 @@ async def test_update_deal_stage(client, test_deal):
 
 
 @pytest.mark.asyncio
-async def test_update_deal_stage_with_order(client, test_deal):
+async def test_update_deal_stage_with_order(client, test_deal, admin_auth_headers):
     """Test updating a deal's stage with position order."""
     # Use a valid stage from the DealStage enum
     stage_data = {"stage": "closed", "stage_order": 5}
 
     response = await client.patch(
-        f"/api/v1/deals/{test_deal.id}/stage", json=stage_data
+        f"/api/v1/deals/{test_deal.id}/stage",
+        json=stage_data,
+        headers=admin_auth_headers,
     )
 
     assert response.status_code == 200
@@ -287,12 +324,14 @@ async def test_update_deal_stage_with_order(client, test_deal):
 
 
 @pytest.mark.asyncio
-async def test_update_deal_stage_invalid(client, test_deal):
+async def test_update_deal_stage_invalid(client, test_deal, admin_auth_headers):
     """Test updating a deal's stage with invalid stage value returns validation error."""
     stage_data = {"stage": "invalid_stage_value"}
 
     response = await client.patch(
-        f"/api/v1/deals/{test_deal.id}/stage", json=stage_data
+        f"/api/v1/deals/{test_deal.id}/stage",
+        json=stage_data,
+        headers=admin_auth_headers,
     )
 
     # Schema validation returns 422, endpoint validation returns 400
@@ -301,11 +340,13 @@ async def test_update_deal_stage_invalid(client, test_deal):
 
 
 @pytest.mark.asyncio
-async def test_update_deal_stage_not_found(client):
+async def test_update_deal_stage_not_found(client, admin_auth_headers):
     """Test updating stage of non-existent deal returns 404."""
     stage_data = {"stage": "under_contract"}
 
-    response = await client.patch("/api/v1/deals/999999/stage", json=stage_data)
+    response = await client.patch(
+        "/api/v1/deals/999999/stage", json=stage_data, headers=admin_auth_headers
+    )
 
     assert response.status_code == 404
 
@@ -316,21 +357,27 @@ async def test_update_deal_stage_not_found(client):
 
 
 @pytest.mark.asyncio
-async def test_delete_deal(client, test_deal):
+async def test_delete_deal(client, test_deal, admin_auth_headers, auth_headers):
     """Test deleting a deal."""
-    response = await client.delete(f"/api/v1/deals/{test_deal.id}")
+    response = await client.delete(
+        f"/api/v1/deals/{test_deal.id}", headers=admin_auth_headers
+    )
 
     assert response.status_code == 204
 
     # Verify deal is gone
-    get_response = await client.get(f"/api/v1/deals/{test_deal.id}")
+    get_response = await client.get(
+        f"/api/v1/deals/{test_deal.id}", headers=auth_headers
+    )
     assert get_response.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_delete_deal_not_found(client):
+async def test_delete_deal_not_found(client, admin_auth_headers):
     """Test deleting a non-existent deal returns 404."""
-    response = await client.delete("/api/v1/deals/999999")
+    response = await client.delete(
+        "/api/v1/deals/999999", headers=admin_auth_headers
+    )
 
     assert response.status_code == 404
 

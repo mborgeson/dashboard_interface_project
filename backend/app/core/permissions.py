@@ -166,7 +166,7 @@ async def get_current_user(
         id=int(user_id),
         email=payload.get("email", "demo@bandrcapital.com"),
         role=role,
-        full_name=None,
+        full_name=payload.get("full_name"),
         is_active=True,
     )
 

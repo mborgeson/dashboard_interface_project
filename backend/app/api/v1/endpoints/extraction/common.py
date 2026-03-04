@@ -10,6 +10,7 @@ This module contains:
 
 import asyncio
 import hashlib
+import re
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -27,12 +28,141 @@ from app.extraction.sharepoint import (
 )
 from app.services.extraction.metrics import FileMetrics, RunMetrics
 
+# Folder name → DealStage value mapping
+STAGE_FOLDER_MAP: dict[str, str] = {
+    "0) Dead Deals": "dead",
+    "1) Initial UW and Review": "initial_review",
+    "2) Active UW and Review": "active_review",
+    "3) Deals Under Contract": "under_contract",
+    "4) Closed Deals": "closed",
+    "5) Realized Deals": "realized",
+}
+
 logger = structlog.get_logger().bind(component="extraction_api")
 
 # Path to reference file (project root / filename)
 REFERENCE_FILE = Path(__file__).parent.parent.parent.parent.parent.parent.parent / (
     "Underwriting_Dashboard_Cell_References.xlsx"
 )
+
+
+def discover_local_deal_files(
+    stage_filter: list[str] | None = None,
+) -> list[dict]:
+    """
+    Discover UW model files from the local OneDrive deals folder.
+
+    Scans stage subfolders (e.g., "0) Dead Deals", "1) Initial UW and Review")
+    and finds UW Model vCurrent files in each deal subfolder.
+
+    Args:
+        stage_filter: Optional list of stage values to scan (e.g., ["initial_review"]).
+            If None, scans all stages. Use this to skip the slow "Dead Deals" folder.
+
+    Returns:
+        List of file info dicts with file_path, deal_name, and deal_stage.
+    """
+    deals_root = Path(settings.LOCAL_DEALS_ROOT)
+    if not deals_root.is_dir():
+        raise ValueError(
+            f"LOCAL_DEALS_ROOT not found: {deals_root}. "
+            "Set LOCAL_DEALS_ROOT in .env to the local OneDrive deals folder path."
+        )
+
+    file_pattern = re.compile(settings.FILE_PATTERN, re.IGNORECASE)
+    exclude_lower = [
+        p.strip().lower() for p in settings.EXCLUDE_PATTERNS.split(",") if p.strip()
+    ]
+    valid_extensions = {
+        ext.strip().lower()
+        for ext in settings.FILE_EXTENSIONS.split(",")
+        if ext.strip()
+    }
+
+    files: list[dict] = []
+
+    def _check_file(path: Path) -> bool:
+        """Check if a file matches UW model criteria."""
+        if path.suffix.lower() not in valid_extensions:
+            return False
+        if not file_pattern.search(path.name):
+            return False
+        name_lower = path.name.lower()
+        return not any(excl in name_lower for excl in exclude_lower)
+
+    for stage_folder_name, stage_value in STAGE_FOLDER_MAP.items():
+        # Skip stages not in filter
+        if stage_filter and stage_value not in stage_filter:
+            continue
+
+        stage_dir = deals_root / stage_folder_name
+        if not stage_dir.is_dir():
+            continue
+
+        # Each deal is a subfolder under the stage folder
+        try:
+            deal_dirs = sorted(stage_dir.iterdir())
+        except OSError:
+            logger.warning("stage_folder_scan_failed", folder=stage_folder_name)
+            continue
+
+        for deal_dir in deal_dirs:
+            if not deal_dir.is_dir():
+                continue
+
+            # Shallow scan: check immediate files first (depth 0)
+            found = False
+            try:
+                for entry in deal_dir.iterdir():
+                    if entry.is_file() and _check_file(entry):
+                        files.append(
+                            {
+                                "file_path": str(entry),
+                                "deal_name": deal_dir.name,
+                                "deal_stage": stage_value,
+                            }
+                        )
+                        found = True
+                        break
+            except OSError:
+                continue
+
+            if found:
+                continue
+
+            # Depth 1: check one level of subdirectories only
+            try:
+                for subdir in deal_dir.iterdir():
+                    if not subdir.is_dir():
+                        continue
+                    try:
+                        for entry in subdir.iterdir():
+                            if entry.is_file() and _check_file(entry):
+                                files.append(
+                                    {
+                                        "file_path": str(entry),
+                                        "deal_name": deal_dir.name,
+                                        "deal_stage": stage_value,
+                                    }
+                                )
+                                found = True
+                                break
+                    except OSError:
+                        continue
+                    if found:
+                        break
+            except OSError:
+                continue
+
+    logger.info(
+        "local_deal_files_discovered",
+        total=len(files),
+        by_stage={
+            stage: sum(1 for f in files if f["deal_stage"] == stage)
+            for stage in STAGE_FOLDER_MAP.values()
+        },
+    )
+    return files
 
 
 async def discover_sharepoint_files() -> list[SharePointFile]:
@@ -198,6 +328,8 @@ def process_files(
     # Phase 2: Sequential DB operations (change detection + insert)
     # Track property → source_file for collision detection (Issue 4.2)
     processed_properties: dict[str, str] = {}
+    # Track property → deal_stage from folder structure
+    property_stages: dict[str, str] = {}
 
     for file_path, deal_name, result, error_msg in extraction_results:
         file_info = file_info_map[file_path]
@@ -240,6 +372,10 @@ def process_files(
                         run_id=str(run_id),
                     )
                 processed_properties[prop_key] = Path(file_path).name
+
+                # Track deal_stage from folder structure if available
+                if "deal_stage" in file_info:
+                    property_stages[prop_key] = file_info["deal_stage"]
 
                 # Per-deal change detection: compare extracted vs DB
                 needs_update, reason = should_extract_deal(
@@ -336,6 +472,25 @@ def process_files(
     run_metrics.emit_run_metrics(str(run_id))
     file_metadata = run_metrics.to_metadata()
 
+    # Sync extracted properties to main properties/deals tables
+    from app.crud.extraction import sync_extracted_to_properties
+
+    try:
+        sync_result = sync_extracted_to_properties(
+            db, run_id, property_stages=property_stages
+        )
+        logger.info(
+            "extraction_sync_completed",
+            run_id=str(run_id),
+            **sync_result,
+        )
+    except Exception as sync_error:
+        logger.error(
+            "extraction_sync_failed",
+            run_id=str(run_id),
+            error=str(sync_error),
+        )
+
     # Mark complete with error summary including skip stats
     ExtractionRunCRUD.complete(
         db,
@@ -383,6 +538,36 @@ def run_extraction_task(run_id: UUID, source: str, file_paths: list | None = Non
                 for p in file_paths
             ]
             logger.info("local_extraction_started", file_count=len(files_to_process))
+
+        elif source == "local" and not file_paths:
+            # Scan the local OneDrive deals folder for UW models
+            # Skip dead/realized stages — too slow via WSL, and those deals
+            # already exist in DB. Stage updates handled by full scan separately.
+            try:
+                files_to_process = discover_local_deal_files(
+                    stage_filter=[
+                        "initial_review",
+                        "active_review",
+                        "under_contract",
+                        "closed",
+                    ]
+                )
+            except ValueError as e:
+                logger.error("local_deals_folder_error", error=str(e))
+                ExtractionRunCRUD.fail(db, run_id, {"error": str(e)})
+                return
+
+            if not files_to_process:
+                logger.warning("no_local_deal_files_found")
+                ExtractionRunCRUD.complete(
+                    db, run_id, files_processed=0, files_failed=0
+                )
+                return
+
+            logger.info(
+                "local_deals_extraction_started",
+                file_count=len(files_to_process),
+            )
 
         elif source == "sharepoint":
             logger.info("sharepoint_extraction_started")

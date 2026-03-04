@@ -173,6 +173,15 @@ def generate_user_data() -> list[dict]:
 
     users = [
         {
+            "email": "matt@bandrcapital.com",
+            "hashed_password": get_password_hash("Wildcats777!!"),
+            "full_name": "Matt Borgeson",
+            "role": "admin",
+            "is_active": True,
+            "is_verified": True,
+            "department": "Executive",
+        },
+        {
             "email": "admin@bandrcapital.com",
             "hashed_password": default_password,
             "full_name": "Admin User",

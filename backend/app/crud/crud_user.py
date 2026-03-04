@@ -95,7 +95,11 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         user = await self.get_by_email(db, email=email)
         if not user:
             return None
-        if not verify_password(password, user.hashed_password):
+        try:
+            if not verify_password(password, user.hashed_password):
+                return None
+        except Exception:
+            # Invalid/corrupt hash in DB — treat as auth failure
             return None
         return user
 

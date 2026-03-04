@@ -9,8 +9,6 @@ interface DealFiltersProps {
   filters: DealFiltersType;
   onUpdateFilters: (updates: Partial<DealFiltersType>) => void;
   onClearFilters: () => void;
-  propertyTypes: string[];
-  assignees: string[];
 }
 
 const ALL_STAGES: DealStage[] = [
@@ -22,20 +20,25 @@ const ALL_STAGES: DealStage[] = [
   'realized',
 ];
 
+const inputClass =
+  'w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent';
+
 export function DealFilters({
   filters,
   onUpdateFilters,
   onClearFilters,
-  propertyTypes,
-  assignees,
 }: DealFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const hasActiveFilters =
     filters.stages.length > 0 ||
-    filters.propertyTypes.length > 0 ||
-    filters.assignees.length > 0 ||
-    filters.searchQuery.length > 0;
+    filters.searchQuery.length > 0 ||
+    filters.lastSalePricePerUnitRange[0] != null ||
+    filters.lastSalePricePerUnitRange[1] != null ||
+    filters.lastSaleDateRange[0] != null ||
+    filters.lastSaleDateRange[1] != null ||
+    filters.equityCommitmentRange[0] != null ||
+    filters.equityCommitmentRange[1] != null;
 
   const toggleStage = (stage: DealStage) => {
     const newStages = filters.stages.includes(stage)
@@ -44,29 +47,10 @@ export function DealFilters({
     onUpdateFilters({ stages: newStages });
   };
 
-  const togglePropertyType = (type: string) => {
-    const newTypes = filters.propertyTypes.includes(type)
-      ? filters.propertyTypes.filter((t) => t !== type)
-      : [...filters.propertyTypes, type];
-    onUpdateFilters({ propertyTypes: newTypes });
-  };
-
-  const toggleAssignee = (assignee: string) => {
-    const newAssignees = filters.assignees.includes(assignee)
-      ? filters.assignees.filter((a) => a !== assignee)
-      : [...filters.assignees, assignee];
-    onUpdateFilters({ assignees: newAssignees });
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      notation: 'compact',
-      compactDisplay: 'short',
-    }).format(value);
+  const parseNumOrNull = (val: string): number | null => {
+    if (!val.trim()) return null;
+    const n = Number(val);
+    return Number.isFinite(n) ? n : null;
   };
 
   return (
@@ -106,7 +90,7 @@ export function DealFilters({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
           <input
             type="text"
-            placeholder="Search by property, city, or assignee..."
+            placeholder="Search by property, city, or submarket..."
             value={filters.searchQuery}
             onChange={(e) => onUpdateFilters({ searchQuery: e.target.value })}
             className="w-full pl-9 pr-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent"
@@ -143,64 +127,187 @@ export function DealFilters({
             </div>
           </div>
 
-          {/* Property Type Filter */}
+          {/* Last Sale Price per Unit */}
           <div>
             <h4 className="text-sm font-semibold text-neutral-900 mb-3">
-              Property Type
+              Last Sale Price per Unit
             </h4>
-            <div className="flex flex-wrap gap-2">
-              {propertyTypes.map((type) => (
-                <ToggleButton
-                  key={type}
-                  isActive={filters.propertyTypes.includes(type)}
-                  onClick={() => togglePropertyType(type)}
-                >
-                  {type}
-                </ToggleButton>
-              ))}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-neutral-500 mb-1">Min $/Unit</label>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 100000"
+                  value={filters.lastSalePricePerUnitRange[0] ?? ''}
+                  onBlur={(e) =>
+                    onUpdateFilters({
+                      lastSalePricePerUnitRange: [
+                        parseNumOrNull(e.target.value),
+                        filters.lastSalePricePerUnitRange[1],
+                      ],
+                    })
+                  }
+                  onChange={(e) =>
+                    onUpdateFilters({
+                      lastSalePricePerUnitRange: [
+                        parseNumOrNull(e.target.value),
+                        filters.lastSalePricePerUnitRange[1],
+                      ],
+                    })
+                  }
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-neutral-500 mb-1">Max $/Unit</label>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 300000"
+                  value={filters.lastSalePricePerUnitRange[1] ?? ''}
+                  onBlur={(e) =>
+                    onUpdateFilters({
+                      lastSalePricePerUnitRange: [
+                        filters.lastSalePricePerUnitRange[0],
+                        parseNumOrNull(e.target.value),
+                      ],
+                    })
+                  }
+                  onChange={(e) =>
+                    onUpdateFilters({
+                      lastSalePricePerUnitRange: [
+                        filters.lastSalePricePerUnitRange[0],
+                        parseNumOrNull(e.target.value),
+                      ],
+                    })
+                  }
+                  className={inputClass}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Assignee Filter */}
+          {/* Last Sale Date */}
           <div>
             <h4 className="text-sm font-semibold text-neutral-900 mb-3">
-              Assignee
+              Last Sale Date
             </h4>
-            <div className="flex flex-wrap gap-2">
-              {assignees.map((assignee) => (
-                <ToggleButton
-                  key={assignee}
-                  isActive={filters.assignees.includes(assignee)}
-                  onClick={() => toggleAssignee(assignee)}
-                >
-                  {assignee}
-                </ToggleButton>
-              ))}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-neutral-500 mb-1">From Year</label>
+                <input
+                  type="number"
+                  min={1980}
+                  max={2030}
+                  placeholder="e.g. 2018"
+                  value={filters.lastSaleDateRange[0] ?? ''}
+                  onBlur={(e) =>
+                    onUpdateFilters({
+                      lastSaleDateRange: [
+                        parseNumOrNull(e.target.value),
+                        filters.lastSaleDateRange[1],
+                      ],
+                    })
+                  }
+                  onChange={(e) =>
+                    onUpdateFilters({
+                      lastSaleDateRange: [
+                        parseNumOrNull(e.target.value),
+                        filters.lastSaleDateRange[1],
+                      ],
+                    })
+                  }
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-neutral-500 mb-1">To Year</label>
+                <input
+                  type="number"
+                  min={1980}
+                  max={2030}
+                  placeholder="e.g. 2025"
+                  value={filters.lastSaleDateRange[1] ?? ''}
+                  onBlur={(e) =>
+                    onUpdateFilters({
+                      lastSaleDateRange: [
+                        filters.lastSaleDateRange[0],
+                        parseNumOrNull(e.target.value),
+                      ],
+                    })
+                  }
+                  onChange={(e) =>
+                    onUpdateFilters({
+                      lastSaleDateRange: [
+                        filters.lastSaleDateRange[0],
+                        parseNumOrNull(e.target.value),
+                      ],
+                    })
+                  }
+                  className={inputClass}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Value Range */}
+          {/* Equity Commitment Range */}
           <div>
             <h4 className="text-sm font-semibold text-neutral-900 mb-3">
-              Deal Value Range
+              Equity Commitment Range
             </h4>
-            <div className="space-y-2">
-              <input
-                type="range"
-                min="0"
-                max="100000000"
-                step="1000000"
-                value={filters.valueRange[1]}
-                onChange={(e) =>
-                  onUpdateFilters({
-                    valueRange: [filters.valueRange[0], Number(e.target.value)],
-                  })
-                }
-                className="w-full"
-              />
-              <div className="flex items-center justify-between text-sm text-neutral-600">
-                <span>{formatCurrency(filters.valueRange[0])}</span>
-                <span>{formatCurrency(filters.valueRange[1])}</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-neutral-500 mb-1">Min Equity</label>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 1000000"
+                  value={filters.equityCommitmentRange[0] ?? ''}
+                  onBlur={(e) =>
+                    onUpdateFilters({
+                      equityCommitmentRange: [
+                        parseNumOrNull(e.target.value),
+                        filters.equityCommitmentRange[1],
+                      ],
+                    })
+                  }
+                  onChange={(e) =>
+                    onUpdateFilters({
+                      equityCommitmentRange: [
+                        parseNumOrNull(e.target.value),
+                        filters.equityCommitmentRange[1],
+                      ],
+                    })
+                  }
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-neutral-500 mb-1">Max Equity</label>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 20000000"
+                  value={filters.equityCommitmentRange[1] ?? ''}
+                  onBlur={(e) =>
+                    onUpdateFilters({
+                      equityCommitmentRange: [
+                        filters.equityCommitmentRange[0],
+                        parseNumOrNull(e.target.value),
+                      ],
+                    })
+                  }
+                  onChange={(e) =>
+                    onUpdateFilters({
+                      equityCommitmentRange: [
+                        filters.equityCommitmentRange[0],
+                        parseNumOrNull(e.target.value),
+                      ],
+                    })
+                  }
+                  className={inputClass}
+                />
               </div>
             </div>
           </div>

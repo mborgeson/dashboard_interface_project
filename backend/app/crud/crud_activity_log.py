@@ -2,6 +2,7 @@
 CRUD operations for ActivityLog model.
 """
 
+from collections import defaultdict
 from typing import Any
 
 from sqlalchemy import func, select
@@ -182,6 +183,42 @@ class CRUDActivityLog(CRUDBase[ActivityLog, ActivityLogCreate, ActivityLogCreate
             user_id=user_id,
             meta={"deal_name": deal_name},
         )
+
+    async def get_recent_for_deals(
+        self,
+        db: AsyncSession,
+        *,
+        deal_ids: list[int],
+        limit_per_deal: int = 3,
+    ) -> dict[int, list[ActivityLog]]:
+        """
+        Batch-fetch the most recent activities for multiple deals.
+
+        Uses a single query with a window function to get the N most recent
+        activities per deal efficiently.
+
+        Returns:
+            Dict mapping deal_id -> list of ActivityLog (newest first)
+        """
+        if not deal_ids:
+            return {}
+
+        # Fetch recent activities for all requested deals, ordered by recency
+        query = (
+            select(ActivityLog)
+            .where(ActivityLog.deal_id.in_(deal_ids))
+            .order_by(ActivityLog.deal_id, ActivityLog.created_at.desc())
+        )
+        result = await db.execute(query)
+        rows = list(result.scalars().all())
+
+        # Group by deal_id and limit per deal
+        grouped: dict[int, list[ActivityLog]] = defaultdict(list)
+        for row in rows:
+            if len(grouped[row.deal_id]) < limit_per_deal:
+                grouped[row.deal_id].append(row)
+
+        return dict(grouped)
 
     async def log_update(
         self,

@@ -106,11 +106,11 @@ async def many_deal_activities(
 
 @pytest.mark.asyncio
 async def test_get_deal_activities_without_auth(client, test_deal):
-    """Test that getting deal activities works without auth (public endpoint)."""
+    """Test that getting deal activities without auth returns 401."""
     response = await client.get(f"/api/v1/deals/{test_deal.id}/activity")
 
-    # Endpoint does not require authentication
-    assert response.status_code == 200
+    # Endpoint now requires authentication
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio

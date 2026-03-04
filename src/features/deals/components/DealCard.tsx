@@ -1,19 +1,9 @@
-import { useState, memo, useCallback, useMemo } from 'react';
-import type { Deal } from '@/types/deal';
+import { memo, useCallback, useMemo } from 'react';
+import type { Deal, DealStage } from '@/types/deal';
 import { DEAL_STAGE_LABELS, DEAL_STAGE_COLORS } from '@/types/deal';
-import {
-  Building2,
-  MapPin,
-  DollarSign,
-  TrendingUp,
-  User,
-  Calendar,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/useToast';
 import { DealQuickActions } from '@/components/quick-actions/QuickActionButton';
+import { DealAerialMap } from './DealAerialMap';
 
 interface DealCardProps {
   deal: Deal;
@@ -22,187 +12,229 @@ interface DealCardProps {
   onClick?: (dealId: string) => void;
 }
 
-// Currency formatter instance - created once, reused
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
+// ---------- Formatting helpers ----------
 
-// Progress stages constant - defined outside component
-const PROGRESS_STAGES: Deal['stage'][] = [
-  'initial_review',
-  'active_review',
-  'under_contract',
-  'closed',
-  'realized',
-];
+function fmtPct(v: number | undefined | null): string {
+  if (v == null) return 'N/A';
+  return `${(v * 100).toFixed(1)}%`;
+}
 
-export const DealCard = memo(function DealCard({ deal, isDragging = false, compact = false, onClick }: DealCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const { info } = useToast();
+function fmtCompact(v: number | undefined | null): string {
+  if (v == null) return 'N/A';
+  if (Math.abs(v) >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (Math.abs(v) >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (Math.abs(v) >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  return `$${v.toFixed(0)}`;
+}
 
-  // Memoized currency formatting
-  const formattedValue = useMemo(() => currencyFormatter.format(deal.value), [deal.value]);
+function fmtMultiple(v: number | undefined | null): string {
+  if (v == null) return 'N/A';
+  return `${v.toFixed(1)}x`;
+}
 
-  // Memoized progress percentage calculation
-  const progressPercentage = useMemo(() => {
-    const currentIndex = PROGRESS_STAGES.indexOf(deal.stage);
-    if (currentIndex === -1) return 100;
-    return ((currentIndex + 1) / PROGRESS_STAGES.length) * 100;
-  }, [deal.stage]);
+function fmtNum(v: number | undefined | null): string {
+  if (v == null || v === 0) return 'N/A';
+  return v.toLocaleString();
+}
 
-  // Memoized click handler
+// ---------- Stage folder mapping for SharePoint ----------
+
+const STAGE_FOLDER_MAP: Record<string, string> = {
+  dead: '0) Dead Deals',
+  initial_review: '1) Initial UW and Review',
+  active_review: '2) Active Review',
+  under_contract: '3) Under Contract',
+  closed: '4) Closed - Active Assets',
+  realized: '5) Realized',
+};
+
+function getUwModelUrl(deal: Deal): string {
+  const stageFolder = STAGE_FOLDER_MAP[deal.stage] ?? '1) Initial UW and Review';
+  const dealName = encodeURIComponent(deal.propertyName);
+  return `https://bandrcapital.sharepoint.com/sites/BRCapital-Internal/Shared Documents/Real Estate/Deals/${encodeURIComponent(stageFolder)}/${dealName}/`;
+}
+
+function getDealFolderUrl(deal: Deal): string {
+  const stageFolder = STAGE_FOLDER_MAP[deal.stage] ?? '1) Initial UW and Review';
+  const dealName = encodeURIComponent(deal.propertyName);
+  return `https://bandrcapital.sharepoint.com/sites/BRCapital-Internal/Shared Documents/Real Estate/Deals/${encodeURIComponent(stageFolder)}/${dealName}/`;
+}
+
+// ---------- MetricRow component ----------
+
+function MetricRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-neutral-500 truncate mr-2">{label}</span>
+      <span className="font-medium text-neutral-900 text-right whitespace-nowrap">{children}</span>
+    </div>
+  );
+}
+
+// ---------- DealCard ----------
+
+export const DealCard = memo(function DealCard({
+  deal,
+  isDragging = false,
+  onClick,
+}: DealCardProps) {
   const handleClick = useCallback(() => {
     onClick?.(deal.id);
   }, [onClick, deal.id]);
 
-  // Memoized keyboard handler
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClick?.(deal.id);
-    }
-  }, [onClick, deal.id]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onClick?.(deal.id);
+      }
+    },
+    [onClick, deal.id],
+  );
 
-  // Memoized stage button click handler
-  const handleStageClick = useCallback(() => {
-    info(`Deal moved to ${DEAL_STAGE_LABELS[deal.stage]}`);
-  }, [info, deal.stage]);
+  // Loss factor total
+  const totalLoss = useMemo(() => {
+    const vac = deal.vacancyRate ?? 0;
+    const bd = deal.badDebtRate ?? 0;
+    const ol = deal.otherLossRate ?? 0;
+    const con = deal.concessionsRate ?? 0;
+    const total = vac + bd + ol + con;
+    return total > 0 ? total : null;
+  }, [deal.vacancyRate, deal.badDebtRate, deal.otherLossRate, deal.concessionsRate]);
 
-  // Memoized expand toggle
-  const toggleExpanded = useCallback(() => {
-    setIsExpanded(prev => !prev);
-  }, []);
+  // Vintage string
+  const vintage = useMemo(() => {
+    if (!deal.yearBuilt) return null;
+    if (deal.yearRenovated) return `Built ${deal.yearBuilt} / Reno ${deal.yearRenovated}`;
+    return `Built ${deal.yearBuilt}`;
+  }, [deal.yearBuilt, deal.yearRenovated]);
 
   return (
     <div
       className={cn(
-        "bg-white rounded-lg border border-neutral-200 shadow-card transition-all",
-        compact ? "p-3" : "p-4",
-        isDragging ? "shadow-2xl ring-2 ring-blue-400 cursor-grabbing" : "hover:shadow-card-hover",
-        !isDragging && onClick && "cursor-pointer"
+        'bg-white rounded-lg border border-neutral-200 shadow-card transition-all',
+        'p-3',
+        isDragging
+          ? 'shadow-2xl ring-2 ring-blue-400 cursor-grabbing'
+          : 'hover:shadow-card-hover',
+        !isDragging && onClick && 'cursor-pointer',
       )}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      role={onClick ? "button" : undefined}
+      role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
     >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h3 className="font-semibold text-neutral-900 mb-1">
-            {deal.propertyName}
-          </h3>
-          <div className="flex items-center text-sm text-neutral-600 gap-1">
-            <MapPin className="w-3.5 h-3.5" />
-            <span>
-              {deal.address.city}, {deal.address.state}
-            </span>
+      {/* Header: Name + Stage Badge */}
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-sm text-neutral-900 truncate">{deal.propertyName}</h3>
+          <div className="text-xs text-neutral-500 truncate">
+            {deal.submarket ?? deal.address.city}
+            {vintage ? ` · ${vintage}` : ''}
           </div>
         </div>
-        <button
-          onClick={handleStageClick}
+        <span
           className={cn(
-            'px-2.5 py-1 rounded-md text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity',
-            DEAL_STAGE_COLORS[deal.stage]
+            'px-2 py-0.5 rounded-md text-[10px] font-medium border ml-2 shrink-0',
+            DEAL_STAGE_COLORS[deal.stage],
           )}
         >
           {DEAL_STAGE_LABELS[deal.stage]}
-        </button>
+        </span>
       </div>
 
-      {/* Key Metrics */}
-      <div className="space-y-2 mb-3">
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-1.5 text-neutral-600">
-            <DollarSign className="w-4 h-4" />
-            <span>Value</span>
-          </div>
-          <span className="font-semibold text-neutral-900">
-            {formattedValue}
-          </span>
-        </div>
+      {/* Metrics Grid */}
+      <div className="space-y-1 py-2 border-t border-neutral-100">
+        {/* Row 2: Units + Avg SF */}
+        <MetricRow label="Units / Avg SF">
+          {fmtNum(deal.units)} / {fmtNum(deal.avgUnitSf)} SF
+        </MetricRow>
 
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-1.5 text-neutral-600">
-            <TrendingUp className="w-4 h-4" />
-            <span>Cap Rate</span>
-          </div>
-          <span className="font-semibold text-neutral-900">
-            {deal.capRate.toFixed(1)}%
-          </span>
-        </div>
+        {/* Row 3: Loss Factor */}
+        <MetricRow label="Loss Factor">
+          {totalLoss != null ? fmtPct(totalLoss) : 'N/A'}
+        </MetricRow>
 
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-1.5 text-neutral-600">
-            <Building2 className="w-4 h-4" />
-            <span>Units</span>
-          </div>
-          <span className="font-semibold text-neutral-900">{deal.units}</span>
-        </div>
+        {/* Row 4: NOI Margin */}
+        <MetricRow label="NOI Margin">{fmtPct(deal.noiMargin)}</MetricRow>
+
+        {/* Row 5: Going-in Basis */}
+        <MetricRow label="Basis">
+          {fmtCompact(deal.totalAcquisitionBudget ?? deal.purchasePrice)} | {fmtCompact(deal.basisPerUnit)}/u
+        </MetricRow>
+
+        {/* Row 6: Cap Rate on PP */}
+        <MetricRow label="Cap (PP)">
+          T12 {fmtPct(deal.t12CapOnPp)} · T3 {fmtPct(deal.t3CapOnPp)}
+        </MetricRow>
+
+        {/* Row 7: Cap Rate on Total Cost */}
+        <MetricRow label="Cap (TC)">
+          T12 {fmtPct(deal.totalCostCapT12)} · T3 {fmtPct(deal.totalCostCapT3)}
+        </MetricRow>
+
+        {/* Row 8: Project Capital */}
+        <MetricRow label="Capital">
+          {fmtCompact(deal.loanAmount)} D / {fmtCompact(deal.lpEquity)} E
+        </MetricRow>
+
+        {/* Row 9: Horizon + Exit Cap */}
+        <MetricRow label="Exit">
+          {deal.exitMonths != null ? `${Math.round(deal.exitMonths)}mo` : 'N/A'} @ {fmtPct(deal.exitCapRate)}
+        </MetricRow>
+
+        {/* Row 10: Unlevered Returns */}
+        <MetricRow label="Unlev">
+          {fmtPct(deal.unleveredIrr)} / {fmtMultiple(deal.unleveredMoic)}
+        </MetricRow>
+
+        {/* Row 11: Levered Returns */}
+        <MetricRow label="Levered">
+          {fmtPct(deal.leveredIrr)} / {fmtMultiple(deal.leveredMoic)}
+        </MetricRow>
       </div>
 
-      {/* Progress Bar */}
-      {!['realized', 'dead'].includes(deal.stage) && (
-        <div className="mb-3">
-          <div className="flex items-center justify-between text-xs text-neutral-600 mb-1">
-            <span>Progress</span>
-            <span>{progressPercentage.toFixed(0)}%</span>
-          </div>
-          <div className="w-full bg-neutral-100 rounded-full h-1.5">
-            <div
-              className="bg-accent-500 h-1.5 rounded-full transition-all"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
-        <div className="flex items-center gap-1.5 text-xs text-neutral-600">
-          <User className="w-3.5 h-3.5" />
-          <span>{deal.assignee}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <DealQuickActions dealId={deal.id} size="sm" />
-          <div className="flex items-center gap-1.5 text-xs text-neutral-600">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>{deal.daysInStage} days</span>
-          </div>
-        </div>
+      {/* Row 12: Aerial Map */}
+      <div className="mt-1">
+        <DealAerialMap latitude={deal.latitude} longitude={deal.longitude} />
       </div>
 
-      {/* Expandable Details */}
-      {deal.notes && (
-        <>
-          <button
-            onClick={toggleExpanded}
-            className="w-full flex items-center justify-center gap-1 mt-3 pt-3 border-t border-neutral-100 text-xs text-neutral-600 hover:text-neutral-900 transition-colors"
-          >
-            {isExpanded ? (
-              <>
-                <ChevronUp className="w-3.5 h-3.5" />
-                Hide Details
-              </>
-            ) : (
-              <>
-                <ChevronDown className="w-3.5 h-3.5" />
-                Show Details
-              </>
-            )}
-          </button>
-
-          {isExpanded && (
-            <div className="mt-3 pt-3 border-t border-neutral-100 text-sm text-neutral-700">
-              <p className="font-medium text-neutral-900 mb-1">Notes:</p>
-              <p>{deal.notes}</p>
+      {/* Mini Activity Feed */}
+      {deal.recentActivities && deal.recentActivities.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1">
+          {deal.recentActivities.slice(0, 3).map((activity, i) => (
+            <div key={i} className="flex items-start gap-1.5 text-[10px] text-neutral-500">
+              <span className="shrink-0 mt-0.5 w-1 h-1 rounded-full bg-neutral-300" />
+              <span className="truncate">{activity.description}</span>
             </div>
-          )}
-        </>
+          ))}
+        </div>
       )}
+
+      {/* Actions Row */}
+      <div className="flex items-center justify-between pt-2 mt-2 border-t border-neutral-100">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(getUwModelUrl(deal), '_blank');
+            }}
+            className="text-[10px] px-2 py-1 rounded bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium transition-colors"
+          >
+            UW Model
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(getDealFolderUrl(deal), '_blank');
+            }}
+            className="text-[10px] px-2 py-1 rounded bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium transition-colors"
+          >
+            Deal Folder
+          </button>
+        </div>
+        <DealQuickActions dealId={deal.id} size="sm" />
+      </div>
     </div>
   );
 });

@@ -45,6 +45,17 @@ const baseDealFields = {
   leveredIrr: 0.15,
   leveredMoic: 1.8,
   totalEquityCommitment: 12000000,
+  noiMargin: 0.62,
+  t12CapOnPp: 0.052,
+  t3CapOnPp: 0.048,
+  totalCostCapT12: 0.050,
+  totalCostCapT3: 0.046,
+  loanAmount: 10000000,
+  lpEquity: 5000000,
+  exitMonths: 60,
+  exitCapRate: 0.055,
+  unleveredIrr: 0.125,
+  unleveredMoic: 2.1,
 };
 
 const mockDeals: DealForComparison[] = [
@@ -93,6 +104,10 @@ const mockDeals: DealForComparison[] = [
     equityMultiple: 2.1,
     totalSf: 122400,
     occupancyRate: 0.96,
+    noiMargin: 0.58,
+    t12CapOnPp: 0.055,
+    unleveredIrr: 0.14,
+    leveredIrr: 0.18,
   },
   {
     ...baseDealFields,
@@ -116,6 +131,10 @@ const mockDeals: DealForComparison[] = [
     equityMultiple: 1.6,
     totalSf: 159800,
     occupancyRate: 0.92,
+    noiMargin: 0.65,
+    t12CapOnPp: 0.049,
+    unleveredIrr: 0.11,
+    leveredIrr: 0.13,
   },
 ];
 
@@ -144,19 +163,18 @@ describe('ComparisonTable', () => {
     it('renders metric rows', () => {
       render(<ComparisonTable deals={mockDeals} />);
 
-      expect(screen.getByText('Cap Rate')).toBeInTheDocument();
-      expect(screen.getByText('NOI')).toBeInTheDocument();
-      expect(screen.getByText('Price / SF')).toBeInTheDocument();
-      expect(screen.getByText('Projected IRR')).toBeInTheDocument();
-      expect(screen.getByText('Cash-on-Cash')).toBeInTheDocument();
-      expect(screen.getByText('Equity Multiple')).toBeInTheDocument();
+      expect(screen.getByText('Units / Avg SF')).toBeInTheDocument();
+      expect(screen.getByText('NOI Margin')).toBeInTheDocument();
+      expect(screen.getByText('Cap Rate (PP) T12')).toBeInTheDocument();
+      expect(screen.getByText('Unlevered IRR / MOIC')).toBeInTheDocument();
+      expect(screen.getByText('Levered IRR / MOIC')).toBeInTheDocument();
+      expect(screen.getByText('Debt / Equity')).toBeInTheDocument();
     });
 
-    it('shows property type for each deal', () => {
+    it('shows pipeline stage for each deal in metric rows', () => {
       render(<ComparisonTable deals={mockDeals} />);
 
-      expect(screen.getAllByText('Garden').length).toBe(2);
-      expect(screen.getByText('Mid-Rise')).toBeInTheDocument();
+      expect(screen.getByText('Pipeline Stage')).toBeInTheDocument();
     });
 
     it('shows pipeline stage for each deal', () => {
@@ -225,51 +243,46 @@ describe('ComparisonTable', () => {
   });
 
   describe('Metric filtering', () => {
-    it('shows only specified metrics', () => {
-      render(
-        <ComparisonTable
-          deals={mockDeals}
-          metrics={['cap_rate', 'noi']}
-        />
-      );
+    it('renders all UW metric rows', () => {
+      render(<ComparisonTable deals={mockDeals} />);
 
-      expect(screen.getByText('Cap Rate')).toBeInTheDocument();
-      expect(screen.getByText('NOI')).toBeInTheDocument();
-      // Other metrics should not be shown
-      expect(screen.queryByText('Price / SF')).not.toBeInTheDocument();
+      // Should show all UW metric labels
+      expect(screen.getByText('Loss Factor')).toBeInTheDocument();
+      expect(screen.getByText('Going-in Basis')).toBeInTheDocument();
+      expect(screen.getByText('Exit Horizon')).toBeInTheDocument();
     });
   });
 
   describe('Value formatting', () => {
-    it('formats currency values correctly', () => {
+    it('formats compact dollar values correctly', () => {
       render(<ComparisonTable deals={mockDeals} />);
 
-      // Deal value should be formatted as currency
-      expect(screen.getByText('$42,500,000')).toBeInTheDocument();
+      // Loan amount $10M should be formatted compactly
+      expect(screen.getAllByText(/\$10\.0M/).length).toBeGreaterThan(0);
     });
 
     it('formats percentage values correctly', () => {
       render(<ComparisonTable deals={mockDeals} />);
 
-      // Cap rate should show percentage
-      expect(screen.getByText('5.20%')).toBeInTheDocument();
+      // NOI Margin 62.0% should be present (baseDealFields.noiMargin = 0.62)
+      expect(screen.getAllByText('62.0%').length).toBeGreaterThan(0);
     });
 
-    it('shows dashes for missing values', () => {
+    it('shows N/A for missing values', () => {
       const dealWithMissingData = [{
         ...mockDeals[0],
-        projectedIrr: undefined,
+        noiMargin: undefined,
+        t12CapOnPp: undefined,
       }];
 
       render(<ComparisonTable deals={dealWithMissingData} />);
 
-      // Should show dash for missing IRR
+      // Should show N/A for missing values
       const cells = screen.getAllByRole('cell');
-      // Verify dash is shown for missing values
-      Array.from(cells).some(
-        (cell) => cell.textContent === '-'
+      const naValues = Array.from(cells).filter(
+        (cell) => cell.textContent === 'N/A'
       );
-      // This depends on how the component handles undefined
+      expect(naValues.length).toBeGreaterThan(0);
     });
   });
 });

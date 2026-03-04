@@ -6,7 +6,8 @@ export type QuickAction =
   | { type: 'compare'; dealId: string }
   | { type: 'share'; entityType: string; entityId: string }
   | { type: 'export-pdf'; entityType: string; entityId: string }
-  | { type: 'add-note'; entityType: string; entityId: string };
+  | { type: 'add-note'; entityType: string; entityId: string }
+  | { type: 'uw-model'; dealId: string; dealName: string; stage: string };
 
 // Recent action tracking
 interface RecentAction {

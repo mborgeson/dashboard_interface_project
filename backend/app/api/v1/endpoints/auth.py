@@ -36,15 +36,23 @@ def _get_demo_users() -> dict:
 
     # Demo users for development/testing only
     return {
-        "admin@bandrcapital.com": {
-            "password": "admin123",
+        "matt@bandrcapital.com": {
+            "password": "Wildcats777!!",
             "id": 1,
             "role": "admin",
+            "full_name": "Matt Borgeson",
+        },
+        "admin@bandrcapital.com": {
+            "password": "admin123",
+            "id": 2,
+            "role": "admin",
+            "full_name": "Admin User",
         },
         "analyst@bandrcapital.com": {
             "password": "analyst123",
-            "id": 2,
+            "id": 3,
             "role": "analyst",
+            "full_name": "Analyst User",
         },
     }
 
@@ -97,7 +105,11 @@ async def login(
     if demo_user and form_data.password == demo_user["password"]:
         access_token = create_access_token(
             subject=str(demo_user["id"]),
-            additional_claims={"role": demo_user["role"]},
+            additional_claims={
+                "role": demo_user["role"],
+                "email": form_data.username,
+                "full_name": demo_user.get("full_name"),
+            },
         )
         refresh_token = create_refresh_token(subject=str(demo_user["id"]))
 
@@ -223,4 +235,6 @@ async def get_current_user(
         "id": int(user_id) if user_id is not None else 0,
         "email": payload.get("email", "demo@bandrcapital.com"),
         "role": payload.get("role", "viewer"),
+        "full_name": payload.get("full_name"),
+        "is_active": True,
     }

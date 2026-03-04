@@ -11,7 +11,12 @@ from app.api.v1.endpoints._property_transforms import (
     _decimal_to_float,
     to_frontend_property,
 )
-from app.core.permissions import CurrentUser, get_current_user
+from app.core.permissions import (
+    CurrentUser,
+    get_current_user,
+    require_analyst,
+    require_manager,
+)
 from app.crud import property as property_crud
 from app.crud.crud_activity import property_activity
 from app.db.session import get_db
@@ -36,6 +41,7 @@ router = APIRouter()
 @router.get("/dashboard")
 async def list_properties_dashboard(
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     List all properties in the nested frontend format.
@@ -57,6 +63,7 @@ async def list_properties_dashboard(
 async def get_property_dashboard(
     property_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get a single property in the nested frontend format.
@@ -73,6 +80,7 @@ async def get_property_dashboard(
 @router.get("/summary")
 async def get_portfolio_summary(
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get portfolio-level summary statistics.
@@ -173,6 +181,7 @@ async def list_properties(
     sort_by: str | None = "name",
     sort_order: str = "asc",
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     List all properties with filtering and pagination.
@@ -225,6 +234,7 @@ async def list_properties(
 async def get_property(
     property_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get a specific property by ID.
@@ -244,6 +254,7 @@ async def get_property(
 async def create_property(
     property_data: PropertyCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Create a new property.
@@ -258,6 +269,7 @@ async def update_property(
     property_id: int,
     property_data: PropertyUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Update an existing property.
@@ -282,6 +294,7 @@ async def update_property(
 async def delete_property(
     property_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Delete a property (soft delete).
@@ -303,6 +316,7 @@ async def delete_property(
 async def get_property_analytics(
     property_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get analytics data for a specific property.
@@ -452,6 +466,7 @@ async def get_property_activities(
         description="Filter by activity type: view, edit, comment, status_change, document_upload",
     ),
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get activity history for a property.

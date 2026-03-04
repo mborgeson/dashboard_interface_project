@@ -41,6 +41,41 @@ export interface Deal {
   createdAt: Date;
   timeline: DealTimelineEvent[];
   notes?: string;
+  // Location
+  propertyCity?: string;
+  submarket?: string;
+  yearBuilt?: number;
+  yearRenovated?: number;
+  // Loss factors
+  vacancyRate?: number;
+  badDebtRate?: number;
+  otherLossRate?: number;
+  concessionsRate?: number;
+  // NOI
+  noiMargin?: number;
+  // Basis
+  purchasePrice?: number;
+  totalAcquisitionBudget?: number;
+  basisPerUnit?: number;
+  // Cap rates
+  t12CapOnPp?: number;
+  t3CapOnPp?: number;
+  totalCostCapT12?: number;
+  totalCostCapT3?: number;
+  // Capital
+  loanAmount?: number;
+  lpEquity?: number;
+  // Exit
+  exitMonths?: number;
+  exitCapRate?: number;
+  // Returns
+  unleveredIrr?: number;
+  unleveredMoic?: number;
+  // Map
+  latitude?: number;
+  longitude?: number;
+  // Recent activity feed
+  recentActivities?: { action: string; description: string; createdAt: Date }[];
 }
 
 export const DEAL_STAGE_LABELS: Record<DealStage, string> = {

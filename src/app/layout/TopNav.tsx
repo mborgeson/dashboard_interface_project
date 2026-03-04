@@ -3,12 +3,22 @@ import { cn } from '@/lib/utils';
 import { UnderwritingModal } from '@/features/underwriting';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { useSearchStore } from '@/stores/searchStore';
+import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/hooks/useToast';
-import { Search, Command, Bell, Menu } from 'lucide-react';
+import { Search, Command, Bell, Menu, LogOut } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 export function TopNav(){
   const { sidebarCollapsed, toggleMobileMenu } = useAppStore();
   const { setOpen } = useSearchStore();
+  const { user, logout } = useAuthStore();
   const { success, error, warning, info } = useToast();
 
   const handleToastDemo = () => {
@@ -24,6 +34,15 @@ export function TopNav(){
       error('Error notification', { description: 'This is an error message' });
     }, 1500);
   };
+
+  const displayName = user?.full_name || 'User';
+  const displayRole = user?.role || 'Member';
+  const initials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <header
@@ -76,21 +95,33 @@ export function TopNav(){
 
         <UnderwritingModal />
 
-        <div className="flex items-center gap-3" role="status" aria-label="Current user">
-          <div className="text-right">
-            <div className="text-sm font-medium text-neutral-900">
-              Portfolio Manager
-            </div>
-            <div className="text-xs text-neutral-500">B&R Capital</div>
-          </div>
-          <div
-            className="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center font-semibold"
-            role="img"
-            aria-label="User avatar for Portfolio Manager"
-          >
-            BR
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-3 cursor-pointer rounded-lg p-1 hover:bg-neutral-50 transition-colors" aria-label="User menu">
+              <div className="text-right">
+                <div className="text-sm font-medium text-neutral-900">
+                  {displayName}
+                </div>
+                <div className="text-xs text-neutral-500 capitalize">{displayRole}</div>
+              </div>
+              <div
+                className="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center font-semibold"
+                role="img"
+                aria-label={`User avatar for ${displayName}`}
+              >
+                {initials}
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => logout()} className="text-red-600 cursor-pointer">
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

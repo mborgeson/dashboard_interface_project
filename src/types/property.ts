@@ -43,8 +43,8 @@ export interface Property {
     city: string;
     state: string;
     zip: string;
-    latitude: number;
-    longitude: number;
+    latitude: number | null;
+    longitude: number | null;
     submarket: string;
   };
   propertyDetails: {

@@ -6,6 +6,7 @@ import {
   Share2,
   FileDown,
   StickyNote,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuickActions, type QuickAction } from '@/contexts/QuickActionsContext';
@@ -65,6 +66,20 @@ const actionConfig: Record<
     Icon: StickyNote,
     color: 'text-neutral-600 hover:text-orange-500',
   },
+  'uw-model': {
+    label: 'UW Model',
+    Icon: FileSpreadsheet,
+    color: 'text-neutral-600 hover:text-emerald-600',
+  },
+};
+
+const UW_STAGE_FOLDER_MAP: Record<string, string> = {
+  dead: '0) Dead Deals',
+  initial_review: '1) Initial UW and Review',
+  active_review: '2) Active Review',
+  under_contract: '3) Under Contract',
+  closed: '4) Closed - Active Assets',
+  realized: '5) Realized',
 };
 
 const sizeConfig = {
@@ -164,6 +179,15 @@ export const QuickActionButton = forwardRef<HTMLButtonElement, QuickActionButton
           info('Opening notes...');
           addRecentAction(action, `Added note to ${action.entityType}`);
           break;
+
+        case 'uw-model': {
+          const folder = UW_STAGE_FOLDER_MAP[action.stage] ?? '1) Initial UW and Review';
+          const uwUrl = `https://bandrcapital.sharepoint.com/sites/BRCapital-Internal/Shared Documents/Real Estate/Deals/${encodeURIComponent(folder)}/${encodeURIComponent(action.dealName)}/`;
+          window.open(uwUrl, '_blank');
+          info('Opening UW Model folder...');
+          addRecentAction(action, 'Opened UW Model');
+          break;
+        }
       }
 
       onClick?.(e);
@@ -230,10 +254,6 @@ interface DealQuickActionsProps {
 export function DealQuickActions({ dealId, className, size = 'sm' }: DealQuickActionsProps) {
   return (
     <div className={cn('flex items-center gap-1', className)}>
-      <QuickActionButton
-        action={{ type: 'watchlist', dealId }}
-        size={size}
-      />
       <QuickActionButton
         action={{ type: 'compare', dealId }}
         size={size}

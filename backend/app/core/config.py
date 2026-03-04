@@ -191,6 +191,7 @@ class Settings(BaseSettings):
     SHAREPOINT_LIBRARY: str = "Real Estate"  # Document library name
     SHAREPOINT_DEALS_FOLDER: str = "Deals"  # Folder within library
     DEALS_FOLDER: str = "Real Estate/Deals"  # Legacy alias
+    LOCAL_DEALS_ROOT: str = ""  # Local OneDrive path to deals folder (stage subfolders)
 
     # File Filtering Settings
     # Regex pattern for matching UW model filenames (supports regex or simple substring)

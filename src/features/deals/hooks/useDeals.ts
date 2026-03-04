@@ -7,6 +7,9 @@ export interface DealFilters {
   assignees: string[];
   valueRange: [number, number];
   searchQuery: string;
+  lastSalePricePerUnitRange: [number | null, number | null];
+  lastSaleDateRange: [number | null, number | null];
+  equityCommitmentRange: [number | null, number | null];
 }
 
 export type { DealFilters as DealFiltersType };
@@ -17,6 +20,9 @@ const DEFAULT_FILTERS: DealFilters = {
   assignees: [],
   valueRange: [0, 100000000],
   searchQuery: '',
+  lastSalePricePerUnitRange: [null, null],
+  lastSaleDateRange: [null, null],
+  equityCommitmentRange: [null, null],
 };
 
 export function useDeals(initialDeals: Deal[]) {
@@ -111,6 +117,24 @@ export function useDeals(initialDeals: Deal[]) {
         return false;
       }
 
+      // Last Sale Price/Unit filter
+      const [minPPU, maxPPU] = filters.lastSalePricePerUnitRange;
+      if (minPPU != null && deal.lastSalePricePerUnit < minPPU) return false;
+      if (maxPPU != null && deal.lastSalePricePerUnit > maxPPU) return false;
+
+      // Last Sale Date filter (year range)
+      const [fromYear, toYear] = filters.lastSaleDateRange;
+      if ((fromYear != null || toYear != null) && deal.lastSaleDate) {
+        const saleYear = new Date(deal.lastSaleDate).getFullYear();
+        if (fromYear != null && saleYear < fromYear) return false;
+        if (toYear != null && saleYear > toYear) return false;
+      }
+
+      // Equity Commitment filter
+      const [minEq, maxEq] = filters.equityCommitmentRange;
+      if (minEq != null && deal.totalEquityCommitment < minEq) return false;
+      if (maxEq != null && deal.totalEquityCommitment > maxEq) return false;
+
       // Search query filter
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
@@ -167,16 +191,22 @@ export function useDeals(initialDeals: Deal[]) {
           )
         : 0;
 
-    const totalCompleted = closedDeals.length + realizedDeals.length + deadDeals.length;
-    const winRate = totalCompleted > 0 ? (closedDeals.length + realizedDeals.length) / totalCompleted : 0;
+    const totalUnits = pipelineDeals.reduce((sum, deal) => sum + deal.units, 0);
+
+    const dealsWithYearBuilt = pipelineDeals.filter((d) => d.yearBuilt != null && d.yearBuilt > 0);
+    const avgVintage =
+      dealsWithYearBuilt.length > 0
+        ? Math.round(
+            dealsWithYearBuilt.reduce((sum, d) => sum + (d.yearBuilt ?? 0), 0) /
+              dealsWithYearBuilt.length,
+          )
+        : null;
 
     return {
       activeDealsCount: filteredDeals.length,
       pipelineValue: totalPipelineValue,
-      avgDaysInPipeline,
-      winRate,
-      closedWonCount: closedDeals.length + realizedDeals.length,
-      closedLostCount: deadDeals.length,
+      totalUnits,
+      avgVintage,
     };
   }, [filteredDeals]);
 

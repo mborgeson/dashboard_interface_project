@@ -64,6 +64,7 @@ export const backendDealSchema = z
     priority: z.string().nullable(),
     created_at: z.string(),
     updated_at: z.string(),
+    stage_updated_at: z.string().nullable(),
     // Enrichment fields
     total_units: z.number().nullable(),
     avg_unit_sf: z.number().nullable(),
@@ -74,6 +75,36 @@ export const backendDealSchema = z
     levered_irr: z.number().nullable(),
     levered_moic: z.number().nullable(),
     total_equity_commitment: z.number().nullable(),
+    // New enrichment fields
+    property_city: z.string().nullable().optional(),
+    submarket: z.string().nullable().optional(),
+    year_built: z.number().nullable().optional(),
+    year_renovated: z.number().nullable().optional(),
+    vacancy_rate: z.number().nullable().optional(),
+    bad_debt_rate: z.number().nullable().optional(),
+    other_loss_rate: z.number().nullable().optional(),
+    concessions_rate: z.number().nullable().optional(),
+    noi_margin: z.number().nullable().optional(),
+    purchase_price_extracted: z.number().nullable().optional(),
+    total_acquisition_budget: z.number().nullable().optional(),
+    basis_per_unit: z.number().nullable().optional(),
+    t12_cap_on_pp: z.number().nullable().optional(),
+    t3_cap_on_pp: z.number().nullable().optional(),
+    total_cost_cap_t12: z.number().nullable().optional(),
+    total_cost_cap_t3: z.number().nullable().optional(),
+    loan_amount: z.number().nullable().optional(),
+    lp_equity: z.number().nullable().optional(),
+    exit_months: z.number().nullable().optional(),
+    exit_cap_rate: z.number().nullable().optional(),
+    unlevered_irr: z.number().nullable().optional(),
+    unlevered_moic: z.number().nullable().optional(),
+    latitude: z.number().nullable().optional(),
+    longitude: z.number().nullable().optional(),
+    recent_activities: z.array(z.object({
+      action: z.string(),
+      description: z.string(),
+      created_at: z.string(),
+    })).nullable().optional(),
   })
   .transform((d): Deal => {
     const { propertyName, city, state } = parseCityState(d.name);
@@ -88,6 +119,11 @@ export const backendDealSchema = z
       0,
       Math.floor((now.getTime() - created.getTime()) / 86400000),
     );
+    const stageStart = d.stage_updated_at ? new Date(d.stage_updated_at) : created;
+    const daysInStage = Math.max(
+      0,
+      Math.floor((now.getTime() - stageStart.getTime()) / 86400000),
+    );
 
     return {
       id: String(d.id),
@@ -96,7 +132,7 @@ export const backendDealSchema = z
       value,
       capRate: 0,
       stage: mapBackendStage(d.stage),
-      daysInStage: daysInPipeline,
+      daysInStage,
       totalDaysInPipeline: daysInPipeline,
       assignee: '',
       propertyType: d.deal_type || 'acquisition',
@@ -112,6 +148,36 @@ export const backendDealSchema = z
       createdAt: created,
       timeline: [],
       notes: d.notes ?? undefined,
+      // New enrichment fields
+      propertyCity: d.property_city ?? undefined,
+      submarket: d.submarket ?? undefined,
+      yearBuilt: d.year_built ?? undefined,
+      yearRenovated: d.year_renovated ?? undefined,
+      vacancyRate: d.vacancy_rate ?? undefined,
+      badDebtRate: d.bad_debt_rate ?? undefined,
+      otherLossRate: d.other_loss_rate ?? undefined,
+      concessionsRate: d.concessions_rate ?? undefined,
+      noiMargin: d.noi_margin ?? undefined,
+      purchasePrice: d.purchase_price_extracted ?? undefined,
+      totalAcquisitionBudget: d.total_acquisition_budget ?? undefined,
+      basisPerUnit: d.basis_per_unit ?? undefined,
+      t12CapOnPp: d.t12_cap_on_pp ?? undefined,
+      t3CapOnPp: d.t3_cap_on_pp ?? undefined,
+      totalCostCapT12: d.total_cost_cap_t12 ?? undefined,
+      totalCostCapT3: d.total_cost_cap_t3 ?? undefined,
+      loanAmount: d.loan_amount ?? undefined,
+      lpEquity: d.lp_equity ?? undefined,
+      exitMonths: d.exit_months ?? undefined,
+      exitCapRate: d.exit_cap_rate ?? undefined,
+      unleveredIrr: d.unlevered_irr ?? undefined,
+      unleveredMoic: d.unlevered_moic ?? undefined,
+      latitude: d.latitude ?? undefined,
+      longitude: d.longitude ?? undefined,
+      recentActivities: d.recent_activities?.map((a) => ({
+        action: a.action,
+        description: a.description,
+        createdAt: new Date(a.created_at),
+      })) ?? undefined,
     };
   });
 

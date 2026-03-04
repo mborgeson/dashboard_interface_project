@@ -17,157 +17,137 @@ interface ComparisonTableProps {
   highlightBestWorst?: boolean;
 }
 
-interface MetricConfig {
-  key: ComparisonMetric;
-  label: string;
-  getValue: (deal: DealForComparison) => number | undefined;
-  format: (value: number) => string;
-  higherIsBetter: boolean;
+// ---------- Formatting helpers ----------
+
+function fmtPct(v: number | undefined): string {
+  if (v == null) return 'N/A';
+  return `${(v * 100).toFixed(1)}%`;
 }
 
-const METRIC_CONFIGS: MetricConfig[] = [
-  {
-    key: 'cap_rate',
-    label: 'Cap Rate',
-    getValue: (deal) => deal.capRate,
-    format: (v) => `${v.toFixed(2)}%`,
-    higherIsBetter: true,
-  },
-  {
-    key: 'noi',
-    label: 'NOI',
-    getValue: (deal) => deal.noi,
-    format: (v) =>
-      new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        maximumFractionDigits: 0,
-      }).format(v),
-    higherIsBetter: true,
-  },
-  {
-    key: 'price_per_sqft',
-    label: 'Price / SF',
-    getValue: (deal) => deal.pricePerSqft,
-    format: (v) =>
-      new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        maximumFractionDigits: 0,
-      }).format(v),
-    higherIsBetter: false, // Lower price per sqft is better
-  },
-  {
-    key: 'projected_irr',
-    label: 'Projected IRR',
-    getValue: (deal) => deal.projectedIrr,
-    format: (v) => `${(v * 100).toFixed(1)}%`,
-    higherIsBetter: true,
-  },
-  {
-    key: 'cash_on_cash',
-    label: 'Cash-on-Cash',
-    getValue: (deal) => deal.cashOnCash,
-    format: (v) => `${(v * 100).toFixed(1)}%`,
-    higherIsBetter: true,
-  },
-  {
-    key: 'equity_multiple',
-    label: 'Equity Multiple',
-    getValue: (deal) => deal.equityMultiple,
-    format: (v) => `${v.toFixed(2)}x`,
-    higherIsBetter: true,
-  },
-  {
-    key: 'total_units',
-    label: 'Total Units',
-    getValue: (deal) => deal.units,
-    format: (v) => v.toLocaleString(),
-    higherIsBetter: true,
-  },
-  {
-    key: 'total_sf',
-    label: 'Total SF',
-    getValue: (deal) => deal.totalSf,
-    format: (v) => `${v.toLocaleString()} SF`,
-    higherIsBetter: true,
-  },
-  {
-    key: 'occupancy_rate',
-    label: 'Occupancy Rate',
-    getValue: (deal) => deal.occupancyRate,
-    format: (v) => `${(v * 100).toFixed(1)}%`,
-    higherIsBetter: true,
-  },
-];
+function fmtCompact(v: number | undefined): string {
+  if (v == null) return 'N/A';
+  if (Math.abs(v) >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (Math.abs(v) >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (Math.abs(v) >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  return `$${v.toFixed(0)}`;
+}
 
-const DEFAULT_METRICS: ComparisonMetric[] = [
-  'cap_rate',
-  'noi',
-  'price_per_sqft',
-  'projected_irr',
-  'cash_on_cash',
-  'equity_multiple',
-  'total_units',
-  'occupancy_rate',
+function fmtMultiple(v: number | undefined): string {
+  if (v == null) return 'N/A';
+  return `${v.toFixed(1)}x`;
+}
+
+// UW metric row definitions
+interface UwMetricRow {
+  label: string;
+  getValue: (d: DealForComparison) => string;
+  getNumeric?: (d: DealForComparison) => number | undefined;
+  higherIsBetter?: boolean;
+}
+
+const UW_METRICS: UwMetricRow[] = [
+  {
+    label: 'Units / Avg SF',
+    getValue: (d) => `${d.units || 'N/A'} / ${d.avgUnitSf || 'N/A'} SF`,
+  },
+  {
+    label: 'Loss Factor',
+    getValue: (d) => {
+      const total = (d.vacancyRate ?? 0) + (d.badDebtRate ?? 0) + (d.otherLossRate ?? 0) + (d.concessionsRate ?? 0);
+      return total > 0 ? fmtPct(total) : 'N/A';
+    },
+    getNumeric: (d) => {
+      const total = (d.vacancyRate ?? 0) + (d.badDebtRate ?? 0) + (d.otherLossRate ?? 0) + (d.concessionsRate ?? 0);
+      return total > 0 ? total : undefined;
+    },
+    higherIsBetter: false,
+  },
+  {
+    label: 'NOI Margin',
+    getValue: (d) => fmtPct(d.noiMargin),
+    getNumeric: (d) => d.noiMargin,
+    higherIsBetter: true,
+  },
+  {
+    label: 'Going-in Basis',
+    getValue: (d) => `${fmtCompact(d.totalAcquisitionBudget ?? d.purchasePrice)} | ${fmtCompact(d.basisPerUnit)}/u`,
+  },
+  {
+    label: 'Cap Rate (PP) T12',
+    getValue: (d) => fmtPct(d.t12CapOnPp),
+    getNumeric: (d) => d.t12CapOnPp,
+    higherIsBetter: true,
+  },
+  {
+    label: 'Cap Rate (PP) T3',
+    getValue: (d) => fmtPct(d.t3CapOnPp),
+    getNumeric: (d) => d.t3CapOnPp,
+    higherIsBetter: true,
+  },
+  {
+    label: 'Cap Rate (TC) T12',
+    getValue: (d) => fmtPct(d.totalCostCapT12),
+    getNumeric: (d) => d.totalCostCapT12,
+    higherIsBetter: true,
+  },
+  {
+    label: 'Cap Rate (TC) T3',
+    getValue: (d) => fmtPct(d.totalCostCapT3),
+    getNumeric: (d) => d.totalCostCapT3,
+    higherIsBetter: true,
+  },
+  {
+    label: 'Debt / Equity',
+    getValue: (d) => `${fmtCompact(d.loanAmount)} / ${fmtCompact(d.lpEquity)}`,
+  },
+  {
+    label: 'Exit Horizon',
+    getValue: (d) => {
+      const months = d.exitMonths != null ? `${Math.round(d.exitMonths)}mo` : 'N/A';
+      return `${months} @ ${fmtPct(d.exitCapRate)}`;
+    },
+  },
+  {
+    label: 'Unlevered IRR / MOIC',
+    getValue: (d) => `${fmtPct(d.unleveredIrr)} / ${fmtMultiple(d.unleveredMoic)}`,
+    getNumeric: (d) => d.unleveredIrr,
+    higherIsBetter: true,
+  },
+  {
+    label: 'Levered IRR / MOIC',
+    getValue: (d) => `${fmtPct(d.leveredIrr)} / ${fmtMultiple(d.leveredMoic)}`,
+    getNumeric: (d) => d.leveredIrr,
+    higherIsBetter: true,
+  },
 ];
 
 export function ComparisonTable({
   deals,
-  metrics = DEFAULT_METRICS,
   highlightBestWorst = true,
 }: ComparisonTableProps) {
-  const activeMetrics = useMemo(() => {
-    return METRIC_CONFIGS.filter((config) => metrics.includes(config.key));
-  }, [metrics]);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  // Calculate best/worst values for each metric
-  const metricStats = useMemo(() => {
-    const stats: Record<ComparisonMetric, { best: number; worst: number }> = {} as never;
-
-    activeMetrics.forEach((config) => {
-      const values = deals
-        .map((deal) => config.getValue(deal))
-        .filter((v): v is number => v !== undefined && !isNaN(v));
-
-      if (values.length > 0) {
-        stats[config.key] = {
-          best: config.higherIsBetter ? Math.max(...values) : Math.min(...values),
-          worst: config.higherIsBetter ? Math.min(...values) : Math.max(...values),
-        };
-      }
-    });
-
-    return stats;
-  }, [deals, activeMetrics]);
-
-  const getCellStyle = (
-    config: MetricConfig,
-    value: number | undefined
-  ): string => {
-    if (!highlightBestWorst || value === undefined || isNaN(value)) return '';
-
-    const stats = metricStats[config.key];
-    if (!stats) return '';
-
-    // Only highlight if there's variance between deals
-    if (stats.best === stats.worst) return '';
-
-    if (value === stats.best) {
-      return 'bg-green-50 text-green-700 font-semibold';
+  // For each metric with a numeric getter, find best/worst
+  const metricHighlights = useMemo(() => {
+    const highlights = new Map<string, { best: number; worst: number }>();
+    for (const metric of UW_METRICS) {
+      if (!metric.getNumeric) continue;
+      const values = deals.map((d) => metric.getNumeric!(d)).filter((v): v is number => v != null);
+      if (values.length < 2) continue;
+      highlights.set(metric.label, {
+        best: metric.higherIsBetter ? Math.max(...values) : Math.min(...values),
+        worst: metric.higherIsBetter ? Math.min(...values) : Math.max(...values),
+      });
     }
-    if (value === stats.worst) {
-      return 'bg-red-50 text-red-700';
-    }
+    return highlights;
+  }, [deals]);
+
+  const getCellClass = (metric: UwMetricRow, deal: DealForComparison): string => {
+    if (!highlightBestWorst || !metric.getNumeric) return '';
+    const val = metric.getNumeric(deal);
+    if (val == null) return '';
+    const stats = metricHighlights.get(metric.label);
+    if (!stats || stats.best === stats.worst) return '';
+    if (val === stats.best) return 'bg-green-50 text-green-700 font-semibold';
+    if (val === stats.worst) return 'bg-red-50 text-red-700';
     return '';
   };
 
@@ -197,7 +177,7 @@ export function ComparisonTable({
                     {deal.propertyName}
                   </div>
                   <div className="text-xs font-normal text-neutral-500">
-                    {deal.address.city}, {deal.address.state}
+                    {deal.submarket ?? `${deal.address.city}, ${deal.address.state}`}
                   </div>
                 </div>
               </TableHead>
@@ -205,18 +185,6 @@ export function ComparisonTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {/* Property Type Row */}
-          <TableRow>
-            <TableCell className="sticky left-0 bg-white z-10 font-medium text-neutral-700">
-              Property Type
-            </TableCell>
-            {deals.map((deal) => (
-              <TableCell key={deal.id} className="text-center">
-                {deal.propertyType}
-              </TableCell>
-            ))}
-          </TableRow>
-
           {/* Stage Row */}
           <TableRow>
             <TableCell className="sticky left-0 bg-white z-10 font-medium text-neutral-700">
@@ -229,35 +197,36 @@ export function ComparisonTable({
             ))}
           </TableRow>
 
-          {/* Value Row */}
+          {/* Vintage Row */}
           <TableRow>
             <TableCell className="sticky left-0 bg-white z-10 font-medium text-neutral-700">
-              Deal Value
+              Vintage
             </TableCell>
             {deals.map((deal) => (
-              <TableCell key={deal.id} className="text-center font-semibold">
-                {formatCurrency(deal.value)}
+              <TableCell key={deal.id} className="text-center">
+                {deal.yearBuilt
+                  ? deal.yearRenovated
+                    ? `${deal.yearBuilt} / Reno ${deal.yearRenovated}`
+                    : `${deal.yearBuilt}`
+                  : 'N/A'}
               </TableCell>
             ))}
           </TableRow>
 
-          {/* Dynamic Metric Rows */}
-          {activeMetrics.map((config) => (
-            <TableRow key={config.key}>
+          {/* UW Metric Rows */}
+          {UW_METRICS.map((metric) => (
+            <TableRow key={metric.label}>
               <TableCell className="sticky left-0 bg-white z-10 font-medium text-neutral-700">
-                {config.label}
+                {metric.label}
               </TableCell>
-              {deals.map((deal) => {
-                const value = config.getValue(deal);
-                return (
-                  <TableCell
-                    key={deal.id}
-                    className={cn('text-center', getCellStyle(config, value))}
-                  >
-                    {value !== undefined && !isNaN(value) ? config.format(value) : '-'}
-                  </TableCell>
-                );
-              })}
+              {deals.map((deal) => (
+                <TableCell
+                  key={deal.id}
+                  className={cn('text-center', getCellClass(metric, deal))}
+                >
+                  {metric.getValue(deal)}
+                </TableCell>
+              ))}
             </TableRow>
           ))}
 
@@ -269,18 +238,6 @@ export function ComparisonTable({
             {deals.map((deal) => (
               <TableCell key={deal.id} className="text-center">
                 {deal.totalDaysInPipeline} days
-              </TableCell>
-            ))}
-          </TableRow>
-
-          {/* Assignee Row */}
-          <TableRow>
-            <TableCell className="sticky left-0 bg-white z-10 font-medium text-neutral-700">
-              Assignee
-            </TableCell>
-            {deals.map((deal) => (
-              <TableCell key={deal.id} className="text-center">
-                {deal.assignee}
               </TableCell>
             ))}
           </TableRow>

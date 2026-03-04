@@ -1,6 +1,7 @@
-import { createBrowserRouter, RouterProvider as ReactRouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider as ReactRouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { PageSuspenseWrapper } from '@/components/SuspenseWrapper';
+import { useAuthStore } from '@/stores/authStore';
 import {
   AnalyticsPage,
   InvestmentsPage,
@@ -16,6 +17,7 @@ import {
   DealComparisonPage,
   SalesAnalysisPage,
   ConstructionPipelinePage,
+  LoginPage,
   routerOptions,
 } from './routes';
 
@@ -36,136 +38,168 @@ function DealsRoute() {
   return <DealsPage />;
 }
 
+// Auth gate — redirects unauthenticated users to /login
+function RequireAuth() {
+  const { isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
+}
+
 // Create the router instance (internal, not exported)
 const router = createBrowserRouter(
   [
     {
-      path: '/',
-      element: <AppLayout />,
+      path: '/login',
+      element: (
+        <LazyRoute>
+          <LoginPage />
+        </LazyRoute>
+      ),
+    },
+    {
+      element: <RequireAuth />,
       children: [
         {
-          index: true,
-          element: <DashboardMain />,
-        },
-        {
-          path: 'investments',
-          element: (
-            <LazyRoute>
-              <InvestmentsPage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'properties/:id',
-          element: (
-            <LazyRoute>
-              <PropertyDetailPage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'deals',
-          element: (
-            <LazyRoute>
-              <DealsRoute />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'deals/compare',
-          element: (
-            <LazyRoute>
-              <DealComparisonPage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'analytics',
-          element: (
-            <LazyRoute>
-              <AnalyticsPage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'mapping',
-          element: (
-            <LazyRoute>
-              <MappingPage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'market',
-          element: (
-            <LazyRoute>
-              <MarketPage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'market/usa',
-          element: (
-            <LazyRoute>
-              <USAMarketPage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'documents',
-          element: (
-            <LazyRoute>
-              <DocumentsPage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'interest-rates',
-          element: (
-            <LazyRoute>
-              <InterestRatesPage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'reporting',
-          element: (
-            <LazyRoute>
-              <ReportingSuitePage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'extraction',
-          element: (
-            <LazyRoute>
-              <ExtractionDashboard />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'extraction/:propertyName',
-          element: (
-            <LazyRoute>
-              <ExtractionDashboard />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'sales-analysis',
-          element: (
-            <LazyRoute>
-              <SalesAnalysisPage />
-            </LazyRoute>
-          ),
-        },
-        {
-          path: 'construction-pipeline',
-          element: (
-            <LazyRoute>
-              <ConstructionPipelinePage />
-            </LazyRoute>
-          ),
+          path: '/',
+          element: <AppLayout />,
+          children: [
+            {
+              index: true,
+              element: <DashboardMain />,
+            },
+            {
+              path: 'investments',
+              element: (
+                <LazyRoute>
+                  <InvestmentsPage />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'properties/:id',
+              element: (
+                <LazyRoute>
+                  <PropertyDetailPage />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'deals',
+              element: (
+                <LazyRoute>
+                  <DealsRoute />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'deals/compare',
+              element: (
+                <LazyRoute>
+                  <DealComparisonPage />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'analytics',
+              element: (
+                <LazyRoute>
+                  <AnalyticsPage />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'mapping',
+              element: (
+                <LazyRoute>
+                  <MappingPage />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'market',
+              element: (
+                <LazyRoute>
+                  <MarketPage />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'market/usa',
+              element: (
+                <LazyRoute>
+                  <USAMarketPage />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'documents',
+              element: (
+                <LazyRoute>
+                  <DocumentsPage />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'interest-rates',
+              element: (
+                <LazyRoute>
+                  <InterestRatesPage />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'reporting',
+              element: (
+                <LazyRoute>
+                  <ReportingSuitePage />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'extraction',
+              element: (
+                <LazyRoute>
+                  <ExtractionDashboard />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'extraction/:propertyName',
+              element: (
+                <LazyRoute>
+                  <ExtractionDashboard />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'sales-analysis',
+              element: (
+                <LazyRoute>
+                  <SalesAnalysisPage />
+                </LazyRoute>
+              ),
+            },
+            {
+              path: 'construction-pipeline',
+              element: (
+                <LazyRoute>
+                  <ConstructionPipelinePage />
+                </LazyRoute>
+              ),
+            },
+          ],
         },
       ],
     },

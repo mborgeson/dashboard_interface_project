@@ -14,8 +14,8 @@ const addressSchema = z.object({
   city: z.string(),
   state: z.string(),
   zip: z.string(),
-  latitude: z.number(),
-  longitude: z.number(),
+  latitude: z.number().nullable(),
+  longitude: z.number().nullable(),
   submarket: z.string(),
 });
 

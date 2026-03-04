@@ -55,7 +55,12 @@ export const routerOptions = {
 };
 
 // Route path constants for type-safe navigation
+export const LoginPage = lazy(() =>
+  import('@/features/auth').then(m => ({ default: m.LoginPage }))
+);
+
 export const ROUTES = {
+  LOGIN: '/login',
   HOME: '/',
   INVESTMENTS: '/investments',
   PROPERTY_DETAIL: '/properties/:id',

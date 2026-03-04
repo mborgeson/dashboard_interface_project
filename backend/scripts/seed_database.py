@@ -698,8 +698,8 @@ def seed_users(session):
     users = [
         User(
             email="matt@bandrcapital.com",
-            full_name="Matt Brogan",
-            hashed_password=get_password_hash("admin123"),
+            full_name="Matt Borgeson",
+            hashed_password=get_password_hash("Wildcats777!!"),
             role="admin",
             is_active=True,
             is_verified=True,

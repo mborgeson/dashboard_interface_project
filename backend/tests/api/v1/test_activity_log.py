@@ -110,11 +110,11 @@ async def many_activity_logs(
 
 @pytest.mark.asyncio
 async def test_get_activity_logs_without_auth(client, test_deal):
-    """Test that getting activity logs works without auth (public endpoint)."""
+    """Test that getting activity logs without auth returns 401."""
     response = await client.get(f"/api/v1/deals/{test_deal.id}/activity-log")
 
-    # Endpoint does not require authentication
-    assert response.status_code == 200
+    # Endpoint now requires authentication
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio

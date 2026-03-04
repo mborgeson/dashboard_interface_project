@@ -10,10 +10,7 @@ import type {
   ExtractionFilters,
 } from '@/types/extraction';
 
-import { API_URL } from '@/lib/config';
-
-// API base URL from centralized config
-const API_BASE = API_URL;
+import api, { get, post } from '@/lib/api';
 
 /**
  * Hook to fetch and manage extraction status
@@ -26,16 +23,10 @@ export function useExtractionStatus(runId?: string) {
   const fetchStatus = useCallback(async () => {
     try {
       setIsLoading(true);
-      const url = runId
-        ? `${API_BASE}/extraction/status?run_id=${runId}`
-        : `${API_BASE}/extraction/status`;
-      const response = await fetch(url);
+      const params: Record<string, unknown> = {};
+      if (runId) params.run_id = runId;
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch extraction status: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await get<ExtractionStatusResponse>('/extraction/status', params);
       setData(result);
       setError(null);
     } catch (err) {
@@ -79,17 +70,10 @@ export function useExtractionHistory(limit: number = 20, page: number = 1) {
   const fetchHistory = useCallback(async () => {
     try {
       setIsLoading(true);
-      const params = new URLSearchParams({
-        limit: limit.toString(),
-        page: page.toString(),
+      const result = await get<ExtractionHistoryResponse>('/extraction/history', {
+        limit,
+        page,
       });
-      const response = await fetch(`${API_BASE}/extraction/history?${params}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch extraction history: ${response.statusText}`);
-      }
-
-      const result = await response.json();
       setData(result);
       setError(null);
     } catch (err) {
@@ -125,18 +109,12 @@ export function useExtractedProperties(runId?: string, filters?: ExtractionFilte
   const fetchProperties = useCallback(async () => {
     try {
       setIsLoading(true);
-      const params = new URLSearchParams();
-      if (runId) params.set('run_id', runId);
-      if (filters?.searchTerm) params.set('search', filters.searchTerm);
-      if (filters?.hasErrors !== undefined) params.set('has_errors', filters.hasErrors.toString());
+      const params: Record<string, unknown> = {};
+      if (runId) params.run_id = runId;
+      if (filters?.searchTerm) params.search = filters.searchTerm;
+      if (filters?.hasErrors !== undefined) params.has_errors = filters.hasErrors;
 
-      const response = await fetch(`${API_BASE}/extraction/properties?${params}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch extracted properties: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await get<ExtractedPropertiesResponse>('/extraction/properties', params);
       setData(result);
       setError(null);
     } catch (err) {
@@ -200,21 +178,16 @@ export function useExtractedPropertyValues(
 
     try {
       setIsLoading(true);
-      const params = new URLSearchParams();
-      if (runId) params.set('run_id', runId);
-      if (filters?.category) params.set('category', filters.category);
-      if (filters?.hasErrors !== undefined) params.set('has_errors', filters.hasErrors.toString());
+      const params: Record<string, unknown> = {};
+      if (runId) params.run_id = runId;
+      if (filters?.category) params.category = filters.category;
+      if (filters?.hasErrors !== undefined) params.has_errors = filters.hasErrors;
 
       const encodedName = encodeURIComponent(propertyName);
-      const response = await fetch(
-        `${API_BASE}/extraction/properties/${encodedName}?${params}`
+      const result = await get<ExtractedPropertyValuesResponse>(
+        `/extraction/properties/${encodedName}`,
+        params
       );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch property values: ${response.statusText}`);
-      }
-
-      const result = await response.json();
       setData(result);
       setError(null);
     } catch (err) {
@@ -301,19 +274,7 @@ export function useStartExtraction() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE}/extraction/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Failed to start extraction: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await post<ExtractionRun>('/extraction/start', { source: 'local' });
       return result;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error');
@@ -329,14 +290,7 @@ export function useStartExtraction() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE}/extraction/cancel?run_id=${runId}`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to cancel extraction: ${response.statusText}`);
-      }
-
+      await api.post('/extraction/cancel', null, { params: { run_id: runId } });
       return true;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error');

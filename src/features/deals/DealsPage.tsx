@@ -5,7 +5,7 @@ import { DealPipeline } from './components/DealPipeline';
 import { KanbanBoardWidget } from './components/KanbanBoardWidget';
 import { DealTimeline } from './components/DealTimeline';
 import { DealFilters } from './components/DealFilters';
-import { Briefcase, LayoutGrid, List, TrendingUp, Calendar, Target, Kanban } from 'lucide-react';
+import { Briefcase, LayoutGrid, List, TrendingUp, Building2, Calendar, Kanban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DealPipelineSkeleton } from '@/components/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -37,19 +37,11 @@ export function DealsPage() {
     filterOptions,
   } = useDeals(deals);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      notation: 'compact',
-      compactDisplay: 'short',
-    }).format(value);
-  };
-
-  const formatPercent = (value: number) => {
-    return (value * 100).toFixed(0) + '%';
+  const formatCompactValue = (val: number): string => {
+    if (val >= 1e9) return `$${(val / 1e9).toFixed(2)}B`;
+    if (val >= 1e6) return `$${(val / 1e6).toFixed(2)}M`;
+    if (val >= 1e3) return `$${(val / 1e3).toFixed(0)}K`;
+    return `$${val.toFixed(0)}`;
   };
 
   // Show error state
@@ -182,7 +174,7 @@ export function DealsPage() {
             </div>
           </div>
           <div className="text-2xl font-bold text-neutral-900 mb-1">
-            {formatCurrency(metrics.pipelineValue)}
+            {formatCompactValue(metrics.pipelineValue)}
           </div>
           <div className="text-sm text-neutral-600">Pipeline Value</div>
         </div>
@@ -190,28 +182,25 @@ export function DealsPage() {
         <div className="bg-white rounded-lg border border-neutral-200 shadow-card p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="p-2 bg-orange-100 rounded-lg">
-              <Calendar className="w-5 h-5 text-orange-600" />
+              <Building2 className="w-5 h-5 text-orange-600" />
             </div>
           </div>
           <div className="text-2xl font-bold text-neutral-900 mb-1">
-            {metrics.avgDaysInPipeline}
+            {metrics.totalUnits.toLocaleString()}
           </div>
-          <div className="text-sm text-neutral-600">Avg Days in Pipeline</div>
+          <div className="text-sm text-neutral-600">Total Units</div>
         </div>
 
         <div className="bg-white rounded-lg border border-neutral-200 shadow-card p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="p-2 bg-purple-100 rounded-lg">
-              <Target className="w-5 h-5 text-purple-600" />
+              <Calendar className="w-5 h-5 text-purple-600" />
             </div>
           </div>
           <div className="text-2xl font-bold text-neutral-900 mb-1">
-            {formatPercent(metrics.winRate)}
+            {metrics.avgVintage ?? 'N/A'}
           </div>
-          <div className="text-sm text-neutral-600">Win Rate</div>
-          <div className="text-xs text-neutral-500 mt-1">
-            {metrics.closedWonCount} won / {metrics.closedLostCount} lost
-          </div>
+          <div className="text-sm text-neutral-600">Average Vintage</div>
         </div>
       </div>
 
@@ -220,8 +209,6 @@ export function DealsPage() {
         filters={filters}
         onUpdateFilters={updateFilters}
         onClearFilters={clearFilters}
-        propertyTypes={filterOptions.propertyTypes}
-        assignees={filterOptions.assignees}
       />
 
       {/* Results Count */}

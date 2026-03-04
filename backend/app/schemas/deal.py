@@ -11,6 +11,16 @@ from pydantic import Field
 from .base import BaseSchema, TimestampSchema
 
 
+class RecentActivityItem(BaseSchema):
+    """Compact activity entry embedded in deal responses."""
+
+    action: str
+    description: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class DealBase(BaseSchema):
     """Base deal schema with common fields."""
 
@@ -162,6 +172,42 @@ class DealResponse(DealBase, TimestampSchema):
     levered_irr: float | None = None
     levered_moic: float | None = None
     total_equity_commitment: float | None = None
+    # Location
+    property_city: str | None = None
+    submarket: str | None = None
+    year_built: int | None = None
+    year_renovated: int | None = None
+    # Loss factors
+    vacancy_rate: float | None = None
+    bad_debt_rate: float | None = None
+    other_loss_rate: float | None = None
+    concessions_rate: float | None = None
+    # NOI
+    noi_margin: float | None = None
+    # Basis
+    purchase_price_extracted: float | None = None
+    total_acquisition_budget: float | None = None
+    basis_per_unit: float | None = None
+    # Cap rates
+    t12_cap_on_pp: float | None = None
+    t3_cap_on_pp: float | None = None
+    total_cost_cap_t12: float | None = None
+    total_cost_cap_t3: float | None = None
+    # Capital
+    loan_amount: float | None = None
+    lp_equity: float | None = None
+    # Exit
+    exit_months: float | None = None
+    exit_cap_rate: float | None = None
+    # Returns
+    unlevered_irr: float | None = None
+    unlevered_moic: float | None = None
+    # Map coordinates
+    latitude: float | None = None
+    longitude: float | None = None
+
+    # Mini activity feed (most recent 1-3 actions)
+    recent_activities: list[RecentActivityItem] | None = None
 
 
 class DealListResponse(BaseSchema):

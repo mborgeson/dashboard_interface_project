@@ -94,63 +94,34 @@ export function useKanbanBoardWithMockFallback(
         'dead', 'initial_review', 'active_review', 'under_contract', 'closed', 'realized',
       ];
 
-      try {
-        const response = await get<KanbanBoardApiResponse>('/deals/kanban', params);
+      const response = await get<KanbanBoardApiResponse>('/deals/kanban', params);
 
-        const stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
-        for (const fs of frontendStages) {
-          stages[fs] = { deals: [], count: 0, totalValue: 0 };
-        }
-
-        // Map backend stages to frontend stages and transform deals
-        for (const [backendStage, data] of Object.entries(response.stages)) {
-          const frontendStage = mapBackendStage(backendStage);
-          const deals = (data.deals as unknown[]).map((d) => backendDealSchema.parse(d));
-          stages[frontendStage].deals.push(...deals);
-          stages[frontendStage].count += data.count;
-          stages[frontendStage].totalValue += data.totalValue;
-        }
-
-        const stageCounts: Record<string, number> = {};
-        for (const [stage, data] of Object.entries(stages)) {
-          stageCounts[stage] = data.count;
-        }
-
-        return {
-          stages,
-          totalDeals: response.total_deals,
-          stageCounts,
-        };
-      } catch {
-        // Fallback: fetch all deals and group by stage
-        const dealsResponse = await get<{ items: unknown[]; total: number }>('/deals', { page_size: 100 });
-        const allDeals = dealsResponse.items?.map((item) => backendDealSchema.parse(item)) ?? [];
-
-        const stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
-        for (const fs of frontendStages) {
-          stages[fs] = { deals: [], count: 0, totalValue: 0 };
-        }
-
-        for (const deal of allDeals) {
-          const stage = deal.stage;
-          if (stages[stage]) {
-            stages[stage].deals.push(deal);
-            stages[stage].count += 1;
-            stages[stage].totalValue += deal.value;
-          }
-        }
-
-        const stageCounts: Record<string, number> = {};
-        for (const [stage, data] of Object.entries(stages)) {
-          stageCounts[stage] = data.count;
-        }
-
-        return {
-          stages,
-          totalDeals: allDeals.length,
-          stageCounts,
-        };
+      const stages: Record<DealStageApi, { deals: Deal[]; count: number; totalValue: number }> = {} as never;
+      for (const fs of frontendStages) {
+        stages[fs] = { deals: [], count: 0, totalValue: 0 };
       }
+
+      // Backend returns stages as flat arrays: stages[stage] = DealResponse[]
+      for (const [backendStage, dealArray] of Object.entries(response.stages)) {
+        const frontendStage = mapBackendStage(backendStage);
+        const deals = (dealArray as unknown[]).map((d) => backendDealSchema.parse(d));
+        stages[frontendStage].deals.push(...deals);
+        stages[frontendStage].count += deals.length;
+        for (const deal of deals) {
+          stages[frontendStage].totalValue += deal.value;
+        }
+      }
+
+      const stageCounts: Record<string, number> = {};
+      for (const [stage, data] of Object.entries(stages)) {
+        stageCounts[stage] = data.count;
+      }
+
+      return {
+        stages,
+        totalDeals: response.total_deals,
+        stageCounts,
+      };
     },
     staleTime: 1000 * 60 * 2,
     ...options,
@@ -340,17 +311,10 @@ interface DealStatsResponse {
 // Kanban Board Types
 // ============================================================================
 
-export interface KanbanStageData {
-  stage: DealStageApi;
-  deals: DealApiResponse[];
-  count: number;
-  totalValue: number;
-}
-
 export interface KanbanBoardApiResponse {
-  stages: Record<DealStageApi, KanbanStageData>;
+  stages: Record<string, DealApiResponse[]>;
   total_deals: number;
-  stage_counts: Record<DealStageApi, number>;
+  stage_counts: Record<string, number>;
 }
 
 export interface KanbanBoardWithFallbackResponse {

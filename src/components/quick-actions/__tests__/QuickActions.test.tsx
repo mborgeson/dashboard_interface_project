@@ -359,8 +359,7 @@ describe('DealQuickActions', () => {
   it('renders all deal action buttons', () => {
     renderWithQuickActions(<DealQuickActions dealId="deal-1" />);
 
-    // Should have watchlist, compare, and share buttons
-    expect(screen.getByRole('button', { name: /add to watchlist/i })).toBeInTheDocument();
+    // Should have compare and share buttons (watchlist removed, UW Model is on card directly)
     expect(screen.getByRole('button', { name: /compare/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /share/i })).toBeInTheDocument();
   });

@@ -302,7 +302,6 @@ export type {
 // Deal response types
 export type {
   KanbanFilters,
-  KanbanStageData,
   KanbanBoardApiResponse,
   KanbanBoardWithFallbackResponse,
   DealActivityApiResponse,

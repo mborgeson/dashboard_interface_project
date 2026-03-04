@@ -90,6 +90,30 @@ async def start_extraction(
                 detail=f"SharePoint authentication failed: {e}",
             ) from None
 
+    elif request.source == "local" and not request.file_paths:
+        # Scan local OneDrive deals folder (skip dead/realized for speed)
+        from app.api.v1.endpoints.extraction.common import discover_local_deal_files
+
+        try:
+            local_files = discover_local_deal_files(
+                stage_filter=[
+                    "initial_review",
+                    "active_review",
+                    "under_contract",
+                    "closed",
+                ]
+            )
+            files_discovered = len(local_files)
+            logger.info("local_deals_extraction_requested", file_count=files_discovered)
+
+            if files_discovered == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No UW model files found in local deals folder. Check LOCAL_DEALS_ROOT configuration.",
+                )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from None
+
     else:
         # Fallback to test fixtures for development/testing
         fixtures_dir = (

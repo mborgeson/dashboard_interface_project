@@ -135,7 +135,9 @@ export function OverviewTab({ property }: OverviewTabProps) {
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Coordinates</span>
               <span className="text-sm font-medium">
-                {property.address.latitude.toFixed(4)}, {property.address.longitude.toFixed(4)}
+                {property.address.latitude != null && property.address.longitude != null
+                  ? `${property.address.latitude.toFixed(4)}, ${property.address.longitude.toFixed(4)}`
+                  : 'N/A'}
               </span>
             </div>
           </div>

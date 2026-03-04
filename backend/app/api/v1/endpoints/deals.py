@@ -10,7 +10,12 @@ from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.permissions import CurrentUser, get_current_user
+from app.core.permissions import (
+    CurrentUser,
+    get_current_user,
+    require_analyst,
+    require_manager,
+)
 from app.crud import deal as deal_crud
 from app.crud.crud_activity import deal_activity
 from app.crud.crud_activity import watchlist as watchlist_crud
@@ -45,6 +50,7 @@ from app.schemas.deal import (
     DealStageUpdate,
     DealUpdate,
     KanbanBoardResponse,
+    RecentActivityItem,
 )
 from app.services import get_websocket_manager
 
@@ -70,6 +76,30 @@ async def _enrich_deals_with_extraction(
         "T12_RETURN_ON_COST",
         "LP_RETURNS_IRR",
         "LP_RETURNS_MOIC",
+        "PROPERTY_CITY",
+        "SUBMARKET",
+        "YEAR_BUILT",
+        "YEAR_RENOVATED",
+        "VACANCY_LOSS_YEAR_1_RATE",
+        "BAD_DEBTS_YEAR_1_RATE",
+        "OTHER_LOSS_YEAR_1_RATE",
+        "CONCESSIONS_YEAR_1_RATE",
+        "NET_OPERATING_INCOME_MARGIN",
+        "PURCHASE_PRICE",
+        "TOTAL_ACQUISITION_BUDGET",
+        "BASIS_UNIT_AT_CLOSE",
+        "T12_RETURN_ON_PP",
+        "T3_RETURN_ON_PP",
+        "TOTAL_RETURN_ON_COST_AT_EXIT",
+        "PURCHASE_PRICE_RETURN_ON_COST_AT_EXIT",
+        "LOAN_AMOUNT",
+        "EQUITY_LP_CAPITAL",
+        "EXIT_PERIOD_MONTHS",
+        "EXIT_CAP_RATE",
+        "UNLEVERED_RETURNS_IRR",
+        "UNLEVERED_RETURNS_MOIC",
+        "PROPERTY_LATITUDE",
+        "PROPERTY_LONGITUDE",
     ]
 
     # Subquery: latest completed extraction_run_id per property_id
@@ -153,6 +183,102 @@ async def _enrich_deals_with_extraction(
         if ev and ev.value_numeric is not None:
             deal.levered_moic = float(ev.value_numeric)
 
+        ev = fields.get("PROPERTY_CITY")
+        if ev and ev.value_text:
+            deal.property_city = ev.value_text
+
+        ev = fields.get("SUBMARKET")
+        if ev and ev.value_text:
+            deal.submarket = ev.value_text
+
+        ev = fields.get("YEAR_BUILT")
+        if ev and ev.value_numeric is not None:
+            deal.year_built = int(ev.value_numeric)
+
+        ev = fields.get("YEAR_RENOVATED")
+        if ev and ev.value_numeric is not None:
+            deal.year_renovated = int(ev.value_numeric)
+
+        ev = fields.get("VACANCY_LOSS_YEAR_1_RATE")
+        if ev and ev.value_numeric is not None:
+            deal.vacancy_rate = float(ev.value_numeric)
+
+        ev = fields.get("BAD_DEBTS_YEAR_1_RATE")
+        if ev and ev.value_numeric is not None:
+            deal.bad_debt_rate = float(ev.value_numeric)
+
+        ev = fields.get("OTHER_LOSS_YEAR_1_RATE")
+        if ev and ev.value_numeric is not None:
+            deal.other_loss_rate = float(ev.value_numeric)
+
+        ev = fields.get("CONCESSIONS_YEAR_1_RATE")
+        if ev and ev.value_numeric is not None:
+            deal.concessions_rate = float(ev.value_numeric)
+
+        ev = fields.get("NET_OPERATING_INCOME_MARGIN")
+        if ev and ev.value_numeric is not None:
+            deal.noi_margin = float(ev.value_numeric)
+
+        ev = fields.get("PURCHASE_PRICE")
+        if ev and ev.value_numeric is not None:
+            deal.purchase_price_extracted = float(ev.value_numeric)
+
+        ev = fields.get("TOTAL_ACQUISITION_BUDGET")
+        if ev and ev.value_numeric is not None:
+            deal.total_acquisition_budget = float(ev.value_numeric)
+
+        ev = fields.get("BASIS_UNIT_AT_CLOSE")
+        if ev and ev.value_numeric is not None:
+            deal.basis_per_unit = float(ev.value_numeric)
+
+        ev = fields.get("T12_RETURN_ON_PP")
+        if ev and ev.value_numeric is not None:
+            deal.t12_cap_on_pp = float(ev.value_numeric)
+
+        ev = fields.get("T3_RETURN_ON_PP")
+        if ev and ev.value_numeric is not None:
+            deal.t3_cap_on_pp = float(ev.value_numeric)
+
+        ev = fields.get("TOTAL_RETURN_ON_COST_AT_EXIT")
+        if ev and ev.value_numeric is not None:
+            deal.total_cost_cap_t12 = float(ev.value_numeric)
+
+        ev = fields.get("PURCHASE_PRICE_RETURN_ON_COST_AT_EXIT")
+        if ev and ev.value_numeric is not None:
+            deal.total_cost_cap_t3 = float(ev.value_numeric)
+
+        ev = fields.get("LOAN_AMOUNT")
+        if ev and ev.value_numeric is not None:
+            deal.loan_amount = float(ev.value_numeric)
+
+        ev = fields.get("EQUITY_LP_CAPITAL")
+        if ev and ev.value_numeric is not None:
+            deal.lp_equity = float(ev.value_numeric)
+
+        ev = fields.get("EXIT_PERIOD_MONTHS")
+        if ev and ev.value_numeric is not None:
+            deal.exit_months = float(ev.value_numeric)
+
+        ev = fields.get("EXIT_CAP_RATE")
+        if ev and ev.value_numeric is not None:
+            deal.exit_cap_rate = float(ev.value_numeric)
+
+        ev = fields.get("UNLEVERED_RETURNS_IRR")
+        if ev and ev.value_numeric is not None:
+            deal.unlevered_irr = float(ev.value_numeric)
+
+        ev = fields.get("UNLEVERED_RETURNS_MOIC")
+        if ev and ev.value_numeric is not None:
+            deal.unlevered_moic = float(ev.value_numeric)
+
+        ev = fields.get("PROPERTY_LATITUDE")
+        if ev and ev.value_numeric is not None:
+            deal.latitude = float(ev.value_numeric)
+
+        ev = fields.get("PROPERTY_LONGITUDE")
+        if ev and ev.value_numeric is not None:
+            deal.longitude = float(ev.value_numeric)
+
         # Equity commitment from property financial_data
         fd = prop_map.get(deal.property_id)
         if fd and isinstance(fd, dict):
@@ -175,6 +301,7 @@ async def list_deals(
     sort_by: str | None = "created_at",
     sort_order: str = "desc",
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     List all deals with filtering and pagination.
@@ -221,6 +348,7 @@ async def get_kanban_board(
     deal_type: str | None = None,
     assigned_user_id: int | None = None,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get deals organized by stage for Kanban board view.
@@ -242,6 +370,26 @@ async def get_kanban_board(
         all_responses.extend(responses)
 
     await _enrich_deals_with_extraction(db, all_responses)
+
+    # Batch-fetch recent activities for all deals (3 per deal)
+    deal_ids = [d.id for d in all_responses]
+    if deal_ids:
+        activities_map = await activity_log_crud.get_recent_for_deals(
+            db, deal_ids=deal_ids, limit_per_deal=3
+        )
+        for deal_resp in all_responses:
+            logs = activities_map.get(deal_resp.id, [])
+            if logs:
+                deal_resp.recent_activities = [
+                    RecentActivityItem(
+                        action=log.action.value
+                        if hasattr(log.action, "value")
+                        else str(log.action),
+                        description=log.description,
+                        created_at=log.created_at,
+                    )
+                    for log in logs
+                ]
 
     return KanbanBoardResponse(
         stages=stage_response_map,
@@ -493,6 +641,7 @@ async def compare_deals(
 async def get_deal(
     deal_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get a specific deal by ID.
@@ -512,6 +661,7 @@ async def get_deal(
 async def create_deal(
     deal_data: DealCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Create a new deal in the pipeline.
@@ -537,6 +687,7 @@ async def update_deal(
     deal_id: int,
     deal_data: DealUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Update an existing deal.
@@ -570,6 +721,7 @@ async def patch_deal(
     deal_id: int,
     deal_data: DealUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Partially update an existing deal.
@@ -603,6 +755,7 @@ async def update_deal_stage(
     deal_id: int,
     stage_data: DealStageUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Update deal stage (for Kanban drag-and-drop).
@@ -658,6 +811,7 @@ async def update_deal_stage(
 async def delete_deal(
     deal_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
 ):
     """
     Delete a deal.
@@ -726,6 +880,7 @@ async def get_deal_activities(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=100, description="Items per page"),
     activity_type: str | None = Query(None, description="Filter by activity type"),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get all activities for a specific deal with pagination.
@@ -855,6 +1010,7 @@ async def get_deal_activity_logs(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=100, description="Items per page"),
     action: str | None = Query(None, description="Filter by action type"),
+    current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Get activity logs for a specific deal with pagination.
