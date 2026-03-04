@@ -155,9 +155,9 @@ describe('ComparisonTable', () => {
     it('renders location information for each deal', () => {
       render(<ComparisonTable deals={mockDeals} />);
 
-      expect(screen.getByText('Phoenix, AZ')).toBeInTheDocument();
-      expect(screen.getByText('Mesa, AZ')).toBeInTheDocument();
-      expect(screen.getByText('Tempe, AZ')).toBeInTheDocument();
+      expect(screen.getByText('(Phoenix, AZ)')).toBeInTheDocument();
+      expect(screen.getByText('(Mesa, AZ)')).toBeInTheDocument();
+      expect(screen.getByText('(Tempe, AZ)')).toBeInTheDocument();
     });
 
     it('renders metric rows', () => {
