@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { type ReactNode } from 'react';
 import {
   useDealComparisonWithMockFallback,
-  useDealComparisonApi,
   dealComparisonKeys,
 } from '../useDealComparison';
 import * as api from '@/lib/api';
@@ -27,6 +26,47 @@ function createWrapper() {
 
   return function Wrapper({ children }: { children: ReactNode }) {
     return React.createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+}
+
+/** Build a mock backend DealResponse (snake_case, matching backendDealSchema) */
+function mockBackendDeal(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 1,
+    name: 'Test Property (Phoenix, AZ)',
+    deal_type: 'acquisition',
+    property_id: null,
+    assigned_user_id: null,
+    stage: 'active_review',
+    stage_order: 2,
+    asking_price: '5000000',
+    offer_price: null,
+    final_price: null,
+    projected_irr: null,
+    projected_coc: null,
+    projected_equity_multiple: null,
+    hold_period_years: null,
+    initial_contact_date: null,
+    actual_close_date: null,
+    source: null,
+    broker_name: null,
+    notes: null,
+    investment_thesis: null,
+    deal_score: null,
+    priority: 'medium',
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+    stage_updated_at: null,
+    total_units: 100,
+    avg_unit_sf: 850,
+    current_owner: null,
+    last_sale_price_per_unit: null,
+    last_sale_date: null,
+    t12_return_on_cost: null,
+    levered_irr: 0.15,
+    levered_moic: 1.8,
+    total_equity_commitment: null,
+    ...overrides,
   };
 }
 
@@ -67,7 +107,6 @@ describe('useDealComparisonWithMockFallback', () => {
         { wrapper: createWrapper() }
       );
 
-      // Should not fetch
       expect(result.current.isLoading).toBe(false);
       expect(result.current.data).toBeUndefined();
       expect(mockGet).not.toHaveBeenCalled();
@@ -86,47 +125,19 @@ describe('useDealComparisonWithMockFallback', () => {
     it('is enabled when dealIds has 2+ items', async () => {
       const mockApiResponse = {
         deals: [
-          {
-            id: 'deal-001',
-            propertyName: 'Test Property 1',
-            address: { street: '123 Test St', city: 'Phoenix', state: 'AZ' },
-            value: 5000000,
-            capRate: 5.5,
-            stage: 'active_review',
-            daysInStage: 10,
-            totalDaysInPipeline: 30,
-            assignee: 'Test User',
-            propertyType: 'Garden',
-            units: 100,
-            createdAt: '2024-01-01T00:00:00Z',
-            timeline: [],
-            noi: 275000,
-          },
-          {
-            id: 'deal-002',
-            propertyName: 'Test Property 2',
-            address: { street: '456 Test Ave', city: 'Mesa', state: 'AZ' },
-            value: 7500000,
-            capRate: 5.8,
-            stage: 'under_contract',
-            daysInStage: 5,
-            totalDaysInPipeline: 45,
-            assignee: 'Test User 2',
-            propertyType: 'Mid-Rise',
-            units: 150,
-            createdAt: '2024-02-01T00:00:00Z',
-            timeline: [],
-            noi: 435000,
-          },
+          mockBackendDeal({ id: 1, name: 'Prop A (Phoenix, AZ)' }),
+          mockBackendDeal({ id: 2, name: 'Prop B (Mesa, AZ)' }),
         ],
-        comparisonDate: '2024-01-15T00:00:00Z',
-        generatedAt: '2024-01-15T12:00:00Z',
+        comparison_summary: {},
+        metric_comparisons: [],
+        deal_count: 2,
+        compared_at: '2024-01-15T12:00:00Z',
       };
 
       mockGet.mockResolvedValue(mockApiResponse);
 
       const { result } = renderHook(
-        () => useDealComparisonWithMockFallback(['deal-001', 'deal-002']),
+        () => useDealComparisonWithMockFallback(['1', '2']),
         { wrapper: createWrapper() }
       );
 
@@ -137,62 +148,22 @@ describe('useDealComparisonWithMockFallback', () => {
   });
 
   describe('with API data', () => {
-    it('fetches data from API', async () => {
+    it('fetches data from API and parses via Zod', async () => {
       const mockApiResponse = {
         deals: [
-          {
-            id: 'deal-001',
-            propertyName: 'API Property 1',
-            address: { street: '123 API St', city: 'Phoenix', state: 'AZ' },
-            value: 5000000,
-            capRate: 5.5,
-            stage: 'active_review',
-            daysInStage: 10,
-            totalDaysInPipeline: 30,
-            assignee: 'Test User',
-            propertyType: 'Garden',
-            units: 100,
-            createdAt: '2024-01-01T00:00:00Z',
-            timeline: [],
-            noi: 275000,
-            pricePerSqft: 250,
-            projectedIrr: 0.15,
-            cashOnCash: 0.08,
-            equityMultiple: 1.8,
-            totalSf: 85000,
-            occupancyRate: 0.95,
-          },
-          {
-            id: 'deal-002',
-            propertyName: 'API Property 2',
-            address: { street: '456 API Ave', city: 'Mesa', state: 'AZ' },
-            value: 7500000,
-            capRate: 5.8,
-            stage: 'under_contract',
-            daysInStage: 5,
-            totalDaysInPipeline: 45,
-            assignee: 'Test User 2',
-            propertyType: 'Mid-Rise',
-            units: 150,
-            createdAt: '2024-02-01T00:00:00Z',
-            timeline: [],
-            noi: 435000,
-            pricePerSqft: 280,
-            projectedIrr: 0.18,
-            cashOnCash: 0.10,
-            equityMultiple: 2.0,
-            totalSf: 127500,
-            occupancyRate: 0.97,
-          },
+          mockBackendDeal({ id: 1, name: 'Prop A (Phoenix, AZ)', levered_irr: 0.15 }),
+          mockBackendDeal({ id: 2, name: 'Prop B (Mesa, AZ)', levered_irr: 0.18 }),
         ],
-        comparisonDate: '2024-01-15T00:00:00Z',
-        generatedAt: '2024-01-15T12:00:00Z',
+        comparison_summary: {},
+        metric_comparisons: [],
+        deal_count: 2,
+        compared_at: '2024-01-15T12:00:00Z',
       };
 
       mockGet.mockResolvedValue(mockApiResponse);
 
       const { result } = renderHook(
-        () => useDealComparisonWithMockFallback(['deal-001', 'deal-002']),
+        () => useDealComparisonWithMockFallback(['1', '2']),
         { wrapper: createWrapper() }
       );
 
@@ -201,40 +172,31 @@ describe('useDealComparisonWithMockFallback', () => {
       });
 
       expect(mockGet).toHaveBeenCalledWith('/deals/compare', {
-        ids: 'deal-001,deal-002',
+        ids: '1,2',
       });
 
       expect(result.current.data?.deals).toHaveLength(2);
+      // Zod parses to Deal objects with camelCase keys
+      expect(result.current.data?.deals[0].leveredIrr).toBe(0.15);
+      expect(result.current.data?.deals[1].leveredIrr).toBe(0.18);
     });
 
-    it('transforms API response correctly', async () => {
+    it('transforms dates correctly', async () => {
       const mockApiResponse = {
         deals: [
-          {
-            id: 'deal-001',
-            propertyName: 'API Property 1',
-            address: { street: '123 Test St', city: 'Phoenix', state: 'AZ' },
-            value: 5000000,
-            capRate: 5.5,
-            stage: 'active_review',
-            daysInStage: 10,
-            totalDaysInPipeline: 30,
-            assignee: 'Test User',
-            propertyType: 'Garden',
-            units: 100,
-            createdAt: '2024-01-01T00:00:00Z',
-            timeline: [],
-            noi: 275000,
-          },
+          mockBackendDeal({ id: 1 }),
+          mockBackendDeal({ id: 2 }),
         ],
-        comparisonDate: '2024-01-15T00:00:00Z',
-        generatedAt: '2024-01-15T12:00:00Z',
+        comparison_summary: {},
+        metric_comparisons: [],
+        deal_count: 2,
+        compared_at: '2024-01-15T12:00:00Z',
       };
 
       mockGet.mockResolvedValue(mockApiResponse);
 
       const { result } = renderHook(
-        () => useDealComparisonWithMockFallback(['deal-001', 'deal-002']),
+        () => useDealComparisonWithMockFallback(['1', '2']),
         { wrapper: createWrapper() }
       );
 
@@ -242,20 +204,16 @@ describe('useDealComparisonWithMockFallback', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Check date transformation
       expect(result.current.data?.comparisonDate).toBeInstanceOf(Date);
       expect(result.current.data?.generatedAt).toBeInstanceOf(Date);
-
-      // Check deal createdAt transformation
-      const deal = result.current.data?.deals[0];
-      expect(deal?.createdAt).toBeInstanceOf(Date);
+      expect(result.current.data?.deals[0].createdAt).toBeInstanceOf(Date);
     });
 
     it('propagates API errors', async () => {
       mockGet.mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(
-        () => useDealComparisonWithMockFallback(['deal-001', 'deal-002']),
+        () => useDealComparisonWithMockFallback(['1', '2']),
         { wrapper: createWrapper() }
       );
 
@@ -265,81 +223,5 @@ describe('useDealComparisonWithMockFallback', () => {
 
       expect(result.current.error).toBeDefined();
     });
-
-    it('handles empty API response gracefully', async () => {
-      mockGet.mockResolvedValue({
-        deals: null,
-        comparisonDate: '2024-01-15T00:00:00Z',
-        generatedAt: '2024-01-15T12:00:00Z',
-      });
-
-      const { result } = renderHook(
-        () => useDealComparisonWithMockFallback(['deal-001', 'deal-002']),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.data?.deals).toEqual([]);
-    });
-  });
-});
-
-describe('useDealComparisonApi', () => {
-  const mockGet = vi.mocked(api.get);
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('calls API directly without fallback', async () => {
-    const mockApiResponse = {
-      deals: [],
-      comparisonDate: '2024-01-15T00:00:00Z',
-      generatedAt: '2024-01-15T12:00:00Z',
-    };
-
-    mockGet.mockResolvedValue(mockApiResponse);
-
-    const { result } = renderHook(
-      () => useDealComparisonApi(['deal-001', 'deal-002']),
-      { wrapper: createWrapper() }
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(mockGet).toHaveBeenCalledWith('/deals/compare', {
-      ids: 'deal-001,deal-002',
-    });
-  });
-
-  it('does not fall back to mock data on error', async () => {
-    mockGet.mockRejectedValue(new Error('API Error'));
-
-    const { result } = renderHook(
-      () => useDealComparisonApi(['deal-001', 'deal-002']),
-      { wrapper: createWrapper() }
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.error).toBeDefined();
-    expect(result.current.data).toBeUndefined();
-  });
-
-  it('is disabled when dealIds has less than 2 items', async () => {
-    const { result } = renderHook(
-      () => useDealComparisonApi(['deal-001']),
-      { wrapper: createWrapper() }
-    );
-
-    expect(result.current.isLoading).toBe(false);
-    expect(mockGet).not.toHaveBeenCalled();
   });
 });

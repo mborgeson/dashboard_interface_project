@@ -1,11 +1,12 @@
 import { useState, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDealsWithMockFallback } from '@/hooks/api/useDeals';
 import { useDeals } from './hooks/useDeals';
 import { DealPipeline } from './components/DealPipeline';
 import { KanbanBoardWidget } from './components/KanbanBoardWidget';
 import { DealTimeline } from './components/DealTimeline';
 import { DealFilters } from './components/DealFilters';
-import { Briefcase, LayoutGrid, List, TrendingUp, Building2, Calendar, Kanban } from 'lucide-react';
+import { Briefcase, LayoutGrid, List, TrendingUp, Building2, Calendar, Kanban, GitCompareArrows } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DealPipelineSkeleton } from '@/components/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -19,6 +20,7 @@ const DealDetailModal = lazy(() =>
 type ViewMode = 'kanban' | 'pipeline' | 'list';
 
 export function DealsPage() {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
 
@@ -210,11 +212,18 @@ export function DealsPage() {
         onClearFilters={clearFilters}
       />
 
-      {/* Results Count */}
+      {/* Results Count + Compare button */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-neutral-600">
           Showing {filteredDeals.length} of {deals.length} deals
         </p>
+        <button
+          onClick={() => navigate('/deals/compare')}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors shadow-sm"
+        >
+          <GitCompareArrows className="w-4 h-4" />
+          Compare Deals
+        </button>
       </div>
 
       {/* Deals View */}

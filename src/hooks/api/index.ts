@@ -61,7 +61,6 @@ export {
   dealComparisonKeys,
   useDealComparisonWithMockFallback,
   useDealComparisonWithMockFallback as useDealComparison,
-  useDealComparisonApi,
 } from './useDealComparison';
 
 // Extraction hooks
@@ -316,7 +315,6 @@ export type {
 export type {
   ComparisonMetric,
   DealForComparison,
-  DealComparisonApiResponse,
   DealComparisonWithFallbackResponse,
 } from './useDealComparison';
 

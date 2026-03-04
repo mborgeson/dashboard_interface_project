@@ -7,41 +7,7 @@ from decimal import Decimal
 from pydantic import Field
 
 from .base import BaseSchema
-
-
-class DealMetrics(BaseSchema):
-    """Metrics for a single deal used in comparison."""
-
-    id: int
-    name: str
-    deal_type: str
-    stage: str
-    priority: str
-
-    # Financial metrics
-    asking_price: Decimal | None = None
-    offer_price: Decimal | None = None
-    final_price: Decimal | None = None
-
-    # Performance projections
-    projected_irr: Decimal | None = None
-    projected_coc: Decimal | None = None
-    projected_equity_multiple: Decimal | None = None
-    hold_period_years: int | None = None
-
-    # Deal score
-    deal_score: int | None = None
-
-    # Timeline info
-    days_in_pipeline: int | None = None
-    target_close_date: str | None = None
-
-    # Property info (if linked)
-    property_name: str | None = None
-    property_type: str | None = None
-    property_market: str | None = None
-    total_units: int | None = None
-    total_sf: int | None = None
+from .deal import DealResponse
 
 
 class MetricComparison(BaseSchema):
@@ -69,7 +35,7 @@ class ComparisonSummary(BaseSchema):
 class DealComparisonResponse(BaseSchema):
     """Response for deal comparison endpoint."""
 
-    deals: list[DealMetrics]
+    deals: list[DealResponse]
     comparison_summary: ComparisonSummary
     metric_comparisons: list[MetricComparison]
 

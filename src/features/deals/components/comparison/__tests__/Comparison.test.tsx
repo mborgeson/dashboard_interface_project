@@ -247,7 +247,7 @@ describe('ComparisonTable', () => {
       render(<ComparisonTable deals={mockDeals} />);
 
       // Should show all UW metric labels
-      expect(screen.getByText('Loss Factor')).toBeInTheDocument();
+      expect(screen.getByText('Total Loss Factor (T12)')).toBeInTheDocument();
       expect(screen.getByText('Going-in Basis')).toBeInTheDocument();
       expect(screen.getByText('Exit Horizon')).toBeInTheDocument();
     });
@@ -302,28 +302,28 @@ describe('ComparisonCharts', () => {
     it('renders radar chart by default', () => {
       render(<ComparisonCharts deals={mockDeals} />);
 
-      expect(screen.getByText('Overall Deal Profile Comparison')).toBeInTheDocument();
+      expect(screen.getByText('Overall Deal Profile')).toBeInTheDocument();
     });
 
     it('renders only bar chart when chartType is bar', () => {
       render(<ComparisonCharts deals={mockDeals} chartType="bar" />);
 
       expect(screen.getByText('Key Metrics Comparison')).toBeInTheDocument();
-      expect(screen.queryByText('Overall Deal Profile Comparison')).not.toBeInTheDocument();
+      expect(screen.queryByText('Overall Deal Profile')).not.toBeInTheDocument();
     });
 
     it('renders only radar chart when chartType is radar', () => {
       render(<ComparisonCharts deals={mockDeals} chartType="radar" />);
 
       expect(screen.queryByText('Key Metrics Comparison')).not.toBeInTheDocument();
-      expect(screen.getByText('Overall Deal Profile Comparison')).toBeInTheDocument();
+      expect(screen.getByText('Overall Deal Profile')).toBeInTheDocument();
     });
 
     it('renders both charts when chartType is both', () => {
       render(<ComparisonCharts deals={mockDeals} chartType="both" />);
 
       expect(screen.getByText('Key Metrics Comparison')).toBeInTheDocument();
-      expect(screen.getByText('Overall Deal Profile Comparison')).toBeInTheDocument();
+      expect(screen.getByText('Overall Deal Profile')).toBeInTheDocument();
     });
 
     it('shows empty state when no deals provided', () => {

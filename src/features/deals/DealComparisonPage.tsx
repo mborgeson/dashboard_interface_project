@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDealComparisonWithMockFallback } from '@/hooks/api/useDealComparison';
 import { ComparisonTable } from './components/comparison/ComparisonTable';
@@ -15,6 +14,7 @@ import {
   BarChart3,
   Table2,
   Check,
+  GitCompareArrows,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
@@ -53,21 +53,17 @@ export function DealComparisonPage() {
 
     setIsExporting(true);
     try {
-      // Dynamic import - jsPDF is only loaded when user clicks export
       const { default: jsPDF } = await import('jspdf');
 
       const doc = new jsPDF({ orientation: 'landscape' });
       const deals = data.deals;
 
-      // Title
       doc.setFontSize(20);
       doc.text('Deal Comparison Report', 20, 20);
 
-      // Generated date
       doc.setFontSize(10);
       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 28);
 
-      // Deal names
       doc.setFontSize(14);
       doc.text('Properties Compared:', 20, 40);
       doc.setFontSize(10);
@@ -75,29 +71,34 @@ export function DealComparisonPage() {
         doc.text(`${index + 1}. ${deal.propertyName} - ${deal.address.city}, ${deal.address.state}`, 25, 48 + index * 6);
       });
 
-      // Key metrics comparison table
       const startY = 48 + deals.length * 6 + 15;
       doc.setFontSize(14);
       doc.text('Key Metrics Comparison', 20, startY);
 
-      // Table headers
       doc.setFontSize(10);
+      const fmtPct = (v: number | undefined) => v != null ? `${(v * 100).toFixed(1)}%` : 'N/A';
+      const fmtCompact = (v: number | undefined) => {
+        if (v == null) return 'N/A';
+        if (Math.abs(v) >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+        if (Math.abs(v) >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+        return `$${v.toFixed(0)}`;
+      };
       const metrics = [
-        { label: 'Deal Value', getValue: (d: typeof deals[0]) => `$${(d.value / 1000000).toFixed(1)}M` },
-        { label: 'Cap Rate', getValue: (d: typeof deals[0]) => `${d.capRate.toFixed(2)}%` },
-        { label: 'Projected IRR', getValue: (d: typeof deals[0]) => `${((d.projectedIrr ?? 0) * 100).toFixed(1)}%` },
-        { label: 'Cash-on-Cash', getValue: (d: typeof deals[0]) => `${((d.cashOnCash ?? 0) * 100).toFixed(1)}%` },
-        { label: 'Equity Multiple', getValue: (d: typeof deals[0]) => `${(d.equityMultiple ?? 0).toFixed(2)}x` },
-        { label: 'Units', getValue: (d: typeof deals[0]) => `${d.units}` },
-        { label: 'Occupancy', getValue: (d: typeof deals[0]) => `${((d.occupancyRate ?? 0) * 100).toFixed(1)}%` },
+        { label: 'Units', getValue: (d: typeof deals[0]) => `${d.units || 'N/A'}` },
+        { label: 'Cap Rate PP (T12)', getValue: (d: typeof deals[0]) => fmtPct(d.t12CapOnPp) },
+        { label: 'Cap Rate TC (T12)', getValue: (d: typeof deals[0]) => fmtPct(d.totalCostCapT12) },
+        { label: 'NOI Margin', getValue: (d: typeof deals[0]) => fmtPct(d.noiMargin) },
+        { label: 'Basis/Unit', getValue: (d: typeof deals[0]) => d.basisPerUnit != null ? `$${Math.round(d.basisPerUnit).toLocaleString()}` : 'N/A' },
+        { label: 'Debt', getValue: (d: typeof deals[0]) => fmtCompact(d.loanAmount) },
+        { label: 'Unlevered IRR', getValue: (d: typeof deals[0]) => fmtPct(d.unleveredIrr) },
+        { label: 'Levered IRR', getValue: (d: typeof deals[0]) => fmtPct(d.leveredIrr) },
+        { label: 'LP IRR', getValue: (d: typeof deals[0]) => fmtPct(d.lpIrr) },
       ];
 
-      // Column widths
       const metricColWidth = 40;
       const dealColWidth = (250 - metricColWidth) / deals.length;
       const tableStartY = startY + 8;
 
-      // Header row
       doc.setFont('helvetica', 'bold');
       doc.text('Metric', 25, tableStartY);
       deals.forEach((deal, index) => {
@@ -106,7 +107,6 @@ export function DealComparisonPage() {
         doc.text(shortName, x, tableStartY);
       });
 
-      // Data rows
       doc.setFont('helvetica', 'normal');
       metrics.forEach((metric, rowIndex) => {
         const y = tableStartY + 8 + rowIndex * 6;
@@ -117,11 +117,9 @@ export function DealComparisonPage() {
         });
       });
 
-      // Footer
       doc.setFontSize(8);
       doc.text('B&R Capital Analytics - Deal Comparison Report', 20, 195);
 
-      // Save
       const fileName = `deal-comparison-${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(fileName);
       success('PDF exported successfully');
@@ -142,7 +140,6 @@ export function DealComparisonPage() {
       info('Comparison URL copied to clipboard');
       setTimeout(() => setIsCopied(false), 2000);
     } catch {
-      // Fallback for browsers that don't support clipboard API
       const textArea = document.createElement('textarea');
       textArea.value = url;
       document.body.appendChild(textArea);
@@ -155,27 +152,24 @@ export function DealComparisonPage() {
     }
   };
 
-  // Handle adding more deals
-  const handleAddDeals = () => {
-    setSelectorOpen(true);
-  };
-
   // No deals selected state
   if (dealIds.length < 2) {
     return (
-      <div className="p-6">
-        <div className="mb-6">
+      <div className="space-y-6">
+        <div>
           <Link
             to="/deals"
-            className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900"
+            className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 mb-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Deals
           </Link>
         </div>
 
-        <Card className="p-12 text-center">
-          <BarChart3 className="w-16 h-16 mx-auto mb-4 text-neutral-400" />
+        <div className="bg-white rounded-lg border border-neutral-200 shadow-card p-12 text-center">
+          <div className="p-3 bg-neutral-100 rounded-xl w-fit mx-auto mb-4">
+            <GitCompareArrows className="w-10 h-10 text-neutral-400" />
+          </div>
           <h2 className="text-xl font-semibold text-neutral-900 mb-2">
             No Deals Selected
           </h2>
@@ -187,7 +181,7 @@ export function DealComparisonPage() {
             <Plus className="w-4 h-4" />
             Select Deals to Compare
           </Button>
-        </Card>
+        </div>
 
         <ComparisonSelector
           open={selectorOpen}
@@ -201,23 +195,23 @@ export function DealComparisonPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="mb-6">
+      <div className="space-y-6">
+        <div>
           <Link
             to="/deals"
-            className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900"
+            className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 mb-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Deals
           </Link>
         </div>
 
-        <Card className="p-12">
+        <div className="bg-white rounded-lg border border-neutral-200 shadow-card p-12">
           <div className="flex flex-col items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mb-4" />
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-neutral-200 border-t-blue-600 mb-4" />
             <p className="text-neutral-600">Loading comparison data...</p>
           </div>
-        </Card>
+        </div>
       </div>
     );
   }
@@ -225,20 +219,20 @@ export function DealComparisonPage() {
   // Error state
   if (isError) {
     return (
-      <div className="p-6">
-        <div className="mb-6">
+      <div className="space-y-6">
+        <div>
           <Link
             to="/deals"
-            className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900"
+            className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 mb-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Deals
           </Link>
         </div>
 
-        <Card className="p-12 text-center">
-          <div className="text-red-500 mb-4">
-            <BarChart3 className="w-16 h-16 mx-auto" />
+        <div className="bg-white rounded-lg border border-neutral-200 shadow-card p-12 text-center">
+          <div className="p-3 bg-red-50 rounded-xl w-fit mx-auto mb-4">
+            <BarChart3 className="w-10 h-10 text-red-400" />
           </div>
           <h2 className="text-xl font-semibold text-neutral-900 mb-2">
             Failed to Load Comparison
@@ -252,7 +246,7 @@ export function DealComparisonPage() {
             <RefreshCw className="w-4 h-4" />
             Try Again
           </Button>
-        </Card>
+        </div>
       </div>
     );
   }
@@ -260,7 +254,7 @@ export function DealComparisonPage() {
   const deals = data?.deals ?? [];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -271,23 +265,23 @@ export function DealComparisonPage() {
             <ArrowLeft className="w-4 h-4" />
             Back to Deals
           </Link>
-          <h1 className="text-2xl font-bold text-neutral-900">Deal Comparison</h1>
-          <p className="text-neutral-600">
-            Comparing {deals.length} deals
+          <h1 className="text-3xl font-bold text-neutral-900">Deal Comparison</h1>
+          <p className="text-neutral-600 mt-1">
+            Comparing {deals.length} deals side by side
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* View Mode Toggle */}
-          <div className="flex items-center border border-neutral-200 rounded-lg overflow-hidden" role="group" aria-label="View mode">
+          <div className="flex items-center bg-white rounded-lg shadow-md border border-neutral-200 p-1" role="group" aria-label="View mode">
             <button
               onClick={() => setViewMode('table')}
               aria-pressed={viewMode === 'table'}
               className={cn(
-                'px-3 py-2 text-sm flex items-center gap-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset',
+                'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors',
                 viewMode === 'table'
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-white text-neutral-700 hover:bg-neutral-50'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
               )}
             >
               <Table2 className="w-4 h-4" />
@@ -297,10 +291,10 @@ export function DealComparisonPage() {
               onClick={() => setViewMode('charts')}
               aria-pressed={viewMode === 'charts'}
               className={cn(
-                'px-3 py-2 text-sm flex items-center gap-2 transition-colors border-l border-r border-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset',
+                'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors',
                 viewMode === 'charts'
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-white text-neutral-700 hover:bg-neutral-50'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
               )}
             >
               <BarChart3 className="w-4 h-4" />
@@ -310,10 +304,10 @@ export function DealComparisonPage() {
               onClick={() => setViewMode('both')}
               aria-pressed={viewMode === 'both'}
               className={cn(
-                'px-3 py-2 text-sm flex items-center gap-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset',
+                'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors',
                 viewMode === 'both'
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-white text-neutral-700 hover:bg-neutral-50'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
               )}
             >
               Both
@@ -321,14 +315,18 @@ export function DealComparisonPage() {
           </div>
 
           {/* Actions */}
-          <Button variant="outline" onClick={handleAddDeals} className="gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setSelectorOpen(true)}
+            className="gap-2 bg-white"
+          >
             <Plus className="w-4 h-4" />
             Add Deals
           </Button>
           <Button
             variant="outline"
             onClick={handleShareUrl}
-            className="gap-2"
+            className="gap-2 bg-white"
           >
             {isCopied ? (
               <>
@@ -362,23 +360,24 @@ export function DealComparisonPage() {
         </div>
       </div>
 
-      {/* Comparison Content */}
+      {/* Metrics Table */}
       {(viewMode === 'table' || viewMode === 'both') && (
-        <Card className="overflow-hidden">
-          <div className="p-6 border-b border-neutral-200">
+        <div className="bg-white rounded-lg border border-neutral-200 shadow-card overflow-hidden">
+          <div className="px-6 py-4 border-b border-neutral-200">
             <h2 className="text-lg font-semibold text-neutral-900">
               Metrics Comparison
             </h2>
-            <p className="text-sm text-neutral-600">
-              Side-by-side comparison of key deal metrics
+            <p className="text-sm text-neutral-600 mt-0.5">
+              Side-by-side comparison of key underwriting metrics
             </p>
           </div>
           <div className="p-6">
             <ComparisonTable deals={deals} highlightBestWorst={true} />
           </div>
-        </Card>
+        </div>
       )}
 
+      {/* Visual Charts */}
       {(viewMode === 'charts' || viewMode === 'both') && (
         <div>
           <h2 className="text-lg font-semibold text-neutral-900 mb-4">

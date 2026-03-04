@@ -529,6 +529,55 @@ def run_extraction_task(run_id: UUID, source: str, file_paths: list | None = Non
         parser = CellMappingParser(str(REFERENCE_FILE))
         mappings = parser.load_mappings()
 
+        # Inject supplemental mappings not in reference file
+        from app.extraction.cell_mapping import CellMapping
+
+        _supplemental = [
+            CellMapping(
+                category="Supplemental",
+                description="T3 Return on Cost",
+                sheet_name="Assumptions (Summary)",
+                cell_address="G27",
+                field_name="T3_RETURN_ON_COST",
+            ),
+            # Reference file maps these to "Assumptions (Summary)" but the values
+            # are on "Returns Metrics (Summary)" — override with correct sheet.
+            CellMapping(
+                category="Supplemental",
+                description="Unlevered Returns IRR",
+                sheet_name="Returns Metrics (Summary)",
+                cell_address="E39",
+                field_name="UNLEVERED_RETURNS_IRR",
+            ),
+            CellMapping(
+                category="Supplemental",
+                description="Unlevered Returns MOIC",
+                sheet_name="Returns Metrics (Summary)",
+                cell_address="E40",
+                field_name="UNLEVERED_RETURNS_MOIC",
+            ),
+            CellMapping(
+                category="Supplemental",
+                description="Levered Returns IRR",
+                sheet_name="Returns Metrics (Summary)",
+                cell_address="E43",
+                field_name="LEVERED_RETURNS_IRR",
+            ),
+            CellMapping(
+                category="Supplemental",
+                description="Levered Returns MOIC",
+                sheet_name="Returns Metrics (Summary)",
+                cell_address="E44",
+                field_name="LEVERED_RETURNS_MOIC",
+            ),
+        ]
+        for sm in _supplemental:
+            # Use force-overwrite for sheet corrections
+            mappings[sm.field_name] = sm
+            logger.info(
+                "supplemental_mapping_applied", field=sm.field_name, sheet=sm.sheet_name
+            )
+
         if source == "local" and file_paths:
             files_to_process = [
                 {

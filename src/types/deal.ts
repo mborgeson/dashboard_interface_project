@@ -35,8 +35,8 @@ export interface Deal {
   lastSalePricePerUnit: number;
   lastSaleDate: string;
   t12ReturnOnCost: number;
-  leveredIrr: number;
-  leveredMoic: number;
+  leveredIrr?: number;
+  leveredMoic?: number;
   totalEquityCommitment: number;
   createdAt: Date;
   timeline: DealTimelineEvent[];
@@ -71,6 +71,8 @@ export interface Deal {
   // Returns
   unleveredIrr?: number;
   unleveredMoic?: number;
+  lpIrr?: number;
+  lpMoic?: number;
   // Map
   latitude?: number;
   longitude?: number;

@@ -51,7 +51,7 @@ const UW_METRICS: UwMetricRow[] = [
     getValue: (d) => `${d.units || 'N/A'} / ${d.avgUnitSf || 'N/A'} SF`,
   },
   {
-    label: 'Loss Factor',
+    label: 'Total Loss Factor (T12)',
     getValue: (d) => {
       const total = (d.vacancyRate ?? 0) + (d.badDebtRate ?? 0) + (d.otherLossRate ?? 0) + (d.concessionsRate ?? 0);
       return total > 0 ? fmtPct(total) : 'N/A';
@@ -119,6 +119,12 @@ const UW_METRICS: UwMetricRow[] = [
     getNumeric: (d) => d.leveredIrr,
     higherIsBetter: true,
   },
+  {
+    label: 'LP IRR / MOIC',
+    getValue: (d) => `${fmtPct(d.lpIrr)} / ${fmtMultiple(d.lpMoic)}`,
+    getNumeric: (d) => d.lpIrr,
+    higherIsBetter: true,
+  },
 ];
 
 export function ComparisonTable({
@@ -170,15 +176,13 @@ export function ComparisonTable({
             {deals.map((deal) => (
               <TableHead
                 key={deal.id}
-                className="min-w-[200px] text-center font-semibold text-neutral-900"
+                className="text-center font-semibold text-neutral-900 whitespace-nowrap px-4"
               >
-                <div className="space-y-1">
-                  <div className="truncate max-w-[180px]" title={deal.propertyName}>
-                    {deal.propertyName}
-                  </div>
-                  <div className="text-xs font-normal text-neutral-500">
-                    {deal.submarket ?? `${deal.address.city}, ${deal.address.state}`}
-                  </div>
+                <div>
+                  {deal.propertyName}
+                </div>
+                <div className="text-xs font-normal text-neutral-500">
+                  ({deal.address.city}, {deal.address.state})
                 </div>
               </TableHead>
             ))}

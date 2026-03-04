@@ -45,6 +45,12 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     ...fetchOptions.headers,
   };
 
+  // Attach auth token from localStorage
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(url, {
     ...fetchOptions,
     headers,
@@ -56,6 +62,12 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       errorData = await response.json();
     } catch {
       errorData = await response.text();
+    }
+    // Dispatch auth event on 401 to match axios interceptor behavior
+    if (response.status === 401) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
     }
     throw new ApiError(response.status, `API Error: ${response.statusText}`, errorData);
   }

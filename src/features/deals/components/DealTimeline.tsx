@@ -18,16 +18,19 @@ export function DealTimeline({ deals }: DealTimelineProps) {
     }).format(value);
   };
 
-  const formatCurrencyCompact = (value: number) => {
+  /** Format as "$22.0M" style with exactly one decimal for millions */
+  const formatDealValue = (value: number) => {
     if (value === 0) return '—';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      notation: 'compact',
-      compactDisplay: 'short',
-    }).format(value);
+    if (Math.abs(value) >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
+    if (Math.abs(value) >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
+    if (Math.abs(value) >= 1e3) return `$${(value / 1e3).toFixed(0)}K`;
+    return `$${value.toFixed(0)}`;
+  };
+
+  /** Format equity commitment as compact dollar value */
+  const formatEquity = (value: number) => {
+    if (value === 0) return '—';
+    return formatDealValue(value);
   };
 
   const formatPercent = (value: number) => {
@@ -48,6 +51,32 @@ export function DealTimeline({ deals }: DealTimelineProps) {
       day: 'numeric',
       year: 'numeric',
     }).format(date);
+  };
+
+  /**
+   * Format last sale date — handles ISO strings and Excel serial dates.
+   * Excel serial date = days since 1900-01-01 (with the famous Excel bug).
+   */
+  const formatLastSaleDate = (raw: string): string => {
+    if (!raw) return '—';
+
+    // If it looks like a pure number (Excel serial date)
+    const num = Number(raw);
+    if (!isNaN(num) && num > 10000 && num < 100000) {
+      // Excel serial date: days since 1900-01-01 (Excel treats 1900 as leap year, subtract 2)
+      const excelEpoch = new Date(1900, 0, 1);
+      const date = new Date(excelEpoch.getTime() + (num - 2) * 86400000);
+      return formatDate(date);
+    }
+
+    // Try parsing as ISO date string
+    const parsed = new Date(raw);
+    if (!isNaN(parsed.getTime())) {
+      return formatDate(parsed);
+    }
+
+    // Fallback: return as-is
+    return raw;
   };
 
   // Sort deals by most recent activity
@@ -139,7 +168,7 @@ export function DealTimeline({ deals }: DealTimelineProps) {
                     <span>Last Sale Date</span>
                   </div>
                   <div className="text-lg font-semibold text-neutral-900">
-                    {deal.lastSaleDate || '—'}
+                    {formatLastSaleDate(deal.lastSaleDate)}
                   </div>
                 </div>
                 <div>
@@ -157,7 +186,7 @@ export function DealTimeline({ deals }: DealTimelineProps) {
                     <span>Levered IRR</span>
                   </div>
                   <div className="text-lg font-semibold text-neutral-900">
-                    {formatPercent(deal.leveredIrr)}
+                    {deal.leveredIrr != null ? formatPercent(deal.leveredIrr) : '—'}
                   </div>
                 </div>
                 <div>
@@ -166,7 +195,7 @@ export function DealTimeline({ deals }: DealTimelineProps) {
                     <span>Levered MOIC</span>
                   </div>
                   <div className="text-lg font-semibold text-neutral-900">
-                    {deal.leveredMoic > 0 ? `${deal.leveredMoic.toFixed(2)}x` : '—'}
+                    {deal.leveredMoic != null && deal.leveredMoic > 0 ? `${deal.leveredMoic.toFixed(2)}x` : '—'}
                   </div>
                 </div>
                 <div>
@@ -175,7 +204,7 @@ export function DealTimeline({ deals }: DealTimelineProps) {
                     <span>Total Equity Commitment</span>
                   </div>
                   <div className="text-lg font-semibold text-neutral-900">
-                    {formatCurrencyCompact(deal.totalEquityCommitment)}
+                    {formatEquity(deal.totalEquityCommitment)}
                   </div>
                 </div>
                 <div>
@@ -184,7 +213,7 @@ export function DealTimeline({ deals }: DealTimelineProps) {
                     <span>Deal Value</span>
                   </div>
                   <div className="text-lg font-semibold text-neutral-900">
-                    {formatCurrencyCompact(deal.value)}
+                    {formatDealValue(deal.value)}
                   </div>
                 </div>
               </div>

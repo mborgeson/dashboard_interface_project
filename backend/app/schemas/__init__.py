@@ -24,7 +24,6 @@ from .comparison import (
     ComparisonSummary,
     DealComparisonRequest,
     DealComparisonResponse,
-    DealMetrics,
     MetricComparison,
     QuickCompareResponse,
 )
@@ -77,7 +76,6 @@ __all__ = [
     "ActivityLogResponse",
     "ActivityLogListResponse",
     # Comparison schemas
-    "DealMetrics",
     "MetricComparison",
     "ComparisonSummary",
     "DealComparisonResponse",

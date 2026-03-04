@@ -3,7 +3,6 @@ Deal endpoints for pipeline management and Kanban board operations.
 """
 
 from datetime import UTC, datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
@@ -21,7 +20,6 @@ from app.crud.crud_activity import deal_activity
 from app.crud.crud_activity import watchlist as watchlist_crud
 from app.crud.crud_activity_log import activity_log as activity_log_crud
 from app.db.session import get_db
-from app.models import Property
 from app.models.activity_log import ActivityAction as ModelActivityAction
 from app.models.deal import DealStage
 from app.models.extraction import ExtractedValue, ExtractionRun
@@ -40,7 +38,6 @@ from app.schemas.activity_log import (
 from app.schemas.comparison import (
     ComparisonSummary,
     DealComparisonResponse,
-    DealMetrics,
     MetricComparison,
 )
 from app.schemas.deal import (
@@ -76,6 +73,10 @@ async def _enrich_deals_with_extraction(
         "T12_RETURN_ON_COST",
         "LP_RETURNS_IRR",
         "LP_RETURNS_MOIC",
+        "UNLEVERED_RETURNS_IRR",
+        "UNLEVERED_RETURNS_MOIC",
+        "LEVERED_RETURNS_IRR",
+        "LEVERED_RETURNS_MOIC",
         "PROPERTY_CITY",
         "SUBMARKET",
         "YEAR_BUILT",
@@ -90,14 +91,13 @@ async def _enrich_deals_with_extraction(
         "BASIS_UNIT_AT_CLOSE",
         "T12_RETURN_ON_PP",
         "T3_RETURN_ON_PP",
-        "TOTAL_RETURN_ON_COST_AT_EXIT",
-        "PURCHASE_PRICE_RETURN_ON_COST_AT_EXIT",
+        # TOTAL_RETURN_ON_COST_AT_EXIT and PURCHASE_PRICE_RETURN_ON_COST_AT_EXIT
+        # are exit metrics, not going-in cap rates — no longer used for TC cap rates
         "LOAN_AMOUNT",
         "EQUITY_LP_CAPITAL",
         "EXIT_PERIOD_MONTHS",
         "EXIT_CAP_RATE",
-        "UNLEVERED_RETURNS_IRR",
-        "UNLEVERED_RETURNS_MOIC",
+        "T3_RETURN_ON_COST",
         "PROPERTY_LATITUDE",
         "PROPERTY_LONGITUDE",
     ]
@@ -139,13 +139,6 @@ async def _enrich_deals_with_extraction(
         if row.property_id is not None:
             lookup.setdefault(row.property_id, {})[row.field_name] = row
 
-    # Also fetch equity commitment from property financial_data
-    prop_stmt = select(Property.id, Property.financial_data).where(
-        Property.id.in_(prop_ids)
-    )
-    prop_result = await db.execute(prop_stmt)
-    prop_map: dict[Any, Any] = {row[0]: row[1] for row in prop_result.all()}
-
     for deal in deal_responses:
         if not deal.property_id:
             continue
@@ -177,9 +170,17 @@ async def _enrich_deals_with_extraction(
 
         ev = fields.get("LP_RETURNS_IRR")
         if ev and ev.value_numeric is not None:
-            deal.levered_irr = float(ev.value_numeric)
+            deal.lp_irr = float(ev.value_numeric)
 
         ev = fields.get("LP_RETURNS_MOIC")
+        if ev and ev.value_numeric is not None:
+            deal.lp_moic = float(ev.value_numeric)
+
+        ev = fields.get("LEVERED_RETURNS_IRR")
+        if ev and ev.value_numeric is not None:
+            deal.levered_irr = float(ev.value_numeric)
+
+        ev = fields.get("LEVERED_RETURNS_MOIC")
         if ev and ev.value_numeric is not None:
             deal.levered_moic = float(ev.value_numeric)
 
@@ -228,23 +229,30 @@ async def _enrich_deals_with_extraction(
             deal.total_acquisition_budget = float(ev.value_numeric)
 
         ev = fields.get("BASIS_UNIT_AT_CLOSE")
-        if ev and ev.value_numeric is not None:
+        if ev and ev.value_numeric is not None and float(ev.value_numeric) > 0:
             deal.basis_per_unit = float(ev.value_numeric)
+        elif deal.total_units and deal.total_units > 0:
+            # Calculate basis/unit from total acquisition budget / units
+            budget = deal.total_acquisition_budget or deal.purchase_price_extracted
+            if budget and budget > 0:
+                deal.basis_per_unit = budget / deal.total_units
 
         ev = fields.get("T12_RETURN_ON_PP")
-        if ev and ev.value_numeric is not None:
+        if ev and ev.value_numeric is not None and float(ev.value_numeric) > 0:
             deal.t12_cap_on_pp = float(ev.value_numeric)
 
         ev = fields.get("T3_RETURN_ON_PP")
-        if ev and ev.value_numeric is not None:
+        if ev and ev.value_numeric is not None and float(ev.value_numeric) > 0:
             deal.t3_cap_on_pp = float(ev.value_numeric)
 
-        ev = fields.get("TOTAL_RETURN_ON_COST_AT_EXIT")
-        if ev and ev.value_numeric is not None:
+        # Cap Rate on Total Cost: use T12_RETURN_ON_COST (going-in, not exit)
+        ev = fields.get("T12_RETURN_ON_COST")
+        if ev and ev.value_numeric is not None and float(ev.value_numeric) > 0:
             deal.total_cost_cap_t12 = float(ev.value_numeric)
 
-        ev = fields.get("PURCHASE_PRICE_RETURN_ON_COST_AT_EXIT")
-        if ev and ev.value_numeric is not None:
+        # T3 Cap Rate on Total Cost: cell G27 on Assumptions (Summary)
+        ev = fields.get("T3_RETURN_ON_COST")
+        if ev and ev.value_numeric is not None and float(ev.value_numeric) > 0:
             deal.total_cost_cap_t3 = float(ev.value_numeric)
 
         ev = fields.get("LOAN_AMOUNT")
@@ -279,13 +287,10 @@ async def _enrich_deals_with_extraction(
         if ev and ev.value_numeric is not None:
             deal.longitude = float(ev.value_numeric)
 
-        # Equity commitment from property financial_data
-        fd = prop_map.get(deal.property_id)
-        if fd and isinstance(fd, dict):
-            ret = fd.get("returns", {})
-            ec = ret.get("totalEquityCommitment")
-            if ec is not None:
-                deal.total_equity_commitment = float(ec)
+        # Equity commitment: use LP capital from extraction
+        ev = fields.get("EQUITY_LP_CAPITAL")
+        if ev and ev.value_numeric is not None:
+            deal.total_equity_commitment = float(ev.value_numeric)
 
     return deal_responses
 
@@ -454,8 +459,8 @@ async def compare_deals(
             unique_ids.append(id)
     deal_ids = unique_ids
 
-    # Fetch deals from database
-    deals = []
+    # Fetch deals and build DealResponse objects (same as list/kanban endpoints)
+    deal_responses: list[DealResponse] = []
     for deal_id in deal_ids:
         deal = await deal_crud.get_with_relations(db, deal_id)
         if not deal:
@@ -463,64 +468,17 @@ async def compare_deals(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Deal {deal_id} not found",
             )
-        deals.append(deal)
+        deal_responses.append(DealResponse.model_validate(deal))
 
-    # Get property info for each deal
-    property_info = {}
-    for deal in deals:
-        if deal.property_id:
-            result = await db.execute(
-                select(Property).where(Property.id == deal.property_id)
-            )
-            prop = result.scalar_one_or_none()
-            if prop:
-                property_info[deal.id] = prop
+    # Enrich with extraction data (same pipeline as kanban endpoint)
+    deal_responses = await _enrich_deals_with_extraction(db, deal_responses)
 
-    # Build deal metrics
-    deal_metrics = []
-    for deal in deals:
-        prop = property_info.get(deal.id)
-
-        # Calculate days in pipeline
-        days_in_pipeline = None
-        if deal.initial_contact_date:
-            days_in_pipeline = (
-                datetime.now(UTC).date() - deal.initial_contact_date
-            ).days
-
-        metrics = DealMetrics(
-            id=deal.id,
-            name=deal.name,
-            deal_type=deal.deal_type,
-            stage=deal.stage.value if hasattr(deal.stage, "value") else str(deal.stage),
-            priority=deal.priority,
-            asking_price=deal.asking_price,
-            offer_price=deal.offer_price,
-            final_price=deal.final_price,
-            projected_irr=deal.projected_irr,
-            projected_coc=deal.projected_coc,
-            projected_equity_multiple=deal.projected_equity_multiple,
-            hold_period_years=deal.hold_period_years,
-            deal_score=deal.deal_score,
-            days_in_pipeline=days_in_pipeline,
-            target_close_date=deal.target_close_date.isoformat()
-            if deal.target_close_date
-            else None,
-            property_name=prop.name if prop else None,
-            property_type=prop.property_type if prop else None,
-            property_market=prop.market if prop else None,
-            total_units=prop.total_units if prop else None,
-            total_sf=prop.total_sf if prop else None,
-        )
-        deal_metrics.append(metrics)
-
-    # Build comparison summary
+    # Build comparison summary from enriched data
     def find_best(attr: str, higher_is_better: bool = True) -> int | None:
-        """Find deal ID with best value for an attribute."""
         values = [
             (d.id, getattr(d, attr))
-            for d in deal_metrics
-            if getattr(d, attr) is not None
+            for d in deal_responses
+            if getattr(d, attr, None) is not None
         ]
         if not values:
             return None
@@ -528,53 +486,35 @@ async def compare_deals(
             return max(values, key=lambda x: x[1])[0]
         return min(values, key=lambda x: x[1])[0]
 
-    best_irr = find_best("projected_irr", higher_is_better=True)
+    best_irr = find_best("levered_irr", higher_is_better=True)
     best_coc = find_best("projected_coc", higher_is_better=True)
     best_equity_multiple = find_best("projected_equity_multiple", higher_is_better=True)
     lowest_price = find_best("asking_price", higher_is_better=False)
     highest_score = find_best("deal_score", higher_is_better=True)
 
-    # Calculate overall recommendation based on weighted score
-    def calculate_weighted_score(deal: DealMetrics) -> float:
-        """Calculate weighted score for overall recommendation."""
-        score = 0.0
-        weights = {
-            "projected_irr": 0.3,
-            "projected_coc": 0.2,
-            "projected_equity_multiple": 0.2,
-            "deal_score": 0.3,
-        }
+    # Overall recommendation
+    def calc_score(d: DealResponse) -> float:
+        s = 0.0
+        if d.levered_irr is not None:
+            s += float(d.levered_irr) * 0.3
+        if d.projected_coc is not None:
+            s += float(d.projected_coc) * 0.2
+        if d.projected_equity_multiple is not None:
+            s += float(d.projected_equity_multiple) * 0.2
+        if d.deal_score is not None:
+            s += (float(d.deal_score) / 100.0) * 0.3
+        return s
 
-        for attr, weight in weights.items():
-            value = getattr(deal, attr)
-            if value is not None:
-                if attr == "deal_score":
-                    score += (float(value) / 100.0) * weight
-                else:
-                    score += float(value) * weight
+    scores = [(d.id, calc_score(d)) for d in deal_responses]
+    overall_rec = max(scores, key=lambda x: x[1])[0] if scores else None
 
-        return score
-
-    scores = [(d.id, calculate_weighted_score(d)) for d in deal_metrics]
-    overall_recommendation = max(scores, key=lambda x: x[1])[0] if scores else None
-
-    # Build recommendation reason
     reasons = []
-    if overall_recommendation:
-        rec_deal = next(
-            (d for d in deal_metrics if d.id == overall_recommendation), None
-        )
-        if rec_deal:
-            if rec_deal.projected_irr:
-                reasons.append(
-                    f"{float(rec_deal.projected_irr) * 100:.1f}% projected IRR"
-                )
-            if rec_deal.deal_score:
-                reasons.append(f"score of {rec_deal.deal_score}/100")
-
-    recommendation_reason = (
-        f"Best overall metrics: {', '.join(reasons)}" if reasons else None
-    )
+    if overall_rec:
+        rec = next((d for d in deal_responses if d.id == overall_rec), None)
+        if rec and rec.levered_irr is not None:
+            reasons.append(f"{float(rec.levered_irr) * 100:.1f}% levered IRR")
+        if rec and rec.deal_score is not None:
+            reasons.append(f"score of {rec.deal_score}/100")
 
     comparison_summary = ComparisonSummary(
         best_irr=best_irr,
@@ -582,57 +522,51 @@ async def compare_deals(
         best_equity_multiple=best_equity_multiple,
         lowest_price=lowest_price,
         highest_score=highest_score,
-        overall_recommendation=overall_recommendation,
-        recommendation_reason=recommendation_reason,
+        overall_recommendation=overall_rec,
+        recommendation_reason=f"Best overall metrics: {', '.join(reasons)}"
+        if reasons
+        else None,
     )
 
     # Build metric comparisons
     metric_comparisons = []
 
-    def add_metric_comparison(
-        metric_name: str,
-        attr: str,
-        comparison_type: str = "higher_is_better",
-    ):
-        """Add a metric comparison to the list."""
-        values = {d.id: getattr(d, attr) for d in deal_metrics}
-        non_null_values = {k: v for k, v in values.items() if v is not None}
-
+    def add_mc(name: str, attr: str, ctype: str = "higher_is_better"):
+        vals = {d.id: getattr(d, attr, None) for d in deal_responses}
+        nn = {k: v for k, v in vals.items() if v is not None}
         best_id = None
         best_val = None
-        if non_null_values:
-            if comparison_type == "higher_is_better":
-                best_id = max(non_null_values, key=lambda k: non_null_values[k])
-            else:
-                best_id = min(non_null_values, key=lambda k: non_null_values[k])
-            best_val = non_null_values[best_id]
-
+        if nn:
+            best_id = (
+                max(nn, key=lambda k: nn[k])
+                if ctype == "higher_is_better"
+                else min(nn, key=lambda k: nn[k])
+            )
+            best_val = nn[best_id]
         metric_comparisons.append(
             MetricComparison(
-                metric_name=metric_name,
-                values=values,
+                metric_name=name,
+                values=vals,
                 best_deal_id=best_id,
                 best_value=best_val,
-                comparison_type=comparison_type,
+                comparison_type=ctype,
             )
         )
 
-    add_metric_comparison("Projected IRR", "projected_irr", "higher_is_better")
-    add_metric_comparison("Projected CoC", "projected_coc", "higher_is_better")
-    add_metric_comparison(
-        "Equity Multiple", "projected_equity_multiple", "higher_is_better"
-    )
-    add_metric_comparison("Asking Price", "asking_price", "lower_is_better")
-    add_metric_comparison("Deal Score", "deal_score", "higher_is_better")
-    add_metric_comparison("Days in Pipeline", "days_in_pipeline", "lower_is_better")
+    add_mc("Levered IRR", "levered_irr")
+    add_mc("NOI Margin", "noi_margin")
+    add_mc("T12 Cap on PP", "t12_cap_on_pp")
+    add_mc("Asking Price", "asking_price", "lower_is_better")
+    add_mc("Deal Score", "deal_score")
+    add_mc("Unlevered IRR", "unlevered_irr")
 
     logger.info(f"User {current_user.email} compared deals: {deal_ids}")
 
     return DealComparisonResponse(
-        deals=deal_metrics,
+        deals=deal_responses,
         comparison_summary=comparison_summary,
         metric_comparisons=metric_comparisons,
-        deal_count=len(deal_metrics),
+        deal_count=len(deal_responses),
         compared_at=datetime.now(UTC).isoformat(),
     )
 
@@ -644,7 +578,7 @@ async def get_deal(
     current_user: CurrentUser = Depends(require_analyst),
 ):
     """
-    Get a specific deal by ID.
+    Get a specific deal by ID with extraction enrichment.
     """
     deal = await deal_crud.get_with_relations(db, deal_id)
 
@@ -654,7 +588,10 @@ async def get_deal(
             detail=f"Deal {deal_id} not found",
         )
 
-    return deal
+    # Enrich with extraction data
+    deal_resp = DealResponse.model_validate(deal)
+    enriched = await _enrich_deals_with_extraction(db, [deal_resp])
+    return enriched[0]
 
 
 @router.post("/", response_model=DealResponse, status_code=status.HTTP_201_CREATED)

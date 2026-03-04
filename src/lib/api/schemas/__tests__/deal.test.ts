@@ -135,8 +135,8 @@ describe('backendDealSchema', () => {
     expect(result.units).toBe(0);
     expect(result.avgUnitSf).toBe(0);
     expect(result.currentOwner).toBe('');
-    expect(result.leveredIrr).toBe(0);
-    expect(result.leveredMoic).toBe(0);
+    expect(result.leveredIrr).toBeUndefined();
+    expect(result.leveredMoic).toBeUndefined();
   });
 
   it('handles new enrichment fields when present', () => {

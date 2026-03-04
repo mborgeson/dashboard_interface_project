@@ -139,18 +139,20 @@ export function useDealActivitiesWithMockFallback(
   return useQuery({
     queryKey: dealKeys.activities(dealId),
     queryFn: async (): Promise<DealActivitiesWithFallbackResponse> => {
-      const response = await get<DealActivitiesApiResponse>(`/deals/${dealId}/activities`);
+      // Backend returns DealActivityListResponse: { items, total, page, page_size }
+      const response = await get<BackendActivityListResponse>(`/deals/${dealId}/activity`);
+      const items = response.items ?? [];
       return {
-        activities: response.activities.map((a) => ({
-          id: a.id,
-          dealId: a.deal_id,
-          type: a.type,
-          description: a.description,
-          user: a.user,
-          timestamp: new Date(a.timestamp),
-          metadata: a.metadata,
+        activities: items.map((a) => ({
+          id: String(a.id),
+          dealId: String(a.deal_id),
+          type: (a.activity_type ?? 'other') as DealActivity['type'],
+          description: a.description ?? '',
+          user: a.user_name ?? 'System',
+          timestamp: new Date(a.created_at ?? a.updated_at ?? Date.now()),
+          metadata: undefined,
         })),
-        total: response.total,
+        total: response.total ?? 0,
       };
     },
     enabled: !!dealId,
@@ -281,7 +283,7 @@ export function useDealActivitiesApi(
 ) {
   return useQuery({
     queryKey: dealKeys.activities(dealId),
-    queryFn: () => get<DealActivitiesApiResponse>(`/deals/${dealId}/activities`),
+    queryFn: () => get<DealActivitiesApiResponse>(`/deals/${dealId}/activity`),
     enabled: !!dealId,
     ...options,
   });
@@ -324,7 +326,33 @@ export interface KanbanBoardWithFallbackResponse {
 }
 
 // ============================================================================
-// Activity Types
+// Activity Types (backend response format)
+// ============================================================================
+
+/** Matches backend DealActivityListResponse schema */
+interface BackendActivityListResponse {
+  items: BackendActivityItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+interface BackendActivityItem {
+  id: number;
+  deal_id: number;
+  activity_type: string;
+  description: string | null;
+  user_id: number;
+  user_name: string | null;
+  created_at: string;
+  updated_at: string;
+  field_changed?: string | null;
+  old_value?: string | null;
+  new_value?: string | null;
+}
+
+// ============================================================================
+// Activity Types (frontend format)
 // ============================================================================
 
 export interface DealActivityApiResponse {

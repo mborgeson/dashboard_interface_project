@@ -202,6 +202,8 @@ class DealResponse(DealBase, TimestampSchema):
     # Returns
     unlevered_irr: float | None = None
     unlevered_moic: float | None = None
+    lp_irr: float | None = None
+    lp_moic: float | None = None
     # Map coordinates
     latitude: float | None = None
     longitude: float | None = None

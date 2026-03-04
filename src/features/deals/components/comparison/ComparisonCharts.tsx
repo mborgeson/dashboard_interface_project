@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Card } from '@/components/ui/card';
 import {
   BarChart,
   Bar,
@@ -24,12 +23,12 @@ interface ComparisonChartsProps {
 
 // Color palette for deals (supports up to 6 deals)
 const DEAL_COLORS = [
-  '#2A3F54', // Primary navy
-  '#E74C3C', // Accent red
-  '#3498db', // Blue
-  '#27ae60', // Green
-  '#9b59b6', // Purple
-  '#f39c12', // Orange
+  '#2563eb', // blue-600
+  '#dc2626', // red-600
+  '#16a34a', // green-600
+  '#9333ea', // purple-600
+  '#ea580c', // orange-600
+  '#0891b2', // cyan-600
 ];
 
 interface BarChartData {
@@ -43,32 +42,40 @@ interface RadarChartData {
   [dealName: string]: string | number;
 }
 
+function fmtPctTick(v: number): string {
+  return `${v.toFixed(1)}%`;
+}
+
 export function ComparisonCharts({
   deals,
   chartType = 'both',
 }: ComparisonChartsProps) {
-  // Prepare bar chart data
+  // Prepare bar chart data — real UW metrics (displayed as percentages)
   const barChartData = useMemo((): BarChartData[] => {
     const metrics = [
       {
-        key: 'capRate',
-        label: 'Cap Rate (%)',
-        getValue: (d: DealForComparison) => d.capRate,
+        label: 'Cap Rate PP (T12)',
+        getValue: (d: DealForComparison) => (d.t12CapOnPp ?? 0) * 100,
       },
       {
-        key: 'projectedIrr',
-        label: 'IRR (%)',
-        getValue: (d: DealForComparison) => (d.projectedIrr ?? 0) * 100,
+        label: 'Cap Rate TC (T12)',
+        getValue: (d: DealForComparison) => (d.totalCostCapT12 ?? 0) * 100,
       },
       {
-        key: 'cashOnCash',
-        label: 'Cash-on-Cash (%)',
-        getValue: (d: DealForComparison) => (d.cashOnCash ?? 0) * 100,
+        label: 'NOI Margin',
+        getValue: (d: DealForComparison) => (d.noiMargin ?? 0) * 100,
       },
       {
-        key: 'equityMultiple',
-        label: 'Equity Multiple (x)',
-        getValue: (d: DealForComparison) => d.equityMultiple ?? 0,
+        label: 'Unlevered IRR',
+        getValue: (d: DealForComparison) => (d.unleveredIrr ?? 0) * 100,
+      },
+      {
+        label: 'Levered IRR',
+        getValue: (d: DealForComparison) => (d.leveredIrr ?? 0) * 100,
+      },
+      {
+        label: 'LP IRR',
+        getValue: (d: DealForComparison) => (d.lpIrr ?? 0) * 100,
       },
     ];
 
@@ -85,49 +92,30 @@ export function ComparisonCharts({
   const radarChartData = useMemo((): RadarChartData[] => {
     if (deals.length === 0) return [];
 
-    // Define metrics with their normalization ranges
     const metrics = [
       {
-        key: 'capRate',
-        label: 'Cap Rate',
-        getValue: (d: DealForComparison) => d.capRate,
-        normalize: (v: number, min: number, max: number) =>
-          max === min ? 50 : ((v - min) / (max - min)) * 100,
+        label: 'Cap Rate PP',
+        getValue: (d: DealForComparison) => (d.t12CapOnPp ?? 0) * 100,
       },
       {
-        key: 'projectedIrr',
-        label: 'IRR',
-        getValue: (d: DealForComparison) => (d.projectedIrr ?? 0) * 100,
-        normalize: (v: number, min: number, max: number) =>
-          max === min ? 50 : ((v - min) / (max - min)) * 100,
+        label: 'Cap Rate TC',
+        getValue: (d: DealForComparison) => (d.totalCostCapT12 ?? 0) * 100,
       },
       {
-        key: 'cashOnCash',
-        label: 'Cash-on-Cash',
-        getValue: (d: DealForComparison) => (d.cashOnCash ?? 0) * 100,
-        normalize: (v: number, min: number, max: number) =>
-          max === min ? 50 : ((v - min) / (max - min)) * 100,
+        label: 'NOI Margin',
+        getValue: (d: DealForComparison) => (d.noiMargin ?? 0) * 100,
       },
       {
-        key: 'equityMultiple',
-        label: 'Equity Multiple',
-        getValue: (d: DealForComparison) => d.equityMultiple ?? 0,
-        normalize: (v: number, min: number, max: number) =>
-          max === min ? 50 : ((v - min) / (max - min)) * 100,
+        label: 'Unlevered IRR',
+        getValue: (d: DealForComparison) => (d.unleveredIrr ?? 0) * 100,
       },
       {
-        key: 'occupancyRate',
-        label: 'Occupancy',
-        getValue: (d: DealForComparison) => (d.occupancyRate ?? 0) * 100,
-        normalize: (v: number, min: number, max: number) =>
-          max === min ? 50 : ((v - min) / (max - min)) * 100,
-      },
-      {
-        key: 'units',
         label: 'Units',
         getValue: (d: DealForComparison) => d.units,
-        normalize: (v: number, min: number, max: number) =>
-          max === min ? 50 : ((v - min) / (max - min)) * 100,
+      },
+      {
+        label: 'Basis/Unit',
+        getValue: (d: DealForComparison) => d.basisPerUnit ?? 0,
       },
     ];
 
@@ -143,9 +131,8 @@ export function ComparisonCharts({
 
       deals.forEach((deal) => {
         const rawValue = metric.getValue(deal);
-        dataPoint[deal.propertyName] = Number(
-          metric.normalize(rawValue, min, max).toFixed(1)
-        );
+        const normalized = max === min ? 50 : ((rawValue - min) / (max - min)) * 100;
+        dataPoint[deal.propertyName] = Number(normalized.toFixed(1));
       });
 
       return dataPoint;
@@ -174,8 +161,8 @@ export function ComparisonCharts({
     <div className={`grid gap-6 ${chartType === 'both' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
       {/* Bar Chart - Key Metrics Comparison */}
       {showBar && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-primary-500 mb-4">
+        <div className="bg-white rounded-lg border border-neutral-200 shadow-card p-6">
+          <h3 className="text-base font-semibold text-neutral-900 mb-4">
             Key Metrics Comparison
           </h3>
           <ResponsiveContainer width="100%" height={350}>
@@ -192,14 +179,20 @@ export function ComparisonCharts({
                 textAnchor="end"
                 height={80}
               />
-              <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+              <YAxis
+                stroke="#6b7280"
+                style={{ fontSize: '12px' }}
+                tickFormatter={fmtPctTick}
+              />
               <Tooltip
                 contentStyle={{
                   backgroundColor: '#fff',
                   border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
+                  borderRadius: '8px',
                   fontSize: '12px',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 }}
+                formatter={(value: number) => [`${value.toFixed(2)}%`, '']}
               />
               <Legend
                 wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
@@ -215,14 +208,14 @@ export function ComparisonCharts({
               ))}
             </BarChart>
           </ResponsiveContainer>
-        </Card>
+        </div>
       )}
 
       {/* Radar Chart - Overall Comparison */}
       {showRadar && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-primary-500 mb-4">
-            Overall Deal Profile Comparison
+        <div className="bg-white rounded-lg border border-neutral-200 shadow-card p-6">
+          <h3 className="text-base font-semibold text-neutral-900 mb-4">
+            Overall Deal Profile
           </h3>
           <ResponsiveContainer width="100%" height={350}>
             <RadarChart
@@ -239,7 +232,7 @@ export function ComparisonCharts({
               <PolarRadiusAxis
                 angle={90}
                 domain={[0, 100]}
-                tick={{ fill: '#6b7280', fontSize: 10 }}
+                tick={{ fill: '#9ca3af', fontSize: 10 }}
                 tickFormatter={(value) => `${value}`}
               />
               {deals.map((deal, index) => (
@@ -249,7 +242,7 @@ export function ComparisonCharts({
                   dataKey={deal.propertyName}
                   stroke={DEAL_COLORS[index % DEAL_COLORS.length]}
                   fill={DEAL_COLORS[index % DEAL_COLORS.length]}
-                  fillOpacity={0.2}
+                  fillOpacity={0.15}
                   strokeWidth={2}
                 />
               ))}
@@ -261,8 +254,9 @@ export function ComparisonCharts({
                 contentStyle={{
                   backgroundColor: '#fff',
                   border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
+                  borderRadius: '8px',
                   fontSize: '12px',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 }}
                 formatter={(value: number) => `${value.toFixed(1)} (normalized)`}
               />
@@ -271,7 +265,7 @@ export function ComparisonCharts({
           <p className="text-xs text-neutral-500 text-center mt-2">
             Values normalized 0-100 for comparison. Higher is better for all metrics.
           </p>
-        </Card>
+        </div>
       )}
     </div>
   );

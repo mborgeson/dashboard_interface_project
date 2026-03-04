@@ -2,50 +2,43 @@
   "memories": [
     {
       "type": "project_config",
-      "content": "Pre-commit hooks: ruff (linting), ruff-format (formatting), mypy (type checking). All must pass before commits. TYPE_CHECKING imports needed for forward references in type hints.",
-      "added_at": "2026-02-12T06:30:00.000000",
+      "content": "Pre-commit hooks: ruff, ruff-format, mypy. TYPE_CHECKING imports for forward refs. Dev: npm run dev:all. Venv: backend/venv/. DB: postgresql://postgres:postgres123@localhost:5432/dashboard_interface_data.",
+      "added_at": "2026-03-04T13:08:00.000000",
+      "source": "consolidated"
+    },
+    {
+      "type": "extraction_pipeline",
+      "content": "CellMappingParser loads ~1,169 mappings from Underwriting_Dashboard_Cell_References.xlsx. Supplemental mappings in common.py override incorrect sheet names and add missing fields. Key correction: LEVERED/UNLEVERED returns (E39-E44) are on 'Returns Metrics (Summary)' NOT 'Assumptions (Summary)' as the reference file says. LP_RETURNS (E102-E103) correctly on 'Returns Metrics (Summary)'. T3_RETURN_ON_COST (G27, 'Assumptions (Summary)') added as supplemental. All 6 return fields + T3 cap rate now in needed_fields and enrichment code in deals.py.",
+      "added_at": "2026-03-04T14:40:00.000000",
+      "source": "consolidated"
+    },
+    {
+      "type": "api_patterns",
+      "content": "Activity feed: backend returns {items}, frontend maps to {activities} with field translation. API client: src/lib/api/client.ts. Auth: JWT via authStore.ts, backend require_analyst/require_manager guards.",
+      "added_at": "2026-03-04T13:08:00.000000",
+      "source": "consolidated"
+    },
+    {
+      "type": "deals_page_v5",
+      "content": "v5 (2026-03-04): Renamed to Total Loss Factor (T12). Removed UW Model button. Full-width stage header. Compare Deals aesthetic overhaul (removed Card/transparent bg, explicit bg-white + shadow-card, full-width centered deal name headers). Fixed leveredIrr/leveredMoic Zod transform (was ?? 0, now ?? undefined for 'N/A'). ComparisonCharts uses real UW metrics (Cap Rate, NOI Margin, returns). LP IRR/MOIC row in ComparisonTable. Returns metrics corrected: supplemental mapping sheet overrides for LEVERED/UNLEVERED (Returns Metrics Summary, not Assumptions Summary), enrichment code for all 6 return fields. shadcn CSS variables added to index.css :root + tailwind.config.js color mappings.",
+      "added_at": "2026-03-04T14:40:00.000000",
+      "source": "consolidated"
+    },
+    {
+      "type": "shadcn_css_fix",
+      "content": "shadcn UI components (Card, Dialog, Table, Button) use CSS variable classes (bg-background, bg-card, text-muted-foreground, bg-muted). Added CSS variables to index.css :root and color mappings to tailwind.config.js. Without these, all shadcn components render transparent. Key vars: --background (white), --card (white), --muted (neutral-50), --muted-foreground (neutral-500), --border (neutral-200).",
+      "added_at": "2026-03-04T14:40:00.000000",
+      "source": "consolidated"
+    },
+    {
+      "type": "known_issues",
+      "content": "test_parallel_fingerprint_fixtures times out (pre-existing). Vite chunks: exceljs 937KB, vendor-charts 455KB. Redis not configured locally. Zod: .nullable().optional() for DB fields — always use ?? undefined (not ?? 0) to get 'N/A' display.",
+      "added_at": "2026-03-04T13:30:00.000000",
       "source": "consolidated"
     }
   ],
   "manual_memories": [],
-  "realtime_memories": [
-    {
-      "type": "claude_response",
-      "content": "All 5 dashboard page fixes are complete. Here's a summary:\n\n## Summary of All Fixes\n\n### 1. Construction Page ✅ (UI-only)\n- Added data source display showing all 7 sources (CoStar, Census BPS, FRED, B",
-      "added_at": "2026-02-12T06:29:11.028208",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Let's run git commit/push commands prior to moving forward with anything else.",
-      "added_at": "2026-02-12T06:29:11.028233",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "## Batch Dry-Run Results\n\n| Metric | Value |\n|--------|-------|\n| **Groups Processed** | 30/30 |\n| **Total Files** | 244 |\n| **Values Extracted** | 0 |\n\n**Root Cause**: All 244 grouped files pre-date ",
-      "added_at": "2026-02-12T07:09:43.457664",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Please provide me with details regarding whether the 6 groups that needed adjustments/to be adjusted in order to perfectly/seamlessly line up all its file values with the file value references in the ",
-      "added_at": "2026-02-12T07:09:43.457700",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Now I have the full picture. Let me clarify:\n\n## 1. Field Remaps Summary\n\n| Group | Status | Details |\n|-------|--------|---------|\n| **group_5** | 11 fields remapped | `SALES_COMP_14_*` → +2 row offs",
-      "added_at": "2026-02-12T07:26:47.396967",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Yes. \"Option A: Remove cutoff entirely for group extraction\" is exactly what I was looking for. Proceed.",
-      "added_at": "2026-02-12T07:26:47.396993",
-      "source": "realtime_capture"
-    }
-  ],
+  "realtime_memories": [],
   "created_at": "2026-01-07T02:50:12.455355",
-  "updated_at": "2026-02-12T07:26:47.396994"
+  "updated_at": "2026-03-04T14:40:00.000000"
 }
