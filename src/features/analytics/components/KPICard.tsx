@@ -26,11 +26,11 @@ export function KPICard({ title, value, trend, format = 'number', description }:
   };
 
   const getTrendColor = () => {
-    if (!trend) return '';
+    if (trend === undefined || trend === 0) return 'text-neutral-500';
     return trend > 0 ? 'text-green-600' : 'text-red-600';
   };
 
-  const TrendIcon = trend && trend > 0 ? TrendingUp : TrendingDown;
+  const TrendIcon = trend !== undefined && trend > 0 ? TrendingUp : TrendingDown;
 
   return (
     <Card className="p-6">
@@ -38,7 +38,7 @@ export function KPICard({ title, value, trend, format = 'number', description }:
         <p className="text-sm font-medium text-neutral-600">{title}</p>
         <div className="flex items-baseline justify-between">
           <p className="text-3xl font-bold text-primary-500">{formatValue(value)}</p>
-          {trend !== undefined && (
+          {trend !== undefined && trend !== 0 && (
             <div className={`flex items-center gap-1 text-sm font-medium ${getTrendColor()}`}>
               <TrendIcon className="h-4 w-4" />
               <span>{Math.abs(trend).toFixed(1)}%</span>

@@ -57,10 +57,18 @@ export default defineConfig({
             "@radix-ui/react-tabs",
             "@radix-ui/react-tooltip",
           ],
+          // Icons — extracted from main chunk to reduce app shell size
+          "vendor-icons": ["lucide-react"],
           // Chart libraries
           "vendor-charts": ["recharts"],
           // Map libraries
           "vendor-maps": ["leaflet", "react-leaflet", "leaflet.markercluster"],
+          // Drag-and-drop (used by Deals kanban)
+          "vendor-dnd": [
+            "@dnd-kit/core",
+            "@dnd-kit/sortable",
+            "@dnd-kit/utilities",
+          ],
           // Data/utility libraries
           "vendor-data": [
             "@tanstack/react-query",
@@ -68,10 +76,12 @@ export default defineConfig({
             "zustand",
             "fuse.js",
           ],
-          // NOTE: jspdf and exceljs are now dynamically imported
+          // HTTP + command palette
+          "vendor-misc": ["axios", "cmdk", "date-fns"],
+          // NOTE: jspdf and exceljs are dynamically imported
           // in src/features/underwriting/utils/exporters.ts
-          // Vite will automatically create separate chunks for these (~52MB total)
-          // They are only loaded when user clicks export buttons
+          // Vite creates separate lazy chunks for these automatically.
+          // They are only loaded when user clicks export buttons.
           // Date/form libraries
           "vendor-forms": [
             "dayjs",
@@ -82,8 +92,10 @@ export default defineConfig({
         },
       },
     },
-    // Increase chunk size warning limit (optional)
-    chunkSizeWarningLimit: 600,
+    // Only lazy-loaded chunks (exceljs 937KB, vendor-charts 455KB, jspdf 353KB,
+    // html2canvas 201KB) exceed this limit — all are loaded on demand, not at
+    // page load, so the warning is noise.
+    chunkSizeWarningLimit: 1000,
   },
   // Optimize deps for faster dev startup
   optimizeDeps: {

@@ -820,6 +820,12 @@ class GroupExtractionPipeline:
                             source_file=file_path,
                         )
                     except Exception as e:
+                        logger.warning(
+                            "file_extraction_failed",
+                            file=file_path,
+                            group=group_name,
+                            error=str(e),
+                        )
                         report["files_failed"] += 1
                         report["per_file"][file_path] = {
                             "status": "failed",

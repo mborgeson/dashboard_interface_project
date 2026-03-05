@@ -52,10 +52,13 @@ export function EconomicIndicators({ indicators, sparklineData, isSparklinePlace
     return `${change > 0 ? '+' : ''}${(change * 100).toFixed(1)}%`;
   };
 
-  const getTrendColor = (change: number) => {
-    // For unemployment, negative is good
-    if (change < 0) return 'text-green-600';
-    return 'text-red-600';
+  const getTrendColor = (indicatorName: string, change: number) => {
+    // For unemployment, negative change is good (green)
+    if (indicatorName === 'Unemployment Rate') {
+      return change < 0 ? 'text-green-600' : 'text-red-600';
+    }
+    // For all other indicators, positive change is good (green)
+    return change > 0 ? 'text-green-600' : 'text-red-600';
   };
 
   const getSparklineData = (indicatorName: string) => {
@@ -92,7 +95,7 @@ export function EconomicIndicators({ indicators, sparklineData, isSparklinePlace
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {indicators.map((indicator) => {
           const TrendIcon = indicator.yoyChange < 0 ? TrendingDown : TrendingUp;
-          const trendColor = getTrendColor(indicator.yoyChange);
+          const trendColor = getTrendColor(indicator.indicator, indicator.yoyChange);
           const sparkData = getSparklineData(indicator.indicator);
           const sparkColor = getSparklineColor(indicator.indicator, indicator.yoyChange);
 

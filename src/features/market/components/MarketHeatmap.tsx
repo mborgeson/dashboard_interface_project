@@ -28,10 +28,11 @@ export function MarketHeatmap({ submarkets }: MarketHeatmapProps) {
 
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
+  const valueRange = maxValue - minValue;
 
   // Get color based on value (normalized 0-1)
   const getColor = (value: number) => {
-    const normalized = (value - minValue) / (maxValue - minValue);
+    const normalized = valueRange === 0 ? 0.5 : (value - minValue) / valueRange;
     // Reverse color scale for cap rate (lower is better)
     const intensity = currentMetric.reverse ? 1 - normalized : normalized;
 
@@ -49,7 +50,7 @@ export function MarketHeatmap({ submarkets }: MarketHeatmapProps) {
 
   // Get text color based on background
   const getTextColor = (value: number) => {
-    const normalized = (value - minValue) / (maxValue - minValue);
+    const normalized = valueRange === 0 ? 0.5 : (value - minValue) / valueRange;
     const intensity = currentMetric.reverse ? 1 - normalized : normalized;
     return intensity > 0.5 ? 'text-white' : 'text-neutral-900';
   };
