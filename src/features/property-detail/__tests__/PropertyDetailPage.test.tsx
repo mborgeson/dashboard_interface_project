@@ -20,6 +20,7 @@ globalThis.ResizeObserver = class {
 } as unknown as typeof ResizeObserver;
 
 globalThis.IntersectionObserver = class {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   constructor(_cb: IntersectionObserverCallback, _opts?: IntersectionObserverInit) { /* noop */ }
   observe() { /* noop */ }
   unobserve() { /* noop */ }

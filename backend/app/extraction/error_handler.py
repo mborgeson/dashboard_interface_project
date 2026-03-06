@@ -8,6 +8,7 @@ Provides robust error handling for Excel data extraction with:
 - Detailed error statistics and recovery suggestions
 """
 
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -58,6 +59,7 @@ class ErrorHandler:
         self.errors: list[ExtractionError] = []
         self.error_counts: dict[ErrorCategory, int] = dict.fromkeys(ErrorCategory, 0)
         self.logger = structlog.get_logger(__name__)
+        self._lock = threading.Lock()
 
     def handle_missing_sheet(
         self, field_name: str, sheet_name: str, available_sheets: list[str]
@@ -347,9 +349,10 @@ class ErrorHandler:
         return similar_sheets
 
     def _log_error(self, error: ExtractionError) -> None:
-        """Log error and update counters"""
-        self.errors.append(error)
-        self.error_counts[error.category] += 1
+        """Log error and update counters (thread-safe)."""
+        with self._lock:
+            self.errors.append(error)
+            self.error_counts[error.category] += 1
 
         # Log with structured logging (debug level to reduce noise)
         self.logger.debug(
@@ -457,6 +460,7 @@ class ErrorHandler:
         return suggestions.get(error_category, "No specific suggestion available")
 
     def reset(self) -> None:
-        """Reset error tracking for new extraction"""
-        self.errors.clear()
-        self.error_counts = dict.fromkeys(ErrorCategory, 0)
+        """Reset error tracking for new extraction (thread-safe)."""
+        with self._lock:
+            self.errors.clear()
+            self.error_counts = dict.fromkeys(ErrorCategory, 0)

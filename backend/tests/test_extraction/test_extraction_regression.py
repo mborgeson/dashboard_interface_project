@@ -82,6 +82,12 @@ class TestSupplementalFieldMappings:
     # The exact supplemental definitions from common.py run_extraction_task()
     EXPECTED_SUPPLEMENTALS = [
         {
+            "field_name": "GOING_IN_CAP_RATE",
+            "sheet_name": "Assumptions (Summary)",
+            "cell_address": "F26",
+            "category": "Supplemental",
+        },
+        {
             "field_name": "T3_RETURN_ON_COST",
             "sheet_name": "Assumptions (Summary)",
             "cell_address": "G27",
@@ -113,9 +119,9 @@ class TestSupplementalFieldMappings:
         },
     ]
 
-    def test_supplemental_count_is_five(self) -> None:
-        """Exactly 5 supplemental mappings are defined."""
-        assert len(self.EXPECTED_SUPPLEMENTALS) == 5
+    def test_supplemental_count_is_six(self) -> None:
+        """Exactly 6 supplemental mappings are defined."""
+        assert len(self.EXPECTED_SUPPLEMENTALS) == 6
 
     @pytest.mark.parametrize(
         "mapping_def",
@@ -186,7 +192,7 @@ class TestSupplementalFieldMappings:
         returns_fields = [
             m
             for m in self.EXPECTED_SUPPLEMENTALS
-            if m["field_name"] != "T3_RETURN_ON_COST"
+            if m["field_name"] not in ("T3_RETURN_ON_COST", "GOING_IN_CAP_RATE")
         ]
         assert len(returns_fields) == 4
         for field in returns_fields:
@@ -590,10 +596,10 @@ class TestValueNormalization:
         assert _normalize_value("Hayden Park") == "Hayden Park"
 
     def test_normalize_value_from_text_numeric_string(self) -> None:
-        """Numeric text strings are parsed and re-formatted to 4 decimals."""
+        """Numeric text strings: floats get 4 decimals, integers stay as ints."""
         assert _normalize_value_from_text("1234.5") == "1234.5000"
         assert _normalize_value_from_text("0.0625") == "0.0625"
-        assert _normalize_value_from_text("100") == "100.0000"
+        assert _normalize_value_from_text("100") == "100"  # integer-valued → matches _normalize_value(int)
 
     def test_normalize_value_from_text_none(self) -> None:
         """None text normalizes to 'NULL'."""
@@ -608,24 +614,18 @@ class TestValueNormalization:
         # float("") raises ValueError, so it falls through to return ""
         assert _normalize_value_from_text("") == ""
 
-    def test_int_hash_mismatch_documented(self) -> None:
-        """
-        KNOWN BUG: Integer values produce different hashes on extraction vs DB side.
+    def test_int_hash_matches_between_extraction_and_db(self) -> None:
+        """Integer values now hash consistently between extraction and DB sides.
 
-        Extraction side: int 5 -> _normalize_value(5) -> "5"
-        DB side: stored as value_text "5" -> _normalize_value_from_text("5") -> "5.0000"
-
-        This means int-valued fields always show as "data_changed" even when
-        the actual value has not changed. This is a known issue that does not
-        break correctness (it causes extra writes, not missed writes).
+        Previously a known bug: int 5 → "5" on extraction vs "5.0000" on DB side.
+        Fixed by making _normalize_value_from_text detect integer-valued strings.
         """
         extraction_side = _normalize_value(5)       # "5"
-        db_side = _normalize_value_from_text("5")   # "5.0000"
+        db_side = _normalize_value_from_text("5")   # "5" (fixed)
 
-        # These differ — documenting the known mismatch
-        assert extraction_side != db_side
+        assert extraction_side == db_side
         assert extraction_side == "5"
-        assert db_side == "5.0000"
+        assert db_side == "5"
 
     def test_float_hash_matches_between_extraction_and_db(self) -> None:
         """Float values hash consistently between extraction and DB sides."""

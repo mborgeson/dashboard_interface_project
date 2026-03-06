@@ -62,6 +62,11 @@ def discover_local_deal_files(
     Returns:
         List of file info dicts with file_path, deal_name, and deal_stage.
     """
+    if not settings.LOCAL_DEALS_ROOT or not settings.LOCAL_DEALS_ROOT.strip():
+        raise ValueError(
+            "LOCAL_DEALS_ROOT is not configured. "
+            "Set LOCAL_DEALS_ROOT in .env to your local OneDrive deals folder path."
+        )
     deals_root = Path(settings.LOCAL_DEALS_ROOT)
     if not deals_root.is_dir():
         raise ValueError(
@@ -533,6 +538,13 @@ def run_extraction_task(run_id: UUID, source: str, file_paths: list | None = Non
         from app.extraction.cell_mapping import CellMapping
 
         _supplemental = [
+            CellMapping(
+                category="Supplemental",
+                description="Going-In Cap Rate",
+                sheet_name="Assumptions (Summary)",
+                cell_address="F26",
+                field_name="GOING_IN_CAP_RATE",
+            ),
             CellMapping(
                 category="Supplemental",
                 description="T3 Return on Cost",

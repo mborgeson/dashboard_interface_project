@@ -32,6 +32,31 @@ function sortGroups(groups: GroupSummary[], field: SortField, dir: SortDir): Gro
   });
 }
 
+function SortBtn({ field, currentField, onToggle, children }: {
+  field: SortField; currentField: SortField; onToggle: (f: SortField) => void; children: React.ReactNode;
+}) {
+  return (
+    <button className="flex items-center gap-1 hover:text-neutral-900" onClick={() => onToggle(field)}>
+      {children}
+      <ArrowUpDown className={cn('h-3 w-3', currentField === field ? 'text-blue-600' : 'text-neutral-400')} />
+    </button>
+  );
+}
+
+function ActionBtn({ action, name, icon, label, variant = 'outline', disabled, activeAction, handler }: {
+  action: string; name: string; icon: React.ReactNode; label?: string;
+  variant?: 'outline' | 'default' | 'ghost'; disabled: boolean; activeAction: string | null;
+  handler: (n: string) => void;
+}) {
+  return (
+    <Button variant={variant} size="sm" onClick={() => handler(name)}
+      disabled={disabled || activeAction === `${action}-${name}`} title={action}>
+      {activeAction === `${action}-${name}` ? <Loader2 className="h-3 w-3 animate-spin" /> : icon}
+      {label && ` ${label}`}
+    </Button>
+  );
+}
+
 export function GroupList({ onGroupSelect }: GroupListProps) {
   const { groups, totalGroups, totalUngrouped, isLoading, error, refetch } = useGroups();
   const { mutate: runExtraction, isLoading: extracting } = useRunGroupExtraction();
@@ -72,24 +97,7 @@ export function GroupList({ onGroupSelect }: GroupListProps) {
   };
 
   const sorted = sortGroups(groups, sortField, sortDir);
-
-  const SortBtn = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <button className="flex items-center gap-1 hover:text-neutral-900" onClick={() => toggleSort(field)}>
-      {children}
-      <ArrowUpDown className={cn('h-3 w-3', sortField === field ? 'text-blue-600' : 'text-neutral-400')} />
-    </button>
-  );
-
-  const ActionBtn = ({ action, name, icon, label, variant = 'outline' as const, handler }: {
-    action: string; name: string; icon: React.ReactNode; label?: string;
-    variant?: 'outline' | 'default' | 'ghost'; handler: (n: string) => void;
-  }) => (
-    <Button variant={variant} size="sm" onClick={() => handler(name)}
-      disabled={extracting || approving || activeAction === `${action}-${name}`} title={action}>
-      {activeAction === `${action}-${name}` ? <Loader2 className="h-3 w-3 animate-spin" /> : icon}
-      {label && ` ${label}`}
-    </Button>
-  );
+  const actionsDisabled = extracting || approving;
 
   if (isLoading) {
     return (
@@ -138,11 +146,11 @@ export function GroupList({ onGroupSelect }: GroupListProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead><SortBtn field="group_name">Group Name</SortBtn></TableHead>
-                <TableHead><SortBtn field="file_count">Files</SortBtn></TableHead>
-                <TableHead><SortBtn field="era">Era</SortBtn></TableHead>
-                <TableHead><SortBtn field="structural_overlap">Overlap</SortBtn></TableHead>
-                <TableHead><SortBtn field="sub_variant_count">Sub-variants</SortBtn></TableHead>
+                <TableHead><SortBtn field="group_name" currentField={sortField} onToggle={toggleSort}>Group Name</SortBtn></TableHead>
+                <TableHead><SortBtn field="file_count" currentField={sortField} onToggle={toggleSort}>Files</SortBtn></TableHead>
+                <TableHead><SortBtn field="era" currentField={sortField} onToggle={toggleSort}>Era</SortBtn></TableHead>
+                <TableHead><SortBtn field="structural_overlap" currentField={sortField} onToggle={toggleSort}>Overlap</SortBtn></TableHead>
+                <TableHead><SortBtn field="sub_variant_count" currentField={sortField} onToggle={toggleSort}>Sub-variants</SortBtn></TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -176,9 +184,9 @@ export function GroupList({ onGroupSelect }: GroupListProps) {
                       <Button variant="ghost" size="sm" onClick={() => onGroupSelect(g.group_name)} title="View">
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <ActionBtn action="dryrun" name={g.group_name} icon={<Play className="h-3 w-3" />} handler={handleDryRun} />
-                      <ActionBtn action="approve" name={g.group_name} icon={<CheckCircle className="h-3 w-3" />} handler={handleApprove} />
-                      <ActionBtn action="extract" name={g.group_name} icon={null} label="Extract" variant="default" handler={handleExtract} />
+                      <ActionBtn action="dryrun" name={g.group_name} icon={<Play className="h-3 w-3" />} disabled={actionsDisabled} activeAction={activeAction} handler={handleDryRun} />
+                      <ActionBtn action="approve" name={g.group_name} icon={<CheckCircle className="h-3 w-3" />} disabled={actionsDisabled} activeAction={activeAction} handler={handleApprove} />
+                      <ActionBtn action="extract" name={g.group_name} icon={null} label="Extract" variant="default" disabled={actionsDisabled} activeAction={activeAction} handler={handleExtract} />
                     </div>
                   </TableCell>
                 </TableRow>

@@ -75,9 +75,9 @@ class TestHashNormalization:
         assert _normalize_value_from_text("0.1") == "0.1000"
 
     def test_normalize_value_from_text_integer_string(self):
-        """Integer strings should be normalized as floats with 4 decimals."""
-        assert _normalize_value_from_text("100") == "100.0000"
-        assert _normalize_value_from_text("0") == "0.0000"
+        """Integer strings match _normalize_value(int) format."""
+        assert _normalize_value_from_text("100") == "100"
+        assert _normalize_value_from_text("0") == "0"
 
     def test_normalize_value_from_text_none(self):
         """None should normalize to 'NULL'."""

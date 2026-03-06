@@ -8,11 +8,12 @@ Provides database operations for:
 """
 
 import contextlib
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
 import numpy as np
+import structlog
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
@@ -20,6 +21,11 @@ from sqlalchemy.orm import Session
 from app.models.deal import Deal, DealStage
 from app.models.extraction import ExtractedValue, ExtractionRun
 from app.models.property import Property
+
+logger = structlog.get_logger(__name__)
+
+# Extraction runs older than this are considered stale/crashed
+STALE_RUN_TIMEOUT_MINUTES = 30
 
 
 class ExtractionRunCRUD:
@@ -67,14 +73,40 @@ class ExtractionRunCRUD:
 
     @staticmethod
     def get_running(db: Session) -> ExtractionRun | None:
-        """Get currently running extraction (if any)."""
+        """Get currently running extraction, auto-failing stale runs.
+
+        If a run has been in "running" status for longer than
+        STALE_RUN_TIMEOUT_MINUTES, it is assumed to have crashed
+        and is automatically marked as failed.
+        """
         stmt = (
             select(ExtractionRun)
             .where(ExtractionRun.status == "running")
             .order_by(ExtractionRun.started_at.desc())
             .limit(1)
         )
-        return db.execute(stmt).scalar_one_or_none()
+        running = db.execute(stmt).scalar_one_or_none()
+
+        if running is not None:
+            elapsed = datetime.now(UTC) - running.started_at.replace(tzinfo=UTC)
+            if elapsed > timedelta(minutes=STALE_RUN_TIMEOUT_MINUTES):
+                running.status = "failed"
+                running.completed_at = datetime.now(UTC)
+                running.error_summary = {
+                    "reason": "Stale extraction run (timed out)",
+                    "started_at": running.started_at.isoformat(),
+                    "elapsed_minutes": round(elapsed.total_seconds() / 60, 1),
+                }
+                db.commit()
+                db.refresh(running)
+                logger.warning(
+                    "stale_run_marked_failed",
+                    run_id=str(running.id),
+                    elapsed_minutes=round(elapsed.total_seconds() / 60, 1),
+                )
+                return None
+
+        return running
 
     @staticmethod
     def list_recent(

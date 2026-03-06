@@ -123,9 +123,12 @@ def get_db_values_hash(db: Session, property_name: str) -> str | None:
 def _normalize_value_from_text(value_text: str | None) -> str:
     """Normalize a DB value_text string to match compute_extraction_hash format.
 
-    Parses numeric strings back to float and applies the same 4-decimal
-    normalization used by _normalize_value(), ensuring hash consistency
-    between freshly-extracted and DB-stored values.
+    Parses numeric strings back to float and applies the same normalization
+    used by _normalize_value(), ensuring hash consistency between
+    freshly-extracted and DB-stored values.
+
+    Integer-valued floats (e.g. 5.0) are formatted as "5" to match
+    _normalize_value(int) behavior. True floats use 4-decimal formatting.
     """
     if value_text is None:
         return "NULL"
@@ -133,6 +136,9 @@ def _normalize_value_from_text(value_text: str | None) -> str:
         fval = float(value_text)
         if np.isnan(fval):
             return "NaN"
+        # Match _normalize_value(): integers → str(int), floats → 4 decimals
+        if fval == int(fval) and "." not in value_text:
+            return str(int(fval))
         return f"{fval:.4f}"
     except (ValueError, TypeError):
         return value_text
