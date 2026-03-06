@@ -603,4 +603,5 @@ def to_frontend_property(prop: Property) -> dict:
             "main": "",
             "gallery": [],
         },
+        "lastAnalyzed": prop.updated_at.isoformat() if prop.updated_at else None,
     }

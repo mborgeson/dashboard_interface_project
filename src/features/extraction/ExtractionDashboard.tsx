@@ -110,44 +110,37 @@ export function ExtractionDashboard() {
             />
           </ErrorBoundary>
 
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Property List - Takes up 2 columns on large screens */}
-            <div className="lg:col-span-2">
-              <ErrorBoundary
-                fallback={
-                  <ErrorState
-                    title="Failed to load properties"
-                    description="Unable to display extracted properties. Please try again."
-                    onRetry={() => window.location.reload()}
-                  />
-                }
-              >
-                <ExtractedPropertyList
-                  runId={selectedRunId}
-                  onPropertyClick={handlePropertyClick}
-                />
-              </ErrorBoundary>
-            </div>
+          {/* Extraction History - Full width, inline with Status */}
+          <ErrorBoundary
+            fallback={
+              <ErrorState
+                title="Failed to load extraction history"
+                description="Unable to display extraction history. Please try again."
+                onRetry={() => window.location.reload()}
+              />
+            }
+          >
+            <ExtractionHistory
+              limit={10}
+              onRunClick={handleRunClick}
+            />
+          </ErrorBoundary>
 
-            {/* History - Takes up 1 column on large screens */}
-            <div className="lg:col-span-1">
-              <ErrorBoundary
-                fallback={
-                  <ErrorState
-                    title="Failed to load extraction history"
-                    description="Unable to display extraction history. Please try again."
-                    onRetry={() => window.location.reload()}
-                  />
-                }
-              >
-                <ExtractionHistory
-                  limit={5}
-                  onRunClick={handleRunClick}
-                />
-              </ErrorBoundary>
-            </div>
-          </div>
+          {/* Property List - Full width below History */}
+          <ErrorBoundary
+            fallback={
+              <ErrorState
+                title="Failed to load properties"
+                description="Unable to display extracted properties. Please try again."
+                onRetry={() => window.location.reload()}
+              />
+            }
+          >
+            <ExtractedPropertyList
+              runId={selectedRunId}
+              onPropertyClick={handlePropertyClick}
+            />
+          </ErrorBoundary>
         </>
       ) : (
         <ErrorBoundary

@@ -178,3 +178,20 @@ async def cancel_extraction(
         "run_id": cancelled.id,
         "status": cancelled.status,
     }
+
+
+@router.post("/hydrate-properties")
+async def hydrate_properties(
+    db: Session = Depends(get_sync_db),
+    current_user: CurrentUser = Depends(require_manager),
+):
+    """
+    Populate properties table columns and financial_data JSON from
+    the latest extracted_values for each property.
+
+    Safe to run multiple times — only fills in missing values.
+    """
+    from app.crud.extraction import hydrate_properties_from_extracted
+
+    result = hydrate_properties_from_extracted(db)
+    return result

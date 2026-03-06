@@ -496,6 +496,23 @@ def process_files(
             error=str(sync_error),
         )
 
+    # Hydrate properties table from extracted values
+    from app.crud.extraction import hydrate_properties_from_extracted
+
+    try:
+        hydrate_result = hydrate_properties_from_extracted(db)
+        logger.info(
+            "extraction_hydrate_completed",
+            run_id=str(run_id),
+            **hydrate_result,
+        )
+    except Exception as hydrate_error:
+        logger.error(
+            "extraction_hydrate_failed",
+            run_id=str(run_id),
+            error=str(hydrate_error),
+        )
+
     # Mark complete with error summary including skip stats
     ExtractionRunCRUD.complete(
         db,

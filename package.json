@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:all": "concurrently -n backend,frontend -c blue,green \"cd backend && uvicorn app.main:app --reload --port 8000\" \"vite\"",
+    "dev:all": "concurrently -n backend,frontend,browser -c blue,green,yellow \"cd backend && uvicorn app.main:app --reload --port 8000\" \"vite\" \"./scripts/open-browser.sh\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -16,6 +16,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -41,7 +42,7 @@
     "dayjs": "^1.11.19",
     "exceljs": "^4.4.0",
     "fuse.js": "^7.1.0",
-    "jspdf": "^2.5.2",
+    "jspdf": "^4.2.0",
     "leaflet": "1.9",
     "leaflet.markercluster": "1.5",
     "lucide-react": "^0.553.0",

@@ -49,7 +49,7 @@ export function AppLayout(){
             role="main"
             aria-label="Main content"
           >
-            <div className="p-4 md:p-6 max-w-[1920px]">
+            <div className="p-4 md:p-6 max-w-[1920px] overflow-x-hidden">
               <Outlet />
             </div>
           </main>

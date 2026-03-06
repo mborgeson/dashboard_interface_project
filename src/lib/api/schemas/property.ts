@@ -166,6 +166,7 @@ export const propertySchema = z.object({
   operationsByYear: z.array(operatingYearSchema),
   performance: performanceSchema,
   images: imagesSchema,
+  lastAnalyzed: z.string().nullable().optional().transform((v) => v ?? undefined),
 });
 
 // ---------- Response schemas ----------

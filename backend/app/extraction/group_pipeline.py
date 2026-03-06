@@ -878,6 +878,23 @@ class GroupExtractionPipeline:
                     run_id=str(run_id),
                 )
 
+            # Hydrate properties from extracted values
+            from app.crud.extraction import hydrate_properties_from_extracted
+
+            try:
+                hydrate_result = hydrate_properties_from_extracted(db)
+                logger.info(
+                    "group_extraction_hydrate_complete",
+                    group=group_name,
+                    **hydrate_result,
+                )
+            except Exception:
+                logger.exception(
+                    "group_extraction_hydrate_failed",
+                    group=group_name,
+                    run_id=str(run_id),
+                )
+
         # Persist report
         report_name = "dry_run_report.json" if dry_run else "mutation_log.json"
         group_dir.mkdir(parents=True, exist_ok=True)

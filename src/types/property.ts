@@ -135,6 +135,7 @@ export interface Property {
     main: string;
     gallery: string[];
   };
+  lastAnalyzed?: string;
 }
 
 export interface PropertySummaryStats {

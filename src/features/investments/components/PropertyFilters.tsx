@@ -19,6 +19,8 @@ interface PropertyFiltersProps {
   onOccupancyRangeChange: (value: string) => void;
   sortBy: string;
   onSortByChange: (value: string) => void;
+  lastAnalyzed?: string;
+  onLastAnalyzedChange?: (value: string) => void;
 }
 
 export function PropertyFilters({
@@ -32,6 +34,8 @@ export function PropertyFilters({
   onOccupancyRangeChange,
   sortBy,
   onSortByChange,
+  lastAnalyzed = 'all',
+  onLastAnalyzedChange,
 }: PropertyFiltersProps) {
   return (
     <div className="space-y-4">
@@ -48,7 +52,7 @@ export function PropertyFilters({
       </div>
 
       {/* Filters Row */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
         {/* Property Class Filter */}
         <Select value={propertyClass} onValueChange={onPropertyClassChange}>
           <SelectTrigger>
@@ -100,6 +104,22 @@ export function PropertyFilters({
             <SelectItem value="0-85">Below 85%</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Last Analyzed Filter */}
+        {onLastAnalyzedChange && (
+          <Select value={lastAnalyzed} onValueChange={onLastAnalyzedChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Last Analyzed" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any Time</SelectItem>
+              <SelectItem value="7d">Last 7 Days</SelectItem>
+              <SelectItem value="30d">Last 30 Days</SelectItem>
+              <SelectItem value="90d">Last 90 Days</SelectItem>
+              <SelectItem value="older">Older than 90 Days</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Sort By */}
         <Select value={sortBy} onValueChange={onSortByChange}>

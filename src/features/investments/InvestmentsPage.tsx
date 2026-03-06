@@ -27,6 +27,7 @@ export function InvestmentsPage() {
   const [submarket, setSubmarket] = useState('all');
   const [occupancyRange, setOccupancyRange] = useState('all');
   const [sortBy, setSortBy] = useState('value-desc');
+  const [lastAnalyzed, setLastAnalyzed] = useState('all');
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -104,6 +105,23 @@ export function InvestmentsPage() {
       });
     }
 
+    // Apply last analyzed filter
+    if (lastAnalyzed !== 'all') {
+      const now = new Date();
+      filtered = filtered.filter((p) => {
+        if (!p.lastAnalyzed) return lastAnalyzed === 'older';
+        const analyzed = new Date(p.lastAnalyzed);
+        const daysDiff = (now.getTime() - analyzed.getTime()) / (1000 * 60 * 60 * 24);
+        switch (lastAnalyzed) {
+          case '7d': return daysDiff <= 7;
+          case '30d': return daysDiff <= 30;
+          case '90d': return daysDiff <= 90;
+          case 'older': return daysDiff > 90;
+          default: return true;
+        }
+      });
+    }
+
     // Apply sorting
     const [sortField, sortDir] = sortBy.split('-');
     const sorted = [...filtered].sort((a, b) => {
@@ -134,7 +152,7 @@ export function InvestmentsPage() {
     });
 
     return sorted;
-  }, [properties, searchTerm, propertyClass, submarket, occupancyRange, sortBy]);
+  }, [properties, searchTerm, propertyClass, submarket, occupancyRange, lastAnalyzed, sortBy]);
 
   // Table-specific sorting
   const tableSortedProperties = useMemo(() => {
@@ -371,6 +389,8 @@ export function InvestmentsPage() {
               onOccupancyRangeChange={setOccupancyRange}
               sortBy={sortBy}
               onSortByChange={setSortBy}
+              lastAnalyzed={lastAnalyzed}
+              onLastAnalyzedChange={setLastAnalyzed}
             />
           </div>
         </CardContent>
