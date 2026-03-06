@@ -1,7 +1,7 @@
 import { Building2, Users, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent, formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
 import type { Property } from '@/types';
 
 interface PropertyCardProps {
@@ -61,19 +61,19 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
           {/* Occupancy */}
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Occupancy</p>
-            <p className="text-lg font-semibold">{formatPercent(property.operations.occupancy)}</p>
+            <p className="text-lg font-semibold">{formatPercentOrNA(property.operations.occupancy)}</p>
           </div>
 
           {/* NOI */}
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">NOI</p>
-            <p className="text-sm font-semibold">{formatCurrency(property.operations.noi, true)}</p>
+            <p className="text-sm font-semibold">{formatCurrencyOrNA(property.operations.noi, true)}</p>
           </div>
 
           {/* Cap Rate */}
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Cap Rate</p>
-            <p className="text-sm font-semibold">{formatPercent(property.valuation.capRate)}</p>
+            <p className="text-sm font-semibold">{formatPercentOrNA(property.valuation.capRate)}</p>
           </div>
 
           {/* IRR */}
@@ -82,15 +82,15 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
               <TrendingUp className="h-3 w-3" />
               <span>IRR</span>
             </div>
-            <p className="text-sm font-semibold text-green-600">
-              {formatPercent(property.performance.leveredIrr)}
+            <p className={`text-sm font-semibold ${property.performance.leveredIrr ? 'text-green-600' : 'text-muted-foreground'}`}>
+              {formatPercentOrNA(property.performance.leveredIrr)}
             </p>
           </div>
 
           {/* Value */}
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Value</p>
-            <p className="text-sm font-semibold">{formatCurrency(property.valuation.currentValue, true)}</p>
+            <p className="text-sm font-semibold">{formatCurrencyOrNA(property.valuation.currentValue, true)}</p>
           </div>
         </div>
       </CardContent>

@@ -59,6 +59,31 @@ export function formatDate(
 }
 
 /**
+ * Format a number as currency, returning "N/A" when the value is zero/falsy
+ * (i.e. data is missing, not actually zero).
+ */
+export function formatCurrencyOrNA(value: number | null | undefined, compact = false): string {
+  if (value == null || value === 0) return 'N/A';
+  return formatCurrency(value, compact);
+}
+
+/**
+ * Format a number as a percentage, returning "N/A" when the value is zero/falsy.
+ */
+export function formatPercentOrNA(value: number | null | undefined, decimals = 1): string {
+  if (value == null || value === 0) return 'N/A';
+  return formatPercent(value, decimals);
+}
+
+/**
+ * Format a number with thousand separators, returning "N/A" when zero/falsy.
+ */
+export function formatNumberOrNA(value: number | null | undefined): string {
+  if (value == null || value === 0) return 'N/A';
+  return formatNumber(value);
+}
+
+/**
  * Format a change value with + or - sign and color class
  * @param value - The change value
  * @param isPercent - Whether to format as percentage

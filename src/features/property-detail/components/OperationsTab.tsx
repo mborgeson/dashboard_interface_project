@@ -1,7 +1,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import type { Property, OperatingYear, OperatingYearExpenses } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent, formatPercentOrNA, formatCurrencyOrNA } from '@/lib/utils/formatters';
 
 interface OperationsTabProps {
   property: Property;
@@ -371,22 +371,24 @@ export function OperationsTab({ property }: OperationsTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
               <div className="text-sm text-gray-600 mb-1">T12 Occupancy Rate</div>
-              <div className="text-lg font-semibold">{formatPercent(property.operations.occupancy)}</div>
+              <div className="text-lg font-semibold">{formatPercentOrNA(property.operations.occupancy)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Average Rent</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.operations.averageRent)}/month</div>
+              <div className="text-lg font-semibold">{property.operations.averageRent ? `${formatCurrency(property.operations.averageRent)}/month` : 'N/A'}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Rent Per Sq Ft</div>
               <div className="text-lg font-semibold">
-                ${(property.operations.rentPerSqft ?? 0).toFixed(2)}/sq ft
+                {property.operations.rentPerSqft ? `$${property.operations.rentPerSqft.toFixed(2)}/sq ft` : 'N/A'}
               </div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Occupied Units</div>
               <div className="text-lg font-semibold">
-                {Math.round(property.propertyDetails.units * property.operations.occupancy)} / {property.propertyDetails.units}
+                {property.operations.occupancy > 0 && property.propertyDetails.units > 0
+                  ? `${Math.round(property.propertyDetails.units * property.operations.occupancy)} / ${property.propertyDetails.units}`
+                  : 'N/A'}
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { DollarSign, TrendingUp, Percent, Users } from 'lucide-react';
 import type { Property } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatPercent, formatNumber } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent, formatNumber, formatCurrencyOrNA, formatPercentOrNA, formatNumberOrNA } from '@/lib/utils/formatters';
 
 interface OverviewTabProps {
   property: Property;
@@ -18,10 +18,14 @@ export function OverviewTab({ property }: OverviewTabProps) {
             <DollarSign className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(property.valuation.currentValue)}</div>
-            <p className="text-xs text-green-600 mt-1">
-              +{formatPercent(property.valuation.appreciationSinceAcquisition)} since acquisition
-            </p>
+            <div className="text-2xl font-bold">{formatCurrencyOrNA(property.valuation.currentValue)}</div>
+            {property.valuation.appreciationSinceAcquisition ? (
+              <p className="text-xs text-green-600 mt-1">
+                +{formatPercent(property.valuation.appreciationSinceAcquisition)} since acquisition
+              </p>
+            ) : (
+              <p className="text-xs text-gray-400 mt-1">No appreciation data</p>
+            )}
           </CardContent>
         </Card>
 
@@ -31,10 +35,14 @@ export function OverviewTab({ property }: OverviewTabProps) {
             <TrendingUp className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(property.operations.noi)}</div>
-            <p className="text-xs text-gray-600 mt-1">
-              {formatCurrency(property.operations.noi / 12)}/month
-            </p>
+            <div className="text-2xl font-bold">{formatCurrencyOrNA(property.operations.noi)}</div>
+            {property.operations.noi ? (
+              <p className="text-xs text-gray-600 mt-1">
+                {formatCurrency(property.operations.noi / 12)}/month
+              </p>
+            ) : (
+              <p className="text-xs text-gray-400 mt-1">No NOI data</p>
+            )}
           </CardContent>
         </Card>
 
@@ -44,7 +52,7 @@ export function OverviewTab({ property }: OverviewTabProps) {
             <Percent className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercent(property.valuation.capRate)}</div>
+            <div className="text-2xl font-bold">{formatPercentOrNA(property.valuation.capRate)}</div>
             <p className="text-xs text-gray-600 mt-1">Market cap rate</p>
           </CardContent>
         </Card>
@@ -55,10 +63,14 @@ export function OverviewTab({ property }: OverviewTabProps) {
             <Users className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercent(property.operations.occupancy)}</div>
-            <p className="text-xs text-gray-600 mt-1">
-              {Math.round(property.propertyDetails.units * property.operations.occupancy)} of {property.propertyDetails.units} units occupied
-            </p>
+            <div className="text-2xl font-bold">{formatPercentOrNA(property.operations.occupancy)}</div>
+            {property.operations.occupancy > 0 ? (
+              <p className="text-xs text-gray-600 mt-1">
+                {Math.round(property.propertyDetails.units * property.operations.occupancy)} of {property.propertyDetails.units} units occupied
+              </p>
+            ) : (
+              <p className="text-xs text-gray-400 mt-1">No occupancy data</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -72,19 +84,19 @@ export function OverviewTab({ property }: OverviewTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <div className="text-sm text-gray-600 mb-1">Total Units</div>
-              <div className="text-lg font-semibold">{formatNumber(property.propertyDetails.units)}</div>
+              <div className="text-lg font-semibold">{formatNumberOrNA(property.propertyDetails.units)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Total Square Feet</div>
-              <div className="text-lg font-semibold">{formatNumber(property.propertyDetails.squareFeet)}</div>
+              <div className="text-lg font-semibold">{formatNumberOrNA(property.propertyDetails.squareFeet)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Average Unit Size</div>
-              <div className="text-lg font-semibold">{formatNumber(property.propertyDetails.averageUnitSize)} sq ft</div>
+              <div className="text-lg font-semibold">{property.propertyDetails.averageUnitSize ? `${formatNumber(property.propertyDetails.averageUnitSize)} sq ft` : 'N/A'}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Year Built</div>
-              <div className="text-lg font-semibold">{property.propertyDetails.yearBuilt}</div>
+              <div className="text-lg font-semibold">{property.propertyDetails.yearBuilt || 'N/A'}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Property Class</div>

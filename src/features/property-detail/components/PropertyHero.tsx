@@ -1,6 +1,6 @@
 import { Building2, MapPin, Calendar, TrendingUp } from 'lucide-react';
 import type { Property } from '@/types';
-import { formatCurrency, formatPercent, formatNumber } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent, formatNumber, formatPercentOrNA, formatCurrencyOrNA, formatNumberOrNA } from '@/lib/utils/formatters';
 import { LazyImage } from '@/components/ui/LazyImage';
 
 interface PropertyHeroProps {
@@ -74,22 +74,22 @@ export function PropertyHero({ property }: PropertyHeroProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">Units</div>
-              <div className="text-2xl font-bold text-gray-900">{formatNumber(property.propertyDetails.units)}</div>
+              <div className="text-2xl font-bold text-gray-900">{formatNumberOrNA(property.propertyDetails.units)}</div>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">Square Feet</div>
-              <div className="text-2xl font-bold text-gray-900">{formatNumber(property.propertyDetails.squareFeet)}</div>
+              <div className="text-2xl font-bold text-gray-900">{formatNumberOrNA(property.propertyDetails.squareFeet)}</div>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center gap-1 text-sm text-gray-600 mb-1">
                 <Calendar className="w-3 h-3" />
                 <span>Year Built</span>
               </div>
-              <div className="text-2xl font-bold text-gray-900">{property.propertyDetails.yearBuilt}</div>
+              <div className="text-2xl font-bold text-gray-900">{property.propertyDetails.yearBuilt || 'N/A'}</div>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">Asset Type</div>
-              <div className="text-2xl font-bold text-gray-900">{property.propertyDetails.assetType}</div>
+              <div className="text-2xl font-bold text-gray-900">{property.propertyDetails.assetType || 'N/A'}</div>
             </div>
           </div>
 
@@ -99,20 +99,22 @@ export function PropertyHero({ property }: PropertyHeroProps) {
               <TrendingUp className="w-5 h-5 text-green-600" />
               <div>
                 <div className="text-sm text-gray-600">Current Value</div>
-                <div className="text-xl font-bold text-gray-900">{formatCurrency(property.valuation.currentValue)}</div>
+                <div className="text-xl font-bold text-gray-900">{formatCurrencyOrNA(property.valuation.currentValue)}</div>
               </div>
             </div>
             <div className="h-12 w-px bg-gray-200" />
             <div>
               <div className="text-sm text-gray-600">Occupancy</div>
               <div className="flex items-center gap-2">
-                <div className="text-xl font-bold text-gray-900">{formatPercent(property.operations.occupancy)}</div>
-                <div className="w-24 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-green-600 rounded-full h-2"
-                    style={{ width: `${property.operations.occupancy * 100}%` }}
-                  />
-                </div>
+                <div className="text-xl font-bold text-gray-900">{formatPercentOrNA(property.operations.occupancy)}</div>
+                {property.operations.occupancy > 0 && (
+                  <div className="w-24 bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-green-600 rounded-full h-2"
+                      style={{ width: `${property.operations.occupancy * 100}%` }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

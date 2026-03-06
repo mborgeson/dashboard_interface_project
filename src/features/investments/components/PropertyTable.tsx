@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent, formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
 import type { Property } from '@/types';
 
 interface PropertyTableProps {
@@ -77,17 +77,17 @@ const PropertyRow = memo(function PropertyRow({
         </TableCell>
         <TableCell className="text-right">{property.propertyDetails.units}</TableCell>
         <TableCell className="text-right">
-          {formatPercent(property.operations.occupancy)}
+          {formatPercentOrNA(property.operations.occupancy)}
         </TableCell>
         <TableCell className="text-right">
-          {formatCurrency(property.operations.noi, true)}
+          {formatCurrencyOrNA(property.operations.noi, true)}
         </TableCell>
         <TableCell className="text-right">
-          {formatCurrency(property.valuation.currentValue, true)}
+          {formatCurrencyOrNA(property.valuation.currentValue, true)}
         </TableCell>
         <TableCell className="text-right">
-          <span className="font-semibold text-green-600">
-            {formatPercent(property.performance.leveredIrr)}
+          <span className={`font-semibold ${property.performance.leveredIrr ? 'text-green-600' : 'text-muted-foreground'}`}>
+            {formatPercentOrNA(property.performance.leveredIrr)}
           </span>
         </TableCell>
       </TableRow>
@@ -117,21 +117,21 @@ const PropertyRow = memo(function PropertyRow({
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Financial Metrics</p>
                   <p className="mt-1 text-sm">
-                    Cap Rate: {formatPercent(property.valuation.capRate)}
+                    Cap Rate: {formatPercentOrNA(property.valuation.capRate)}
                     <br />
-                    IRR (Levered): {formatPercent(property.performance.leveredIrr)}
+                    IRR (Levered): {formatPercentOrNA(property.performance.leveredIrr)}
                     <br />
-                    MOIC (Levered): {property.performance.leveredMoic.toFixed(2)}x
+                    MOIC (Levered): {property.performance.leveredMoic ? `${property.performance.leveredMoic.toFixed(2)}x` : 'N/A'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Operations</p>
                   <p className="mt-1 text-sm">
-                    Avg Rent: {formatCurrency(property.operations.averageRent)}
+                    Avg Rent: {formatCurrencyOrNA(property.operations.averageRent)}
                     <br />
-                    Monthly Revenue: {formatCurrency(property.operations.monthlyRevenue, true)}
+                    Monthly Revenue: {formatCurrencyOrNA(property.operations.monthlyRevenue, true)}
                     <br />
-                    OpEx Ratio: {formatPercent(property.operations.operatingExpenseRatio)}
+                    OpEx Ratio: {formatPercentOrNA(property.operations.operatingExpenseRatio)}
                   </p>
                 </div>
               </div>

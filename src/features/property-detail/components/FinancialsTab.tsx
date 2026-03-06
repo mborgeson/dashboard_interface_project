@@ -1,14 +1,14 @@
 import { Calendar, DollarSign, TrendingUp } from 'lucide-react';
 import type { Property } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatPercent, formatDate } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent, formatDate, formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
 
 interface FinancialsTabProps {
   property: Property;
 }
 
 function formatRate(value: number, decimals: number = 2): string {
-  // Format a decimal rate (e.g. 0.0487) as a percent string with specified decimals
+  if (!value) return 'N/A';
   return `${(value * 100).toFixed(decimals)}%`;
 }
 
@@ -31,27 +31,27 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Land & Acquisition Costs</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.landAndAcquisitionCosts)}</div>
+              <div className="text-lg font-semibold">{formatCurrencyOrNA(property.acquisition.landAndAcquisitionCosts)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Hard Costs</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.hardCosts)}</div>
+              <div className="text-lg font-semibold">{formatCurrencyOrNA(property.acquisition.hardCosts)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Soft Costs</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.softCosts)}</div>
+              <div className="text-lg font-semibold">{formatCurrencyOrNA(property.acquisition.softCosts)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Lender Closing Costs</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.lenderClosingCosts)}</div>
+              <div className="text-lg font-semibold">{formatCurrencyOrNA(property.acquisition.lenderClosingCosts)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Equity Closing Costs</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.acquisition.equityClosingCosts)}</div>
+              <div className="text-lg font-semibold">{formatCurrencyOrNA(property.acquisition.equityClosingCosts)}</div>
             </div>
             <div className="bg-primary-50 p-4 rounded-lg">
               <div className="text-sm text-primary-600 mb-1">Total Acquisition Budget</div>
-              <div className="text-xl font-bold text-primary-900">{formatCurrency(property.acquisition.totalAcquisitionBudget)}</div>
+              <div className="text-xl font-bold text-primary-900">{formatCurrencyOrNA(property.acquisition.totalAcquisitionBudget)}</div>
             </div>
           </div>
         </CardContent>
@@ -69,11 +69,11 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <div className="text-sm text-gray-600 mb-1">Loan Amount</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.financing.loanAmount)}</div>
+              <div className="text-lg font-semibold">{formatCurrencyOrNA(property.financing.loanAmount)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Loan-to-Value (LTV)</div>
-              <div className="text-lg font-semibold">{formatPercent(property.financing.loanToValue)}</div>
+              <div className="text-lg font-semibold">{formatPercentOrNA(property.financing.loanToValue)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Interest Rate</div>
@@ -81,15 +81,15 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Loan Term</div>
-              <div className="text-lg font-semibold">{property.financing.loanTerm} years</div>
+              <div className="text-lg font-semibold">{property.financing.loanTerm ? `${property.financing.loanTerm} years` : 'N/A'}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Amortization Period</div>
-              <div className="text-lg font-semibold">{property.financing.amortization} years</div>
+              <div className="text-lg font-semibold">{property.financing.amortization ? `${property.financing.amortization} years` : 'N/A'}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Monthly Payment (Fully-Amortized)</div>
-              <div className="text-lg font-semibold">{formatCurrency(property.financing.monthlyPayment)}</div>
+              <div className="text-lg font-semibold">{formatCurrencyOrNA(property.financing.monthlyPayment)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Lender</div>
@@ -115,11 +115,11 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-sm text-green-600 mb-1">Current Value</div>
-              <div className="text-2xl font-bold text-green-900">{formatCurrency(property.valuation.currentValue)}</div>
+              <div className="text-2xl font-bold text-green-900">{formatCurrencyOrNA(property.valuation.currentValue)}</div>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-sm text-green-600 mb-1">Appreciation Since Acquisition</div>
-              <div className="text-2xl font-bold text-green-900">+{formatPercent(property.valuation.appreciationSinceAcquisition)}</div>
+              <div className="text-2xl font-bold text-green-900">{property.valuation.appreciationSinceAcquisition ? `+${formatPercent(property.valuation.appreciationSinceAcquisition)}` : 'N/A'}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Last Appraisal Date</div>
@@ -127,12 +127,14 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Cap Rate</div>
-              <div className="text-lg font-semibold">{formatPercent(property.valuation.capRate)}</div>
+              <div className="text-lg font-semibold">{formatPercentOrNA(property.valuation.capRate)}</div>
             </div>
             <div className="col-span-2">
               <div className="text-sm text-gray-600 mb-1">Value Change</div>
               <div className="text-lg font-semibold text-green-600">
-                +{formatCurrency(property.valuation.currentValue - property.acquisition.purchasePrice)}
+                {property.valuation.currentValue && property.acquisition.purchasePrice
+                  ? `+${formatCurrency(property.valuation.currentValue - property.acquisition.purchasePrice)}`
+                  : 'N/A'}
               </div>
             </div>
           </div>

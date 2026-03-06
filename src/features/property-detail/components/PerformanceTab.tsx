@@ -1,7 +1,7 @@
 import { TrendingUp, DollarSign, Percent, Award } from 'lucide-react';
 import type { Property } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent, formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
 
 interface PerformanceTabProps {
   property: Property;
@@ -20,7 +20,7 @@ export function PerformanceTab({ property }: PerformanceTabProps) {
             <TrendingUp className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatPercent(perf.leveredIrr)}</div>
+            <div className="text-2xl font-bold text-green-600">{formatPercentOrNA(perf.leveredIrr)}</div>
             <p className="text-xs text-gray-600 mt-1">Levered Internal Rate of Return</p>
           </CardContent>
         </Card>
@@ -71,19 +71,19 @@ export function PerformanceTab({ property }: PerformanceTabProps) {
             <div>
               <div className="text-sm text-gray-600 mb-2">Total Equity Commitment</div>
               <div className="text-2xl font-bold text-gray-900 mb-1">
-                {formatCurrency(perf.totalEquityCommitment)}
+                {formatCurrencyOrNA(perf.totalEquityCommitment)}
               </div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-2">Total Cash Flows to Equity</div>
               <div className="text-2xl font-bold text-gray-900 mb-1">
-                {formatCurrency(perf.totalCashFlowsToEquity)}
+                {formatCurrencyOrNA(perf.totalCashFlowsToEquity)}
               </div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-2">Net Cash Flows to Equity</div>
               <div className="text-2xl font-bold text-green-600 mb-1">
-                {formatCurrency(perf.netCashFlowsToEquity)}
+                {formatCurrencyOrNA(perf.netCashFlowsToEquity)}
               </div>
               <div className="text-xs text-gray-500">
                 Total Cash Flows minus Total Equity Commitment
@@ -104,19 +104,19 @@ export function PerformanceTab({ property }: PerformanceTabProps) {
               <div>
                 <div className="text-sm text-gray-600 mb-1">Holding Period</div>
                 <div className="text-lg font-semibold">
-                  {perf.holdPeriodYears} years
+                  {perf.holdPeriodYears ? `${perf.holdPeriodYears} years` : 'N/A'}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-gray-600 mb-1">Total Basis/Unit @ Close</div>
                 <div className="text-lg font-semibold">
-                  {formatCurrency(perf.totalBasisPerUnitClose)}
+                  {formatCurrencyOrNA(perf.totalBasisPerUnitClose)}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-gray-600 mb-1">Senior Loan Basis/Unit @ Close</div>
                 <div className="text-lg font-semibold">
-                  {formatCurrency(perf.seniorLoanBasisPerUnitClose)}
+                  {formatCurrencyOrNA(perf.seniorLoanBasisPerUnitClose)}
                 </div>
               </div>
             </div>

@@ -50,7 +50,10 @@ export function InvestmentsPage() {
     const totalProperties = properties.length;
     const totalUnits = properties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
     const totalValue = properties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
-    const avgOccupancy = properties.reduce((sum, p) => sum + p.operations.occupancy, 0) / totalProperties;
+    const propertiesWithOccupancy = properties.filter(p => p.operations.occupancy > 0);
+    const avgOccupancy = propertiesWithOccupancy.length > 0
+      ? propertiesWithOccupancy.reduce((sum, p) => sum + p.operations.occupancy, 0) / propertiesWithOccupancy.length
+      : 0;
 
     return {
       totalProperties,
