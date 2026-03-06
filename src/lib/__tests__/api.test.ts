@@ -1,6 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { AxiosResponse, InternalAxiosRequestConfig, AxiosHeaders } from 'axios';
-
 // Mock localStorage
 const mockStorage: Record<string, string> = {};
 vi.stubGlobal('localStorage', {
