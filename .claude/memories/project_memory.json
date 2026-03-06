@@ -2,32 +2,32 @@
   "memories": [
     {
       "type": "completed_features",
-      "content": "Waves 1-10 property/deal/document CRUD (2026-01-14). Market Data Pipeline: DB 253K records (2026-02-05). ReportSettings + Zod validation (2026-02-07). Sales Analysis Dashboard: 10 endpoints, 6 visualizations (2026-02-10). Construction Pipeline: 5 DB tables, 6 API clients, scheduler, Leaflet map (2026-02-11). UW Model Grouping Pipeline: 6 modules, 11 endpoints (2026-02-11). UW Model Phase 3-4: 30 groups, 244 files, field remaps, batch extraction, approval workflow (2026-03-03). Activity logging, Docker production config, Technical Debt Cleanup (2026-02-12). Extraction Hardening + Frontend Accessibility (2026-03-03). Login Flow: zustand authStore, LoginPage, RequireAuth, TopNav logout (2026-03-03). Local OneDrive Extraction Pipeline (2026-03-03). Deals Page Overhaul: 12 UW metric kanban cards, aerial maps, activity feed, SharePoint links, stat bar, auth guards (2026-03-04). Deals v5: Return metrics fixed, Zod ?? undefined, Compare Deals overhaul, shadcn CSS variables (2026-03-04, commit 3ed0679). Task 5: Cap Rate TC T3 wiring verified end-to-end — needs extraction re-run to populate (2026-03-05). Task 6: Group Pipeline Frontend — types, 11 hooks, 7 UI components (stepper, group list, detail, conflict report, dry-run preview, batch panel, tab orchestrator), ExtractionDashboard tab layout, backend logging enhancement. 49 new tests (2026-03-05). Task 8: Vite optimization — main chunk 446→386 KB (-13.5%), vendor-icons/dnd/misc extracted, 0 build warnings (2026-03-05). Task 4: Page reviews — Sales Analysis + Construction Pipeline clean, Analytics/Market/Extraction/Properties reviews in progress (2026-03-05). Tests: 1643 backend + 571 frontend = 2214+ total.",
-      "added_at": "2026-03-05T09:25:00.000000",
+      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K records (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis Dashboard (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Pipeline Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt (2026-02-12). Extraction Hardening + Accessibility (2026-03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Page Overhaul: kanban cards, aerial maps, activity feed, SharePoint links (2026-03-04). Deals v5: Returns fix, Compare Deals, shadcn CSS (2026-03-04). Tasks 5+6+4+8 (2026-03-05): Group Pipeline Frontend, Vite optimization, page reviews. Cap Rate TC T3 extraction re-run bb86307f (13/13 files, 12870 values). Extraction audit: 7 issues fixed at 9b5f8ef (thread safety, stale runs, GOING_IN_CAP_RATE F26, int hash, LOCAL_DEALS_ROOT guard, slow tests, ESLint). Tests: 1684 backend + 721 frontend = 2405 total.",
+      "added_at": "2026-03-05T23:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "user_preferences",
-      "content": "conda env: dashboard-backend. Backend port 8000, Frontend port 5173. Dev command: npm run dev:all (concurrent). Git: stash apply over pop, don't push unless asked. NO mock data, NO fake data — show errors instead. User credentials: matt@bandrcapital.com / Wildcats777!! / display name 'Matt Borgeson' (admin role). User demands thorough validation — test ALL files. User open to parallel Claude Agent Teams. User wants to review each dashboard page in depth before deployment. User deferred security audit to later — prioritizes visual verification and page reviews first.",
-      "added_at": "2026-03-04T15:10:00.000000",
+      "content": "conda env: dashboard-backend. Backend port 8000, Frontend port 5173. Dev command: npm run dev:all. Git: stash apply over pop, don't push unless asked. NO mock/fake data — show errors instead. User: matt@bandrcapital.com / Wildcats777!! / admin. Thorough validation — test ALL files. Open to parallel Claude Agent Teams. Review each page in depth before deployment. Security audit deferred. User prefers status prompt: 'What was last completed and what's next?' MEMORY.md auto-restores context — no copy-paste needed.",
+      "added_at": "2026-03-05T23:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "tech_decisions",
-      "content": "pydantic-settings 2.x: CORS_ORIGINS must be JSON array. Single .env in project root, symlinked from backend/.env. Main DB: PostgreSQL localhost:5432/dashboard_interface_data. Alembic head: 7c415cc1b77a (activity_logs). SQLite in tests: no server_default, DateTime(timezone=True), datetime.now(UTC). Pre-commit hooks: ruff, ruff-format, mypy. React Rules of Hooks: ALL hooks before conditional returns. Auth: OAuth2PasswordRequestForm requires x-www-form-urlencoded with 'username' field. passlib verify_password crashes with UnknownHashError — must wrap in try/except. Property name matching: DB stores 'Name (City, ST)', extraction stores 'Name' — use prefix match with ILIKE. Authorization pattern: require_analyst (GET), require_manager (POST/PUT/DELETE). Zod schemas: Use .nullable().optional() + ?? undefined (NOT ?? 0) for DB fields. TWO API CLIENTS: src/lib/api.ts (axios, auth interceptor) and src/lib/api/client.ts (fetch, auth token). Both attach Bearer token from localStorage. shadcn UI components require CSS variables in :root (index.css) and tailwind.config.js color mappings. SQLite begin_nested() savepoints don't work reliably with StaticPool test sessions — bulk_insert already calls db.commit() internally, so wrap in try/except instead.",
-      "added_at": "2026-03-05T09:25:00.000000",
+      "content": "pydantic-settings 2.x: CORS_ORIGINS JSON array. Single .env in root, symlinked. DB: PostgreSQL localhost:5432/dashboard_interface_data. SQLite in tests: no server_default, datetime.now(UTC), StaticPool. Pre-commit: ruff, ruff-format, mypy. Auth: OAuth2PasswordRequestForm x-www-form-urlencoded 'username'. passlib: wrap verify_password in try/except. Auth pattern: require_analyst (GET), require_manager (mutations). Zod: .nullable().optional() + ?? undefined (NOT ?? 0). TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch), both attach Bearer. shadcn needs CSS vars in :root + tailwind mappings. KPICard: trend && trend > 0 is falsy for 0, use !== undefined && !== 0. ESLint: NO component definitions inside render (react-hooks/static-components).",
+      "added_at": "2026-03-05T23:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "extraction_config",
-      "content": "SHAREPOINT: FILE_PATTERN=.*UW.*Model.*vCurrent.*, CUTOFF_DATE=2024-07-15. LOCAL: LOCAL_DEALS_ROOT=/mnt/c/Users/MattBorgeson/OneDrive - B&R Capital/B&R Capital - Real Estate/Deals. STAGE_FOLDER_MAP in common.py maps 6 folder names to DealStage values. Default extraction skips dead/realized for speed. 302 total UW models (287 dead, 10 initial_review, 2 closed, 3 realized). 40 deals + 40 properties in DB. CellMappingParser loads ~1,169 mappings. Supplemental mappings in common.py force-overwrite incorrect sheet names: LEVERED/UNLEVERED returns (E39-E44) on 'Returns Metrics (Summary)' NOT 'Assumptions (Summary)'. T3_RETURN_ON_COST (G27, 'Assumptions (Summary)') added as supplemental. All 6 return fields + T3 cap rate in needed_fields and enrichment code in deals.py.",
-      "added_at": "2026-03-05T09:25:00.000000",
+      "content": "LOCAL_DEALS_ROOT=/mnt/c/Users/MattBorgeson/OneDrive - B&R Capital/B&R Capital - Real Estate/Deals. STAGE_FOLDER_MAP maps 6 folders to DealStage. ~1,169 cell mappings from reference file. 6 supplemental overrides: GOING_IN_CAP_RATE (F26 Assumptions Summary), T3_RETURN_ON_COST (G27 Assumptions Summary), UNLEVERED/LEVERED IRR+MOIC (E39-E44 Returns Metrics Summary). ErrorHandler is now thread-safe (Lock). Stale runs auto-fail after 30 min. Int hash mismatch fixed in _normalize_value_from_text. Empty LOCAL_DEALS_ROOT guard added. Slow fingerprint tests excluded by default (-m 'not slow').",
+      "added_at": "2026-03-05T23:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "remaining_tasks",
-      "content": "IN PROGRESS: Task 4 page reviews (Analytics, Market, Extraction, Properties agents running). NEXT: Cap Rate TC T3 extraction re-run to populate values. Production hosting (Oracle Cloud Free Tier or Hetzner CX22). FUTURE: Mobile iOS, Security audit.",
-      "added_at": "2026-03-05T09:25:00.000000",
+      "content": "NEXT: Re-run extraction to pick up GOING_IN_CAP_RATE mapping. Production hosting (Oracle Cloud Free Tier or Hetzner CX22). FUTURE: Mobile iOS, Security audit. INFO items (no code fix): T3=0.0 for Broadstone/Park on Bell, negative returns Element at Tempe North, The Northern value revision, WickerTree new property.",
+      "added_at": "2026-03-05T23:00:00.000000",
       "source": "consolidated"
     }
   ],
@@ -35,65 +35,29 @@
   "realtime_memories": [
     {
       "type": "claude_response",
-      "content": "Memory consolidated: 11 entries → 5 clean memories. Realtime memories cleared. Agents still working on page reviews.",
-      "added_at": "2026-03-05T09:27:31.459826",
+      "content": "Consolidated 14 → 5 memories. Cleared all realtime noise (session chatter, ALSA errors, restore instructions Q&A). Kept: completed features, user preferences, tech decisions, extraction config, remain",
+      "added_at": "2026-03-05T23:32:24.230250",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "<task-notification> <task-id>ad48e1a7239956a44</task-id> <tool-use-id>toolu_017n2XkwmCkDMEQv2XMHsd52</tool-use-id> <status>completed</status> <summary>Agent \"Review Analytics page + write tests\" compl",
-      "added_at": "2026-03-05T09:27:31.459879",
+      "content": "Are you going to re-run the extraction script or do I need to?",
+      "added_at": "2026-03-05T23:32:24.230280",
       "source": "realtime_capture"
     },
     {
       "type": "claude_response",
-      "content": "All 3 remaining agents still progressing. Waiting for completion.",
-      "added_at": "2026-03-05T09:29:32.629071",
+      "content": "## Extraction Re-Run Complete\n\n**Run `72c301bd`** — 13/13 files processed, 0 failures, 12,881 values extracted.\n\nAll **6 supplemental fields** now extract successfully across 11 properties:\n\n| Field |",
+      "added_at": "2026-03-06T01:26:52.186623",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "<task-notification> <task-id>aa74ac27224ddf7b1</task-id> <tool-use-id>toolu_0116KLRTS6xFyUWdimLkrNju</tool-use-id> <status>completed</status> <summary>Agent \"Review Market page + write tests\" complete",
-      "added_at": "2026-03-05T09:29:32.629170",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "**Market review complete** — found and fixed 2 bugs:\n1. Division by zero in MarketHeatmap (NaN crash when all submarkets have same value)\n2. Inverted trend colors in EconomicIndicators (positive job/i",
-      "added_at": "2026-03-05T11:17:47.842633",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a045a1bda988217b2</task-id> <tool-use-id>toolu_01LMDMq15reQyhd7jAmpWTLU</tool-use-id> <status>completed</status> <summary>Agent \"Review Extraction page + write tests\" comp",
-      "added_at": "2026-03-05T11:17:47.842695",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Properties agent still running (active with 30 tool calls). Waiting for it to finish before the final verification pass.",
-      "added_at": "2026-03-05T11:19:33.096789",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>af07c2505811e6d87</task-id> <tool-use-id>toolu_01NoCGMhH4LDGyfs8Kwu9SWm</tool-use-id> <status>completed</status> <summary>Agent \"Review Properties page + expand tests\" com",
-      "added_at": "2026-03-05T11:19:33.096872",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "All 5 page review agents complete. **Properties review** — no bugs found, 69 new tests written (84 total with existing 15).\n\nNow let me run the final verification pass — build + all tests.",
-      "added_at": "2026-03-05T11:19:59.067560",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Are the agents still running",
-      "added_at": "2026-03-05T11:19:59.067592",
+      "content": "Please provide the list of completed items for this task, then save this checkpoint memory, and lastly run git commit and push commands first. Please let me know when you're done with these.",
+      "added_at": "2026-03-06T01:26:52.186668",
       "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-03-05T11:24:54.577652"
+  "updated_at": "2026-03-06T01:26:52.186671"
 }
