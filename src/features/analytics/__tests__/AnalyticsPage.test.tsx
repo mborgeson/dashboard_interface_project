@@ -192,9 +192,9 @@ describe('AnalyticsPage', () => {
       render(<AnalyticsPage />);
 
       expect(screen.getByText('Portfolio IRR')).toBeInTheDocument();
-      // IRR=0, CoC=0, EM=0, DSCR=0 => multiple "0.00%" and "0.00" on the page
-      const zeroPercentages = screen.getAllByText('0.00%');
-      expect(zeroPercentages.length).toBeGreaterThanOrEqual(2);
+      // IRR=0, CoC=0, EM=0, DSCR=0 => KPICard shows "N/A" for zero values
+      const naValues = screen.getAllByText('N/A');
+      expect(naValues.length).toBeGreaterThanOrEqual(2);
     });
   });
 

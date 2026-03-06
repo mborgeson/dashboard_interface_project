@@ -12,7 +12,8 @@ interface KPICardProps {
 export function KPICard({ title, value, trend, format = 'number', description }: KPICardProps) {
   const formatValue = (val: string | number): string => {
     if (typeof val === 'string') return val;
-    
+    if (val == null || val === 0) return 'N/A';
+
     switch (format) {
       case 'currency':
         return `$${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;

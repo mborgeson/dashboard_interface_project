@@ -55,27 +55,27 @@ export function ComparisonCharts({
     const metrics = [
       {
         label: 'Cap Rate PP (T12)',
-        getValue: (d: DealForComparison) => (d.t12CapOnPp ?? 0) * 100,
+        getValue: (d: DealForComparison) => (d.t12CapOnPp ? d.t12CapOnPp * 100 : 0),
       },
       {
         label: 'Cap Rate TC (T12)',
-        getValue: (d: DealForComparison) => (d.totalCostCapT12 ?? 0) * 100,
+        getValue: (d: DealForComparison) => (d.totalCostCapT12 ? d.totalCostCapT12 * 100 : 0),
       },
       {
         label: 'NOI Margin',
-        getValue: (d: DealForComparison) => (d.noiMargin ?? 0) * 100,
+        getValue: (d: DealForComparison) => (d.noiMargin ? d.noiMargin * 100 : 0),
       },
       {
         label: 'Unlevered IRR',
-        getValue: (d: DealForComparison) => (d.unleveredIrr ?? 0) * 100,
+        getValue: (d: DealForComparison) => (d.unleveredIrr ? d.unleveredIrr * 100 : 0),
       },
       {
         label: 'Levered IRR',
-        getValue: (d: DealForComparison) => (d.leveredIrr ?? 0) * 100,
+        getValue: (d: DealForComparison) => (d.leveredIrr ? d.leveredIrr * 100 : 0),
       },
       {
         label: 'LP IRR',
-        getValue: (d: DealForComparison) => (d.lpIrr ?? 0) * 100,
+        getValue: (d: DealForComparison) => (d.lpIrr ? d.lpIrr * 100 : 0),
       },
     ];
 
@@ -95,23 +95,23 @@ export function ComparisonCharts({
     const metrics = [
       {
         label: 'Cap Rate PP',
-        getValue: (d: DealForComparison) => (d.t12CapOnPp ?? 0) * 100,
+        getValue: (d: DealForComparison) => (d.t12CapOnPp ? d.t12CapOnPp * 100 : 0),
       },
       {
         label: 'Cap Rate TC',
-        getValue: (d: DealForComparison) => (d.totalCostCapT12 ?? 0) * 100,
+        getValue: (d: DealForComparison) => (d.totalCostCapT12 ? d.totalCostCapT12 * 100 : 0),
       },
       {
         label: 'NOI Margin',
-        getValue: (d: DealForComparison) => (d.noiMargin ?? 0) * 100,
+        getValue: (d: DealForComparison) => (d.noiMargin ? d.noiMargin * 100 : 0),
       },
       {
         label: 'Unlevered IRR',
-        getValue: (d: DealForComparison) => (d.unleveredIrr ?? 0) * 100,
+        getValue: (d: DealForComparison) => (d.unleveredIrr ? d.unleveredIrr * 100 : 0),
       },
       {
         label: 'Units',
-        getValue: (d: DealForComparison) => d.units,
+        getValue: (d: DealForComparison) => d.units ?? 0,
       },
       {
         label: 'Basis/Unit',

@@ -132,9 +132,9 @@ describe('backendDealSchema', () => {
         total_equity_commitment: null,
       }),
     );
-    expect(result.units).toBe(0);
-    expect(result.avgUnitSf).toBe(0);
-    expect(result.currentOwner).toBe('');
+    expect(result.units).toBeUndefined();
+    expect(result.avgUnitSf).toBeUndefined();
+    expect(result.currentOwner).toBeUndefined();
     expect(result.leveredIrr).toBeUndefined();
     expect(result.leveredMoic).toBeUndefined();
   });

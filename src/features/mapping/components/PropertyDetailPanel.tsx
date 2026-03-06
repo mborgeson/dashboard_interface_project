@@ -1,7 +1,7 @@
 import { X, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Property } from '@/types';
-import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
+import { formatCurrencyOrNA, formatPercentOrNA, formatNumberOrNA } from '@/lib/utils/formatters';
 
 interface PropertyDetailPanelProps {
   property: Property;
@@ -41,7 +41,7 @@ export function PropertyDetailPanel({ property, onClose }: PropertyDetailPanelPr
           <div className="bg-neutral-50 rounded-lg p-3">
             <div className="text-xs text-neutral-600 mb-1">Units</div>
             <div className="text-lg font-semibold text-neutral-900">
-              {property.propertyDetails.units}
+              {formatNumberOrNA(property.propertyDetails.units)}
             </div>
           </div>
           <div className="bg-neutral-50 rounded-lg p-3">
@@ -63,25 +63,25 @@ export function PropertyDetailPanel({ property, onClose }: PropertyDetailPanelPr
           <div className="flex justify-between items-center">
             <span className="text-sm text-neutral-600">Property Value</span>
             <span className="text-sm font-semibold text-neutral-900">
-              {formatCurrency(property.valuation.currentValue, true)}
+              {formatCurrencyOrNA(property.valuation.currentValue, true)}
             </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-neutral-600">NOI</span>
             <span className="text-sm font-semibold text-neutral-900">
-              {formatCurrency(property.operations.noi, true)}
+              {formatCurrencyOrNA(property.operations.noi, true)}
             </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-neutral-600">Cap Rate</span>
             <span className="text-sm font-semibold text-neutral-900">
-              {formatPercent(property.valuation.capRate)}
+              {formatPercentOrNA(property.valuation.capRate)}
             </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-neutral-600">IRR</span>
             <span className="text-sm font-semibold text-primary-700">
-              {formatPercent(property.performance.leveredIrr)}
+              {formatPercentOrNA(property.performance.leveredIrr)}
             </span>
           </div>
         </div>
@@ -91,15 +91,17 @@ export function PropertyDetailPanel({ property, onClose }: PropertyDetailPanelPr
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-neutral-600">Occupancy</span>
             <span className="text-sm font-semibold text-neutral-900">
-              {formatPercent(property.operations.occupancy)}
+              {formatPercentOrNA(property.operations.occupancy)}
             </span>
           </div>
-          <div className="w-full bg-neutral-200 rounded-full h-2">
-            <div
-              className="bg-primary-600 h-2 rounded-full transition-all"
-              style={{ width: `${property.operations.occupancy * 100}%` }}
-            />
-          </div>
+          {property.operations.occupancy > 0 && (
+            <div className="w-full bg-neutral-200 rounded-full h-2">
+              <div
+                className="bg-primary-600 h-2 rounded-full transition-all"
+                style={{ width: `${property.operations.occupancy * 100}%` }}
+              />
+            </div>
+          )}
         </div>
 
         {/* View Details Button */}

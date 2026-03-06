@@ -12,11 +12,11 @@ export const nullableDateString = z
   .nullable()
   .transform((s) => (s ? new Date(s) : null));
 
-/** Numeric string from API → number */
+/** Numeric string from API → number | undefined */
 export const numericString = z
   .string()
   .nullable()
-  .transform((s) => (s ? Number(s) : 0));
+  .transform((s) => (s ? Number(s) : undefined));
 
 /** Nullable numeric string → number | null */
 export const nullableNumericString = z

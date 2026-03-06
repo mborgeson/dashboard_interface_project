@@ -227,11 +227,13 @@ export function AnalyticsPage() {
     });
   };
 
-  const formatCurrency = (value: number) => {
+  const formatCurrencyCompact = (value: number) => {
+    if (value == null || value === 0) return 'N/A';
     return `$${(value / 1000000).toFixed(2)}M`;
   };
 
   const formatPercentage = (value: number) => {
+    if (value == null || value === 0) return 'N/A';
     return `${(value * 100).toFixed(2)}%`;
   };
 
@@ -393,7 +395,7 @@ export function AnalyticsPage() {
           <div className="bg-white rounded-lg border border-neutral-200 p-6">
             <h3 className="text-sm font-medium text-neutral-600 mb-2">Total Annual Portfolio NOI</h3>
             <p className="text-3xl font-bold text-primary-700">
-              ${(portfolioNOI / 1000000).toFixed(2)}M
+              {portfolioNOI > 0 ? `$${(portfolioNOI / 1000000).toFixed(2)}M` : 'N/A'}
             </p>
             <p className="text-xs text-neutral-500 mt-1">
               Based on current extraction data across {properties.filter(p => p.operations.noi > 0).length} properties
@@ -402,7 +404,7 @@ export function AnalyticsPage() {
           <div className="bg-white rounded-lg border border-neutral-200 p-6">
             <h3 className="text-sm font-medium text-neutral-600 mb-2">Average Portfolio Occupancy</h3>
             <p className="text-3xl font-bold text-primary-700">
-              {(avgOccupancy * 100).toFixed(1)}%
+              {avgOccupancy > 0 ? `${(avgOccupancy * 100).toFixed(1)}%` : 'N/A'}
             </p>
             <p className="text-xs text-neutral-500 mt-1">
               Based on current extraction data across {properties.filter(p => p.operations.occupancy > 0).length} properties
@@ -503,7 +505,7 @@ export function AnalyticsPage() {
                       {formatPercentage(property.operations.occupancy)}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatCurrency(property.operations.noi)}
+                      {formatCurrencyCompact(property.operations.noi)}
                     </TableCell>
                   </TableRow>
                 ))}
