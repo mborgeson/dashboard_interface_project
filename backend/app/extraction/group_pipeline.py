@@ -861,6 +861,23 @@ class GroupExtractionPipeline:
                 },
             )
 
+            # Sync extracted values to properties/deals tables
+            from app.crud.extraction import sync_extracted_to_properties
+
+            try:
+                sync_result = sync_extracted_to_properties(db, run_id)
+                logger.info(
+                    "group_extraction_sync_complete",
+                    group=group_name,
+                    **sync_result,
+                )
+            except Exception:
+                logger.exception(
+                    "group_extraction_sync_failed",
+                    group=group_name,
+                    run_id=str(run_id),
+                )
+
         # Persist report
         report_name = "dry_run_report.json" if dry_run else "mutation_log.json"
         group_dir.mkdir(parents=True, exist_ok=True)
