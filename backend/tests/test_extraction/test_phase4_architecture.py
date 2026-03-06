@@ -119,7 +119,7 @@ class TestPropertyCollisionLogging:
 
         call_count = 0
 
-        def mock_extract(path):
+        def mock_extract(path, **kw):
             nonlocal call_count
             call_count += 1
             return {
@@ -176,7 +176,7 @@ class TestPerFileStatus:
         """process_files should record per-file status on the run."""
         run = ExtractionRunCRUD.create(sync_db_session, trigger_type="manual")
 
-        def mock_extract(path):
+        def mock_extract(path, **kw):
             if "bad" in path:
                 raise ValueError("corrupt file")
             return {"PROPERTY_NAME": f"Prop_{path}", "FIELD_A": 1.0}

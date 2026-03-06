@@ -79,7 +79,7 @@ class TestParallelExtraction:
 
         # Mock extractor that returns deterministic data
         mock_extractor = MagicMock()
-        mock_extractor.extract_from_file.side_effect = lambda path: {
+        mock_extractor.extract_from_file.side_effect = lambda path, **kw: {
             "PROPERTY_NAME": f"Prop_{path.split('/')[-1]}",
             "FIELD_A": 100.0,
             "FIELD_B": "text",
@@ -132,7 +132,7 @@ class TestParallelExtraction:
         run = ExtractionRunCRUD.create(sync_db_session, trigger_type="manual")
 
         # Mock extractor: second file throws
-        def mock_extract(path):
+        def mock_extract(path, **kw):
             if "bad" in path:
                 raise ValueError("corrupt Excel file")
             return {"PROPERTY_NAME": f"Prop_{path}", "FIELD_A": 42.0}

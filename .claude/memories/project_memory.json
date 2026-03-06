@@ -2,32 +2,32 @@
   "memories": [
     {
       "type": "completed_features",
-      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K records (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis Dashboard (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Pipeline Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt (2026-02-12). Extraction Hardening + Accessibility (2026-03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Page Overhaul: kanban cards, aerial maps, activity feed, SharePoint links (2026-03-04). Deals v5: Returns fix, Compare Deals, shadcn CSS (2026-03-04). Tasks 5+6+4+8 (2026-03-05): Group Pipeline Frontend, Vite optimization, page reviews. Cap Rate TC T3 extraction re-run bb86307f (13/13 files, 12870 values). Extraction audit: 7 issues fixed at 9b5f8ef (thread safety, stale runs, GOING_IN_CAP_RATE F26, int hash, LOCAL_DEALS_ROOT guard, slow tests, ESLint). Tests: 1684 backend + 721 frontend = 2405 total.",
-      "added_at": "2026-03-05T23:00:00.000000",
+      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K records (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis Dashboard (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Pipeline Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt (2026-02-12). Extraction Hardening + Accessibility (2026-03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Page Overhaul: kanban, aerial maps, activity feed, SharePoint (2026-03-04). Deals v5: Returns fix, Compare Deals, shadcn CSS (2026-03-04). Group Pipeline Frontend, Vite optimization, page reviews (2026-03-05). Cap Rate TC T3 extraction re-run + 49 regression tests (2026-03-05). Extraction audit: 7 issues fixed (2026-03-05). UW Model Grouping Expansion (2026-03-06): 9 deferred Proforma groups promoted, 66 files extracted, 2970 values, 0 failures. FileFilter bypass (validate=False), 10 new regression tests, mock **kw fixes in phase3/4/5 tests. Phase D: 9 property collisions all complementary (no conflicts), 5 [Deal Name] placeholders, frontend PASS. Phase E: 10 tests added (365 extraction tests total). Phase F: code review clean (9 advisory concerns, 0 blockers). Tests: 1694+ backend + 721 frontend.",
+      "added_at": "2026-03-06T05:40:00.000000",
       "source": "consolidated"
     },
     {
       "type": "user_preferences",
-      "content": "conda env: dashboard-backend. Backend port 8000, Frontend port 5173. Dev command: npm run dev:all. Git: stash apply over pop, don't push unless asked. NO mock/fake data — show errors instead. User: matt@bandrcapital.com / Wildcats777!! / admin. Thorough validation — test ALL files. Open to parallel Claude Agent Teams. Review each page in depth before deployment. Security audit deferred. User prefers status prompt: 'What was last completed and what's next?' MEMORY.md auto-restores context — no copy-paste needed.",
-      "added_at": "2026-03-05T23:00:00.000000",
+      "content": "conda env: dashboard-backend. Backend port 8000, Frontend port 5173. Dev command: npm run dev:all. Git: stash apply over pop, don't push unless asked. NO mock/fake data — show errors instead. User: matt@bandrcapital.com / Wildcats777!! / admin. Thorough validation — test ALL files. User expects Agent Team approach from docs/agent-team-reference.md to be followed for multi-phase work. Review each page in depth before deployment. Security audit deferred. MEMORY.md auto-restores context. Data observations (items 8-12) are NOT issues per user. Terminal mode: tmux.",
+      "added_at": "2026-03-06T05:40:00.000000",
       "source": "consolidated"
     },
     {
       "type": "tech_decisions",
-      "content": "pydantic-settings 2.x: CORS_ORIGINS JSON array. Single .env in root, symlinked. DB: PostgreSQL localhost:5432/dashboard_interface_data. SQLite in tests: no server_default, datetime.now(UTC), StaticPool. Pre-commit: ruff, ruff-format, mypy. Auth: OAuth2PasswordRequestForm x-www-form-urlencoded 'username'. passlib: wrap verify_password in try/except. Auth pattern: require_analyst (GET), require_manager (mutations). Zod: .nullable().optional() + ?? undefined (NOT ?? 0). TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch), both attach Bearer. shadcn needs CSS vars in :root + tailwind mappings. KPICard: trend && trend > 0 is falsy for 0, use !== undefined && !== 0. ESLint: NO component definitions inside render (react-hooks/static-components).",
-      "added_at": "2026-03-05T23:00:00.000000",
+      "content": "pydantic-settings 2.x: CORS_ORIGINS JSON array. Single .env in root, symlinked. DB: PostgreSQL localhost:5432/dashboard_interface_data (use ->>'key' for JSON, NOT json_extract). SQLite in tests: no server_default, datetime.now(UTC), StaticPool. Pre-commit: ruff, ruff-format, mypy. Auth: OAuth2PasswordRequestForm x-www-form-urlencoded 'username'. passlib: wrap verify_password in try/except. Auth pattern: require_analyst (GET), require_manager (mutations). Zod: .nullable().optional() + ?? undefined (NOT ?? 0). TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch), both attach Bearer. shadcn needs CSS vars in :root + tailwind mappings. KPICard: trend && trend > 0 is falsy for 0, use !== undefined && !== 0. ESLint: NO component definitions inside render. Mock extract_from_file with **kw to accept validate kwarg.",
+      "added_at": "2026-03-06T05:40:00.000000",
       "source": "consolidated"
     },
     {
       "type": "extraction_config",
-      "content": "LOCAL_DEALS_ROOT=/mnt/c/Users/MattBorgeson/OneDrive - B&R Capital/B&R Capital - Real Estate/Deals. STAGE_FOLDER_MAP maps 6 folders to DealStage. ~1,169 cell mappings from reference file. 6 supplemental overrides: GOING_IN_CAP_RATE (F26 Assumptions Summary), T3_RETURN_ON_COST (G27 Assumptions Summary), UNLEVERED/LEVERED IRR+MOIC (E39-E44 Returns Metrics Summary). ErrorHandler is now thread-safe (Lock). Stale runs auto-fail after 30 min. Int hash mismatch fixed in _normalize_value_from_text. Empty LOCAL_DEALS_ROOT guard added. Slow fingerprint tests excluded by default (-m 'not slow').",
-      "added_at": "2026-03-05T23:00:00.000000",
+      "content": "LOCAL_DEALS_ROOT=/mnt/c/Users/MattBorgeson/OneDrive - B&R Capital/B&R Capital - Real Estate/Deals. STAGE_FOLDER_MAP maps 6 folders to DealStage. ~1,169 cell mappings from production reference file. 6 supplemental overrides: GOING_IN_CAP_RATE (F26), T3_RETURN_ON_COST (G27), UNLEVERED/LEVERED IRR+MOIC (E39-E44). PROFORMA EXPANSION: 9 groups (66 files), 2 sub-families (Base 13 sheets, Extended 15 sheets) with identical cell layouts. 45 Proforma cell mappings in promote_proforma_groups.py (Property + Proforma sheets). FileFilter 'proforma' exclude pattern bypassed via validate=False in run_group_extraction. Code review note: run_group_extraction does NOT call sync_extracted_to_properties (pre-existing design). Agent Teams 39-47 in docs/agent-team-reference.md.",
+      "added_at": "2026-03-06T05:40:00.000000",
       "source": "consolidated"
     },
     {
       "type": "remaining_tasks",
-      "content": "NEXT: Re-run extraction to pick up GOING_IN_CAP_RATE mapping. Production hosting (Oracle Cloud Free Tier or Hetzner CX22). FUTURE: Mobile iOS, Security audit. INFO items (no code fix): T3=0.0 for Broadstone/Park on Bell, negative returns Element at Tempe North, The Northern value revision, WickerTree new property.",
-      "added_at": "2026-03-05T23:00:00.000000",
+      "content": "GROUPING EXPANSION: Phases A-F complete. Awaiting Team 47b (full test suite) and 47c (production readiness) results — expected PASS. 2 excluded groups (4 files) still uninvestigated. FUTURE: Production hosting (Oracle Cloud Free Tier or Hetzner CX22, Docker ready). Mobile iOS. Security audit. Proforma-specific time-horizon fields (IRR_YR2/3/7, MOIC_YR2/3/7) extracted but not displayed in frontend (feature gap, not bug).",
+      "added_at": "2026-03-06T05:40:00.000000",
       "source": "consolidated"
     }
   ],
@@ -35,29 +35,35 @@
   "realtime_memories": [
     {
       "type": "claude_response",
-      "content": "Consolidated 14 → 5 memories. Cleared all realtime noise (session chatter, ALSA errors, restore instructions Q&A). Kept: completed features, user preferences, tech decisions, extraction config, remain",
-      "added_at": "2026-03-05T23:32:24.230250",
+      "content": "Consolidated from 10 memories (5 structured + 5 realtime) down to 5 focused memories. All signal preserved — updated completed features with Phase D-F results, added `**kw` mock convention to tech dec",
+      "added_at": "2026-03-06T05:37:15.440486",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "Are you going to re-run the extraction script or do I need to?",
-      "added_at": "2026-03-05T23:32:24.230280",
+      "content": "<task-notification> <task-id>adbc3c4a65b630515</task-id> <tool-use-id>toolu_015N7SBbmnS4wuVAY2Ret6AB</tool-use-id> <status>completed</status> <summary>Agent \"Verify build, typecheck, and extraction en",
+      "added_at": "2026-03-06T05:37:15.440553",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "<task-notification> <task-id>a32735a8f3ac8decb</task-id> <tool-use-id>toolu_01VWEWPjNEV6Pqk47SeCR5xn</tool-use-id> <status>completed</status> <summary>Agent \"Run complete backend + frontend test suite",
+      "added_at": "2026-03-06T05:37:15.546941",
       "source": "realtime_capture"
     },
     {
       "type": "claude_response",
-      "content": "## Extraction Re-Run Complete\n\n**Run `72c301bd`** — 13/13 files processed, 0 failures, 12,881 values extracted.\n\nAll **6 supplemental fields** now extract successfully across 11 properties:\n\n| Field |",
-      "added_at": "2026-03-06T01:26:52.186623",
+      "content": "Both remaining Team 47 agents are complete. Here's the **Final Gate Report**:\n\n---\n\n## Phase F — Final Gate Report (Team 47)\n\n| Check | Agent | Result |\n|-------|-------|--------|\n| Code Review | 47a ",
+      "added_at": "2026-03-06T05:40:15.724585",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "Please provide the list of completed items for this task, then save this checkpoint memory, and lastly run git commit and push commands first. Please let me know when you're done with these.",
-      "added_at": "2026-03-06T01:26:52.186668",
+      "content": "Please generate a list of items completed in working through this task, then create/save a memory or checkpoint memorializing these updates, and finally run git commit and push commands for these upda",
+      "added_at": "2026-03-06T05:40:15.724609",
       "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-03-06T01:26:52.186671"
+  "updated_at": "2026-03-06T05:40:15.724611"
 }

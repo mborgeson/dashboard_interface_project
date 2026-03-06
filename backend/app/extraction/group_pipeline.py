@@ -789,14 +789,18 @@ class GroupExtractionPipeline:
                 max_workers=settings.GROUP_FINGERPRINT_WORKERS
             ) as executor:
                 futures = {
-                    executor.submit(_extract_single_file, extractor, fp, dn): fp
+                    executor.submit(
+                        _extract_single_file, extractor, fp, dn, validate=False
+                    ): fp
                     for fp, dn in zip(file_paths, deal_names, strict=False)
                 }
                 for future in as_completed(futures):
                     extraction_results.append(future.result())
         else:
             for fp, dn in zip(file_paths, deal_names, strict=False):
-                extraction_results.append(_extract_single_file(extractor, fp, dn))
+                extraction_results.append(
+                    _extract_single_file(extractor, fp, dn, validate=False)
+                )
 
         # Process results
         for file_path, deal_name, result, error_msg in extraction_results:

@@ -214,7 +214,7 @@ class TestFileMetadataPersistence:
 
         call_count = 0
 
-        def mock_extract(path):
+        def mock_extract(path, **kw):
             nonlocal call_count
             call_count += 1
             return {
