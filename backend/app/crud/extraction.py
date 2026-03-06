@@ -714,9 +714,18 @@ def hydrate_properties_from_extracted(db: Session) -> dict[str, Any]:
             changed = True
 
         units_f = _safe_float(field_values.get("TOTAL_UNITS"))
-        if units_f is not None and not prop.total_units:
+        if units_f is not None and units_f > 0 and not prop.total_units:
             prop.total_units = int(units_f)
             changed = True
+
+        # Fallback: derive units from financial_data purchasePrice / pricePerUnit
+        if not prop.total_units:
+            fd_acq = (prop.financial_data or {}).get("acquisition", {})
+            fd_pp = fd_acq.get("purchasePrice") or 0
+            fd_ppu = fd_acq.get("pricePerUnit") or 0
+            if fd_pp > 0 and fd_ppu > 0:
+                prop.total_units = round(fd_pp / fd_ppu)
+                changed = True
 
         yb = _safe_float(field_values.get("YEAR_BUILT"))
         if yb is not None and not prop.year_built:
