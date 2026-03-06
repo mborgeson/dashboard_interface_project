@@ -10,16 +10,14 @@ function makeValue(overrides: Partial<ExtractedValue>): ExtractedValue {
     field_name: 'TEST_FIELD',
     field_category: 'Test',
     data_type: 'text',
-    value_text: null,
+    value_text: undefined,
     value_numeric: undefined,
     value_date: undefined,
     is_error: false,
     error_message: undefined,
     sheet_name: 'Sheet1',
     cell_address: 'A1',
-    source_file: 'test.xlsx',
-    created_at: '2026-01-01',
-    updated_at: '2026-01-01',
+    extracted_at: '2026-01-01',
     ...overrides,
   };
 }
@@ -62,7 +60,7 @@ describe('formatExtractedValue', () => {
   });
 
   it('returns "-" for null numeric and null text', () => {
-    const v = makeValue({ data_type: 'numeric', value_numeric: undefined, value_text: null });
+    const v = makeValue({ data_type: 'numeric', value_numeric: undefined, value_text: undefined });
     expect(formatExtractedValue(v)).toBe('-');
   });
 
@@ -94,7 +92,7 @@ describe('formatExtractedValue', () => {
   });
 
   it('returns "-" for empty text', () => {
-    const v = makeValue({ data_type: 'text', value_text: null });
+    const v = makeValue({ data_type: 'text', value_text: undefined });
     expect(formatExtractedValue(v)).toBe('-');
   });
 });
@@ -105,14 +103,12 @@ describe('getExtractionDuration', () => {
       id: 'run-1',
       status: completed ? 'completed' : 'running',
       started_at: started,
-      completed_at: completed ?? null,
-      total_files: 10,
-      processed_files: completed ? 10 : 5,
-      failed_files: 0,
-      total_values: 100,
-      error_message: null,
+      completed_at: completed,
+      files_discovered: 10,
+      files_processed: completed ? 10 : 5,
+      files_failed: 0,
+      error_message: undefined,
       trigger_type: 'manual',
-      source: 'local',
     };
   }
 
