@@ -1,6 +1,6 @@
 import { Building2, MapPin, Calendar, TrendingUp } from 'lucide-react';
 import type { Property } from '@/types';
-import { formatCurrency, formatPercent, formatNumber, formatPercentOrNA, formatCurrencyOrNA, formatNumberOrNA } from '@/lib/utils/formatters';
+import { formatPercentOrNA, formatCurrencyOrNA, formatNumberOrNA } from '@/lib/utils/formatters';
 import { LazyImage } from '@/components/ui/LazyImage';
 
 interface PropertyHeroProps {

@@ -1,7 +1,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import type { Property, OperatingYear, OperatingYearExpenses } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatPercent, formatPercentOrNA, formatCurrencyOrNA } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent, formatPercentOrNA } from '@/lib/utils/formatters';
 
 interface OperationsTabProps {
   property: Property;

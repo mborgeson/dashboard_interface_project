@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatPercent, formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
+import { formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
 import type { Property } from '@/types';
 
 interface PropertyTableProps {
