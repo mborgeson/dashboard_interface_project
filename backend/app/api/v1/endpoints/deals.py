@@ -1053,3 +1053,128 @@ async def create_deal_activity_log(
     )
 
     return ActivityLogResponse.model_validate(created_log, from_attributes=True)
+
+
+# ---------- Proforma Returns (from extracted_values) ----------
+
+# Fields that only exist in Proforma/group-extraction runs
+PROFORMA_FIELDS = {
+    # Year-specific IRR / MOIC
+    "LEVERED_RETURNS_IRR_YR2",
+    "LEVERED_RETURNS_IRR_YR3",
+    "LEVERED_RETURNS_IRR_YR7",
+    "LEVERED_RETURNS_MOIC_YR2",
+    "LEVERED_RETURNS_MOIC_YR3",
+    "LEVERED_RETURNS_MOIC_YR7",
+    "UNLEVERED_RETURNS_IRR_YR2",
+    "UNLEVERED_RETURNS_IRR_YR3",
+    "UNLEVERED_RETURNS_IRR_YR7",
+    "UNLEVERED_RETURNS_MOIC_YR2",
+    "UNLEVERED_RETURNS_MOIC_YR3",
+    "UNLEVERED_RETURNS_MOIC_YR7",
+    # NOI per unit by year
+    "NOI_PER_UNIT_YR2",
+    "NOI_PER_UNIT_YR3",
+    "NOI_PER_UNIT_YR5",
+    "NOI_PER_UNIT_YR7",
+    # Cap rates
+    "CAP_RATE_ALL_IN_YR3",
+    "CAP_RATE_ALL_IN_YR5",
+    # Cash-on-cash / DSCR
+    "COC_YR5",
+    "DSCR_T3",
+    "DSCR_YR5",
+    # Proforma NOI / DSCR / Debt Yield
+    "PROFORMA_NOI_YR1",
+    "PROFORMA_NOI_YR2",
+    "PROFORMA_NOI_YR3",
+    "PROFORMA_DSCR_YR1",
+    "PROFORMA_DSCR_YR2",
+    "PROFORMA_DSCR_YR3",
+    "PROFORMA_DEBT_YIELD_YR1",
+    "PROFORMA_DEBT_YIELD_YR2",
+    "PROFORMA_DEBT_YIELD_YR3",
+}
+
+
+@router.get("/{deal_id}/proforma-returns")
+async def get_deal_proforma_returns(
+    deal_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
+):
+    """
+    Get Proforma-specific extracted values for a deal.
+
+    Queries extracted_values for year-specific IRR, MOIC, NOI, cap rates,
+    DSCR, and other fields that exist only in Proforma/group extraction runs.
+    Returns values grouped by category.
+    """
+    # Get the deal to find its name (used as property_name in extracted_values)
+    deal = await deal_crud.get(db, deal_id)
+    if not deal:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Deal {deal_id} not found",
+        )
+
+    deal_name = deal.name
+
+    # Also try the base name without "(City, ST)" suffix
+    # sync_extracted_to_properties may have stored either variant
+    import re as _re
+
+    base_name_match = _re.match(r"^(.+?)\s*\([^)]+,\s*[A-Z]{2}\)", deal_name)
+    names_to_search = [deal_name]
+    if base_name_match:
+        names_to_search.append(base_name_match.group(1).strip())
+
+    # Query extracted_values for proforma fields matching this deal
+    from sqlalchemy import or_
+
+    stmt = (
+        select(
+            ExtractedValue.field_name,
+            ExtractedValue.field_category,
+            ExtractedValue.value_numeric,
+            ExtractedValue.value_text,
+            ExtractedValue.source_file,
+        )
+        .where(
+            or_(*[ExtractedValue.property_name == n for n in names_to_search]),
+            ExtractedValue.field_name.in_(PROFORMA_FIELDS),
+            ExtractedValue.is_error.is_(False),
+        )
+        .order_by(ExtractedValue.field_category, ExtractedValue.field_name)
+    )
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    if not rows:
+        return {"deal_id": deal_id, "deal_name": deal_name, "groups": [], "total": 0}
+
+    # Group by category
+    groups: dict[str, list[dict]] = {}
+    for row in rows:
+        cat = row.field_category or "Proforma"
+        if cat not in groups:
+            groups[cat] = []
+        groups[cat].append(
+            {
+                "field_name": row.field_name,
+                "value_numeric": float(row.value_numeric)
+                if row.value_numeric is not None
+                else None,
+                "value_text": row.value_text,
+            }
+        )
+
+    return {
+        "deal_id": deal_id,
+        "deal_name": deal_name,
+        "groups": [
+            {"category": cat, "fields": fields} for cat, fields in groups.items()
+        ],
+        "total": len(rows),
+    }

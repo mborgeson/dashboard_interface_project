@@ -1,7 +1,4 @@
-/**
- * DealDetailModal - Modal for viewing comprehensive deal details
- * Shows full UW metrics, aerial map, SharePoint links, and activity feed
- */
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,11 +8,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ErrorState } from '@/components/ui/error-state';
-import { useDealWithMockFallback } from '@/hooks/api/useDeals';
+import { useDealWithMockFallback, useDealProformaReturns } from '@/hooks/api/useDeals';
+import type { ProformaField } from '@/hooks/api/useDeals';
 import { ActivityFeed } from './ActivityFeed';
 import { DealAerialMap } from './DealAerialMap';
 import { getSharePointDealFolderUrl } from '../utils/sharepoint';
-import { MapPin, ExternalLink } from 'lucide-react';
+import { MapPin, ExternalLink, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DEAL_STAGE_LABELS, type DealStage } from '@/types/deal';
 
@@ -86,6 +84,150 @@ function MetricRow({ label, children }: { label: string; children: React.ReactNo
     <div className="flex items-center justify-between py-1.5 border-b border-neutral-50 last:border-b-0">
       <span className="text-sm text-neutral-600">{label}</span>
       <span className="text-sm font-medium text-neutral-900 text-right">{children}</span>
+    </div>
+  );
+}
+
+// ---------- Proforma field display helpers ----------
+
+const PROFORMA_LABEL_MAP: Record<string, string> = {
+  LEVERED_RETURNS_IRR_YR2: 'Levered IRR — Yr 2',
+  LEVERED_RETURNS_IRR_YR3: 'Levered IRR — Yr 3',
+  LEVERED_RETURNS_IRR_YR7: 'Levered IRR — Yr 7',
+  LEVERED_RETURNS_MOIC_YR2: 'Levered MOIC — Yr 2',
+  LEVERED_RETURNS_MOIC_YR3: 'Levered MOIC — Yr 3',
+  LEVERED_RETURNS_MOIC_YR7: 'Levered MOIC — Yr 7',
+  UNLEVERED_RETURNS_IRR_YR2: 'Unlevered IRR — Yr 2',
+  UNLEVERED_RETURNS_IRR_YR3: 'Unlevered IRR — Yr 3',
+  UNLEVERED_RETURNS_IRR_YR7: 'Unlevered IRR — Yr 7',
+  UNLEVERED_RETURNS_MOIC_YR2: 'Unlevered MOIC — Yr 2',
+  UNLEVERED_RETURNS_MOIC_YR3: 'Unlevered MOIC — Yr 3',
+  UNLEVERED_RETURNS_MOIC_YR7: 'Unlevered MOIC — Yr 7',
+  NOI_PER_UNIT_YR2: 'NOI / Unit — Yr 2',
+  NOI_PER_UNIT_YR3: 'NOI / Unit — Yr 3',
+  NOI_PER_UNIT_YR5: 'NOI / Unit — Yr 5',
+  NOI_PER_UNIT_YR7: 'NOI / Unit — Yr 7',
+  CAP_RATE_ALL_IN_YR3: 'All-In Cap Rate — Yr 3',
+  CAP_RATE_ALL_IN_YR5: 'All-In Cap Rate — Yr 5',
+  COC_YR5: 'Cash-on-Cash — Yr 5',
+  DSCR_T3: 'DSCR — T3',
+  DSCR_YR5: 'DSCR — Yr 5',
+  PROFORMA_NOI_YR1: 'Proforma NOI — Yr 1',
+  PROFORMA_NOI_YR2: 'Proforma NOI — Yr 2',
+  PROFORMA_NOI_YR3: 'Proforma NOI — Yr 3',
+  PROFORMA_DSCR_YR1: 'Proforma DSCR — Yr 1',
+  PROFORMA_DSCR_YR2: 'Proforma DSCR — Yr 2',
+  PROFORMA_DSCR_YR3: 'Proforma DSCR — Yr 3',
+  PROFORMA_DEBT_YIELD_YR1: 'Proforma Debt Yield — Yr 1',
+  PROFORMA_DEBT_YIELD_YR2: 'Proforma Debt Yield — Yr 2',
+  PROFORMA_DEBT_YIELD_YR3: 'Proforma Debt Yield — Yr 3',
+};
+
+function fmtProformaValue(field: ProformaField): string {
+  if (field.value_numeric == null) return field.value_text ?? 'N/A';
+  const name = field.field_name;
+  if (name.includes('IRR') || name.includes('CAP_RATE') || name.includes('COC') || name.includes('DEBT_YIELD')) {
+    return `${(field.value_numeric * 100).toFixed(1)}%`;
+  }
+  if (name.includes('MOIC')) {
+    return `${field.value_numeric.toFixed(2)}x`;
+  }
+  if (name.includes('DSCR')) {
+    return `${field.value_numeric.toFixed(2)}x`;
+  }
+  if (name.includes('NOI') && !name.includes('PER_UNIT')) {
+    return fmtCompact(field.value_numeric);
+  }
+  if (name.includes('PER_UNIT')) {
+    return `$${Math.round(field.value_numeric).toLocaleString()}`;
+  }
+  return field.value_numeric.toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
+function ProformaReturnsSection({ dealId }: { dealId: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const { data, isLoading } = useDealProformaReturns(expanded ? dealId : null);
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="flex items-center gap-2 text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
+      >
+        <ChevronDown className="w-4 h-4" />
+        Proforma Returns (Year-Specific)
+      </button>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="flex items-center gap-2 text-sm font-medium text-neutral-700"
+        >
+          <ChevronDown className="w-4 h-4 rotate-180" />
+          Proforma Returns (Year-Specific)
+        </button>
+        <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+          <Skeleton className="h-4 w-48 mb-2" />
+          <Skeleton className="h-4 w-36" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!data || data.total === 0) {
+    return (
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="flex items-center gap-2 text-sm font-medium text-neutral-700"
+        >
+          <ChevronDown className="w-4 h-4 rotate-180" />
+          Proforma Returns (Year-Specific)
+        </button>
+        <p className="text-sm text-neutral-500 italic pl-6">
+          No Proforma data available for this deal.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setExpanded(false)}
+        className="flex items-center gap-2 text-sm font-medium text-neutral-700"
+      >
+        <ChevronDown className="w-4 h-4 rotate-180" />
+        Proforma Returns (Year-Specific)
+      </button>
+      {data.groups.map((group) => (
+        <div
+          key={group.category}
+          className="bg-neutral-50 rounded-lg p-4 border border-neutral-200"
+        >
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">
+            {group.category}
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
+            {group.fields.map((field) => (
+              <MetricRow
+                key={field.field_name}
+                label={PROFORMA_LABEL_MAP[field.field_name] ?? field.field_name}
+              >
+                {fmtProformaValue(field)}
+              </MetricRow>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -204,6 +346,9 @@ export function DealDetailModal({ dealId, open, onOpenChange }: DealDetailModalP
                 {deal.exitMonths != null ? `Month ${Math.round(deal.exitMonths)}` : 'N/A'} / {fmtPct(deal.exitCapRate)}
               </MetricRow>
             </div>
+
+            {/* Proforma Returns (year-specific fields from extraction) */}
+            <ProformaReturnsSection dealId={deal.id} />
 
             {/* Aerial Map */}
             {(deal.latitude != null && deal.longitude != null) && (

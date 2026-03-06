@@ -2,37 +2,62 @@
   "memories": [
     {
       "type": "completed_features",
-      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K records (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis Dashboard (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Pipeline Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt (2026-02-12). Extraction Hardening + Accessibility (2026-03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Page Overhaul: kanban, aerial maps, activity feed, SharePoint (2026-03-04). Deals v5: Returns fix, Compare Deals, shadcn CSS (2026-03-04). Group Pipeline Frontend, Vite optimization, page reviews (2026-03-05). Cap Rate TC T3 extraction re-run + 49 regression tests (2026-03-05). Extraction audit: 7 issues fixed (2026-03-05). UW Model Grouping Expansion (2026-03-06): 9 deferred Proforma groups, 66 files, 265,900 values, 250 net-new deals. Data Cleanup & Sync (2026-03-06): 9 placeholder names fixed (7,215 rows), 2 duplicate pairs merged, properties backfill 42→305 records, 263 deals created, sync_extracted_to_properties added to group_pipeline.py. CI import fix (commit 7db4633). Tests: 1694+ backend + 721 frontend.",
-      "added_at": "2026-03-06T08:55:00.000000",
+      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K records (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis Dashboard (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Pipeline Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt (2026-02-12). Extraction Hardening + Accessibility (2026-03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Page Overhaul: kanban, aerial maps, activity feed, SharePoint (2026-03-04). Deals v5: Returns fix, Compare Deals, shadcn CSS (2026-03-04). Group Pipeline Frontend, Vite optimization, page reviews (2026-03-05). Cap Rate TC T3 extraction re-run + 49 regression tests (2026-03-05). Extraction audit: 7 issues fixed (2026-03-05). UW Model Grouping Expansion (2026-03-06): 9 deferred Proforma groups, 66 files, 265,900 values, 250 net-new deals. Data Cleanup & Sync (2026-03-06): 9 placeholder names fixed (7,215 rows), 2 duplicate pairs merged, properties backfill 42→305 records, 263 deals created, sync_extracted_to_properties added to group_pipeline.py. Proforma Returns UI (2026-03-06): Option C — GET /deals/{id}/proforma-returns endpoint + lazy collapsible section in DealDetailModal (30 fields: year-specific IRR/MOIC, NOI/unit, cap rates, DSCR, COC, proforma NOI/DSCR/debt yield). Tests: 1694+ backend + 721 frontend.",
+      "added_at": "2026-03-06T09:40:00.000000",
       "source": "consolidated"
     },
     {
       "type": "user_preferences",
-      "content": "conda env: dashboard-backend. Backend port 8000, Frontend port 5173. Dev command: npm run dev:all. Git: stash apply over pop, don't push unless asked. NO mock/fake data — show errors instead. User: matt@bandrcapital.com / Wildcats777!! / admin. Thorough validation — test ALL files. User expects Agent Team approach from docs/agent-team-reference.md to be followed for multi-phase work. Review each page in depth before deployment. Security audit deferred. MEMORY.md auto-restores context. Data observations (items 8-12) are NOT issues per user. Terminal mode: tmux. Cordoba Apartments and Cordova Apartments are DIFFERENT properties (confirmed by user).",
-      "added_at": "2026-03-06T08:55:00.000000",
+      "content": "conda env: dashboard-backend. Backend port 8000, Frontend port 5173. Dev command: npm run dev:all. Git: stash apply over pop, don't push unless asked. NO mock/fake data — show errors instead. User: matt@bandrcapital.com / Wildcats777!! / admin. Thorough validation — test ALL files. User expects Agent Team approach from docs/agent-team-reference.md to be followed for multi-phase work. Review each page in depth before deployment. Security audit deferred. MEMORY.md auto-restores context. Data observations (items 8-12) are NOT issues per user. Terminal mode: tmux. Cordoba Apartments and Cordova Apartments are DIFFERENT properties (confirmed by user). Don't change schema for old UW model attributes — use Option C (query extracted_values at render time) for antiquated fields.",
+      "added_at": "2026-03-06T09:40:00.000000",
       "source": "consolidated"
     },
     {
       "type": "tech_decisions",
-      "content": "pydantic-settings 2.x: CORS_ORIGINS JSON array. Single .env in root, symlinked. DB: PostgreSQL localhost:5432/dashboard_interface_data (use ->>'key' for JSON, NOT json_extract). SQLite in tests: no server_default, datetime.now(UTC), StaticPool. Pre-commit: ruff, ruff-format, mypy. Auth: OAuth2PasswordRequestForm x-www-form-urlencoded 'username'. passlib: wrap verify_password in try/except. Auth pattern: require_analyst (GET), require_manager (mutations). Zod: .nullable().optional() + ?? undefined (NOT ?? 0). TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch), both attach Bearer. shadcn needs CSS vars in :root + tailwind mappings. KPICard: trend && trend > 0 is falsy for 0, use !== undefined && !== 0. ESLint: NO component definitions inside render. Mock extract_from_file with **kw to accept validate kwarg. CI runs pytest from backend/ dir — test imports must use `scripts.` not `backend.scripts.`. sync_extracted_to_properties now called in run_group_extraction (commit 82d7098).",
-      "added_at": "2026-03-06T08:55:00.000000",
+      "content": "pydantic-settings 2.x: CORS_ORIGINS JSON array. Single .env in root, symlinked. DB: PostgreSQL localhost:5432/dashboard_interface_data (use ->>'key' for JSON, NOT json_extract). SQLite in tests: no server_default, datetime.now(UTC), StaticPool. Pre-commit: ruff, ruff-format, mypy. Auth: OAuth2PasswordRequestForm x-www-form-urlencoded 'username'. passlib: wrap verify_password in try/except. Auth pattern: require_analyst (GET), require_manager (mutations). Zod: .nullable().optional() + ?? undefined (NOT ?? 0). TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch), both attach Bearer. shadcn needs CSS vars in :root + tailwind mappings. KPICard: trend && trend > 0 is falsy for 0, use !== undefined && !== 0. ESLint: NO component definitions inside render. Mock extract_from_file with **kw to accept validate kwarg. CI runs pytest from backend/ dir — test imports must use `scripts.` not `backend.scripts.`. sync_extracted_to_properties now called in run_group_extraction (commit 82d7098). /checkpoint skill available for test+commit workflow.",
+      "added_at": "2026-03-06T09:40:00.000000",
       "source": "consolidated"
     },
     {
       "type": "extraction_config",
       "content": "LOCAL_DEALS_ROOT=/mnt/c/Users/MattBorgeson/OneDrive - B&R Capital/B&R Capital - Real Estate/Deals. STAGE_FOLDER_MAP maps 6 folders to DealStage. ~1,169 cell mappings from production reference file. 6 supplemental overrides: GOING_IN_CAP_RATE (F26), T3_RETURN_ON_COST (G27), UNLEVERED/LEVERED IRR+MOIC (E39-E44). PROFORMA EXPANSION: 9 groups (66 files), 2 sub-families (Base 13 sheets, Extended 15 sheets), 45 Proforma cell mappings. FileFilter bypass via validate=False. 2 excluded groups are Asset Management models (correctly excluded). 28 UNGROUPED FILES: 24 match existing groups (9→group_32, 8→group_38, 4→group_47, 1→group_34, 1→group_36, 1→group_39), 4 near-matches (1 extra non-extraction sheet each). 25 of 28 have zero existing data. DB: 305 properties, 305 deals, 327 distinct property_names, 0 unlinked.",
-      "added_at": "2026-03-06T08:55:00.000000",
+      "added_at": "2026-03-06T09:40:00.000000",
       "source": "consolidated"
     },
     {
       "type": "remaining_tasks",
-      "content": "NEXT: Item 5 — Frontend display of Proforma-specific fields (IRR_YR2/3/7, MOIC_YR2/3/7 extracted but not in UI). UNGROUPED FILES: 28 files ready to extract (24 exact group matches + 4 near-matches), ~25 net-new deals. FUTURE: Production hosting (Oracle Cloud Free Tier or Hetzner CX22, Docker ready). Mobile iOS. Security audit.",
-      "added_at": "2026-03-06T08:55:00.000000",
+      "content": "DONE: Items 1-5 (placeholder names, excluded groups analysis, duplicate cleanup, properties sync, Proforma Returns UI). UNGROUPED FILES: 28 files ready to extract (24 exact group matches + 4 near-matches), ~25 net-new deals. FUTURE: Production hosting (Oracle Cloud Free Tier or Hetzner CX22, Docker ready). Mobile iOS. Security audit.",
+      "added_at": "2026-03-06T09:40:00.000000",
       "source": "consolidated"
     }
   ],
   "manual_memories": [],
-  "realtime_memories": [],
+  "realtime_memories": [
+    {
+      "type": "claude_response",
+      "content": "Consolidated 16 → 5 memories. Removed all 16 realtime entries (noise: truncated commit logs, report walkthrough Q&A, consolidation meta-notes, user questions about stop hooks). Merged user's \"don't ch",
+      "added_at": "2026-03-06T09:42:35.309138",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Please generate a list of items completed in working through this task as well as the list of next steps, then create/save a memory or checkpoint memorializing these updates, and finally run git commi",
+      "added_at": "2026-03-06T09:42:35.309197",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "Here's the full audit. There are several issues worth cleaning up:\n\n---\n\n## Environment Health Check Results\n\n### Hooks & Scripts: All Clean\n- All 7 hook scripts exist and are executable\n- All shell s",
+      "added_at": "2026-03-06T09:44:22.314863",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Please move forward \"surgically\", as you put it, with your \"Recommended Actios (in priority order)\" list.",
+      "added_at": "2026-03-06T09:44:22.314912",
+      "source": "realtime_capture"
+    }
+  ],
   "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-03-06T08:55:00.000000"
+  "updated_at": "2026-03-06T09:44:22.314915"
 }

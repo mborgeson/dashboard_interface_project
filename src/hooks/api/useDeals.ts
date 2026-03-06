@@ -28,6 +28,7 @@ export const dealKeys = {
   kanban: (filters?: KanbanFilters) => [...dealKeys.all, 'kanban', filters] as const,
   stats: () => [...dealKeys.all, 'stats'] as const,
   activities: (dealId: string) => [...dealKeys.all, 'activities', dealId] as const,
+  proformaReturns: (dealId: string) => [...dealKeys.all, 'proforma-returns', dealId] as const,
 };
 
 // ============================================================================
@@ -528,6 +529,44 @@ export function useAddDealActivity() {
       // Also invalidate deal detail as timeline may have changed
       queryClient.invalidateQueries({ queryKey: dealKeys.detail(variables.dealId) });
     },
+  });
+}
+
+// ============================================================================
+// Proforma Returns (from extracted_values)
+// ============================================================================
+
+export interface ProformaField {
+  field_name: string;
+  value_numeric: number | null;
+  value_text: string | null;
+}
+
+export interface ProformaGroup {
+  category: string;
+  fields: ProformaField[];
+}
+
+export interface ProformaReturnsResponse {
+  deal_id: number;
+  deal_name: string;
+  groups: ProformaGroup[];
+  total: number;
+}
+
+/**
+ * Fetch Proforma-specific extracted values for a deal
+ */
+export function useDealProformaReturns(
+  dealId: string | null,
+  options?: Omit<UseQueryOptions<ProformaReturnsResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery({
+    queryKey: dealKeys.proformaReturns(dealId ?? ''),
+    queryFn: () => get<ProformaReturnsResponse>(`/deals/${dealId}/proforma-returns`),
+    enabled: !!dealId,
+    staleTime: 1000 * 60 * 10, // 10 minutes — extracted data rarely changes
+    ...options,
   });
 }
 
