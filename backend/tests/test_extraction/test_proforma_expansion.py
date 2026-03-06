@@ -199,7 +199,7 @@ class TestPromoteProformaGroups:
 
     def test_build_reference_mapping_has_45_mappings(self):
         """build_reference_mapping should produce exactly 45 cell mappings."""
-        from backend.scripts.promote_proforma_groups import build_reference_mapping
+        from scripts.promote_proforma_groups import build_reference_mapping
 
         result = build_reference_mapping("Proforma-Base")
         assert result["group_name"] == "Proforma-Base"
@@ -210,7 +210,7 @@ class TestPromoteProformaGroups:
 
     def test_promote_groups_dry_run_no_modification(self, tmp_path):
         """dry_run=True should report what would happen without modifying files."""
-        from backend.scripts.promote_proforma_groups import promote_groups
+        from scripts.promote_proforma_groups import promote_groups
 
         # Create a minimal groups.json in a temp location
         groups_data = {
@@ -224,8 +224,8 @@ class TestPromoteProformaGroups:
         groups_file.write_text(json.dumps(groups_data))
 
         with patch(
-            "backend.scripts.promote_proforma_groups.GROUPS_FILE", groups_file
-        ), patch("backend.scripts.promote_proforma_groups.DATA_DIR", tmp_path):
+            "scripts.promote_proforma_groups.GROUPS_FILE", groups_file
+        ), patch("scripts.promote_proforma_groups.DATA_DIR", tmp_path):
             result = promote_groups(dry_run=True)
 
         assert result["promoted"] == 0
@@ -238,7 +238,7 @@ class TestPromoteProformaGroups:
 
     def test_promote_groups_execute_moves_to_active(self, tmp_path):
         """dry_run=False should move deferred groups to active and create mappings."""
-        from backend.scripts.promote_proforma_groups import promote_groups
+        from scripts.promote_proforma_groups import promote_groups
 
         groups_data = {
             "groups": [{"group_name": "Existing", "file_count": 2}],
@@ -256,8 +256,8 @@ class TestPromoteProformaGroups:
         groups_file.write_text(json.dumps(groups_data))
 
         with patch(
-            "backend.scripts.promote_proforma_groups.GROUPS_FILE", groups_file
-        ), patch("backend.scripts.promote_proforma_groups.DATA_DIR", tmp_path):
+            "scripts.promote_proforma_groups.GROUPS_FILE", groups_file
+        ), patch("scripts.promote_proforma_groups.DATA_DIR", tmp_path):
             result = promote_groups(dry_run=False)
 
         assert result["promoted"] == 1
@@ -304,7 +304,7 @@ class TestReferenceMappingFormat:
 
     def test_every_mapping_has_required_keys(self):
         """Each mapping entry must have all 9 required keys."""
-        from backend.scripts.promote_proforma_groups import build_reference_mapping
+        from scripts.promote_proforma_groups import build_reference_mapping
 
         result = build_reference_mapping("TestGroup")
         for i, m in enumerate(result["mappings"]):
@@ -313,7 +313,7 @@ class TestReferenceMappingFormat:
 
     def test_mappings_cover_key_fields(self):
         """Mappings should include the critical financial fields."""
-        from backend.scripts.promote_proforma_groups import build_reference_mapping
+        from scripts.promote_proforma_groups import build_reference_mapping
 
         result = build_reference_mapping("TestGroup")
         field_names = {m["field_name"] for m in result["mappings"]}
