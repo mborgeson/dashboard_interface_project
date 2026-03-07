@@ -98,8 +98,44 @@
       "content": "sorry that was an accident. please continue",
       "added_at": "2026-03-05T22:44:36.183089",
       "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "Consolidated 10 realtime memories down to 0 (all signal merged into the 5 structured memories). Key updates:\n\n- **completed_features**: Added 265,900 values / 250 net-new deals count, CI import fix le",
+      "added_at": "2026-03-06T06:31:44.813363",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Let’s work on the below next steps list in order that the items are presented. 1. Resolve placeholder property names — The 4 placeholder names ([Deal Name], nan, Property, Property Name) represent fil",
+      "added_at": "2026-03-06T06:31:44.813415",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "Consolidated 12 → 5 memories. Merged in: dev:all auto-open Edge, Group Pipeline safeguard plan, extraction layout redesign, Investments detail fix, cross-page review task, DB health stats (597K values",
+      "added_at": "2026-03-06T12:27:06.898344",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "What steps did you just complete?",
+      "added_at": "2026-03-06T12:27:06.898413",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "Here's what I completed:\n\n1. **`npm run dev:all` auto-open Edge** — Created `scripts/open-browser.sh` that waits up to 30s for both backend (port 8000) and frontend (port 5173) to be ready, then opens",
+      "added_at": "2026-03-06T12:33:17.446603",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "As a general comment, whatever design update you made is now causing most of the headers on the right of each page to extend to far to the right and are now cut-off by the right edge of the dashboard ",
+      "added_at": "2026-03-06T12:33:17.446707",
+      "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:50:12.455355",
-  "updated_at": "2026-03-05T22:44:36.183090"
+  "updated_at": "2026-03-06T12:33:17.446715"
 }
