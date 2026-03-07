@@ -1,7 +1,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import type { Property, OperatingYear, OperatingYearExpenses } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatPercent, formatPercentOrNA } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent, formatPercentOrNA, formatCurrencyOrNA } from '@/lib/utils/formatters';
 
 interface OperationsTabProps {
   property: Property;
@@ -235,32 +235,32 @@ export function OperationsTab({ property }: OperationsTabProps) {
               <div className="text-sm font-semibold text-gray-900 border-b border-gray-300 pb-1 mb-1">Revenue</div>
               <div className="flex justify-between text-sm py-1">
                 <span className="text-gray-600 pl-4">Gross Potential Revenue</span>
-                <span className="font-medium">{formatCurrency(property.operations.grossPotentialRevenue)}</span>
+                <span className="font-medium">{formatCurrencyOrNA(property.operations.grossPotentialRevenue)}</span>
               </div>
               <div className="flex justify-between text-sm py-1">
                 <span className="text-gray-600 pl-4">Less: Vacancy Loss</span>
-                <span className="font-medium text-red-600">({formatCurrency(property.operations.vacancyLoss)})</span>
+                <span className="font-medium text-red-600">{property.operations.vacancyLoss ? `(${formatCurrency(property.operations.vacancyLoss)})` : 'N/A'}</span>
               </div>
               <div className="flex justify-between text-sm py-1">
                 <span className="text-gray-600 pl-4">Less: Concessions</span>
-                <span className="font-medium text-red-600">({formatCurrency(property.operations.concessions)})</span>
+                <span className="font-medium text-red-600">{property.operations.concessions ? `(${formatCurrency(property.operations.concessions)})` : 'N/A'}</span>
               </div>
               <div className="flex justify-between text-sm py-1 border-t border-gray-200">
                 <span className="text-gray-700 pl-4 font-medium">Net Rental Income</span>
-                <span className="font-semibold">{formatCurrency(property.operations.netRentalIncome)}</span>
+                <span className="font-semibold">{formatCurrencyOrNA(property.operations.netRentalIncome)}</span>
               </div>
               <div className="flex justify-between text-sm py-1">
                 <span className="text-gray-600 pl-4">Other Income</span>
-                <span className="font-medium">{formatCurrency(property.operations.otherIncomeAnnual)}</span>
+                <span className="font-medium">{formatCurrencyOrNA(property.operations.otherIncomeAnnual)}</span>
               </div>
               <div className="text-sm font-semibold text-gray-900 border-b border-gray-300 pb-1 mb-1 mt-4">Operating Expenses</div>
               <div className="flex justify-between text-sm py-1 border-t border-gray-200">
                 <span className="text-gray-700 pl-4 font-medium">Total Operating Expenses</span>
-                <span className="font-semibold text-red-600">({formatCurrency(property.operations.expenses.total)})</span>
+                <span className="font-semibold text-red-600">{property.operations.expenses.total ? `(${formatCurrency(property.operations.expenses.total)})` : 'N/A'}</span>
               </div>
               <div className="flex justify-between text-sm py-2 border-t-2 border-gray-400 mt-2">
                 <span className="text-gray-900 font-bold">Net Operating Income (NOI)</span>
-                <span className="font-bold text-primary-700 text-base">{formatCurrency(property.operations.noi)}</span>
+                <span className="font-bold text-primary-700 text-base">{formatCurrencyOrNA(property.operations.noi)}</span>
               </div>
             </div>
           )}
@@ -330,7 +330,7 @@ export function OperationsTab({ property }: OperationsTabProps) {
           <CardContent>
             <div className="space-y-3">
               {EXPENSE_LINE_ITEMS.map((item) => {
-                const value = yr1Expenses[item.key] ?? 0;
+                const value = yr1Expenses[item.key] ?? undefined;
                 return (
                   <div key={item.key} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -341,9 +341,9 @@ export function OperationsTab({ property }: OperationsTabProps) {
                       <span className="text-sm text-gray-700">{item.label}</span>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-semibold">{formatCurrency(value)}</div>
+                      <div className="text-sm font-semibold">{formatCurrencyOrNA(value)}</div>
                       <div className="text-xs text-gray-500">
-                        {expenseDetailsTotal > 0 ? formatPercent(value / expenseDetailsTotal) : '0%'} of total
+                        {value && expenseDetailsTotal > 0 ? `${formatPercent(value / expenseDetailsTotal)} of total` : ''}
                       </div>
                     </div>
                   </div>
@@ -353,7 +353,7 @@ export function OperationsTab({ property }: OperationsTabProps) {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-gray-900">Total Expenses</span>
                   <span className="text-sm font-bold text-gray-900">
-                    {formatCurrency(expenseDetailsTotal)}
+                    {formatCurrencyOrNA(expenseDetailsTotal)}
                   </span>
                 </div>
               </div>
@@ -375,12 +375,12 @@ export function OperationsTab({ property }: OperationsTabProps) {
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Average Rent</div>
-              <div className="text-lg font-semibold">{property.operations.averageRent ? `${formatCurrency(property.operations.averageRent)}/month` : 'N/A'}</div>
+              <div className="text-lg font-semibold">{property.operations.averageRent ? `${formatCurrencyOrNA(property.operations.averageRent)}/month` : 'N/A'}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Rent Per Sq Ft</div>
               <div className="text-lg font-semibold">
-                {property.operations.rentPerSqft ? `$${property.operations.rentPerSqft.toFixed(2)}/sq ft` : 'N/A'}
+                {property.operations.rentPerSqft != null && property.operations.rentPerSqft !== 0 ? `$${property.operations.rentPerSqft.toFixed(2)}/sq ft` : 'N/A'}
               </div>
             </div>
             <div>

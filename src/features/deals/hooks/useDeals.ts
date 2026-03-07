@@ -31,7 +31,18 @@ export function useDeals(initialDeals: Deal[]) {
   const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
 
   // Merge API data with any local drag-and-drop overrides
+  // Also prune stale overrides for deals no longer in the list
   const deals = useMemo(() => {
+    const dealIds = new Set(initialDeals.map(d => d.id));
+    const staleKeys = Object.keys(stageOverrides).filter(id => !dealIds.has(id));
+    if (staleKeys.length > 0) {
+      setStageOverrides(prev => {
+        const next = { ...prev };
+        staleKeys.forEach(k => delete next[k]);
+        return next;
+      });
+    }
+
     return initialDeals.map(deal => {
       const override = stageOverrides[deal.id];
       if (override) {
@@ -119,8 +130,8 @@ export function useDeals(initialDeals: Deal[]) {
 
       // Last Sale Price/Unit filter
       const [minPPU, maxPPU] = filters.lastSalePricePerUnitRange;
-      if (minPPU != null && deal.lastSalePricePerUnit < minPPU) return false;
-      if (maxPPU != null && deal.lastSalePricePerUnit > maxPPU) return false;
+      if (minPPU != null && (deal.lastSalePricePerUnit == null || deal.lastSalePricePerUnit < minPPU)) return false;
+      if (maxPPU != null && (deal.lastSalePricePerUnit == null || deal.lastSalePricePerUnit > maxPPU)) return false;
 
       // Last Sale Date filter (year range)
       const [fromYear, toYear] = filters.lastSaleDateRange;
@@ -132,8 +143,8 @@ export function useDeals(initialDeals: Deal[]) {
 
       // Equity Commitment filter
       const [minEq, maxEq] = filters.equityCommitmentRange;
-      if (minEq != null && deal.totalEquityCommitment < minEq) return false;
-      if (maxEq != null && deal.totalEquityCommitment > maxEq) return false;
+      if (minEq != null && (deal.totalEquityCommitment == null || deal.totalEquityCommitment < minEq)) return false;
+      if (maxEq != null && (deal.totalEquityCommitment == null || deal.totalEquityCommitment > maxEq)) return false;
 
       // Search query filter
       if (filters.searchQuery) {
@@ -179,13 +190,13 @@ export function useDeals(initialDeals: Deal[]) {
       0
     );
 
-    const totalUnits = pipelineDeals.reduce((sum, deal) => sum + deal.units, 0);
+    const totalUnits = pipelineDeals.reduce((sum, deal) => sum + (deal.units ?? 0), 0);
 
-    const dealsWithYearBuilt = pipelineDeals.filter((d) => d.yearBuilt != null && d.yearBuilt > 0);
+    const dealsWithYearBuilt = pipelineDeals.filter((d): d is typeof d & { yearBuilt: number } => d.yearBuilt != null && d.yearBuilt > 0);
     const avgVintage =
       dealsWithYearBuilt.length > 0
         ? Math.round(
-            dealsWithYearBuilt.reduce((sum, d) => sum + (d.yearBuilt ?? 0), 0) /
+            dealsWithYearBuilt.reduce((sum, d) => sum + d.yearBuilt, 0) /
               dealsWithYearBuilt.length,
           )
         : null;

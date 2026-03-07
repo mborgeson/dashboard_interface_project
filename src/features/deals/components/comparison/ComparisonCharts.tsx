@@ -33,13 +33,13 @@ const DEAL_COLORS = [
 
 interface BarChartData {
   metric: string;
-  [dealName: string]: string | number;
+  [dealName: string]: string | number | null;
 }
 
 interface RadarChartData {
   metric: string;
   fullMark: number;
-  [dealName: string]: string | number;
+  [dealName: string]: string | number | null;
 }
 
 function fmtPctTick(v: number): string {
@@ -55,34 +55,35 @@ export function ComparisonCharts({
     const metrics = [
       {
         label: 'Cap Rate PP (T12)',
-        getValue: (d: DealForComparison) => (d.t12CapOnPp ? d.t12CapOnPp * 100 : 0),
+        getValue: (d: DealForComparison): number | null => (d.t12CapOnPp != null ? d.t12CapOnPp * 100 : null),
       },
       {
         label: 'Cap Rate TC (T12)',
-        getValue: (d: DealForComparison) => (d.totalCostCapT12 ? d.totalCostCapT12 * 100 : 0),
+        getValue: (d: DealForComparison): number | null => (d.totalCostCapT12 != null ? d.totalCostCapT12 * 100 : null),
       },
       {
         label: 'NOI Margin',
-        getValue: (d: DealForComparison) => (d.noiMargin ? d.noiMargin * 100 : 0),
+        getValue: (d: DealForComparison): number | null => (d.noiMargin != null ? d.noiMargin * 100 : null),
       },
       {
         label: 'Unlevered IRR',
-        getValue: (d: DealForComparison) => (d.unleveredIrr ? d.unleveredIrr * 100 : 0),
+        getValue: (d: DealForComparison): number | null => (d.unleveredIrr != null ? d.unleveredIrr * 100 : null),
       },
       {
         label: 'Levered IRR',
-        getValue: (d: DealForComparison) => (d.leveredIrr ? d.leveredIrr * 100 : 0),
+        getValue: (d: DealForComparison): number | null => (d.leveredIrr != null ? d.leveredIrr * 100 : null),
       },
       {
         label: 'LP IRR',
-        getValue: (d: DealForComparison) => (d.lpIrr ? d.lpIrr * 100 : 0),
+        getValue: (d: DealForComparison): number | null => (d.lpIrr != null ? d.lpIrr * 100 : null),
       },
     ];
 
     return metrics.map((metric) => {
       const dataPoint: BarChartData = { metric: metric.label };
       deals.forEach((deal) => {
-        dataPoint[deal.propertyName] = Number(metric.getValue(deal).toFixed(2));
+        const val = metric.getValue(deal);
+        dataPoint[deal.propertyName] = val != null ? Number(val.toFixed(2)) : null;
       });
       return dataPoint;
     });
@@ -95,34 +96,37 @@ export function ComparisonCharts({
     const metrics = [
       {
         label: 'Cap Rate PP',
-        getValue: (d: DealForComparison) => (d.t12CapOnPp ? d.t12CapOnPp * 100 : 0),
+        getValue: (d: DealForComparison): number | null => (d.t12CapOnPp != null ? d.t12CapOnPp * 100 : null),
       },
       {
         label: 'Cap Rate TC',
-        getValue: (d: DealForComparison) => (d.totalCostCapT12 ? d.totalCostCapT12 * 100 : 0),
+        getValue: (d: DealForComparison): number | null => (d.totalCostCapT12 != null ? d.totalCostCapT12 * 100 : null),
       },
       {
         label: 'NOI Margin',
-        getValue: (d: DealForComparison) => (d.noiMargin ? d.noiMargin * 100 : 0),
+        getValue: (d: DealForComparison): number | null => (d.noiMargin != null ? d.noiMargin * 100 : null),
       },
       {
         label: 'Unlevered IRR',
-        getValue: (d: DealForComparison) => (d.unleveredIrr ? d.unleveredIrr * 100 : 0),
+        getValue: (d: DealForComparison): number | null => (d.unleveredIrr != null ? d.unleveredIrr * 100 : null),
       },
       {
         label: 'Units',
-        getValue: (d: DealForComparison) => d.units ?? 0,
+        getValue: (d: DealForComparison): number | null => d.units ?? null,
+        skip: (deals: DealForComparison[]) => deals.every(d => d.units == null),
       },
       {
         label: 'Basis/Unit',
-        getValue: (d: DealForComparison) => d.basisPerUnit ?? 0,
+        getValue: (d: DealForComparison): number | null => d.basisPerUnit ?? null,
+        skip: (deals: DealForComparison[]) => deals.every(d => d.basisPerUnit == null),
       },
     ];
 
-    return metrics.map((metric) => {
-      const values = deals.map((d) => metric.getValue(d));
-      const min = Math.min(...values);
-      const max = Math.max(...values);
+    return metrics.filter(m => !m.skip?.(deals)).map((metric) => {
+      const rawValues = deals.map((d) => metric.getValue(d));
+      const validValues = rawValues.filter((v): v is number => v != null);
+      const min = validValues.length > 0 ? Math.min(...validValues) : 0;
+      const max = validValues.length > 0 ? Math.max(...validValues) : 0;
 
       const dataPoint: RadarChartData = {
         metric: metric.label,
@@ -131,8 +135,12 @@ export function ComparisonCharts({
 
       deals.forEach((deal) => {
         const rawValue = metric.getValue(deal);
-        const normalized = max === min ? 50 : ((rawValue - min) / (max - min)) * 100;
-        dataPoint[deal.propertyName] = Number(normalized.toFixed(1));
+        if (rawValue == null) {
+          dataPoint[deal.propertyName] = null;
+        } else {
+          const normalized = max === min ? 50 : ((rawValue - min) / (max - min)) * 100;
+          dataPoint[deal.propertyName] = Number(normalized.toFixed(1));
+        }
       });
 
       return dataPoint;
@@ -192,7 +200,10 @@ export function ComparisonCharts({
                   fontSize: '12px',
                   boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 }}
-                formatter={(value: number) => [`${value.toFixed(2)}%`, '']}
+                formatter={(value) => {
+                  const num = typeof value === 'number' ? value : null;
+                  return [num != null ? `${num.toFixed(2)}%` : 'N/A', ''];
+                }}
               />
               <Legend
                 wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
@@ -258,7 +269,10 @@ export function ComparisonCharts({
                   fontSize: '12px',
                   boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 }}
-                formatter={(value: number) => `${value.toFixed(1)} (normalized)`}
+                formatter={(value) => {
+                  const num = typeof value === 'number' ? value : null;
+                  return num != null ? `${num.toFixed(1)} (normalized)` : 'N/A';
+                }}
               />
             </RadarChart>
           </ResponsiveContainer>

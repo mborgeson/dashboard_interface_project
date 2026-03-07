@@ -7,12 +7,16 @@ interface KPICardProps {
   trend?: number;
   format?: 'currency' | 'percentage' | 'number' | 'decimal';
   description?: string;
+  /** When true (default), zero numeric values display as "N/A".
+   *  Set to false for count-type metrics where 0 is a valid display value. */
+  treatZeroAsNA?: boolean;
 }
 
-export function KPICard({ title, value, trend, format = 'number', description }: KPICardProps) {
+export function KPICard({ title, value, trend, format = 'number', description, treatZeroAsNA = true }: KPICardProps) {
   const formatValue = (val: string | number): string => {
     if (typeof val === 'string') return val;
-    if (val == null || val === 0) return 'N/A';
+    if (val == null) return 'N/A';
+    if (val === 0 && treatZeroAsNA) return 'N/A';
 
     switch (format) {
       case 'currency':

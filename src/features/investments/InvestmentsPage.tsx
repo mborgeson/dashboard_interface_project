@@ -4,7 +4,7 @@ import { Grid3x3, List } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
-import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
+import { formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
 import { PropertyFilters } from './components/PropertyFilters';
 import { PropertyCard } from './components/PropertyCard';
 import { PropertyTable } from './components/PropertyTable';
@@ -49,7 +49,8 @@ export function InvestmentsPage() {
 
     const totalProperties = properties.length;
     const totalUnits = properties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
-    const totalValue = properties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
+    const propertiesWithValue = properties.filter(p => p.valuation.currentValue > 0);
+    const totalValue = propertiesWithValue.reduce((sum, p) => sum + p.valuation.currentValue, 0);
     const propertiesWithOccupancy = properties.filter(p => p.operations.occupancy > 0);
     const avgOccupancy = propertiesWithOccupancy.length > 0
       ? propertiesWithOccupancy.reduce((sum, p) => sum + p.operations.occupancy, 0) / propertiesWithOccupancy.length
@@ -337,7 +338,7 @@ export function InvestmentsPage() {
             <CardTitle className="text-sm font-medium">Total Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summaryStats.totalValue, true)}</div>
+            <div className="text-2xl font-bold">{formatCurrencyOrNA(summaryStats.totalValue, true)}</div>
             <p className="text-xs text-muted-foreground">
               Current portfolio value
             </p>
@@ -349,7 +350,7 @@ export function InvestmentsPage() {
             <CardTitle className="text-sm font-medium">Avg Occupancy</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercent(summaryStats.avgOccupancy)}</div>
+            <div className="text-2xl font-bold">{formatPercentOrNA(summaryStats.avgOccupancy)}</div>
             <p className="text-xs text-muted-foreground">
               Portfolio average
             </p>

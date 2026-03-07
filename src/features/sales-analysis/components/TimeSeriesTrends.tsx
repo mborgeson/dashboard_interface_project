@@ -56,13 +56,23 @@ function aggregateData(
     groups.get(key)!.push(point);
   }
 
-  return Array.from(groups.entries()).map(([period, points]) => ({
-    period,
-    count: points.reduce((s, p) => s + p.count, 0),
-    totalVolume: points.reduce((s, p) => s + p.totalVolume, 0),
-    avgPricePerUnit:
-      points.reduce((s, p) => s + (p.avgPricePerUnit ?? 0), 0) / points.length,
-  }));
+  return Array.from(groups.entries()).map(([period, points]) => {
+    // Filter out null avgPricePerUnit values before averaging to avoid
+    // diluting the average with zeros (which would plot misleading chart data)
+    const validPrices = points
+      .map((p) => p.avgPricePerUnit)
+      .filter((v): v is number => v != null && v > 0);
+
+    return {
+      period,
+      count: points.reduce((s, p) => s + p.count, 0),
+      totalVolume: points.reduce((s, p) => s + p.totalVolume, 0),
+      avgPricePerUnit:
+        validPrices.length > 0
+          ? validPrices.reduce((s, v) => s + v, 0) / validPrices.length
+          : null,
+    };
+  });
 }
 
 export function TimeSeriesTrends({ data, isLoading }: TimeSeriesTrendsProps) {

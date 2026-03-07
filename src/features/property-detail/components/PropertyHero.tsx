@@ -1,6 +1,6 @@
 import { Building2, MapPin, Calendar, TrendingUp } from 'lucide-react';
 import type { Property } from '@/types';
-import { formatPercentOrNA, formatCurrencyOrNA, formatNumberOrNA } from '@/lib/utils/formatters';
+import { formatPercentOrNA, formatCurrencyOrNA, formatNumberOrNA, shortPropertyName } from '@/lib/utils/formatters';
 import { LazyImage } from '@/components/ui/LazyImage';
 
 interface PropertyHeroProps {
@@ -53,7 +53,7 @@ export function PropertyHero({ property }: PropertyHeroProps) {
           {/* Header */}
           <div>
             <div className="flex items-start justify-between mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">{property.name}</h1>
+              <h1 className="text-3xl font-bold text-gray-900">{shortPropertyName(property.name)}</h1>
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${getClassColor(property.propertyDetails.propertyClass)}`}>
                 Class {property.propertyDetails.propertyClass}
               </span>

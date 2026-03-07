@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search } from 'lucide-react';
+import { shortPropertyName } from '@/lib/utils/formatters';
 import type { DocumentType } from '@/types/document';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 
@@ -84,7 +85,7 @@ export function DocumentFilters({
             <SelectItem value="all">All Properties</SelectItem>
             {properties.map((property) => (
               <SelectItem key={property.id} value={property.id}>
-                {property.name}
+                {shortPropertyName(property.name)}
               </SelectItem>
             ))}
           </SelectContent>

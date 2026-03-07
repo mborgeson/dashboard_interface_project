@@ -1,15 +1,10 @@
 import { Calendar, DollarSign, TrendingUp } from 'lucide-react';
 import type { Property } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatPercent, formatDate, formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
 
 interface FinancialsTabProps {
   property: Property;
-}
-
-function formatRate(value: number, decimals: number = 2): string {
-  if (!value) return 'N/A';
-  return `${(value * 100).toFixed(decimals)}%`;
 }
 
 export function FinancialsTab({ property }: FinancialsTabProps) {
@@ -77,7 +72,7 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Interest Rate</div>
-              <div className="text-lg font-semibold">{formatRate(property.financing.interestRate)}</div>
+              <div className="text-lg font-semibold">{formatPercentOrNA(property.financing.interestRate, 2)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Loan Term</div>
@@ -119,7 +114,7 @@ export function FinancialsTab({ property }: FinancialsTabProps) {
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-sm text-green-600 mb-1">Appreciation Since Acquisition</div>
-              <div className="text-2xl font-bold text-green-900">{property.valuation.appreciationSinceAcquisition ? `+${formatPercent(property.valuation.appreciationSinceAcquisition)}` : 'N/A'}</div>
+              <div className="text-2xl font-bold text-green-900">{property.valuation.appreciationSinceAcquisition ? `+${formatPercentOrNA(property.valuation.appreciationSinceAcquisition)}` : 'N/A'}</div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Last Appraisal Date</div>

@@ -1,7 +1,7 @@
 import { Building2, Users, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
+import { formatCurrencyOrNA, formatPercentOrNA, shortPropertyName } from '@/lib/utils/formatters';
 import type { Property } from '@/types';
 
 interface PropertyCardProps {
@@ -36,7 +36,7 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
 
       {/* Card Header */}
       <CardHeader className="space-y-1">
-        <h3 className="text-lg font-semibold leading-tight">{property.name}</h3>
+        <h3 className="text-lg font-semibold leading-tight">{shortPropertyName(property.name)}</h3>
         <p className="text-sm text-muted-foreground">
           {property.address.street}
           <br />

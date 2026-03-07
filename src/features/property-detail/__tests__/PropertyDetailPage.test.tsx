@@ -883,20 +883,21 @@ describe('PerformanceTab', () => {
     expect(dashes.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('shows -- when exit metrics are null', () => {
+  it('shows N/A when exit metrics are null/zero', () => {
     const noExitProp = {
       ...mockProperty,
       performance: {
         ...mockProperty.performance,
         totalBasisPerUnitExit: null,
         seniorLoanBasisPerUnitExit: null,
-        exitCapRate: 0, // 0 is falsy -> '--'
+        exitCapRate: 0, // 0 -> 'N/A' via formatPercentOrNA
       },
     };
     render(<PerformanceTab property={noExitProp} />);
 
-    const dashes = screen.getAllByText('--');
-    expect(dashes.length).toBeGreaterThanOrEqual(3);
+    const naTexts = screen.getAllByText('N/A');
+    // exitCapRate, totalBasisPerUnitExit, seniorLoanBasisPerUnitExit all show N/A
+    expect(naTexts.length).toBeGreaterThanOrEqual(3);
   });
 });
 
@@ -1059,5 +1060,217 @@ describe('TransactionsTab', () => {
 
     expect(screen.getByText('Transaction History')).toBeInTheDocument();
     expect(screen.getByText('Initial property acquisition')).toBeInTheDocument();
+  });
+});
+
+// ============================================================================
+// Regression: Missing Data → N/A (not "$0" / "0.0%")
+// ============================================================================
+
+describe('Missing data displays N/A, not "$0" or "0.0%"', () => {
+  /** Property with all financial/operational data set to 0 (missing). */
+  const missingDataProperty: Property = {
+    ...mockProperty,
+    valuation: {
+      currentValue: 0,
+      lastAppraisalDate: new Date('2024-01-15'),
+      capRate: 0,
+      appreciationSinceAcquisition: 0,
+    },
+    operations: {
+      ...mockProperty.operations,
+      occupancy: 0,
+      noi: 0,
+      averageRent: 0,
+      rentPerSqft: 0,
+      monthlyRevenue: 0,
+      operatingExpenseRatio: 0,
+    },
+    performance: {
+      ...mockProperty.performance,
+      leveredIrr: 0,
+      leveredMoic: 0,
+      unleveredIrr: 0,
+      unleveredMoic: 0,
+      totalEquityCommitment: 0,
+      totalCashFlowsToEquity: 0,
+      netCashFlowsToEquity: 0,
+      exitCapRate: 0,
+      totalBasisPerUnitClose: 0,
+      seniorLoanBasisPerUnitClose: 0,
+      totalBasisPerUnitExit: 0,
+      seniorLoanBasisPerUnitExit: 0,
+    },
+  };
+
+  describe('OverviewTab with missing data', () => {
+    it('shows N/A for current value when 0', () => {
+      render(<OverviewTab property={missingDataProperty} />);
+      const valueLabel = screen.getByText('Current Value');
+      const card = valueLabel.closest('[class*="card"]') || valueLabel.parentElement?.parentElement;
+      // The card should contain N/A, not $0
+      const cardContent = card?.parentElement?.textContent ?? '';
+      expect(cardContent).toContain('N/A');
+      expect(cardContent).not.toMatch(/\$0(?!\d)/); // no "$0" (but allow "$0.xx")
+    });
+
+    it('shows N/A for NOI when 0', () => {
+      render(<OverviewTab property={missingDataProperty} />);
+      const noiLabel = screen.getByText('Annual NOI');
+      const card = noiLabel.closest('[class*="card"]') || noiLabel.parentElement?.parentElement;
+      const cardContent = card?.parentElement?.textContent ?? '';
+      expect(cardContent).toContain('N/A');
+    });
+
+    it('shows N/A for cap rate when 0', () => {
+      render(<OverviewTab property={missingDataProperty} />);
+      const capLabel = screen.getByText('Cap Rate');
+      const card = capLabel.closest('[class*="card"]') || capLabel.parentElement?.parentElement;
+      const cardContent = card?.parentElement?.textContent ?? '';
+      expect(cardContent).toContain('N/A');
+    });
+
+    it('shows N/A for occupancy when 0', () => {
+      render(<OverviewTab property={missingDataProperty} />);
+      const occLabel = screen.getByText('T12 Occupancy');
+      const card = occLabel.closest('[class*="card"]') || occLabel.parentElement?.parentElement;
+      const cardContent = card?.parentElement?.textContent ?? '';
+      expect(cardContent).toContain('N/A');
+    });
+
+    it('shows "No occupancy data" subtext when occupancy is 0', () => {
+      render(<OverviewTab property={missingDataProperty} />);
+      expect(screen.getByText('No occupancy data')).toBeInTheDocument();
+    });
+
+    it('shows "No NOI data" subtext when NOI is 0', () => {
+      render(<OverviewTab property={missingDataProperty} />);
+      expect(screen.getByText('No NOI data')).toBeInTheDocument();
+    });
+  });
+
+  describe('FinancialsTab with missing data', () => {
+    it('shows N/A for acquisition costs when 0', () => {
+      const prop: Property = {
+        ...missingDataProperty,
+        acquisition: {
+          ...missingDataProperty.acquisition,
+          landAndAcquisitionCosts: 0,
+          hardCosts: 0,
+          softCosts: 0,
+          lenderClosingCosts: 0,
+          equityClosingCosts: 0,
+          totalAcquisitionBudget: 0,
+        },
+      };
+      render(<FinancialsTab property={prop} />);
+
+      // All acquisition cost fields should show N/A
+      const naTexts = screen.getAllByText('N/A');
+      expect(naTexts.length).toBeGreaterThanOrEqual(6);
+    });
+
+    it('shows N/A for financing fields when 0', () => {
+      const prop: Property = {
+        ...missingDataProperty,
+        financing: {
+          ...missingDataProperty.financing,
+          loanAmount: 0,
+          loanToValue: 0,
+          interestRate: 0,
+          monthlyPayment: 0,
+        },
+      };
+      render(<FinancialsTab property={prop} />);
+
+      // Loan amount, LTV, monthly payment should be N/A
+      const naTexts = screen.getAllByText('N/A');
+      expect(naTexts.length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('PerformanceTab with missing data', () => {
+    it('shows N/A for levered IRR when 0', () => {
+      render(<PerformanceTab property={missingDataProperty} />);
+      const irrLabel = screen.getByText('IRR (Levered)');
+      const card = irrLabel.closest('[class*="card"]') || irrLabel.parentElement?.parentElement;
+      const cardContent = card?.parentElement?.textContent ?? '';
+      expect(cardContent).toContain('N/A');
+      expect(cardContent).not.toContain('0.0%');
+    });
+
+    it('shows -- for unlevered IRR when 0', () => {
+      render(<PerformanceTab property={missingDataProperty} />);
+      const unlIrrLabel = screen.getByText('IRR (Unlevered)');
+      const card = unlIrrLabel.closest('[class*="card"]') || unlIrrLabel.parentElement?.parentElement;
+      const cardContent = card?.parentElement?.textContent ?? '';
+      expect(cardContent).toContain('--');
+    });
+
+    it('shows -- for MOIC values when 0', () => {
+      render(<PerformanceTab property={missingDataProperty} />);
+      const dashes = screen.getAllByText('--');
+      // At least levered MOIC, unlevered MOIC, exit cap rate, exit basis values
+      expect(dashes.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('shows N/A for equity commitment when 0', () => {
+      render(<PerformanceTab property={missingDataProperty} />);
+      const equityLabel = screen.getByText('Total Equity Commitment');
+      const container = equityLabel.parentElement;
+      const value = container?.querySelector('.text-2xl');
+      expect(value?.textContent).toBe('N/A');
+    });
+  });
+
+  describe('PropertyHero with missing data', () => {
+    it('shows N/A for current value when 0', () => {
+      render(<PropertyHero property={missingDataProperty} />);
+      const valueLabel = screen.getByText('Current Value');
+      const valueContainer = valueLabel.parentElement;
+      const value = valueContainer?.querySelector('.text-xl');
+      expect(value?.textContent).toBe('N/A');
+    });
+
+    it('shows N/A for occupancy when 0', () => {
+      render(<PropertyHero property={missingDataProperty} />);
+      const occLabel = screen.getByText('Occupancy');
+      const occContainer = occLabel.parentElement;
+      // Should show N/A without the progress bar
+      expect(occContainer?.textContent).toContain('N/A');
+    });
+
+    it('does not render occupancy progress bar when occupancy is 0', () => {
+      const { container } = render(<PropertyHero property={missingDataProperty} />);
+      // The progress bar div has bg-green-600 class
+      const progressBar = container.querySelector('.bg-green-600.rounded-full.h-2');
+      expect(progressBar).not.toBeInTheDocument();
+    });
+  });
+
+  describe('OperationsTab with missing data', () => {
+    it('shows N/A for T12 occupancy when 0', () => {
+      render(<OperationsTab property={missingDataProperty} />);
+      const occLabel = screen.getByText('T12 Occupancy Rate');
+      const occContainer = occLabel.parentElement;
+      const value = occContainer?.querySelector('.text-lg');
+      expect(value?.textContent).toBe('N/A');
+    });
+
+    it('shows N/A for average rent when 0', () => {
+      render(<OperationsTab property={missingDataProperty} />);
+      const rentLabel = screen.getByText('Average Rent');
+      const rentContainer = rentLabel.parentElement;
+      const value = rentContainer?.querySelector('.text-lg');
+      expect(value?.textContent).toBe('N/A');
+    });
+
+    it('shows N/A for occupied units when occupancy is 0', () => {
+      render(<OperationsTab property={missingDataProperty} />);
+      const unitsLabel = screen.getByText('Occupied Units');
+      const unitsContainer = unitsLabel.parentElement;
+      const value = unitsContainer?.querySelector('.text-lg');
+      expect(value?.textContent).toBe('N/A');
+    });
   });
 });

@@ -48,7 +48,7 @@ interface UwMetricRow {
 const UW_METRICS: UwMetricRow[] = [
   {
     label: 'Units / Avg SF',
-    getValue: (d) => `${d.units || 'N/A'} / ${d.avgUnitSf || 'N/A'} SF`,
+    getValue: (d) => `${d.units != null ? d.units : 'N/A'} / ${d.avgUnitSf != null ? d.avgUnitSf : 'N/A'} SF`,
   },
   {
     label: 'Total Loss Factor (T12)',

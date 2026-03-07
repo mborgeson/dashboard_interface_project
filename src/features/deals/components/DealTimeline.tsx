@@ -8,8 +8,8 @@ interface DealTimelineProps {
 }
 
 export function DealTimeline({ deals }: DealTimelineProps) {
-  const formatCurrency = (value: number) => {
-    if (value === 0) return '—';
+  const formatCurrency = (value: number | undefined | null) => {
+    if (value == null || value === 0) return '—';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -19,8 +19,8 @@ export function DealTimeline({ deals }: DealTimelineProps) {
   };
 
   /** Format as "$22.0M" style with exactly one decimal for millions */
-  const formatDealValue = (value: number) => {
-    if (value === 0) return '—';
+  const formatDealValue = (value: number | undefined | null) => {
+    if (value == null || value === 0) return '—';
     if (Math.abs(value) >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
     if (Math.abs(value) >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
     if (Math.abs(value) >= 1e3) return `$${(value / 1e3).toFixed(0)}K`;
@@ -28,18 +28,18 @@ export function DealTimeline({ deals }: DealTimelineProps) {
   };
 
   /** Format equity commitment as compact dollar value */
-  const formatEquity = (value: number) => {
-    if (value === 0) return '—';
+  const formatEquity = (value: number | undefined | null) => {
+    if (value == null || value === 0) return '—';
     return formatDealValue(value);
   };
 
-  const formatPercent = (value: number) => {
-    if (value === 0) return '—';
+  const formatPercent = (value: number | undefined | null) => {
+    if (value == null) return '—';
     return `${(value * 100).toFixed(1)}%`;
   };
 
-  const formatNumber = (value: number) => {
-    if (value === 0) return '—';
+  const formatNumber = (value: number | undefined | null) => {
+    if (value == null || value === 0) return '—';
     return new Intl.NumberFormat('en-US', {
       maximumFractionDigits: 0,
     }).format(value);
@@ -57,7 +57,7 @@ export function DealTimeline({ deals }: DealTimelineProps) {
    * Format last sale date — handles ISO strings and Excel serial dates.
    * Excel serial date = days since 1900-01-01 (with the famous Excel bug).
    */
-  const formatLastSaleDate = (raw: string): string => {
+  const formatLastSaleDate = (raw: string | undefined | null): string => {
     if (!raw) return '—';
 
     // If it looks like a pure number (Excel serial date)
@@ -150,7 +150,7 @@ export function DealTimeline({ deals }: DealTimelineProps) {
                     <span>Avg Unit SF</span>
                   </div>
                   <div className="text-lg font-semibold text-neutral-900">
-                    {deal.avgUnitSf > 0 ? `${formatNumber(deal.avgUnitSf)} SF` : '—'}
+                    {deal.avgUnitSf != null && deal.avgUnitSf > 0 ? `${formatNumber(deal.avgUnitSf)} SF` : '—'}
                   </div>
                 </div>
                 <div>

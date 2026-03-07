@@ -1,4 +1,5 @@
 import { useState, useMemo, lazy, Suspense } from 'react';
+import { shortPropertyName } from '@/lib/utils/formatters';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { Button } from '@/components/ui/button';
 import { Download, Calendar } from 'lucide-react';
@@ -106,10 +107,11 @@ export function AnalyticsPage() {
     return properties.reduce((sum, p) => sum + p.operations.noi, 0);
   }, [properties]);
 
-  // Current average occupancy (no historical time-series data available)
+  // Current average occupancy — exclude properties with 0 occupancy (missing data)
   const avgOccupancy = useMemo(() => {
-    if (properties.length === 0) return 0;
-    return properties.reduce((sum, p) => sum + p.operations.occupancy, 0) / properties.length;
+    const withOccupancy = properties.filter(p => p.operations.occupancy > 0);
+    if (withOccupancy.length === 0) return 0;
+    return withOccupancy.reduce((sum, p) => sum + p.operations.occupancy, 0) / withOccupancy.length;
   }, [properties]);
 
 
@@ -126,27 +128,31 @@ export function AnalyticsPage() {
       .sort((a, b) => a.class.localeCompare(b.class));
   }, [properties]);
 
-  // NOI by submarket
+  // NOI by submarket — exclude properties with 0 NOI (missing data)
   const noiBySubmarket = useMemo(() => {
-    const submarketMap = properties.reduce((acc, p) => {
-      const submarket = p.address.submarket;
-      acc[submarket] = (acc[submarket] || 0) + p.operations.noi;
-      return acc;
-    }, {} as Record<string, number>);
+    const submarketMap = properties
+      .filter(p => p.operations.noi > 0)
+      .reduce((acc, p) => {
+        const submarket = p.address.submarket;
+        acc[submarket] = (acc[submarket] || 0) + p.operations.noi;
+        return acc;
+      }, {} as Record<string, number>);
 
     return Object.entries(submarketMap)
       .map(([submarket, noi]) => ({ submarket, noi }))
       .sort((a, b) => b.noi - a.noi);
   }, [properties]);
 
-  // Property performance comparison
+  // Property performance comparison — exclude properties with no financial data
   const propertyPerformance = useMemo(() => {
-    return properties.map(p => ({
-      name: p.name,
-      irr: p.performance.leveredIrr,
-      cashOnCash: calcCashOnCash(p),
-      capRate: p.valuation.capRate,
-    }));
+    return properties
+      .filter(p => p.performance.leveredIrr !== 0 || p.valuation.capRate !== 0 || calcCashOnCash(p) !== 0)
+      .map(p => ({
+        name: p.name,
+        irr: p.performance.leveredIrr,
+        cashOnCash: calcCashOnCash(p),
+        capRate: p.valuation.capRate,
+      }));
   }, [properties]);
 
   // Cap Rate vs DSCR data for property analysis
@@ -251,8 +257,11 @@ export function AnalyticsPage() {
         default: return 0;
       }
     });
-    const max = Math.max(...values);
-    const min = Math.min(...values);
+    // Exclude zero values (missing data) from best/worst determination
+    const nonZero = values.filter(v => v !== 0);
+    if (nonZero.length === 0) return { max: 0, min: 0 };
+    const max = Math.max(...nonZero);
+    const min = Math.min(...nonZero);
     return { max, min };
   };
 
@@ -485,7 +494,7 @@ export function AnalyticsPage() {
               <TableBody>
                 {sortedProperties.map((property) => (
                   <TableRow key={property.id}>
-                    <TableCell className="font-medium">{property.name}</TableCell>
+                    <TableCell className="font-medium">{shortPropertyName(property.name)}</TableCell>
                     <TableCell>
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
                         Class {property.propertyDetails.propertyClass}

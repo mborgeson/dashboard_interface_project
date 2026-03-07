@@ -255,10 +255,10 @@ export function ComparisonSelector({
                     <div className="text-right">
                       <div className="flex items-center gap-1 font-semibold text-neutral-900">
                         <DollarSign className="w-4 h-4" />
-                        {formatCurrency(deal.value)}
+                        {deal.value ? formatCurrency(deal.value) : 'N/A'}
                       </div>
                       <div className="text-sm text-neutral-600">
-                        {deal.capRate.toFixed(1)}% Cap Rate
+                        {deal.capRate > 0 ? `${deal.capRate.toFixed(1)}% Cap Rate` : 'N/A'}
                       </div>
                     </div>
                   </div>

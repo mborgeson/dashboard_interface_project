@@ -1,4 +1,5 @@
 import { Search, X } from 'lucide-react';
+import { shortPropertyName } from '@/lib/utils/formatters';
 import type { TransactionType } from '@/types';
 import type { TransactionFilters } from '../hooks/useTransactionFilters';
 
@@ -83,7 +84,7 @@ export function TransactionFilters({
             <option value="">All Properties</option>
             {properties.map((property) => (
               <option key={property.id} value={property.id}>
-                {property.name}
+                {shortPropertyName(property.name)}
               </option>
             ))}
           </select>

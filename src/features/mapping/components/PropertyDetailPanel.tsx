@@ -1,7 +1,7 @@
 import { X, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Property } from '@/types';
-import { formatCurrencyOrNA, formatPercentOrNA, formatNumberOrNA } from '@/lib/utils/formatters';
+import { formatCurrencyOrNA, formatPercentOrNA, formatNumberOrNA, shortPropertyName } from '@/lib/utils/formatters';
 
 interface PropertyDetailPanelProps {
   property: Property;
@@ -28,7 +28,7 @@ export function PropertyDetailPanel({ property, onClose }: PropertyDetailPanelPr
       <div className="p-6 space-y-6">
         {/* Property Info */}
         <div>
-          <h2 className="text-xl font-bold text-neutral-900 mb-1">{property.name}</h2>
+          <h2 className="text-xl font-bold text-neutral-900 mb-1">{shortPropertyName(property.name)}</h2>
           <p className="text-sm text-neutral-600">
             {property.address.street}
             <br />
@@ -106,7 +106,7 @@ export function PropertyDetailPanel({ property, onClose }: PropertyDetailPanelPr
 
         {/* View Details Button */}
         <Link
-          to="/investments"
+          to={`/properties/${property.id}`}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
         >
           <span className="font-medium">View Full Details</span>

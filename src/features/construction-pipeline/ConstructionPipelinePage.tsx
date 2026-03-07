@@ -170,10 +170,10 @@ export function ConstructionPipelinePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {item ? numFmt.format(item.totalUnits) : '0'}
+                    {item ? numFmt.format(item.totalUnits) : '--'}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {item?.projectCount ?? 0} project{(item?.projectCount ?? 0) !== 1 ? 's' : ''}
+                    {item ? `${item.projectCount} project${item.projectCount !== 1 ? 's' : ''}` : 'No data'}
                   </p>
                 </CardContent>
               </Card>

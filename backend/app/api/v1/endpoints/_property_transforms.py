@@ -20,13 +20,70 @@ def _decimal_to_float(value: Decimal | None) -> float | None:
 
 
 def _is_placeholder(val: str | None) -> bool:
-    """Check if a string is a bracket placeholder like [Year Built] or 'Zip Code'."""
+    """Check if a string is a bracket placeholder or generic label."""
     if not val:
         return True
     val = val.strip()
     if val.startswith("[") and val.endswith("]"):
         return True
-    return val in ("Zip Code", "00000", "[County]", "[Market (MSA)]", "[Submarket]")
+    val_lower = val.lower()
+    _BAD_VALUES = {
+        "zip code",
+        "00000",
+        "unknown",
+        "n/a",
+        "na",
+        "none",
+        "tbd",
+        "[county]",
+        "[market (msa)]",
+        "[submarket]",
+        "[city]",
+        "[state]",
+        "[zip]",
+        "[address]",
+        "city",
+        "state",
+        "county",
+    }
+    return val_lower in _BAD_VALUES
+
+
+# Values that are valid submarkets but should not be used as city names
+_SUBMARKET_NOT_CITY = {
+    "deer valley",
+    "east valley",
+    "north phoenix",
+    "south west valley",
+    "north west valley",
+    "downtown phoenix",
+    "old town scottsdale",
+    "chandler",
+    "gilbert",  # these are valid cities AND submarkets -- keep them
+}
+# Remove actual AZ cities from the set (they ARE valid as both)
+_SUBMARKET_NOT_CITY -= {"chandler", "gilbert", "tempe", "mesa", "scottsdale", "peoria"}
+
+
+def _is_placeholder_city(val: str | None) -> bool:
+    """Check if a value is a placeholder OR a submarket being misused as a city."""
+    if _is_placeholder(val):
+        return True
+    val_lower = val.strip().lower() if val else ""
+    # Also catch submarkets and other non-city values used as city
+    _CITY_BAD_VALUES = {
+        "acquisition",
+        "disposition",
+        "refinance",
+        "deer valley",
+        "east valley",
+        "north phoenix",
+        "south west valley",
+        "north west valley",
+        "downtown phoenix",
+        "old town scottsdale",
+    }
+    return val_lower in _CITY_BAD_VALUES
 
 
 def _clean_str(val: str | None, default: str = "") -> str:
@@ -242,9 +299,22 @@ def _compute_unit_economics(
     loan_amount = fin.get("loanAmount") or 0
     total_invested = acq.get("totalAcquisitionBudget") or purchase_price
 
-    # NOI in DB is annual per-unit — multiply by units for total annual NOI
-    noi_per_unit = _decimal_to_float(prop.noi) or ops.get("noiYear1") or 0
-    annual_noi = noi_per_unit * total_units if noi_per_unit and total_units else 0
+    # NOI: prop.noi is per-unit, ops.totalOperatingExpenses is per-unit,
+    # ops.noiYear1 is unreliable (often negative extraction artifact).
+    noi_per_unit = _decimal_to_float(prop.noi) or 0
+    if noi_per_unit and total_units:
+        annual_noi = noi_per_unit * total_units
+    else:
+        # Try computing from total revenue minus per-unit expenses * units
+        total_revenue = ops.get("totalRevenueYear1") or 0
+        per_unit_opex = ops.get("totalOperatingExpenses") or 0
+        if total_revenue and per_unit_opex and total_units:
+            annual_noi = total_revenue - (per_unit_opex * total_units)
+        else:
+            # Last resort: noiYear1 — but only if positive (negative values
+            # are extraction artifacts, not real NOI)
+            noi_y1 = ops.get("noiYear1") or 0
+            annual_noi = noi_y1 if noi_y1 > 0 else 0
 
     # Cap rate = annual NOI / purchase price
     cap_rate = _decimal_to_float(prop.cap_rate) or 0
@@ -299,13 +369,23 @@ def _resolve_address(
             name_city = m.group(1).strip()
             name_state = m.group(2).strip()
 
-    clean_city = _clean_str(prop.city, name_city or "Phoenix")
+    # Use _is_placeholder_city for city (catches submarkets misused as cities)
+    # Also filter the fallback itself — name may contain "(Unknown, AZ)"
+    city_fallback = (
+        name_city if (name_city and not _is_placeholder_city(name_city)) else "Phoenix"
+    )
+    clean_city = (
+        city_fallback
+        if _is_placeholder_city(prop.city)
+        else (prop.city or city_fallback)
+    )
     clean_state = _clean_str(prop.state, name_state or "AZ")
     clean_zip = _clean_str(prop.zip_code, "")
     clean_address = _clean_str(
         prop.address, prop.name.split("(")[0].strip() if prop.name else ""
     )
-    submarket = _get_costar_submarket(prop.name, prop.submarket, prop.city)
+    # Use cleaned city for submarket resolution (not raw prop.city which may be "Unknown")
+    submarket = _get_costar_submarket(prop.name, prop.submarket, clean_city)
     return clean_address, clean_city, clean_state, clean_zip, submarket
 
 
@@ -315,24 +395,28 @@ def _compute_monthly_operations(
     """Return (monthly_revenue, total_expenses)."""
     monthly_revenue = round(avg_rent * total_units) if avg_rent and total_units else 0
 
+    # Check both legacy short keys and full operationsByYear keys
     _expense_keys = [
-        "realEstateTaxes",
-        "otherExpenses",
-        "insurance",
-        "payroll",
-        "management",
-        "repairs",
-        "turnover",
-        "contractServices",
-        "reserves",
-        "adminLegalSecurity",
-        "marketing",
+        ("realEstateTaxes",),
+        ("otherExpenses",),
+        ("propertyInsurance", "insurance"),
+        ("staffingPayroll", "payroll"),
+        ("propertyManagementFee", "management"),
+        ("repairsAndMaintenance", "repairs"),
+        ("turnover",),
+        ("contractServices",),
+        ("reservesForReplacement", "reserves"),
+        ("adminLegalSecurity",),
+        ("advertisingLeasingMarketing", "marketing"),
+        ("utilities",),
     ]
     total_expenses = 0.0
-    for key in _expense_keys:
-        val = exp.get(key)
-        if val:
-            total_expenses += abs(val)
+    for key_variants in _expense_keys:
+        for key in key_variants:
+            val = exp.get(key)
+            if val:
+                total_expenses += abs(val)
+                break  # Use the first matching variant
 
     return monthly_revenue, total_expenses
 
@@ -491,8 +575,16 @@ def to_frontend_property(prop: Property) -> dict:
     the frontend Property TypeScript interface expects.
     """
     fd = prop.financial_data or {}
-    exp = fd.get("expenses", {})
     ops = fd.get("operations", {})
+    # Expense data may be stored at fd.expenses (legacy) or within operationsByYear
+    # Build a merged expense dict: prefer operationsByYear[1].expenses, then fd.expenses
+    _ops_by_year = fd.get("operationsByYear", {})
+    _yr1_expenses = {}
+    if _ops_by_year:
+        _yr1_key = sorted(_ops_by_year.keys(), key=int)[0] if _ops_by_year else None
+        if _yr1_key:
+            _yr1_expenses = _ops_by_year[_yr1_key].get("expenses", {})
+    exp = _yr1_expenses or fd.get("expenses", {})
 
     (
         purchase_price,
@@ -523,6 +615,15 @@ def to_frontend_property(prop: Property) -> dict:
         total_units,
         exp,
     )
+
+    # Fall back to ops expense totals if expense breakdown is unavailable
+    if not total_expenses:
+        total_expenses = abs(ops.get("totalExpensesYear1") or 0)
+    if not total_expenses:
+        # totalOperatingExpenses from group pipeline is per-unit
+        per_unit_exp = ops.get("totalOperatingExpenses") or 0
+        if per_unit_exp and total_units:
+            total_expenses = abs(per_unit_exp * total_units)
 
     performance = _compute_returns(fd, purchase_price, loan_amount, total_units)
 
@@ -576,15 +677,27 @@ def to_frontend_property(prop: Property) -> dict:
             "expenses": {
                 "realEstateTaxes": abs(exp.get("realEstateTaxes") or 0),
                 "otherExpenses": abs(exp.get("otherExpenses") or 0),
-                "propertyInsurance": abs(exp.get("insurance") or 0),
-                "staffingPayroll": abs(exp.get("payroll") or 0),
-                "propertyManagementFee": abs(exp.get("management") or 0),
-                "repairsAndMaintenance": abs(exp.get("repairs") or 0),
+                "propertyInsurance": abs(
+                    exp.get("propertyInsurance") or exp.get("insurance") or 0
+                ),
+                "staffingPayroll": abs(
+                    exp.get("staffingPayroll") or exp.get("payroll") or 0
+                ),
+                "propertyManagementFee": abs(
+                    exp.get("propertyManagementFee") or exp.get("management") or 0
+                ),
+                "repairsAndMaintenance": abs(
+                    exp.get("repairsAndMaintenance") or exp.get("repairs") or 0
+                ),
                 "turnover": abs(exp.get("turnover") or 0),
                 "contractServices": abs(exp.get("contractServices") or 0),
-                "reservesForReplacement": abs(exp.get("reserves") or 0),
+                "reservesForReplacement": abs(
+                    exp.get("reservesForReplacement") or exp.get("reserves") or 0
+                ),
                 "adminLegalSecurity": abs(exp.get("adminLegalSecurity") or 0),
-                "advertisingLeasingMarketing": abs(exp.get("marketing") or 0),
+                "advertisingLeasingMarketing": abs(
+                    exp.get("advertisingLeasingMarketing") or exp.get("marketing") or 0
+                ),
                 "total": total_expenses,
             },
             "noi": annual_noi,

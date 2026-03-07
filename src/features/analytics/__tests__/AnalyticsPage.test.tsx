@@ -198,6 +198,46 @@ describe('AnalyticsPage', () => {
     });
   });
 
+  describe('Data filtering for missing values', () => {
+    it('excludes properties with 0 occupancy from average occupancy calculation', () => {
+      const propsWithMissing = [
+        makeProperty({ id: 'p1', name: 'Good Data', operations: { ...makeProperty().operations, occupancy: 0.90, noi: 1000000 } }),
+        makeProperty({ id: 'p2', name: 'Missing Data', operations: { ...makeProperty().operations, occupancy: 0, noi: 500000 } }),
+      ];
+      mockUseProperties.mockReturnValue({
+        data: { properties: propsWithMissing, total: 2 },
+        isLoading: false,
+        error: null,
+      });
+      render(<AnalyticsPage />);
+
+      // Should show 90.0% (only Good Data), NOT 45.0% (average of 90% and 0%)
+      expect(screen.getByText('90.0%')).toBeInTheDocument();
+      expect(screen.queryByText('45.0%')).not.toBeInTheDocument();
+    });
+
+    it('does not highlight 0-value properties as worst performers', () => {
+      const propsWithMissing = [
+        makeProperty({ id: 'p1', name: 'Real Property', performance: { ...makeProperty().performance, leveredIrr: 0.15 } }),
+        makeProperty({ id: 'p2', name: 'Missing IRR', performance: { ...makeProperty().performance, leveredIrr: 0 } }),
+      ];
+      mockUseProperties.mockReturnValue({
+        data: { properties: propsWithMissing, total: 2 },
+        isLoading: false,
+        error: null,
+      });
+      const { container } = render(<AnalyticsPage />);
+
+      // The property with 0 IRR should show "N/A" in the table, not be red-highlighted
+      const redCells = container.querySelectorAll('.bg-red-50');
+      // With only one non-zero property, there should be no worst-performer highlighting
+      // (max === min when only one non-zero value)
+      for (const cell of redCells) {
+        expect(cell.textContent).not.toBe('N/A');
+      }
+    });
+  });
+
   describe('Date range filter', () => {
     it('renders date range dropdown with default "Last Year"', () => {
       mockUseProperties.mockReturnValue({
@@ -349,5 +389,30 @@ describe('KPICard', () => {
     render(<KPICard title="KPI" value={100} />);
     // No percentage trend displayed
     expect(screen.queryByText(/%$/)).not.toBeInTheDocument();
+  });
+
+  it('shows "N/A" for zero value when treatZeroAsNA is true (default)', () => {
+    render(<KPICard title="Cap Rate" value={0} format="percentage" />);
+    expect(screen.getByText('N/A')).toBeInTheDocument();
+  });
+
+  it('shows "0" for zero value when treatZeroAsNA is false (count metric)', () => {
+    render(<KPICard title="Active Deals" value={0} format="number" treatZeroAsNA={false} />);
+    expect(screen.getByText('0')).toBeInTheDocument();
+  });
+
+  it('shows formatted zero currency when treatZeroAsNA is false', () => {
+    render(<KPICard title="Revenue" value={0} format="currency" treatZeroAsNA={false} />);
+    expect(screen.getByText('$0')).toBeInTheDocument();
+  });
+
+  it('shows "0.00%" for zero percentage when treatZeroAsNA is false', () => {
+    render(<KPICard title="Growth" value={0} format="percentage" treatZeroAsNA={false} />);
+    expect(screen.getByText('0.00%')).toBeInTheDocument();
+  });
+
+  it('shows "0.00" for zero decimal when treatZeroAsNA is false', () => {
+    render(<KPICard title="Multiple" value={0} format="decimal" treatZeroAsNA={false} />);
+    expect(screen.getByText('0.00')).toBeInTheDocument();
   });
 });

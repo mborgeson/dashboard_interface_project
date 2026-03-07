@@ -11,7 +11,7 @@ import { useMapFilters } from './hooks/useMapFilters';
 import { MapFilterPanel } from './components/MapFilterPanel';
 import { PropertyDetailPanel } from './components/PropertyDetailPanel';
 import { MapLegend } from './components/MapLegend';
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrencyOrNA, formatNumberOrNA, shortPropertyName } from '@/lib/utils/formatters';
 
 // Fix for default marker icon issue
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -27,6 +27,33 @@ const DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
+
+// Build popup HTML for a map marker
+function buildPopupContent(property: Property): string {
+  return `
+    <div class="p-2 min-w-[200px]">
+      <div class="font-semibold text-neutral-900 mb-1">${shortPropertyName(property.name)}</div>
+      <div class="text-sm text-neutral-600 mb-2">
+        ${property.address.street}<br/>
+        ${property.address.city}, ${property.address.state} ${property.address.zip}
+      </div>
+      <div class="text-sm border-t border-neutral-200 pt-2 space-y-1">
+        <div class="flex justify-between">
+          <span class="text-neutral-600">Units:</span>
+          <span class="font-medium">${formatNumberOrNA(property.propertyDetails.units)}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-neutral-600">Class:</span>
+          <span class="font-medium">${property.propertyDetails.propertyClass}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-neutral-600">Value:</span>
+          <span class="font-medium text-primary-600">${formatCurrencyOrNA(property.valuation.currentValue, true)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 // Custom colored markers for different property classes
 function createColoredIcon(propertyClass: 'A' | 'B' | 'C') {
@@ -160,31 +187,7 @@ export function MappingPage() {
             }
           );
 
-          const popupContent = `
-            <div class="p-2 min-w-[200px]">
-              <div class="font-semibold text-neutral-900 mb-1">${property.name}</div>
-              <div class="text-sm text-neutral-600 mb-2">
-                ${property.address.street}<br/>
-                ${property.address.city}, ${property.address.state} ${property.address.zip}
-              </div>
-              <div class="text-sm border-t border-neutral-200 pt-2 space-y-1">
-                <div class="flex justify-between">
-                  <span class="text-neutral-600">Units:</span>
-                  <span class="font-medium">${property.propertyDetails.units}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-neutral-600">Class:</span>
-                  <span class="font-medium">${property.propertyDetails.propertyClass}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-neutral-600">Value:</span>
-                  <span class="font-medium text-primary-600">${formatCurrency(property.valuation.currentValue, true)}</span>
-                </div>
-              </div>
-            </div>
-          `;
-
-          marker.bindPopup(popupContent);
+          marker.bindPopup(buildPopupContent(property));
 
           // Add click handler to show detail panel
           marker.on('click', () => {
@@ -211,31 +214,7 @@ export function MappingPage() {
             }
           );
 
-          const popupContent = `
-            <div class="p-2 min-w-[200px]">
-              <div class="font-semibold text-neutral-900 mb-1">${property.name}</div>
-              <div class="text-sm text-neutral-600 mb-2">
-                ${property.address.street}<br/>
-                ${property.address.city}, ${property.address.state} ${property.address.zip}
-              </div>
-              <div class="text-sm border-t border-neutral-200 pt-2 space-y-1">
-                <div class="flex justify-between">
-                  <span class="text-neutral-600">Units:</span>
-                  <span class="font-medium">${property.propertyDetails.units}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-neutral-600">Class:</span>
-                  <span class="font-medium">${property.propertyDetails.propertyClass}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-neutral-600">Value:</span>
-                  <span class="font-medium text-primary-600">${formatCurrency(property.valuation.currentValue, true)}</span>
-                </div>
-              </div>
-            </div>
-          `;
-
-          marker.bindPopup(popupContent);
+          marker.bindPopup(buildPopupContent(property));
 
           marker.on('click', () => {
             setSelectedProperty(property);

@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
+import { formatCurrencyOrNA, formatPercentOrNA, shortPropertyName } from '@/lib/utils/formatters';
 import type { Property } from '@/types';
 
 interface PropertyTableProps {
@@ -63,7 +63,7 @@ const PropertyRow = memo(function PropertyRow({
       >
         <TableCell className="font-medium">
           <div>
-            <div>{property.name}</div>
+            <div>{shortPropertyName(property.name)}</div>
             <div className="text-xs text-muted-foreground">
               {property.address.city}, {property.address.state}
             </div>
@@ -107,7 +107,7 @@ const PropertyRow = memo(function PropertyRow({
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Property Details</p>
                   <p className="mt-1 text-sm">
-                    {property.propertyDetails.squareFeet.toLocaleString()} sq ft
+                    {property.propertyDetails.squareFeet ? property.propertyDetails.squareFeet.toLocaleString() : 'N/A'} sq ft
                     <br />
                     Built: {property.propertyDetails.yearBuilt}
                     <br />

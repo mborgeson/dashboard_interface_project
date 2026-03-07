@@ -1,7 +1,7 @@
 import { TrendingUp, DollarSign, Percent, Award } from 'lucide-react';
 import type { Property } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatPercent, formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
+import { formatCurrencyOrNA, formatPercentOrNA } from '@/lib/utils/formatters';
 
 interface PerformanceTabProps {
   property: Property;
@@ -9,6 +9,10 @@ interface PerformanceTabProps {
 
 export function PerformanceTab({ property }: PerformanceTabProps) {
   const perf = property.performance;
+
+  /** Format a MOIC value as "1.65x" or "--" when null/zero. */
+  const formatMoic = (value: number | null | undefined): string =>
+    value != null && value !== 0 ? `${value.toFixed(2)}x` : '--';
 
   return (
     <div className="p-6 space-y-6">
@@ -31,7 +35,7 @@ export function PerformanceTab({ property }: PerformanceTabProps) {
             <Award className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary-600">{perf.leveredMoic ? `${perf.leveredMoic.toFixed(2)}x` : '--'}</div>
+            <div className="text-2xl font-bold text-primary-600">{formatMoic(perf.leveredMoic)}</div>
             <p className="text-xs text-gray-600 mt-1">Levered Multiple on Invested Capital</p>
           </CardContent>
         </Card>
@@ -42,7 +46,7 @@ export function PerformanceTab({ property }: PerformanceTabProps) {
             <Percent className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-accent-600">{perf.unleveredIrr != null ? formatPercent(perf.unleveredIrr) : '--'}</div>
+            <div className="text-2xl font-bold text-accent-600">{perf.unleveredIrr != null && perf.unleveredIrr !== 0 ? formatPercentOrNA(perf.unleveredIrr) : '--'}</div>
             <p className="text-xs text-gray-600 mt-1">Unlevered Internal Rate of Return</p>
           </CardContent>
         </Card>
@@ -54,7 +58,7 @@ export function PerformanceTab({ property }: PerformanceTabProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {perf.unleveredMoic ? `${perf.unleveredMoic.toFixed(2)}x` : '--'}
+              {formatMoic(perf.unleveredMoic)}
             </div>
             <p className="text-xs text-gray-600 mt-1">Unlevered Multiple on Invested Capital</p>
           </CardContent>
@@ -124,19 +128,19 @@ export function PerformanceTab({ property }: PerformanceTabProps) {
               <div>
                 <div className="text-sm text-gray-600 mb-1">Exit Cap Rate</div>
                 <div className="text-lg font-semibold">
-                  {perf.exitCapRate ? formatPercent(perf.exitCapRate) : '--'}
+                  {formatPercentOrNA(perf.exitCapRate)}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-gray-600 mb-1">Total Basis/Unit @ Exit</div>
                 <div className="text-lg font-semibold">
-                  {perf.totalBasisPerUnitExit ? formatCurrency(perf.totalBasisPerUnitExit) : '--'}
+                  {formatCurrencyOrNA(perf.totalBasisPerUnitExit)}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-gray-600 mb-1">Senior Loan Basis/Unit @ Exit</div>
                 <div className="text-lg font-semibold">
-                  {perf.seniorLoanBasisPerUnitExit ? formatCurrency(perf.seniorLoanBasisPerUnitExit) : '--'}
+                  {formatCurrencyOrNA(perf.seniorLoanBasisPerUnitExit)}
                 </div>
               </div>
             </div>

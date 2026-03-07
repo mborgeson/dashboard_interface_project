@@ -84,6 +84,15 @@ export function formatNumberOrNA(value: number | null | undefined): string {
 }
 
 /**
+ * Strip the parenthetical city/state suffix from a property name.
+ * e.g. "Crestone at Shadow Mountain (Unknown, AZ)" → "Crestone at Shadow Mountain"
+ * Names without a parenthetical are returned unchanged.
+ */
+export function shortPropertyName(name: string): string {
+  return name.replace(/\s*\(.*\)\s*$/, '').trim();
+}
+
+/**
  * Format a change value with + or - sign and color class
  * @param value - The change value
  * @param isPercent - Whether to format as percentage

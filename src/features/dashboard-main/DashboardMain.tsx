@@ -1,6 +1,6 @@
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { useTransactionsWithMockFallback } from '@/hooks/api/useTransactions';
-import { formatCurrency, formatPercent, formatNumber } from '@/lib/utils/formatters';
+import { formatCurrency, formatPercent, formatPercentOrNA, formatNumber, formatNumberOrNA, shortPropertyName } from '@/lib/utils/formatters';
 import { Card } from '@/components/ui/card';
 import { TrendingUp, Building2, DollarSign, Percent } from 'lucide-react';
 import { PropertyMap } from './components/PropertyMap';
@@ -20,11 +20,13 @@ export function DashboardMain() {
   const { data: txnData } = useTransactionsWithMockFallback();
   const allTransactions = txnData?.transactions ?? [];
 
-  // Calculate portfolio metrics
+  // Calculate portfolio metrics — exclude properties with missing data (0 = missing)
   const totalProperties = properties.length;
   const totalUnits = properties.reduce((sum, p) => sum + p.propertyDetails.units, 0);
-  const totalValue = properties.reduce((sum, p) => sum + p.valuation.currentValue, 0);
-  const totalNOI = properties.reduce((sum, p) => sum + p.operations.noi, 0);
+  const propertiesWithValue = properties.filter(p => p.valuation.currentValue > 0);
+  const totalValue = propertiesWithValue.reduce((sum, p) => sum + p.valuation.currentValue, 0);
+  const propertiesWithNOI = properties.filter(p => p.operations.noi > 0);
+  const totalNOI = propertiesWithNOI.reduce((sum, p) => sum + p.operations.noi, 0);
   const propertiesWithOccupancy = properties.filter(p => p.operations.occupancy > 0);
   const avgOccupancy = propertiesWithOccupancy.length > 0
     ? propertiesWithOccupancy.reduce((sum, p) => sum + p.operations.occupancy, 0) / propertiesWithOccupancy.length
@@ -140,7 +142,7 @@ export function DashboardMain() {
             </div>
           </div>
           <div className="text-hero-stat text-neutral-900">
-            {formatCurrency(totalNOI / 12, true)}
+            {totalNOI > 0 ? formatCurrency(totalNOI / 12, true) : '--'}
           </div>
           <div className="text-sm text-neutral-600 mt-1">Monthly NOI</div>
         </Card>
@@ -167,6 +169,7 @@ export function DashboardMain() {
           </h2>
           <div className="space-y-3">
             {properties
+              .filter((p) => p.performance.leveredIrr !== 0)
               .sort((a, b) => b.performance.leveredIrr - a.performance.leveredIrr)
               .slice(0, 5)
               .map((property) => (
@@ -176,16 +179,16 @@ export function DashboardMain() {
                 >
                   <div className="flex-1">
                     <div className="font-medium text-neutral-900">
-                      {property.name}
+                      {shortPropertyName(property.name)}
                     </div>
                     <div className="text-sm text-neutral-600">
-                      {property.address.submarket} • {property.propertyDetails.units}{' '}
-                      units
+                      {property.address.city}, {property.address.state} • {property.address.submarket} • {formatNumberOrNA(property.propertyDetails.units)}{' '}
+                      {property.propertyDetails.units > 0 ? 'units' : ''}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-green-600">
-                      {formatPercent(property.performance.leveredIrr)}
+                    <div className={`font-semibold ${property.performance.leveredIrr >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatPercentOrNA(property.performance.leveredIrr)}
                     </div>
                     <div className="text-sm text-neutral-600">IRR</div>
                   </div>

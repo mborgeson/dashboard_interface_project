@@ -55,6 +55,12 @@ async def list_properties_dashboard(
         order_desc=False,
     )
     total = await property_crud.count_filtered(db)
+
+    # Lazy enrichment for any properties missing financial_data
+    for i, p in enumerate(items):
+        if not p.financial_data:
+            items[i] = await property_crud.enrich_financial_data(db, p)
+
     properties = [to_frontend_property(p) for p in items]
     return {"properties": properties, "total": total}
 
@@ -67,6 +73,10 @@ async def get_property_dashboard(
 ):
     """
     Get a single property in the nested frontend format.
+
+    If ``financial_data`` has not been populated yet (e.g. hydration did
+    not run after extraction), this endpoint lazily enriches the property
+    from the ``extracted_values`` table before returning.
     """
     prop = await property_crud.get(db, property_id)
     if not prop:
@@ -74,6 +84,12 @@ async def get_property_dashboard(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Property {property_id} not found",
         )
+
+    # Lazy enrichment: populate financial_data from extracted_values
+    fd = prop.financial_data or {}
+    if not fd or "expenses" not in fd or "operationsByYear" not in fd:
+        prop = await property_crud.enrich_financial_data(db, prop)
+
     return to_frontend_property(prop)
 
 
@@ -106,6 +122,11 @@ async def get_portfolio_summary(
             "portfolioCashOnCash": 0,
             "portfolioIRR": 0,
         }
+
+    # Lazy enrichment for any properties missing financial_data
+    for i, p in enumerate(items):
+        if not p.financial_data:
+            items[i] = await property_crud.enrich_financial_data(db, p)
 
     total_properties = len(items)
     total_units = sum(p.total_units or 0 for p in items)

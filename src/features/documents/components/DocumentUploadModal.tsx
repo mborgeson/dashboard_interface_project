@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { shortPropertyName } from '@/lib/utils/formatters';
 import {
   Dialog,
   DialogContent,
@@ -199,7 +200,7 @@ export function DocumentUploadModal({ open, onClose, onUploadComplete }: Documen
               <SelectContent>
                 {properties.map((property) => (
                   <SelectItem key={property.id} value={property.id}>
-                    {property.name}
+                    {shortPropertyName(property.name)}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -5,7 +5,7 @@ import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import type { Property } from '@/types';
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrency, shortPropertyName } from '@/lib/utils/formatters';
 
 // Fix for default marker icon issue
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -72,7 +72,7 @@ export function PropertyMap({ properties }: PropertyMapProps) {
 
         const popupContent = `
           <div class="p-2 min-w-[200px]">
-            <div class="font-semibold text-neutral-900 mb-1">${property.name}</div>
+            <div class="font-semibold text-neutral-900 mb-1">${shortPropertyName(property.name)}</div>
             <div class="text-sm text-neutral-600 mb-2">
               ${property.address.street}<br/>
               ${property.address.city}, ${property.address.state} ${property.address.zip}
