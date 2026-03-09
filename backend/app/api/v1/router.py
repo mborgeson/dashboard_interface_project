@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     documents,
     exports,
     extraction,
+    health,
     interest_rates,
     market_data,
     market_data_admin,
@@ -27,14 +28,15 @@ from app.api.v1.endpoints import (
 api_router = APIRouter()
 
 
-# Health check endpoint (legacy - use /monitoring/health/* for detailed checks)
+# Health check endpoint (legacy - use /health/status for detailed checks)
 @api_router.get("/health", tags=["health"])
-async def health_check():
-    """Health check endpoint for load balancers and monitoring."""
+async def health_check_legacy():
+    """Legacy health check endpoint for load balancers and monitoring."""
     return {"status": "healthy", "version": "2.0.0"}
 
 
 # Include all endpoint routers
+api_router.include_router(health.router, prefix="/health/status", tags=["health"])
 api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 api_router.include_router(properties.router, prefix="/properties", tags=["properties"])
 api_router.include_router(deals.router, prefix="/deals", tags=["deals"])

@@ -29,6 +29,7 @@ class Base(DeclarativeBase):
 # Construction Pipeline Models
 # Activity Log Model (UUID-based)
 from app.models.activity_log import ActivityLog  # noqa: E402, F401
+from app.models.audit_log import AuditLog  # noqa: E402, F401
 from app.models.construction import (  # noqa: E402, F401
     ConstructionBrokerageMetrics,
     ConstructionEmploymentData,
