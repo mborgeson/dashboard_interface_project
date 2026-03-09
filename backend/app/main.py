@@ -23,6 +23,7 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.middleware.rate_limiter import RateLimitMiddleware
+from app.middleware.request_id import RequestIDMiddleware, get_request_id
 from app.services.data_extraction.scheduler import MarketDataScheduler
 from app.services.extraction.monitor_scheduler import get_monitor_scheduler
 from app.services.extraction.scheduler import (
@@ -298,17 +299,21 @@ app.add_middleware(SecurityHeadersMiddleware)
 # Add origin validation middleware (defense-in-depth for state-changing requests)
 app.add_middleware(OriginValidationMiddleware)
 
+# Add request ID middleware (outermost — runs first so all other middleware can use it)
+app.add_middleware(RequestIDMiddleware)
+
 
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Handle unexpected exceptions globally."""
-    logger.exception(f"Unhandled exception: {exc}")
+    rid = get_request_id() or str(id(exc))
+    logger.exception(f"Unhandled exception (request_id={rid}): {exc}")
     return JSONResponse(
         status_code=500,
         content={
             "detail": "An unexpected error occurred",
-            "error_id": str(id(exc)),  # For log correlation
+            "request_id": rid,
         },
     )
 
