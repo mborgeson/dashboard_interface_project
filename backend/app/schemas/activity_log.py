@@ -9,7 +9,9 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, model_validator
+
+from app.core.sanitization import make_sanitized_validator
 
 from .base import BaseSchema
 
@@ -35,6 +37,8 @@ class ActivityLogCreate(BaseSchema):
     action: ActivityAction
     description: str = Field(..., min_length=1, max_length=2000)
     metadata: dict[str, Any] | None = Field(default=None, alias="meta")
+
+    _sanitize = model_validator(mode="before")(make_sanitized_validator("description"))
 
 
 class ActivityLogResponse(BaseSchema):

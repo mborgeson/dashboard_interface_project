@@ -5,7 +5,9 @@ Transaction schemas for API request/response validation.
 from datetime import date as date_type
 from decimal import Decimal
 
-from pydantic import Field
+from pydantic import Field, model_validator
+
+from app.core.sanitization import make_sanitized_validator
 
 from .base import BaseSchema, TimestampSchema
 
@@ -30,6 +32,14 @@ class TransactionCreate(TransactionBase):
 
     documents: list[str] | None = None
 
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator(
+            "property_name",
+            "category",
+            "description",
+        )
+    )
+
 
 class TransactionUpdate(BaseSchema):
     """Schema for updating a transaction. All fields optional."""
@@ -45,6 +55,14 @@ class TransactionUpdate(BaseSchema):
     date: date_type | None = None
     description: str | None = None
     documents: list[str] | None = None
+
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator(
+            "property_name",
+            "category",
+            "description",
+        )
+    )
 
 
 class TransactionResponse(TransactionBase, TimestampSchema):

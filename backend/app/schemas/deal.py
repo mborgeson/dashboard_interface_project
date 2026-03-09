@@ -6,7 +6,9 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, model_validator
+
+from app.core.sanitization import make_sanitized_validator
 
 from .base import BaseSchema, TimestampSchema
 
@@ -70,6 +72,19 @@ class DealCreate(DealBase):
     tags: list[str] | None = None
     priority: str = Field(default="medium", pattern="^(low|medium|high|urgent)$")
 
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator(
+            "name",
+            "source",
+            "broker_name",
+            "broker_company",
+            "notes",
+            "investment_thesis",
+            "key_risks",
+            "tags",
+        )
+    )
+
 
 class DealUpdate(BaseSchema):
     """Schema for updating a deal. All fields optional."""
@@ -109,6 +124,19 @@ class DealUpdate(BaseSchema):
     tags: list[str] | None = None
     priority: str | None = Field(None, pattern="^(low|medium|high|urgent)$")
     deal_score: int | None = Field(None, ge=0, le=100)
+
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator(
+            "name",
+            "source",
+            "broker_name",
+            "broker_company",
+            "notes",
+            "investment_thesis",
+            "key_risks",
+            "tags",
+        )
+    )
 
 
 class DealStageUpdate(BaseSchema):

@@ -6,7 +6,9 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, model_validator
+
+from app.core.sanitization import make_sanitized_validator
 
 from .base import BaseSchema, TimestampSchema
 
@@ -61,6 +63,19 @@ class PropertyCreate(PropertyBase):
     external_id: str | None = Field(None, max_length=100)
     data_source: str | None = Field(None, max_length=50)
 
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator(
+            "name",
+            "address",
+            "city",
+            "state",
+            "county",
+            "market",
+            "submarket",
+            "description",
+        )
+    )
+
 
 class PropertyUpdate(BaseSchema):
     """Schema for updating a property. All fields optional."""
@@ -100,6 +115,19 @@ class PropertyUpdate(BaseSchema):
     amenities: dict[str, Any] | None = None
     unit_mix: dict[str, Any] | None = None
     images: list[str] | None = None
+
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator(
+            "name",
+            "address",
+            "city",
+            "state",
+            "county",
+            "market",
+            "submarket",
+            "description",
+        )
+    )
 
 
 class PropertyResponse(PropertyBase, TimestampSchema):

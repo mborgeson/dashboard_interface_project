@@ -4,7 +4,9 @@ User schemas for API request/response validation.
 
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
+
+from app.core.sanitization import make_sanitized_validator
 
 from .base import BaseSchema, TimestampSchema
 
@@ -24,6 +26,10 @@ class UserCreate(UserBase):
 
     password: str = Field(..., min_length=8, max_length=128)
 
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator("full_name", "department")
+    )
+
 
 class UserUpdate(BaseSchema):
     """Schema for updating a user. All fields optional."""
@@ -36,6 +42,10 @@ class UserUpdate(BaseSchema):
     avatar_url: str | None = Field(None, max_length=500)
     is_active: bool | None = None
     email_notifications: bool | None = None
+
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator("full_name", "department")
+    )
 
 
 class UserResponse(UserBase, TimestampSchema):

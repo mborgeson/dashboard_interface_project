@@ -4,6 +4,10 @@ Activity schemas for API request/response validation.
 
 from enum import StrEnum
 
+from pydantic import model_validator
+
+from app.core.sanitization import make_sanitized_validator
+
 from .base import BaseSchema, TimestampSchema
 
 
@@ -35,6 +39,14 @@ class PropertyActivityCreate(PropertyActivityBase):
     comment_text: str | None = None
     document_name: str | None = None
     document_url: str | None = None
+
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator(
+            "description",
+            "comment_text",
+            "document_name",
+        )
+    )
 
 
 class PropertyActivityResponse(PropertyActivityBase, TimestampSchema):
@@ -80,6 +92,14 @@ class DealActivityCreate(DealActivityBase):
     document_name: str | None = None
     document_url: str | None = None
 
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator(
+            "description",
+            "comment_text",
+            "document_name",
+        )
+    )
+
 
 class DealActivityResponse(DealActivityBase, TimestampSchema):
     """Schema for deal activity response."""
@@ -119,7 +139,7 @@ class WatchlistBase(BaseSchema):
 class WatchlistCreate(WatchlistBase):
     """Schema for creating a watchlist entry."""
 
-    pass
+    _sanitize = model_validator(mode="before")(make_sanitized_validator("notes"))
 
 
 class WatchlistResponse(WatchlistBase, TimestampSchema):

@@ -4,7 +4,9 @@ Document schemas for API request/response validation.
 
 from datetime import datetime
 
-from pydantic import Field
+from pydantic import Field, model_validator
+
+from app.core.sanitization import make_sanitized_validator
 
 from .base import BaseSchema, TimestampSchema
 
@@ -32,6 +34,16 @@ class DocumentCreate(DocumentBase):
     file_path: str | None = Field(None, max_length=1024)
     mime_type: str | None = Field(None, max_length=255)
 
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator(
+            "name",
+            "property_name",
+            "uploaded_by",
+            "description",
+            "tags",
+        )
+    )
+
 
 class DocumentUpdate(BaseSchema):
     """Schema for updating a document. All fields optional."""
@@ -46,6 +58,15 @@ class DocumentUpdate(BaseSchema):
     tags: list[str] | None = None
     url: str | None = Field(None, max_length=2048)
 
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator(
+            "name",
+            "property_name",
+            "description",
+            "tags",
+        )
+    )
+
 
 class DocumentUpload(BaseSchema):
     """Schema for file upload response/request metadata."""
@@ -58,6 +79,15 @@ class DocumentUpload(BaseSchema):
     property_name: str | None = Field(None, max_length=255)
     description: str | None = None
     tags: list[str] | None = None
+
+    _sanitize = model_validator(mode="before")(
+        make_sanitized_validator(
+            "name",
+            "property_name",
+            "description",
+            "tags",
+        )
+    )
 
 
 class DocumentResponse(DocumentBase, TimestampSchema):
