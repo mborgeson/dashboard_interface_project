@@ -17,6 +17,7 @@ from enum import StrEnum
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     Float,
@@ -76,6 +77,14 @@ class ConstructionProject(Base, TimestampMixin):
         Index("ix_construction_projects_status", "pipeline_status"),
         Index("ix_construction_projects_classification", "primary_classification"),
         Index("ix_construction_projects_city", "city"),
+        CheckConstraint(
+            "number_of_units > 0",
+            name="ck_construction_projects_number_of_units_positive",
+        ),
+        CheckConstraint(
+            "year_built >= 1800 AND year_built <= 2100",
+            name="ck_construction_projects_year_built_range",
+        ),
     )
 
     # ── Primary Key ──────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ Property model for real estate assets.
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import JSON, Date, Integer, Numeric, String, Text
+from sqlalchemy import JSON, CheckConstraint, Date, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -16,6 +16,44 @@ class Property(Base, TimestampMixin, SoftDeleteMixin):
     """Property model representing real estate assets."""
 
     __tablename__ = "properties"
+
+    __table_args__ = (
+        CheckConstraint(
+            "purchase_price >= 0", name="ck_properties_purchase_price_non_negative"
+        ),
+        CheckConstraint(
+            "current_value >= 0", name="ck_properties_current_value_non_negative"
+        ),
+        CheckConstraint("total_units > 0", name="ck_properties_total_units_positive"),
+        CheckConstraint("total_sf > 0", name="ck_properties_total_sf_positive"),
+        CheckConstraint("stories > 0", name="ck_properties_stories_positive"),
+        CheckConstraint(
+            "year_built >= 1800 AND year_built <= 2100",
+            name="ck_properties_year_built_range",
+        ),
+        CheckConstraint(
+            "year_renovated >= 1800 AND year_renovated <= 2100",
+            name="ck_properties_year_renovated_range",
+        ),
+        CheckConstraint(
+            "cap_rate >= 0 AND cap_rate <= 100",
+            name="ck_properties_cap_rate_range",
+        ),
+        CheckConstraint(
+            "occupancy_rate >= 0 AND occupancy_rate <= 100",
+            name="ck_properties_occupancy_rate_range",
+        ),
+        CheckConstraint(
+            "avg_rent_per_unit >= 0",
+            name="ck_properties_avg_rent_per_unit_non_negative",
+        ),
+        CheckConstraint(
+            "avg_rent_per_sf >= 0", name="ck_properties_avg_rent_per_sf_non_negative"
+        ),
+        CheckConstraint(
+            "parking_spaces >= 0", name="ck_properties_parking_spaces_non_negative"
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 

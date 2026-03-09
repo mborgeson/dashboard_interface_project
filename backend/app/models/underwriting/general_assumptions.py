@@ -9,7 +9,7 @@ from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, ForeignKey, Integer, Numeric, String
+from sqlalchemy import CheckConstraint, Date, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -29,6 +29,28 @@ class GeneralAssumptions(Base, TimestampMixin, SourceTrackingMixin):
     """
 
     __tablename__ = "uw_general_assumptions"
+
+    __table_args__ = (
+        CheckConstraint(
+            "year_built >= 1800 AND year_built <= 2100",
+            name="ck_uw_general_assumptions_year_built_range",
+        ),
+        CheckConstraint(
+            "year_renovated >= 1800 AND year_renovated <= 2100",
+            name="ck_uw_general_assumptions_year_renovated_range",
+        ),
+        CheckConstraint("units > 0", name="ck_uw_general_assumptions_units_positive"),
+        CheckConstraint(
+            "last_sale_price >= 0",
+            name="ck_uw_general_assumptions_last_sale_price_non_negative",
+        ),
+        CheckConstraint(
+            "total_sf > 0", name="ck_uw_general_assumptions_total_sf_positive"
+        ),
+        CheckConstraint(
+            "stories > 0", name="ck_uw_general_assumptions_stories_positive"
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 

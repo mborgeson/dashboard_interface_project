@@ -9,6 +9,7 @@ auto-increment primary key and a unique constraint on (comp_id, source_file).
 from datetime import date, datetime
 
 from sqlalchemy import (
+    CheckConstraint,
     Date,
     DateTime,
     Float,
@@ -34,6 +35,23 @@ class SalesData(Base, TimestampMixin):
         Index("ix_sales_data_submarket", "submarket_name"),
         Index("ix_sales_data_sale_date", "sale_date"),
         Index("ix_sales_data_market", "market"),
+        CheckConstraint(
+            "sale_price >= 0", name="ck_sales_data_sale_price_non_negative"
+        ),
+        CheckConstraint(
+            "price_per_unit >= 0", name="ck_sales_data_price_per_unit_non_negative"
+        ),
+        CheckConstraint(
+            "number_of_units > 0", name="ck_sales_data_number_of_units_positive"
+        ),
+        CheckConstraint(
+            "year_built >= 1800 AND year_built <= 2100",
+            name="ck_sales_data_year_built_range",
+        ),
+        CheckConstraint(
+            "actual_cap_rate >= 0 AND actual_cap_rate <= 100",
+            name="ck_sales_data_actual_cap_rate_range",
+        ),
     )
 
     # ── Primary Key ──────────────────────────────────────────────────────

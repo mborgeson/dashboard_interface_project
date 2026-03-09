@@ -8,6 +8,7 @@ from enum import StrEnum as PyEnum
 
 from sqlalchemy import (
     JSON,
+    CheckConstraint,
     Date,
     DateTime,
     Enum,
@@ -38,6 +39,26 @@ class Deal(Base, TimestampMixin, SoftDeleteMixin):
     """Deal model representing investment opportunities in the pipeline."""
 
     __tablename__ = "deals"
+
+    __table_args__ = (
+        CheckConstraint("asking_price >= 0", name="ck_deals_asking_price_non_negative"),
+        CheckConstraint("offer_price >= 0", name="ck_deals_offer_price_non_negative"),
+        CheckConstraint("final_price >= 0", name="ck_deals_final_price_non_negative"),
+        CheckConstraint(
+            "projected_irr >= -100 AND projected_irr <= 999",
+            name="ck_deals_projected_irr_range",
+        ),
+        CheckConstraint("projected_coc >= -100", name="ck_deals_projected_coc_range"),
+        CheckConstraint(
+            "projected_equity_multiple >= 0",
+            name="ck_deals_equity_multiple_non_negative",
+        ),
+        CheckConstraint("hold_period_years > 0", name="ck_deals_hold_period_positive"),
+        CheckConstraint(
+            "deal_score >= 0 AND deal_score <= 100",
+            name="ck_deals_deal_score_range",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 

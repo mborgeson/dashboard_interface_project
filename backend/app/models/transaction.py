@@ -8,6 +8,7 @@ from enum import StrEnum as PyEnum
 
 from sqlalchemy import (
     JSON,
+    CheckConstraint,
     Date,
     ForeignKey,
     Integer,
@@ -35,6 +36,10 @@ class Transaction(Base, TimestampMixin, SoftDeleteMixin):
     """Transaction model representing financial transactions in the portfolio."""
 
     __tablename__ = "transactions"
+
+    __table_args__ = (
+        CheckConstraint("amount >= 0", name="ck_transactions_amount_non_negative"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 

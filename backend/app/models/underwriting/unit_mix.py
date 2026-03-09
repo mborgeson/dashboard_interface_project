@@ -11,7 +11,7 @@ each row represents one unit type, allowing flexible property configurations.
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, Numeric, String
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -31,6 +31,23 @@ class UnitMix(Base, TimestampMixin, SourceTrackingMixin):
     """
 
     __tablename__ = "uw_unit_mix"
+
+    __table_args__ = (
+        CheckConstraint("unit_count > 0", name="ck_uw_unit_mix_unit_count_positive"),
+        CheckConstraint("bedrooms >= 0", name="ck_uw_unit_mix_bedrooms_non_negative"),
+        CheckConstraint("bathrooms > 0", name="ck_uw_unit_mix_bathrooms_positive"),
+        CheckConstraint("avg_sf > 0", name="ck_uw_unit_mix_avg_sf_positive"),
+        CheckConstraint(
+            "in_place_rent >= 0", name="ck_uw_unit_mix_in_place_rent_non_negative"
+        ),
+        CheckConstraint(
+            "market_rent >= 0", name="ck_uw_unit_mix_market_rent_non_negative"
+        ),
+        CheckConstraint(
+            "renovation_cost_per_unit >= 0",
+            name="ck_uw_unit_mix_renovation_cost_non_negative",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
