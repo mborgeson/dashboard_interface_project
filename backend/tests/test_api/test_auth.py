@@ -510,7 +510,7 @@ async def test_blacklist_empty_jti():
 @pytest.mark.asyncio
 async def test_blacklist_stats():
     """Test blacklist stats retrieval."""
-    stats = token_blacklist.get_stats()
+    stats = await token_blacklist.get_stats()
 
     assert "backend" in stats
     assert stats["backend"] in ["redis", "memory"]

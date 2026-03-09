@@ -1,7 +1,7 @@
 """
 Token blacklist implementation for JWT invalidation.
 
-Uses Redis for fast O(1) lookups with automatic expiration.
+Uses async Redis for non-blocking O(1) lookups with automatic expiration.
 Falls back to in-memory store if Redis unavailable.
 """
 
@@ -19,39 +19,41 @@ class TokenBlacklist:
     """
     Token blacklist for invalidating JWTs on logout.
 
-    Supports Redis for production use with automatic TTL expiration,
+    Supports async Redis for production use with automatic TTL expiration,
     and falls back to in-memory storage for development/testing.
     """
 
     def __init__(self):
         self._redis = None
-        self._init_redis()
 
-    def _init_redis(self) -> None:
-        """Initialize Redis connection if configured."""
-        if settings.REDIS_URL:
-            try:
-                import redis
-
-                self._redis = redis.from_url(
-                    settings.REDIS_URL,
-                    decode_responses=True,
-                    socket_connect_timeout=5,
-                )
-                self._redis.ping()
-                logger.info("Token blacklist: Redis connection established")
-            except ImportError:
-                logger.warning(
-                    "Token blacklist: redis package not installed, using memory store"
-                )
-                self._redis = None
-            except Exception as e:
-                logger.warning(
-                    f"Token blacklist: Redis connection failed ({e}), using memory store"
-                )
-                self._redis = None
-        else:
+    async def _ensure_redis(self) -> None:
+        """Lazily initialize async Redis connection if configured."""
+        if self._redis is not None:
+            return
+        if not settings.REDIS_URL:
             logger.info("Token blacklist: No REDIS_URL configured, using memory store")
+            return
+
+        try:
+            import redis.asyncio as aioredis
+
+            self._redis = aioredis.from_url(
+                settings.REDIS_URL,
+                decode_responses=True,
+                socket_connect_timeout=5,
+            )
+            await self._redis.ping()
+            logger.info("Token blacklist: async Redis connection established")
+        except ImportError:
+            logger.warning(
+                "Token blacklist: redis package not installed, using memory store"
+            )
+            self._redis = None
+        except Exception as e:
+            logger.warning(
+                f"Token blacklist: Redis connection failed ({e}), using memory store"
+            )
+            self._redis = None
 
     @property
     def is_redis_available(self) -> bool:
@@ -69,9 +71,11 @@ class TokenBlacklist:
         if not token_jti:
             return
 
+        await self._ensure_redis()
+
         if self._redis:
             try:
-                self._redis.setex(f"blacklist:{token_jti}", expires_in, "1")
+                await self._redis.setex(f"blacklist:{token_jti}", expires_in, "1")
                 logger.debug(f"Token blacklisted in Redis: {token_jti[:8]}...")
             except Exception as e:
                 logger.error(f"Redis blacklist add failed: {e}")
@@ -94,9 +98,11 @@ class TokenBlacklist:
         if not token_jti:
             return False
 
+        await self._ensure_redis()
+
         if self._redis:
             try:
-                return bool(self._redis.exists(f"blacklist:{token_jti}"))
+                return bool(await self._redis.exists(f"blacklist:{token_jti}"))
             except Exception as e:
                 logger.error(f"Redis blacklist check failed: {e}")
                 # Fallback to memory check
@@ -139,9 +145,11 @@ class TokenBlacklist:
         if not token_jti:
             return
 
+        await self._ensure_redis()
+
         if self._redis:
             try:
-                self._redis.delete(f"blacklist:{token_jti}")
+                await self._redis.delete(f"blacklist:{token_jti}")
             except Exception as e:
                 logger.error(f"Redis blacklist remove failed: {e}")
                 if token_jti in _memory_blacklist:
@@ -150,7 +158,7 @@ class TokenBlacklist:
             if token_jti in _memory_blacklist:
                 del _memory_blacklist[token_jti]
 
-    def get_stats(self) -> dict:
+    async def get_stats(self) -> dict:
         """Get blacklist statistics."""
         stats = {
             "backend": "redis" if self._redis else "memory",
@@ -162,7 +170,7 @@ class TokenBlacklist:
                 cursor = 0
                 count = 0
                 while True:
-                    cursor, keys = self._redis.scan(
+                    cursor, keys = await self._redis.scan(
                         cursor, match="blacklist:*", count=100
                     )
                     count += len(keys)
