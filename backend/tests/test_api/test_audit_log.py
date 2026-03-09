@@ -2,6 +2,7 @@
 
 import json
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
@@ -296,7 +297,13 @@ async def test_audit_log_denied_for_unauthenticated(client):
 
 
 @pytest.mark.asyncio
-async def test_extract_fred_creates_audit_entry(client, admin_auth, db_session):
+@patch(
+    "app.api.v1.endpoints.admin.trigger_fred_extraction",
+    new_callable=AsyncMock,
+)
+async def test_extract_fred_creates_audit_entry(
+    mock_fred, client, admin_auth, db_session
+):
     """Test that triggering FRED extraction creates an audit log entry."""
     response = await client.post("/api/v1/admin/extract/fred?incremental=true")
     assert response.status_code == 200
@@ -316,7 +323,13 @@ async def test_extract_fred_creates_audit_entry(client, admin_auth, db_session):
 
 
 @pytest.mark.asyncio
-async def test_extract_costar_creates_audit_entry(client, admin_auth, db_session):
+@patch(
+    "app.api.v1.endpoints.admin.trigger_costar_extraction",
+    new_callable=AsyncMock,
+)
+async def test_extract_costar_creates_audit_entry(
+    mock_costar, client, admin_auth, db_session
+):
     """Test that triggering CoStar extraction creates an audit log entry."""
     response = await client.post("/api/v1/admin/extract/costar")
     assert response.status_code == 200
@@ -331,7 +344,13 @@ async def test_extract_costar_creates_audit_entry(client, admin_auth, db_session
 
 
 @pytest.mark.asyncio
-async def test_extract_census_creates_audit_entry(client, admin_auth, db_session):
+@patch(
+    "app.api.v1.endpoints.admin.trigger_census_extraction",
+    new_callable=AsyncMock,
+)
+async def test_extract_census_creates_audit_entry(
+    mock_census, client, admin_auth, db_session
+):
     """Test that triggering Census extraction creates an audit log entry."""
     response = await client.post("/api/v1/admin/extract/census")
     assert response.status_code == 200
