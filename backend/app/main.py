@@ -50,7 +50,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if "X-Frame-Options" not in response.headers:
             response.headers["X-Frame-Options"] = "DENY"
         if "X-XSS-Protection" not in response.headers:
-            response.headers["X-XSS-Protection"] = "1; mode=block"
+            # Set to 0: the "1; mode=block" value can introduce XSS vulnerabilities
+            # in older browsers. Modern browsers ignore this header entirely.
+            # See: https://owasp.org/www-project-secure-headers/
+            response.headers["X-XSS-Protection"] = "0"
         if "Referrer-Policy" not in response.headers:
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         if "Permissions-Policy" not in response.headers:
@@ -64,6 +67,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             and "Cache-Control" not in response.headers
         ):
             response.headers["Cache-Control"] = "no-store, private"
+
+        # HSTS — only in production (behind TLS termination)
+        if (
+            settings.ENVIRONMENT == "production"
+            and "Strict-Transport-Security" not in response.headers
+        ):
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=63072000; includeSubDomains; preload"
+            )
 
         # Content Security Policy (restrictive default)
         if "Content-Security-Policy" not in response.headers:
@@ -80,6 +92,61 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             )
 
         return response
+
+
+class OriginValidationMiddleware(BaseHTTPMiddleware):
+    """
+    Origin validation for state-changing requests.
+
+    CSRF NOTE: This application uses JWT Bearer tokens from localStorage,
+    NOT cookies. Browsers do not auto-attach localStorage values to
+    cross-origin requests, so CSRF attacks are inherently mitigated.
+    This middleware provides defense-in-depth by rejecting state-changing
+    requests from unexpected origins.
+
+    Validates the Origin (or Referer) header on POST/PUT/PATCH/DELETE
+    requests against the configured CORS_ORIGINS list. Requests without
+    an Origin header (e.g., server-to-server, curl) are allowed through
+    since they cannot be triggered by a browser-based CSRF attack.
+    """
+
+    # Methods that modify state and should be origin-checked
+    STATE_CHANGING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        if request.method in self.STATE_CHANGING_METHODS:
+            origin = request.headers.get("origin")
+            referer = request.headers.get("referer")
+
+            # Extract origin from Referer if Origin header is absent
+            check_origin = origin
+            if not check_origin and referer:
+                # Parse scheme + host from referer URL
+                from urllib.parse import urlparse
+
+                parsed = urlparse(referer)
+                if parsed.scheme and parsed.netloc:
+                    check_origin = f"{parsed.scheme}://{parsed.netloc}"
+
+            # If an origin is present, validate it against allowed origins
+            if check_origin:
+                allowed = settings.CORS_ORIGINS
+                if check_origin not in allowed:
+                    logger.warning(
+                        "Rejected request from disallowed origin",
+                        origin=check_origin,
+                        method=request.method,
+                        path=request.url.path,
+                    )
+                    return JSONResponse(
+                        status_code=403,
+                        content={"detail": "Origin not allowed"},
+                    )
+
+            # No origin/referer header = non-browser client (curl, server-to-server)
+            # These are safe because browsers always send Origin on cross-origin requests
+
+        return await call_next(request)
 
 
 @asynccontextmanager
@@ -227,6 +294,9 @@ if settings.RATE_LIMIT_ENABLED:
 
 # Add security headers middleware (defense-in-depth)
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Add origin validation middleware (defense-in-depth for state-changing requests)
+app.add_middleware(OriginValidationMiddleware)
 
 
 # Global exception handler

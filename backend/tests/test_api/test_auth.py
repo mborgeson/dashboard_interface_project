@@ -520,7 +520,7 @@ async def test_blacklist_stats():
 
 @pytest.mark.asyncio
 async def test_refresh_token_blacklisted_after_logout(client, test_user):
-    """Test that refresh token works before logout but not after using access token logout."""
+    """Test that refresh token works before logout but is blacklisted after use (rotation)."""
     # Login to get tokens
     login_response = await client.post(
         "/api/v1/auth/login",
@@ -532,26 +532,147 @@ async def test_refresh_token_blacklisted_after_logout(client, test_user):
     )
     assert login_response.status_code == 200
     access_token = login_response.json()["access_token"]
-    refresh_token = login_response.json()["refresh_token"]
+    original_refresh = login_response.json()["refresh_token"]
 
-    # Verify refresh works before logout
+    # Use the refresh token — should succeed and return new tokens
     refresh_response = await client.post(
         "/api/v1/auth/refresh",
-        json={"refresh_token": refresh_token},
+        json={"refresh_token": original_refresh},
+    )
+    assert refresh_response.status_code == 200
+    new_refresh = refresh_response.json()["refresh_token"]
+    assert new_refresh != original_refresh  # Must be a new token
+
+    # The original refresh token is now blacklisted (rotation) — cannot be reused
+    # Clear user revocation first so we can test the token-level blacklist
+    user_id = decode_token(original_refresh).get("sub")
+    await token_blacklist.clear_user_revocation(user_id)
+
+    replay_response = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original_refresh},
+    )
+    assert replay_response.status_code == 401
+    assert "reuse" in replay_response.json()["detail"].lower() or "revoked" in replay_response.json()["detail"].lower()
+
+    # But the NEW refresh token should still work (after clearing user revocation)
+    await token_blacklist.clear_user_revocation(user_id)
+    new_refresh_response = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": new_refresh},
+    )
+    assert new_refresh_response.status_code == 200
+
+
+# =============================================================================
+# Refresh Token Rotation Tests
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_refresh_rotation_returns_both_tokens(client, test_user):
+    """Test that refresh endpoint returns both a new access token and new refresh token."""
+    # Login
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": "test@example.com",
+            "password": "testpassword123",
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login_response.status_code == 200
+    original_access = login_response.json()["access_token"]
+    original_refresh = login_response.json()["refresh_token"]
+
+    # Refresh
+    refresh_response = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original_refresh},
+    )
+    assert refresh_response.status_code == 200
+    data = refresh_response.json()
+
+    # Both tokens must be present and different from originals
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert data["access_token"] != original_access
+    assert data["refresh_token"] != original_refresh
+    assert data["token_type"] == "bearer"
+    assert "expires_in" in data
+
+
+@pytest.mark.asyncio
+async def test_refresh_rotation_old_token_blacklisted(client, test_user):
+    """Test that the old refresh token is blacklisted after rotation."""
+    # Login
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": "test@example.com",
+            "password": "testpassword123",
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    original_refresh = login_response.json()["refresh_token"]
+
+    # Use the refresh token (rotates it)
+    refresh_response = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original_refresh},
     )
     assert refresh_response.status_code == 200
 
-    # Logout using access token (this blacklists the access token, not refresh)
-    await client.post(
-        "/api/v1/auth/logout",
-        headers={"Authorization": f"Bearer {access_token}"},
-    )
+    # Verify the old token's JTI is now blacklisted
+    old_payload = decode_token(original_refresh)
+    old_jti = old_payload["jti"]
+    assert await token_blacklist.is_blacklisted(old_jti) is True
 
-    # Refresh token should still work since only access token was blacklisted
-    # (In a stricter implementation, you might also blacklist refresh token)
-    refresh_response_after = await client.post(
-        "/api/v1/auth/refresh",
-        json={"refresh_token": refresh_token},
+
+@pytest.mark.asyncio
+async def test_refresh_rotation_replay_attack_detected(client, test_user):
+    """Test that reusing a blacklisted refresh token triggers replay attack detection."""
+    # Login
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": "test@example.com",
+            "password": "testpassword123",
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
-    # This should work since we only blacklisted the access token
-    assert refresh_response_after.status_code == 200
+    original_refresh = login_response.json()["refresh_token"]
+    user_id = decode_token(original_refresh).get("sub")
+
+    # First refresh — succeeds, rotates the token
+    refresh_response = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original_refresh},
+    )
+    assert refresh_response.status_code == 200
+    new_refresh = refresh_response.json()["refresh_token"]
+
+    # Clear user revocation to isolate the replay test
+    await token_blacklist.clear_user_revocation(user_id)
+
+    # Replay attack: reuse the OLD refresh token
+    replay_response = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original_refresh},
+    )
+    assert replay_response.status_code == 401
+    assert "reuse" in replay_response.json()["detail"].lower()
+
+    # After replay detection, user's tokens should be revoked
+    assert await token_blacklist.is_user_revoked(user_id) is True
+
+    # Even the NEW refresh token should now be rejected (user-level revocation)
+    new_refresh_response = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": new_refresh},
+    )
+    assert new_refresh_response.status_code == 401
+    assert "revoked" in new_refresh_response.json()["detail"].lower()
+
+    # Clean up user revocation for other tests
+    await token_blacklist.clear_user_revocation(user_id)

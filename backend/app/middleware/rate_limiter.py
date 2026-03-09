@@ -426,6 +426,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Add rate limit headers to successful responses
             response.headers["X-RateLimit-Limit"] = str(config.requests)
             response.headers["X-RateLimit-Remaining"] = str(remaining)
+            response.headers["X-RateLimit-Reset"] = str(config.window)
 
             return response
 

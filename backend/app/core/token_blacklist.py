@@ -60,6 +60,92 @@ class TokenBlacklist:
         """Check if Redis backend is available."""
         return self._redis is not None
 
+    async def revoke_user_tokens(self, user_id: str, expires_in: int = 604800) -> None:
+        """
+        Revoke all tokens for a user by setting a user-level revocation timestamp.
+
+        Any token issued before this timestamp will be considered invalid.
+        Used for replay attack detection during refresh token rotation.
+
+        Args:
+            user_id: The user ID whose tokens should be revoked
+            expires_in: Seconds until revocation expires (default 7 days = refresh token lifetime)
+        """
+        if not user_id:
+            return
+
+        import time as _time
+
+        revoked_at = str(int(_time.time()))
+        key = f"user_revoked:{user_id}"
+
+        await self._ensure_redis()
+
+        if self._redis:
+            try:
+                await self._redis.setex(key, expires_in, revoked_at)
+                logger.warning(
+                    f"All tokens revoked for user {user_id} (replay attack detected)"
+                )
+            except Exception as e:
+                logger.error(f"Redis user revocation failed: {e}")
+                _memory_blacklist[key] = time.time() + expires_in
+        else:
+            # For memory store, store the revocation timestamp as a special entry
+            _memory_blacklist[key] = time.time() + expires_in
+            logger.warning(
+                f"All tokens revoked for user {user_id} in memory (replay attack detected)"
+            )
+
+    async def is_user_revoked(self, user_id: str, token_iat: int | None = None) -> bool:
+        """
+        Check if a user's tokens have been revoked.
+
+        Args:
+            user_id: The user ID to check
+            token_iat: The token's issued-at timestamp (unused for now, reserved for future use)
+
+        Returns:
+            True if user's tokens are revoked, False otherwise
+        """
+        if not user_id:
+            return False
+
+        key = f"user_revoked:{user_id}"
+
+        await self._ensure_redis()
+
+        if self._redis:
+            try:
+                return bool(await self._redis.exists(key))
+            except Exception as e:
+                logger.error(f"Redis user revocation check failed: {e}")
+                return self._check_memory_blacklist(key)
+        else:
+            return self._check_memory_blacklist(key)
+
+    async def clear_user_revocation(self, user_id: str) -> None:
+        """
+        Clear user-level token revocation (for testing/admin purposes).
+
+        Args:
+            user_id: The user ID to clear revocation for
+        """
+        key = f"user_revoked:{user_id}"
+
+        await self._ensure_redis()
+
+        if self._redis:
+            try:
+                await self._redis.delete(key)
+            except Exception as e:
+                logger.error(f"Redis clear user revocation failed: {e}")
+                if key in _memory_blacklist:
+                    del _memory_blacklist[key]
+        else:
+            if key in _memory_blacklist:
+                del _memory_blacklist[key]
+
     async def add(self, token_jti: str, expires_in: int = 1800) -> None:
         """
         Add token to blacklist with expiration.

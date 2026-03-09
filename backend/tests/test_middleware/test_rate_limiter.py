@@ -389,6 +389,7 @@ class TestRateLimitMiddleware:
 
             assert "X-RateLimit-Limit" in response.headers
             assert "X-RateLimit-Remaining" in response.headers
+            assert "X-RateLimit-Reset" in response.headers
             assert response.headers["X-RateLimit-Limit"] == "5"
 
     @pytest.mark.asyncio

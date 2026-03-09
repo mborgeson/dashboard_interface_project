@@ -137,7 +137,13 @@ async def login(
 @router.post("/refresh", response_model=Token)
 async def refresh_token(request: RefreshTokenRequest):
     """
-    Refresh access token using refresh token.
+    Refresh access token using refresh token (with rotation).
+
+    Implements refresh token rotation:
+    - Issues a NEW access token AND a NEW refresh token
+    - Blacklists the OLD refresh token after use
+    - Detects replay attacks: if a previously-used (blacklisted) refresh token
+      is presented, revokes ALL tokens for that user
 
     - **refresh_token**: Valid refresh token
     """
@@ -148,16 +154,44 @@ async def refresh_token(request: RefreshTokenRequest):
             detail="Invalid refresh token",
         )
 
-    # Check if refresh token has been revoked
     jti = payload.get("jti")
-    if jti and await token_blacklist.is_blacklisted(jti):
+    user_id = payload.get("sub")
+
+    # Check if user's tokens have been globally revoked (replay attack response)
+    if user_id and await token_blacklist.is_user_revoked(user_id):
+        logger.warning(f"Refresh attempt for revoked user: {user_id}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token has been revoked",
+            detail="All sessions have been revoked. Please log in again.",
         )
 
-    # Create new tokens
-    user_id = payload.get("sub")
+    # Check if this refresh token has already been used (replay attack detection)
+    if jti and await token_blacklist.is_blacklisted(jti):
+        # Replay attack detected — a previously-used refresh token is being reused.
+        # Revoke ALL tokens for this user as a security measure.
+        if user_id:
+            await token_blacklist.revoke_user_tokens(
+                user_id,
+                expires_in=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+            )
+        logger.warning(
+            f"Replay attack detected for user {user_id}, "
+            f"blacklisted refresh token reused: {jti[:8]}..."
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token reuse detected. All sessions have been revoked for security.",
+        )
+
+    # Blacklist the old refresh token (rotation: one-time use only)
+    if jti:
+        exp = payload.get("exp", 0)
+        ttl = max(0, int(exp) - int(time.time()))
+        if ttl > 0:
+            await token_blacklist.add(jti, ttl)
+            logger.debug(f"Refresh token rotated, old token blacklisted: {jti[:8]}...")
+
+    # Create new tokens (rotation: both access and refresh are new)
     access_token = create_access_token(subject=user_id)
     new_refresh_token = create_refresh_token(subject=user_id)
 
