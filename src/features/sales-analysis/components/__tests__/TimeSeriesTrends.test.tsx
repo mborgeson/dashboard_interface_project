@@ -58,11 +58,7 @@ describe('TimeSeriesTrends', () => {
  */
 describe('TimeSeriesTrends aggregation (null handling)', () => {
   it('does not dilute avgPricePerUnit with null values when aggregating', async () => {
-    // The aggregateData function is not exported, so we test via the module
-    // directly. We import the source and extract the function.
-    const mod = await import('../TimeSeriesTrends');
-
-    // Access aggregateData indirectly -- since it's not exported, we test
+    // aggregateData is not exported, so we test
     // the behavior by verifying that chart data computed from points with
     // null avgPricePerUnit does NOT produce artificially low averages.
 

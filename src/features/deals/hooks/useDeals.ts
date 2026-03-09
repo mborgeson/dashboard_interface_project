@@ -30,19 +30,10 @@ export function useDeals(initialDeals: Deal[]) {
   const [stageOverrides, setStageOverrides] = useState<Record<string, { stage: DealStage; timeline: Deal['timeline'] }>>({});
   const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
 
-  // Merge API data with any local drag-and-drop overrides
-  // Also prune stale overrides for deals no longer in the list
+  // Merge API data with local drag-and-drop overrides.
+  // Stale overrides (for deals no longer in the list) are simply ignored
+  // during the map — no need to prune them from state.
   const deals = useMemo(() => {
-    const dealIds = new Set(initialDeals.map(d => d.id));
-    const staleKeys = Object.keys(stageOverrides).filter(id => !dealIds.has(id));
-    if (staleKeys.length > 0) {
-      setStageOverrides(prev => {
-        const next = { ...prev };
-        staleKeys.forEach(k => delete next[k]);
-        return next;
-      });
-    }
-
     return initialDeals.map(deal => {
       const override = stageOverrides[deal.id];
       if (override) {
