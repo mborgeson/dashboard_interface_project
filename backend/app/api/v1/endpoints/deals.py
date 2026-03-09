@@ -627,7 +627,10 @@ async def update_deal(
     current_user: CurrentUser = Depends(require_manager),
 ):
     """
-    Update an existing deal.
+    Update an existing deal (with optimistic locking).
+
+    The client must include the `version` field from its last read.
+    If another user has updated the deal since then, a 409 Conflict is returned.
     """
     existing = await deal_crud.get(db, deal_id)
 
@@ -637,8 +640,26 @@ async def update_deal(
             detail=f"Deal {deal_id} not found",
         )
 
-    # Update deal in database
-    updated_deal = await deal_crud.update(db, db_obj=existing, obj_in=deal_data)
+    # Use optimistic locking via version column
+    update_data = deal_data.model_dump(exclude_unset=True)
+    expected_version = update_data.pop("version")
+
+    updated_deal = await deal_crud.update_optimistic(
+        db,
+        deal_id=deal_id,
+        expected_version=expected_version,
+        update_data=update_data,
+    )
+
+    if updated_deal is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Deal {deal_id} has been modified by another user. "
+                f"Expected version {expected_version}, but the deal has been updated. "
+                "Please refresh and try again."
+            ),
+        )
 
     # Notify via WebSocket
     ws_manager = get_websocket_manager()
@@ -661,7 +682,10 @@ async def patch_deal(
     current_user: CurrentUser = Depends(require_manager),
 ):
     """
-    Partially update an existing deal.
+    Partially update an existing deal (with optimistic locking).
+
+    The client must include the `version` field from its last read.
+    If another user has updated the deal since then, a 409 Conflict is returned.
     """
     existing = await deal_crud.get(db, deal_id)
 
@@ -671,8 +695,26 @@ async def patch_deal(
             detail=f"Deal {deal_id} not found",
         )
 
-    # Update deal in database
-    updated_deal = await deal_crud.update(db, db_obj=existing, obj_in=deal_data)
+    # Use optimistic locking via version column
+    update_data = deal_data.model_dump(exclude_unset=True)
+    expected_version = update_data.pop("version")
+
+    updated_deal = await deal_crud.update_optimistic(
+        db,
+        deal_id=deal_id,
+        expected_version=expected_version,
+        update_data=update_data,
+    )
+
+    if updated_deal is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Deal {deal_id} has been modified by another user. "
+                f"Expected version {expected_version}, but the deal has been updated. "
+                "Please refresh and try again."
+            ),
+        )
 
     # Notify via WebSocket
     ws_manager = get_websocket_manager()

@@ -4,7 +4,7 @@ CRUD operations for Deal model.
 
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -152,6 +152,41 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
             "total_deals": len(deals),
             "stage_counts": stage_counts,
         }
+
+    async def update_optimistic(
+        self,
+        db: AsyncSession,
+        *,
+        deal_id: int,
+        expected_version: int,
+        update_data: dict[str, Any],
+    ) -> Deal | None:
+        """
+        Update a deal with optimistic locking.
+
+        Uses a WHERE clause on version to detect concurrent edits.
+        Returns the updated Deal on success, or None if the version
+        was stale (meaning another update happened first).
+        """
+        # Remove 'version' from update_data if present — we set it ourselves
+        update_data.pop("version", None)
+
+        # Build the UPDATE ... WHERE id = :id AND version = :expected_version
+        stmt = (
+            update(Deal)
+            .where(Deal.id == deal_id, Deal.version == expected_version)
+            .values(version=expected_version + 1, **update_data)
+        )
+        result = await db.execute(stmt)
+
+        if result.rowcount == 0:  # type: ignore[attr-defined]
+            # No rows matched — version was stale or deal doesn't exist
+            return None
+
+        await db.commit()
+
+        # Re-fetch the updated object
+        return await self.get(db, deal_id)
 
     async def update_stage(
         self,

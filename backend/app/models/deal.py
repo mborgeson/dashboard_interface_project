@@ -62,6 +62,9 @@ class Deal(Base, TimestampMixin, SoftDeleteMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
+    # Optimistic locking version — incremented on each update
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
     # Basic Information
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     deal_type: Mapped[str] = mapped_column(

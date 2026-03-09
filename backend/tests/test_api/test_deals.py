@@ -223,6 +223,7 @@ async def test_create_deal_missing_required_field(client, admin_auth_headers):
 async def test_update_deal(client, test_deal, admin_auth_headers):
     """Test updating an existing deal."""
     update_data = {
+        "version": 1,
         "name": "Updated Deal Name",
         "priority": "low",
     }
@@ -241,7 +242,7 @@ async def test_update_deal(client, test_deal, admin_auth_headers):
 @pytest.mark.asyncio
 async def test_update_deal_not_found(client, admin_auth_headers):
     """Test updating a non-existent deal returns 404."""
-    update_data = {"name": "Won't Work"}
+    update_data = {"version": 1, "name": "Won't Work"}
 
     response = await client.put(
         "/api/v1/deals/999999", json=update_data, headers=admin_auth_headers
@@ -258,7 +259,7 @@ async def test_update_deal_not_found(client, admin_auth_headers):
 @pytest.mark.asyncio
 async def test_patch_deal(client, test_deal, admin_auth_headers):
     """Test partially updating an existing deal."""
-    patch_data = {"priority": "low"}
+    patch_data = {"version": 1, "priority": "low"}
 
     response = await client.patch(
         f"/api/v1/deals/{test_deal.id}", json=patch_data, headers=admin_auth_headers
@@ -274,7 +275,7 @@ async def test_patch_deal(client, test_deal, admin_auth_headers):
 @pytest.mark.asyncio
 async def test_patch_deal_not_found(client, admin_auth_headers):
     """Test patching a non-existent deal returns 404."""
-    patch_data = {"priority": "low"}
+    patch_data = {"version": 1, "priority": "low"}
 
     response = await client.patch(
         "/api/v1/deals/999999", json=patch_data, headers=admin_auth_headers

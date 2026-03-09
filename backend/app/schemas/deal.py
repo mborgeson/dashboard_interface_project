@@ -87,7 +87,10 @@ class DealCreate(DealBase):
 
 
 class DealUpdate(BaseSchema):
-    """Schema for updating a deal. All fields optional."""
+    """Schema for updating a deal. All fields optional except version (optimistic lock)."""
+
+    # Optimistic locking — client must send the version it last read
+    version: int = Field(..., description="Current version for optimistic locking")
 
     name: str | None = Field(None, min_length=1, max_length=255)
     deal_type: str | None = Field(
@@ -153,6 +156,7 @@ class DealResponse(DealBase, TimestampSchema):
     """Schema for deal response."""
 
     id: int
+    version: int = 1
     stage: str
     stage_order: int
 
