@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.file_validation import validate_upload
 from app.core.permissions import require_viewer
 from app.crud.crud_document import document as document_crud
 from app.db.session import get_db
@@ -163,8 +164,15 @@ async def upload_document(
     # Parse tags from comma-separated string
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
 
-    # Get file size
+    # Read file content and validate
     file_content = await file.read()
+    validation = validate_upload(file.filename, file.content_type, file_content)
+    if not validation.valid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=validation.error,
+        )
+
     file_size = len(file_content)
 
     # Create document data
