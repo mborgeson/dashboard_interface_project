@@ -35,26 +35,30 @@ def _get_demo_users() -> dict:
         return {}
 
     # Demo users for development/testing only
-    return {
-        "matt@bandrcapital.com": {
-            "password": "Wildcats777!!",
+    # Passwords loaded from environment variables — never hardcoded
+    users = {}
+    if settings.DEMO_USER_PASSWORD:
+        users["matt@bandrcapital.com"] = {
+            "password": settings.DEMO_USER_PASSWORD,
             "id": 1,
             "role": "admin",
             "full_name": "Matt Borgeson",
-        },
-        "admin@bandrcapital.com": {
-            "password": "admin123",
+        }
+    if settings.DEMO_ADMIN_PASSWORD:
+        users["admin@bandrcapital.com"] = {
+            "password": settings.DEMO_ADMIN_PASSWORD,
             "id": 2,
             "role": "admin",
             "full_name": "Admin User",
-        },
-        "analyst@bandrcapital.com": {
-            "password": "analyst123",
+        }
+    if settings.DEMO_ANALYST_PASSWORD:
+        users["analyst@bandrcapital.com"] = {
+            "password": settings.DEMO_ANALYST_PASSWORD,
             "id": 3,
             "role": "analyst",
             "full_name": "Analyst User",
-        },
-    }
+        }
+    return users
 
 
 @router.post("/login", response_model=Token)

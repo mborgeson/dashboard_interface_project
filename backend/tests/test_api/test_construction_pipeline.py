@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.permissions import CurrentUser, Role, get_current_user
 from app.db.base import Base
 from app.db.session import get_db, get_sync_db
 from app.main import app
@@ -81,8 +82,15 @@ async def cp_client(
     def override_get_sync_db():
         yield sync_db_session
 
+    async def override_get_current_user():
+        return CurrentUser(
+            id=1, email="test@example.com", role=Role.ADMIN,
+            full_name="Test Admin", is_active=True,
+        )
+
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_sync_db] = override_get_sync_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

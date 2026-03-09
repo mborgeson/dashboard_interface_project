@@ -12,8 +12,9 @@ Provides current and historical interest rate data including:
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.core.permissions import require_viewer
 from app.schemas.interest_rates import (
     DataSourcesResponse,
     HistoricalRatesResponse,
@@ -24,7 +25,7 @@ from app.schemas.interest_rates import (
 )
 from app.services.interest_rates import get_interest_rates_service
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_viewer)])
 
 
 @router.get("/current", response_model=KeyRatesResponse)

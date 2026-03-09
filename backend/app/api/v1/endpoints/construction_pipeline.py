@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import require_viewer
 from app.db.session import get_db, get_sync_db
 from app.models.construction import (
     ConstructionEmploymentData,
@@ -25,7 +26,7 @@ from app.models.construction import (
     ConstructionSourceLog,
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_viewer)])
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 

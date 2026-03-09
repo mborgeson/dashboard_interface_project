@@ -7,6 +7,7 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import require_viewer
 from app.crud.crud_report_template import (
     distribution_schedule as schedule_crud,
 )
@@ -38,7 +39,7 @@ from app.schemas.reporting import (
     ReportWidgetSchema,
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_viewer)])
 
 
 # ==================== Report Template Endpoints ====================

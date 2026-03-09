@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 from app.core.config import settings
+from app.core.permissions import CurrentUser, Role, get_current_user
 from app.core.security import get_password_hash
 from app.db.base import Base
 from app.db.session import get_db
@@ -136,6 +137,35 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield ac
 
     app.dependency_overrides.clear()
+
+
+# =============================================================================
+# Auth Override Fixture (opt-in per test module)
+# =============================================================================
+
+
+@pytest.fixture
+def auto_auth():
+    """
+    Override get_current_user to auto-authenticate as admin.
+    Use in test modules for endpoints that now require auth.
+
+    Usage: add `auto_auth` as a parameter to test functions, or use
+    `pytestmark = pytest.mark.usefixtures("auto_auth")` at module level.
+    """
+
+    async def _override():
+        return CurrentUser(
+            id=1,
+            email="test@example.com",
+            role=Role.ADMIN,
+            full_name="Test Admin",
+            is_active=True,
+        )
+
+    app.dependency_overrides[get_current_user] = _override
+    yield
+    app.dependency_overrides.pop(get_current_user, None)
 
 
 # =============================================================================

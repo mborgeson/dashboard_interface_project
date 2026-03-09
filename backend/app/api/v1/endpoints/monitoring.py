@@ -17,11 +17,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.permissions import require_admin
 from app.db.session import get_db
 from app.services.monitoring.collectors import get_collector_registry
 from app.services.monitoring.metrics import get_metrics_manager
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_admin)])
 
 
 # =============================================================================

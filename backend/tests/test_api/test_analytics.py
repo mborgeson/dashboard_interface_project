@@ -10,6 +10,9 @@ Tests the Analytics API endpoints including:
 
 import pytest
 
+# All analytics endpoints now require authentication
+pytestmark = pytest.mark.usefixtures("auto_auth")
+
 # =============================================================================
 # Dashboard Metrics Tests
 # =============================================================================

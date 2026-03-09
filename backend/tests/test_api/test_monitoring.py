@@ -10,6 +10,9 @@ Tests the Monitoring API endpoints including:
 
 import pytest
 
+# All monitoring endpoints now require admin authentication
+pytestmark = pytest.mark.usefixtures("auto_auth")
+
 # =============================================================================
 # Liveness Probe Tests
 # =============================================================================

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import require_viewer
 from app.crud.crud_document import document as document_crud
 from app.db.session import get_db
 from app.schemas.document import (
@@ -17,7 +18,7 @@ from app.schemas.document import (
     DocumentUploadResponse,
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_viewer)])
 
 
 @router.get("/", response_model=DocumentListResponse)

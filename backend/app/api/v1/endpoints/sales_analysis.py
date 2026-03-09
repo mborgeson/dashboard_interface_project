@@ -18,11 +18,12 @@ from sqlalchemy import String as SAString
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import require_viewer
 from app.db.session import get_db, get_sync_db
 from app.models.reminder_dismissal import ReminderDismissal
 from app.models.sales_data import SalesData
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_viewer)])
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 

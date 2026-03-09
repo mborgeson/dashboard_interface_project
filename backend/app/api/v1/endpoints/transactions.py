@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import require_viewer
 from app.crud.crud_transaction import transaction as transaction_crud
 from app.db.session import get_db
 from app.schemas.transaction import (
@@ -18,7 +19,7 @@ from app.schemas.transaction import (
     TransactionUpdate,
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_viewer)])
 
 
 @router.get("/", response_model=TransactionListResponse)

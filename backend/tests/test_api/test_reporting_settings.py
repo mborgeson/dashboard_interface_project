@@ -3,6 +3,9 @@
 import pytest
 from sqlalchemy import text
 
+# Reporting endpoints now require authentication
+pytestmark = pytest.mark.usefixtures("auto_auth")
+
 
 @pytest.fixture
 async def seed_report_settings(db_session):

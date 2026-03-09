@@ -15,6 +15,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.security import decode_token
 from app.core.token_blacklist import token_blacklist
 from app.crud import user as user_crud
@@ -155,7 +156,11 @@ async def get_current_user(
             is_active=db_user.is_active,
         )
 
-    # Fallback for demo/development users (token contains role claim)
+    # Fallback for demo/development users only — never in production
+    if settings.ENVIRONMENT == "production":
+        raise credentials_exception
+
+    # Development/testing: trust token claims for demo users
     role_str = payload.get("role", "viewer")
     try:
         role = Role(role_str)

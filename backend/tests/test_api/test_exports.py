@@ -7,6 +7,9 @@ Tests the Exports API endpoints including:
 
 import pytest
 
+# All export endpoints now require analyst authentication
+pytestmark = pytest.mark.usefixtures("auto_auth")
+
 # =============================================================================
 # Properties Excel Export Tests
 # =============================================================================

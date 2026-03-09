@@ -9,13 +9,14 @@ from fastapi.responses import StreamingResponse
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import require_analyst
 from app.crud import deal as deal_crud
 from app.crud import property as property_crud
 from app.db.session import get_db
 from app.services.export_service import get_excel_service
 from app.services.pdf_service import get_pdf_service
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_analyst)])
 
 
 @router.get("/properties/excel")

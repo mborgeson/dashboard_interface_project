@@ -9,11 +9,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import require_viewer
 from app.db.session import get_db
 from app.models import Deal, DealStage, Property
 from app.services.ml import get_rent_growth_predictor
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_viewer)])
 
 
 def _decimal_to_float(value: Any) -> float | None:

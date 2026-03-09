@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Demo user credentials - development/testing only, loaded from env vars
+    # Set DEMO_USER_PASSWORD, DEMO_ADMIN_PASSWORD, DEMO_ANALYST_PASSWORD in .env
+    DEMO_USER_PASSWORD: str | None = None
+    DEMO_ADMIN_PASSWORD: str | None = None
+    DEMO_ANALYST_PASSWORD: str | None = None
+
     # CORS Settings - configurable via CORS_ORIGINS env var
     # Supports both JSON array ["url1", "url2"] and comma-separated "url1,url2" formats
     # Development origins are defaults; production origins should be set via CORS_ORIGINS env var

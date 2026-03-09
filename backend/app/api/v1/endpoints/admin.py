@@ -2,8 +2,9 @@
 Admin endpoints for market data extraction management.
 """
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends
 
+from app.core.permissions import require_admin
 from app.services.data_extraction.scheduler import (
     get_data_freshness,
     trigger_census_extraction,
@@ -11,7 +12,7 @@ from app.services.data_extraction.scheduler import (
     trigger_fred_extraction,
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_admin)])
 
 
 @router.post("/extract/fred")

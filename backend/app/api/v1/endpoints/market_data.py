@@ -2,9 +2,10 @@
 Market data endpoints for market analytics and comparables.
 """
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from loguru import logger
 
+from app.core.permissions import CurrentUser, require_admin, require_viewer
 from app.schemas.market_data import (
     ComparablesResponse,
     MarketOverviewResponse,
@@ -13,11 +14,13 @@ from app.schemas.market_data import (
 )
 from app.services.market_data import market_data_service
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_viewer)])
 
 
 @router.post("/refresh")
-async def refresh_market_data():
+async def refresh_market_data(
+    _current_user: CurrentUser = Depends(require_admin),
+):
     """
     Trigger an incremental FRED extraction to refresh market data.
 
