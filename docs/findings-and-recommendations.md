@@ -954,15 +954,15 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 
 | #       | Severity | Status | Finding                                                              | Fix                                                        | Git Commit # |
 | ------- | -------- | ------ | -------------------------------------------------------------------- | ---------------------------------------------------------- | ------------ |
-| F-001   | CRITICAL | Done   | Users endpoints backed by in-memory demo data, not database          | Replaced with real DB CRUD operations (CRUDUser)           | TBD          |
-| F-002   | CRITICAL | Done   | Monitoring liveness/readiness probes guarded by require_admin        | Per-route auth; probes unauthenticated                     | TBD          |
+| F-001   | CRITICAL | Done   | Users endpoints backed by in-memory demo data, not database          | Replaced with real DB CRUD operations (CRUDUser)           | 8599ec2      |
+| F-002   | CRITICAL | Done   | Monitoring liveness/readiness probes guarded by require_admin        | Per-route auth; probes unauthenticated                     | 8599ec2      |
 | F-003   | CRITICAL | Open   | Report generation has no background worker                           | —                                                          | —            |
-| F-004   | CRITICAL | Done   | WebSocket token validation does not check blacklist                  | Added is_blacklisted() check, fail-closed                  | TBD          |
-| F-005   | CRITICAL | Done   | Token refresh not wired on frontend                                  | Retry-after-refresh in fetch client + authStore method     | TBD          |
-| F-006   | CRITICAL | Done   | Financial calculation libraries have no tests                        | 98 tests across IRR, cashflow, sensitivity                 | TBD          |
-| F-007a  | CRITICAL | Done   | Structlog startup crash — get_level_from_name does not exist         | logging.getLevelName() (stdlib)                            | TBD          |
-| F-007a+ | CRITICAL | Done   | Structlog add_logger_name crash with PrintLoggerFactory              | Removed incompatible processor                             | TBD          |
-| F-007   | CRITICAL | Done   | Transaction DELETE/restore has no auth upgrade over require_viewer    | Write ops elevated to require_manager                      | TBD          |
+| F-004   | CRITICAL | Done   | WebSocket token validation does not check blacklist                  | Added is_blacklisted() check, fail-closed                  | 8599ec2      |
+| F-005   | CRITICAL | Done   | Token refresh not wired on frontend                                  | Retry-after-refresh in fetch client + authStore method     | 8599ec2      |
+| F-006   | CRITICAL | Done   | Financial calculation libraries have no tests                        | 98 tests across IRR, cashflow, sensitivity                 | 8599ec2      |
+| F-007a  | CRITICAL | Done   | Structlog startup crash — get_level_from_name does not exist         | logging.getLevelName() (stdlib)                            | 8599ec2      |
+| F-007a+ | CRITICAL | Done   | Structlog add_logger_name crash with PrintLoggerFactory              | Removed incompatible processor                             | 8599ec2      |
+| F-007   | CRITICAL | Done   | Transaction DELETE/restore has no auth upgrade over require_viewer    | Write ops elevated to require_manager                      | 8599ec2      |
 | F-008   | HIGH     | Open   | Document route shadowing (/property/{id} vs /{document_id})         | —                                                          | —            |
 | F-009   | HIGH     | Open   | Document upload does not require elevated role                       | —                                                          | —            |
 | F-010   | HIGH     | Open   | Proforma returns matches by property_name string, not property_id    | —                                                          | —            |
@@ -971,7 +971,7 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-013   | HIGH     | Open   | user_name always None in PropertyActivityResponse                    | —                                                          | —            |
 | F-014   | HIGH     | Open   | Analytics export uses static mock data                               | —                                                          | —            |
 | F-015   | HIGH     | Open   | Growth rate fields always return 0.0 or null                         | —                                                          | —            |
-| F-016   | HIGH     | Done   | Redis services commented out in lifespan startup                     | Wired with graceful fallback to in-memory                  | TBD          |
+| F-016   | HIGH     | Done   | Redis services commented out in lifespan startup                     | Wired with graceful fallback to in-memory                  | 8599ec2      |
 | F-017   | HIGH     | Open   | Backend coverage below 30% threshold                                 | —                                                          | —            |
 | F-018   | HIGH     | Open   | Alembic migrations lag behind model changes                          | —                                                          | —            |
 | F-019   | HIGH     | Open   | N+1 query in queued report list                                      | —                                                          | —            |
@@ -984,16 +984,16 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-026   | MEDIUM   | Open   | In-memory cache fallback has no automatic cleanup                    | —                                                          | —            |
 | F-027   | MEDIUM   | Open   | WebSocket ConnectionManager not integrated into lifespan             | —                                                          | —            |
 | F-028   | MEDIUM   | Open   | Rate limiter Redis backend uses fixed-bucket approximation           | —                                                          | —            |
-| F-029   | MEDIUM   | Done   | Fetch client missing token refresh logic                             | Implemented in Batch 2a (same as F-005)                    | TBD          |
+| F-029   | MEDIUM   | Done   | Fetch client missing token refresh logic                             | Implemented in Batch 2a (same as F-005)                    | 8599ec2      |
 | F-030   | MEDIUM   | Open   | Enrichment logic mixed into CRUD layer                               | —                                                          | —            |
 | F-031   | MEDIUM   | Open   | Property analytics trends returns single-point data                  | —                                                          | —            |
 | F-032   | MEDIUM   | Open   | N+1 in distribution schedule list                                    | —                                                          | —            |
 | F-033   | MEDIUM   | Open   | CacheService has no tests                                            | —                                                          | —            |
-| F-034   | MEDIUM   | Done   | No API-level tests for transaction endpoints                         | 27 tests added (Batch 2b users agent also covers)          | TBD          |
+| F-034   | MEDIUM   | Done   | No API-level tests for transaction endpoints                         | 27 tests added (Batch 2b users agent also covers)          | 8599ec2      |
 | F-035   | MEDIUM   | Open   | No API-level tests for document endpoints                            | —                                                          | —            |
 | F-036   | MEDIUM   | Open   | No API-level tests for interest rate endpoints                       | —                                                          | —            |
 | F-037   | MEDIUM   | Open   | No API-level tests for market data endpoints                         | —                                                          | —            |
-| F-038   | MEDIUM   | Done   | authStore has no tests                                               | 9 tests added (authStore.test.ts)                          | TBD          |
+| F-038   | MEDIUM   | Done   | authStore has no tests                                               | 9 tests added (authStore.test.ts)                          | 8599ec2      |
 | F-039   | MEDIUM   | Open   | ETag middleware has no tests                                         | —                                                          | —            |
 | F-040   | MEDIUM   | Open   | Origin validation middleware has no tests                            | —                                                          | —            |
 | F-041   | MEDIUM   | Open   | documents.property_id is VARCHAR(50), not FK to properties.id        | —                                                          | —            |
