@@ -17,11 +17,19 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
     CRUD operations for Deal model with additional deal-specific methods.
     """
 
-    async def get_with_relations(self, db: AsyncSession, id: int) -> Deal | None:
+    async def get_with_relations(
+        self,
+        db: AsyncSession,
+        id: int,
+        *,
+        include_deleted: bool = False,
+    ) -> Deal | None:
         """Get deal with related data."""
         # Note: Relationships (assigned_user, property) are not yet enabled in the model
         # When enabled, add: .options(selectinload(Deal.assigned_user), selectinload(Deal.property))
-        result = await db.execute(select(Deal).where(Deal.id == id))
+        query = select(Deal).where(Deal.id == id)
+        query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
+        result = await db.execute(query)
         return result.scalar_one_or_none()
 
     async def get_by_stage(
@@ -31,15 +39,18 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         stage: DealStage,
         skip: int = 0,
         limit: int = 100,
+        include_deleted: bool = False,
     ) -> list[Deal]:
         """Get deals filtered by stage."""
-        result = await db.execute(
+        query = (
             select(Deal)
             .where(Deal.stage == stage)
             .order_by(Deal.stage_order.asc(), Deal.created_at.desc())
             .offset(skip)
             .limit(limit)
         )
+        query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
+        result = await db.execute(query)
         return list(result.scalars().all())
 
     async def get_multi_filtered(
@@ -54,9 +65,11 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         assigned_user_id: int | None = None,
         order_by: str = "created_at",
         order_desc: bool = True,
+        include_deleted: bool = False,
     ) -> list[Deal]:
         """Get deals with multiple filters."""
         query = select(Deal)
+        query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
 
         # Apply filters
         if stage:
@@ -92,9 +105,11 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         deal_type: str | None = None,
         priority: str | None = None,
         assigned_user_id: int | None = None,
+        include_deleted: bool = False,
     ) -> int:
         """Count deals with filters."""
         query = select(func.count()).select_from(Deal)
+        query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
 
         if stage:
             try:
@@ -121,9 +136,11 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         *,
         deal_type: str | None = None,
         assigned_user_id: int | None = None,
+        include_deleted: bool = False,
     ) -> dict[str, Any]:
         """Get deals organized by stage for Kanban board."""
         query = select(Deal)
+        query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
 
         if deal_type:
             query = query.where(Deal.deal_type == deal_type)

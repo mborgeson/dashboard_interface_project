@@ -793,7 +793,10 @@ async def delete_deal(
     current_user: CurrentUser = Depends(require_manager),
 ):
     """
-    Delete a deal.
+    Soft-delete a deal.
+
+    The deal is marked as deleted but retained in the database.
+    Use POST /{deal_id}/restore to undo.
     """
     existing = await deal_crud.get(db, deal_id)
 
@@ -813,8 +816,51 @@ async def delete_deal(
         data={"id": deal_id},
     )
 
-    logger.info(f"Deleted deal: {deal_id}")
+    logger.info(f"Soft-deleted deal: {deal_id}")
     return None
+
+
+@router.post("/{deal_id}/restore", response_model=DealResponse)
+async def restore_deal(
+    deal_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
+):
+    """
+    Restore a soft-deleted deal.
+    """
+    # Look up the deal including deleted ones
+    existing = await deal_crud.get(db, deal_id, include_deleted=True)
+
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Deal {deal_id} not found",
+        )
+
+    if not existing.is_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Deal {deal_id} is not deleted",
+        )
+
+    restored = await deal_crud.restore(db, id=deal_id)
+    if not restored:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to restore deal",
+        )
+
+    # Notify via WebSocket
+    ws_manager = get_websocket_manager()
+    await ws_manager.notify_deal_update(
+        deal_id=deal_id,
+        action="restored",
+        data={"id": deal_id, "name": restored.name},
+    )
+
+    logger.info(f"Restored deal: {deal_id}")
+    return DealResponse.model_validate(restored)
 
 
 @router.post("/{deal_id}/activity", response_model=DealActivityResponse)

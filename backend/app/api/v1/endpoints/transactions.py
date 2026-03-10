@@ -260,6 +260,9 @@ async def delete_transaction(
 ):
     """
     Delete a transaction (soft delete).
+
+    The transaction is marked as deleted but retained in the database.
+    Use POST /{transaction_id}/restore to undo.
     """
     existing = await transaction_crud.get(db, transaction_id)
 
@@ -269,10 +272,38 @@ async def delete_transaction(
             detail=f"Transaction {transaction_id} not found",
         )
 
-    # Perform soft delete
-    existing.soft_delete()
-    db.add(existing)
-    await db.commit()
+    await transaction_crud.remove(db, id=transaction_id)
 
-    logger.info(f"Deleted transaction: {transaction_id}")
+    logger.info(f"Soft-deleted transaction: {transaction_id}")
     return None
+
+
+@router.post(
+    "/{transaction_id}/restore",
+    response_model=TransactionResponse,
+)
+async def restore_transaction(
+    transaction_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Restore a soft-deleted transaction.
+    """
+    existing = await transaction_crud.get(db, transaction_id, include_deleted=True)
+
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Transaction {transaction_id} not found",
+        )
+
+    if not existing.is_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Transaction {transaction_id} is not deleted",
+        )
+
+    restored = await transaction_crud.restore(db, id=transaction_id)
+
+    logger.info(f"Restored transaction: {transaction_id}")
+    return restored
