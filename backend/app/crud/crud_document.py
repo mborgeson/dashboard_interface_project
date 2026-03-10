@@ -56,6 +56,57 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         )
         return list(result.scalars().all())
 
+    @staticmethod
+    def _date_range_cutoff(date_range: str | None) -> datetime | None:
+        """Convert a date range string to a cutoff datetime."""
+        if not date_range or date_range == "all":
+            return None
+
+        days_map = {
+            "7days": 7,
+            "30days": 30,
+            "90days": 90,
+            "1year": 365,
+        }
+        days = days_map.get(date_range)
+        return datetime.now(UTC) - timedelta(days=days) if days else None
+
+    def _build_document_conditions(
+        self,
+        *,
+        doc_type: str | None = None,
+        property_id: str | None = None,
+        search_term: str | None = None,
+        date_range: str | None = None,
+    ) -> list:
+        """Build SQLAlchemy filter conditions for document queries."""
+        conditions: list = []
+
+        if doc_type and doc_type != "all":
+            try:
+                type_enum = DocumentType(doc_type)
+                conditions.append(Document.type == type_enum)
+            except ValueError:
+                pass  # Invalid type, ignore filter
+
+        if property_id and property_id != "all":
+            conditions.append(Document.property_id == property_id)
+
+        if search_term:
+            search_pattern = f"%{search_term}%"
+            conditions.append(
+                or_(
+                    Document.name.ilike(search_pattern),
+                    Document.description.ilike(search_pattern),
+                )
+            )
+
+        cutoff = self._date_range_cutoff(date_range)
+        if cutoff:
+            conditions.append(Document.uploaded_at >= cutoff)
+
+        return conditions
+
     async def get_filtered(
         self,
         db: AsyncSession,
@@ -70,55 +121,20 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         order_desc: bool = True,
     ) -> list[Document]:
         """Get documents with multiple filters."""
-        query = select(Document).where(Document.is_deleted.is_(False))
-
-        # Filter by document type
-        if doc_type and doc_type != "all":
-            try:
-                type_enum = DocumentType(doc_type)
-                query = query.where(Document.type == type_enum)
-            except ValueError:
-                pass  # Invalid type, ignore filter
-
-        # Filter by property
-        if property_id and property_id != "all":
-            query = query.where(Document.property_id == property_id)
-
-        # Search by name or description
-        if search_term:
-            search_pattern = f"%{search_term}%"
-            query = query.where(
-                or_(
-                    Document.name.ilike(search_pattern),
-                    Document.description.ilike(search_pattern),
-                )
-            )
-
-        # Filter by date range
-        if date_range and date_range != "all":
-            now = datetime.now(UTC)
-            if date_range == "7days":
-                cutoff = now - timedelta(days=7)
-            elif date_range == "30days":
-                cutoff = now - timedelta(days=30)
-            elif date_range == "90days":
-                cutoff = now - timedelta(days=90)
-            elif date_range == "1year":
-                cutoff = now - timedelta(days=365)
-            else:
-                cutoff = None
-
-            if cutoff:
-                query = query.where(Document.uploaded_at >= cutoff)
-
-        # Apply ordering
-        if hasattr(Document, order_by):
-            col = getattr(Document, order_by)
-            query = query.order_by(col.desc() if order_desc else col.asc())
-
-        query = query.offset(skip).limit(limit)
-        result = await db.execute(query)
-        return list(result.scalars().all())
+        conditions = self._build_document_conditions(
+            doc_type=doc_type,
+            property_id=property_id,
+            search_term=search_term,
+            date_range=date_range,
+        )
+        return await self.get_multi_ordered(
+            db,
+            skip=skip,
+            limit=limit,
+            order_by=order_by,
+            order_desc=order_desc,
+            conditions=conditions,
+        )
 
     async def count_filtered(
         self,
@@ -130,46 +146,13 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         date_range: str | None = None,
     ) -> int:
         """Count documents with filters."""
-        query = select(func.count()).select_from(Document)
-        query = query.where(Document.is_deleted.is_(False))
-
-        if doc_type and doc_type != "all":
-            try:
-                type_enum = DocumentType(doc_type)
-                query = query.where(Document.type == type_enum)
-            except ValueError:
-                pass
-
-        if property_id and property_id != "all":
-            query = query.where(Document.property_id == property_id)
-
-        if search_term:
-            search_pattern = f"%{search_term}%"
-            query = query.where(
-                or_(
-                    Document.name.ilike(search_pattern),
-                    Document.description.ilike(search_pattern),
-                )
-            )
-
-        if date_range and date_range != "all":
-            now = datetime.now(UTC)
-            if date_range == "7days":
-                cutoff = now - timedelta(days=7)
-            elif date_range == "30days":
-                cutoff = now - timedelta(days=30)
-            elif date_range == "90days":
-                cutoff = now - timedelta(days=90)
-            elif date_range == "1year":
-                cutoff = now - timedelta(days=365)
-            else:
-                cutoff = None
-
-            if cutoff:
-                query = query.where(Document.uploaded_at >= cutoff)
-
-        result = await db.execute(query)
-        return result.scalar() or 0
+        conditions = self._build_document_conditions(
+            doc_type=doc_type,
+            property_id=property_id,
+            search_term=search_term,
+            date_range=date_range,
+        )
+        return await self.count_where(db, conditions=conditions)
 
     async def get_stats(self, db: AsyncSession) -> dict[str, Any]:
         """Get document statistics."""

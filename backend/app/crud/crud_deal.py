@@ -4,7 +4,7 @@ CRUD operations for Deal model.
 
 from typing import Any
 
-from sqlalchemy import func, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -42,6 +42,8 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         include_deleted: bool = False,
     ) -> list[Deal]:
         """Get deals filtered by stage."""
+        # Custom ordering (stage_order + created_at) prevents use of
+        # get_multi_ordered which only supports single-column ordering.
         query = (
             select(Deal)
             .where(Deal.stage == stage)
@@ -52,6 +54,35 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
         result = await db.execute(query)
         return list(result.scalars().all())
+
+    def _build_deal_conditions(
+        self,
+        *,
+        stage: str | None = None,
+        deal_type: str | None = None,
+        priority: str | None = None,
+        assigned_user_id: int | None = None,
+    ) -> list:
+        """Build SQLAlchemy filter conditions for deal queries."""
+        conditions: list = []
+
+        if stage:
+            try:
+                stage_enum = DealStage(stage)
+                conditions.append(Deal.stage == stage_enum)
+            except ValueError:
+                pass  # Invalid stage, ignore filter
+
+        if deal_type:
+            conditions.append(Deal.deal_type == deal_type)
+
+        if priority:
+            conditions.append(Deal.priority == priority)
+
+        if assigned_user_id:
+            conditions.append(Deal.assigned_user_id == assigned_user_id)
+
+        return conditions
 
     async def get_multi_filtered(
         self,
@@ -68,34 +99,21 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         include_deleted: bool = False,
     ) -> list[Deal]:
         """Get deals with multiple filters."""
-        query = select(Deal)
-        query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
-
-        # Apply filters
-        if stage:
-            try:
-                stage_enum = DealStage(stage)
-                query = query.where(Deal.stage == stage_enum)
-            except ValueError:
-                pass  # Invalid stage, ignore filter
-
-        if deal_type:
-            query = query.where(Deal.deal_type == deal_type)
-
-        if priority:
-            query = query.where(Deal.priority == priority)
-
-        if assigned_user_id:
-            query = query.where(Deal.assigned_user_id == assigned_user_id)
-
-        # Apply ordering
-        if hasattr(Deal, order_by):
-            col = getattr(Deal, order_by)
-            query = query.order_by(col.desc() if order_desc else col.asc())
-
-        query = query.offset(skip).limit(limit)
-        result = await db.execute(query)
-        return list(result.scalars().all())
+        conditions = self._build_deal_conditions(
+            stage=stage,
+            deal_type=deal_type,
+            priority=priority,
+            assigned_user_id=assigned_user_id,
+        )
+        return await self.get_multi_ordered(
+            db,
+            skip=skip,
+            limit=limit,
+            order_by=order_by,
+            order_desc=order_desc,
+            conditions=conditions,
+            include_deleted=include_deleted,
+        )
 
     async def count_filtered(
         self,
@@ -108,27 +126,17 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         include_deleted: bool = False,
     ) -> int:
         """Count deals with filters."""
-        query = select(func.count()).select_from(Deal)
-        query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
-
-        if stage:
-            try:
-                stage_enum = DealStage(stage)
-                query = query.where(Deal.stage == stage_enum)
-            except ValueError:
-                pass
-
-        if deal_type:
-            query = query.where(Deal.deal_type == deal_type)
-
-        if priority:
-            query = query.where(Deal.priority == priority)
-
-        if assigned_user_id:
-            query = query.where(Deal.assigned_user_id == assigned_user_id)
-
-        result = await db.execute(query)
-        return result.scalar() or 0
+        conditions = self._build_deal_conditions(
+            stage=stage,
+            deal_type=deal_type,
+            priority=priority,
+            assigned_user_id=assigned_user_id,
+        )
+        return await self.count_where(
+            db,
+            conditions=conditions,
+            include_deleted=include_deleted,
+        )
 
     async def get_kanban_data(
         self,

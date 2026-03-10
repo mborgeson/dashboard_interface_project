@@ -4,7 +4,7 @@ CRUD operations for Report Template and related models.
 
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -60,6 +60,31 @@ class CRUDReportTemplate(
         )
         return list(result.scalars().all())
 
+    def _build_template_conditions(
+        self,
+        *,
+        category: str | None = None,
+        is_default: bool | None = None,
+        search: str | None = None,
+    ) -> list:
+        """Build SQLAlchemy filter conditions for template queries."""
+        conditions: list = []
+
+        if category:
+            conditions.append(ReportTemplate.category == category)
+
+        if is_default is not None:
+            conditions.append(ReportTemplate.is_default.is_(is_default))
+
+        if search:
+            search_pattern = f"%{search}%"
+            conditions.append(
+                ReportTemplate.name.ilike(search_pattern)
+                | ReportTemplate.description.ilike(search_pattern)
+            )
+
+        return conditions
+
     async def get_filtered(
         self,
         db: AsyncSession,
@@ -71,24 +96,19 @@ class CRUDReportTemplate(
         search: str | None = None,
     ) -> list[ReportTemplate]:
         """Get templates with filters."""
-        query = select(ReportTemplate).where(ReportTemplate.is_deleted.is_(False))
-
-        if category:
-            query = query.where(ReportTemplate.category == category)
-
-        if is_default is not None:
-            query = query.where(ReportTemplate.is_default.is_(is_default))
-
-        if search:
-            search_pattern = f"%{search}%"
-            query = query.where(
-                ReportTemplate.name.ilike(search_pattern)
-                | ReportTemplate.description.ilike(search_pattern)
-            )
-
-        query = query.order_by(ReportTemplate.name).offset(skip).limit(limit)
-        result = await db.execute(query)
-        return list(result.scalars().all())
+        conditions = self._build_template_conditions(
+            category=category,
+            is_default=is_default,
+            search=search,
+        )
+        return await self.get_multi_ordered(
+            db,
+            skip=skip,
+            limit=limit,
+            order_by="name",
+            order_desc=False,
+            conditions=conditions,
+        )
 
     async def count_filtered(
         self,
@@ -99,27 +119,12 @@ class CRUDReportTemplate(
         search: str | None = None,
     ) -> int:
         """Count templates with filters."""
-        query = (
-            select(func.count())
-            .select_from(ReportTemplate)
-            .where(ReportTemplate.is_deleted.is_(False))
+        conditions = self._build_template_conditions(
+            category=category,
+            is_default=is_default,
+            search=search,
         )
-
-        if category:
-            query = query.where(ReportTemplate.category == category)
-
-        if is_default is not None:
-            query = query.where(ReportTemplate.is_default.is_(is_default))
-
-        if search:
-            search_pattern = f"%{search}%"
-            query = query.where(
-                ReportTemplate.name.ilike(search_pattern)
-                | ReportTemplate.description.ilike(search_pattern)
-            )
-
-        result = await db.execute(query)
-        return result.scalar() or 0
+        return await self.count_where(db, conditions=conditions)
 
 
 class CRUDQueuedReport(CRUDBase[QueuedReport, QueuedReportCreate, QueuedReportCreate]):
@@ -210,6 +215,27 @@ class CRUDQueuedReport(CRUDBase[QueuedReport, QueuedReportCreate, QueuedReportCr
         await db.refresh(report)
         return report
 
+    def _build_queued_conditions(
+        self,
+        *,
+        status: str | None = None,
+        template_id: int | None = None,
+        requested_by: str | None = None,
+    ) -> list:
+        """Build SQLAlchemy filter conditions for queued report queries."""
+        conditions: list = []
+
+        if status:
+            conditions.append(QueuedReport.status == status)
+
+        if template_id:
+            conditions.append(QueuedReport.template_id == template_id)
+
+        if requested_by:
+            conditions.append(QueuedReport.requested_by == requested_by)
+
+        return conditions
+
     async def get_filtered(
         self,
         db: AsyncSession,
@@ -221,22 +247,19 @@ class CRUDQueuedReport(CRUDBase[QueuedReport, QueuedReportCreate, QueuedReportCr
         requested_by: str | None = None,
     ) -> list[QueuedReport]:
         """Get queued reports with filters."""
-        query = select(QueuedReport)
-
-        if status:
-            query = query.where(QueuedReport.status == status)
-
-        if template_id:
-            query = query.where(QueuedReport.template_id == template_id)
-
-        if requested_by:
-            query = query.where(QueuedReport.requested_by == requested_by)
-
-        query = (
-            query.order_by(QueuedReport.requested_at.desc()).offset(skip).limit(limit)
+        conditions = self._build_queued_conditions(
+            status=status,
+            template_id=template_id,
+            requested_by=requested_by,
         )
-        result = await db.execute(query)
-        return list(result.scalars().all())
+        return await self.get_multi_ordered(
+            db,
+            skip=skip,
+            limit=limit,
+            order_by="requested_at",
+            order_desc=True,
+            conditions=conditions,
+        )
 
     async def count_filtered(
         self,
@@ -247,19 +270,12 @@ class CRUDQueuedReport(CRUDBase[QueuedReport, QueuedReportCreate, QueuedReportCr
         requested_by: str | None = None,
     ) -> int:
         """Count queued reports with filters."""
-        query = select(func.count()).select_from(QueuedReport)
-
-        if status:
-            query = query.where(QueuedReport.status == status)
-
-        if template_id:
-            query = query.where(QueuedReport.template_id == template_id)
-
-        if requested_by:
-            query = query.where(QueuedReport.requested_by == requested_by)
-
-        result = await db.execute(query)
-        return result.scalar() or 0
+        conditions = self._build_queued_conditions(
+            status=status,
+            template_id=template_id,
+            requested_by=requested_by,
+        )
+        return await self.count_where(db, conditions=conditions)
 
 
 class CRUDDistributionSchedule(

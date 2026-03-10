@@ -2,7 +2,7 @@
 CRUD operations for Activity models.
 """
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -59,21 +59,16 @@ class CRUDPropertyActivity(
         activity_type: str | None = None,
     ) -> int:
         """Count activities for a property."""
-        query = (
-            select(func.count())
-            .select_from(PropertyActivity)
-            .where(PropertyActivity.property_id == property_id)
-        )
+        conditions: list = [PropertyActivity.property_id == property_id]
 
         if activity_type:
             try:
                 type_enum = ActivityType(activity_type)
-                query = query.where(PropertyActivity.activity_type == type_enum)
+                conditions.append(PropertyActivity.activity_type == type_enum)
             except ValueError:
                 pass
 
-        result = await db.execute(query)
-        return result.scalar() or 0
+        return await self.count_where(db, conditions=conditions)
 
     async def log_view(
         self,
@@ -158,21 +153,16 @@ class CRUDDealActivity(CRUDBase[DealActivity, DealActivityCreate, DealActivityCr
         activity_type: str | None = None,
     ) -> int:
         """Count activities for a deal."""
-        query = (
-            select(func.count())
-            .select_from(DealActivity)
-            .where(DealActivity.deal_id == deal_id)
-        )
+        conditions: list = [DealActivity.deal_id == deal_id]
 
         if activity_type:
             try:
                 type_enum = ActivityType(activity_type)
-                query = query.where(DealActivity.activity_type == type_enum)
+                conditions.append(DealActivity.activity_type == type_enum)
             except ValueError:
                 pass
 
-        result = await db.execute(query)
-        return result.scalar() or 0
+        return await self.count_where(db, conditions=conditions)
 
 
 class CRUDWatchlist(CRUDBase[UserWatchlist, WatchlistCreate, WatchlistCreate]):
@@ -298,13 +288,7 @@ class CRUDWatchlist(CRUDBase[UserWatchlist, WatchlistCreate, WatchlistCreate]):
         user_id: int,
     ) -> int:
         """Count watched deals for a user."""
-        query = (
-            select(func.count())
-            .select_from(UserWatchlist)
-            .where(UserWatchlist.user_id == user_id)
-        )
-        result = await db.execute(query)
-        return result.scalar() or 0
+        return await self.count_where(db, conditions=[UserWatchlist.user_id == user_id])
 
 
 # Singleton instances

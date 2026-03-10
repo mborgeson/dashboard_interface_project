@@ -551,6 +551,39 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
 
         return ops_by_year, expenses, True
 
+    def _build_property_conditions(
+        self,
+        *,
+        property_type: str | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        market: str | None = None,
+        min_units: int | None = None,
+        max_units: int | None = None,
+    ) -> list:
+        """Build SQLAlchemy filter conditions for property queries."""
+        conditions: list = []
+
+        if property_type:
+            conditions.append(Property.property_type == property_type)
+
+        if city:
+            conditions.append(func.lower(Property.city) == func.lower(city))
+
+        if state:
+            conditions.append(func.upper(Property.state) == func.upper(state))
+
+        if market:
+            conditions.append(func.lower(Property.market) == func.lower(market))
+
+        if min_units is not None:
+            conditions.append(Property.total_units >= min_units)
+
+        if max_units is not None:
+            conditions.append(Property.total_units <= max_units)
+
+        return conditions
+
     async def get_multi_filtered(
         self,
         db: AsyncSession,
@@ -567,35 +600,22 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
         order_desc: bool = False,
     ) -> list[Property]:
         """Get properties with multiple filters."""
-        query = select(Property)
-
-        # Apply filters
-        if property_type:
-            query = query.where(Property.property_type == property_type)
-
-        if city:
-            query = query.where(func.lower(Property.city) == func.lower(city))
-
-        if state:
-            query = query.where(func.upper(Property.state) == func.upper(state))
-
-        if market:
-            query = query.where(func.lower(Property.market) == func.lower(market))
-
-        if min_units is not None:
-            query = query.where(Property.total_units >= min_units)
-
-        if max_units is not None:
-            query = query.where(Property.total_units <= max_units)
-
-        # Apply ordering
-        if hasattr(Property, order_by):
-            col = getattr(Property, order_by)
-            query = query.order_by(col.desc() if order_desc else col.asc())
-
-        query = query.offset(skip).limit(limit)
-        result = await db.execute(query)
-        return list(result.scalars().all())
+        conditions = self._build_property_conditions(
+            property_type=property_type,
+            city=city,
+            state=state,
+            market=market,
+            min_units=min_units,
+            max_units=max_units,
+        )
+        return await self.get_multi_ordered(
+            db,
+            skip=skip,
+            limit=limit,
+            order_by=order_by,
+            order_desc=order_desc,
+            conditions=conditions,
+        )
 
     async def count_filtered(
         self,
@@ -609,28 +629,15 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
         max_units: int | None = None,
     ) -> int:
         """Count properties with filters."""
-        query = select(func.count()).select_from(Property)
-
-        if property_type:
-            query = query.where(Property.property_type == property_type)
-
-        if city:
-            query = query.where(func.lower(Property.city) == func.lower(city))
-
-        if state:
-            query = query.where(func.upper(Property.state) == func.upper(state))
-
-        if market:
-            query = query.where(func.lower(Property.market) == func.lower(market))
-
-        if min_units is not None:
-            query = query.where(Property.total_units >= min_units)
-
-        if max_units is not None:
-            query = query.where(Property.total_units <= max_units)
-
-        result = await db.execute(query)
-        return result.scalar() or 0
+        conditions = self._build_property_conditions(
+            property_type=property_type,
+            city=city,
+            state=state,
+            market=market,
+            min_units=min_units,
+            max_units=max_units,
+        )
+        return await self.count_where(db, conditions=conditions)
 
     async def get_by_market(
         self,

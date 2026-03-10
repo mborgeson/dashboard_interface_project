@@ -2,6 +2,7 @@
 Base CRUD class with common database operations.
 """
 
+import math
 from typing import Any, Generic, TypeVar
 
 from fastapi.encoders import jsonable_encoder
@@ -14,6 +15,49 @@ from app.db.base import Base
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
+
+
+class PaginatedResult(Generic[ModelType]):
+    """Container for paginated query results.
+
+    Attributes:
+        items: List of model instances for the current page.
+        total: Total number of matching records.
+        page: Current page number (1-indexed).
+        per_page: Number of items per page.
+        pages: Total number of pages.
+        has_next: Whether there is a next page.
+        has_prev: Whether there is a previous page.
+    """
+
+    __slots__ = ("items", "total", "page", "per_page", "pages", "has_next", "has_prev")
+
+    def __init__(
+        self,
+        items: list[ModelType],
+        total: int,
+        page: int,
+        per_page: int,
+    ) -> None:
+        self.items = items
+        self.total = total
+        self.page = page
+        self.per_page = per_page
+        self.pages = math.ceil(total / per_page) if per_page > 0 else 0
+        self.has_next = page < self.pages
+        self.has_prev = page > 1
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize to a plain dict (useful for API responses)."""
+        return {
+            "items": self.items,
+            "total": self.total,
+            "page": self.page,
+            "per_page": self.per_page,
+            "pages": self.pages,
+            "has_next": self.has_next,
+            "has_prev": self.has_prev,
+        }
 
 
 def _has_soft_delete(model: type) -> bool:
@@ -188,3 +232,141 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         result = await db.execute(query)
         return result.scalar() or 0
+
+    # ------------------------------------------------------------------
+    # Reusable pagination, ordering, and filtered-query helpers
+    # ------------------------------------------------------------------
+
+    def _apply_ordering(
+        self,
+        query: Any,
+        order_by: str | None = None,
+        order_desc: bool = True,
+    ) -> Any:
+        """Apply column-based ordering to a query.
+
+        Only applies the order clause when *order_by* names a valid column
+        on the model, preventing AttributeError on invalid column names.
+        """
+        if order_by and hasattr(self.model, order_by):
+            col = getattr(self.model, order_by)
+            query = query.order_by(col.desc() if order_desc else col.asc())
+        return query
+
+    async def count_where(
+        self,
+        db: AsyncSession,
+        *,
+        conditions: list[Any] | None = None,
+        include_deleted: bool = False,
+    ) -> int:
+        """Count records matching arbitrary SQLAlchemy filter conditions.
+
+        This avoids the need for each subclass to repeat the
+        ``select(func.count()).select_from(Model)`` boilerplate.
+
+        Args:
+            db: Async database session.
+            conditions: List of SQLAlchemy ``where`` clause expressions
+                (e.g. ``[Deal.stage == DealStage.ACTIVE_REVIEW]``).
+            include_deleted: Include soft-deleted records.
+        """
+        query = select(func.count()).select_from(self.model)
+        query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
+
+        for cond in conditions or []:
+            query = query.where(cond)
+
+        result = await db.execute(query)
+        return result.scalar() or 0
+
+    async def get_multi_ordered(
+        self,
+        db: AsyncSession,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        order_by: str | None = None,
+        order_desc: bool = True,
+        conditions: list[Any] | None = None,
+        include_deleted: bool = False,
+    ) -> list[ModelType]:
+        """Fetch multiple records with optional filters and ordering.
+
+        A more flexible version of ``get_multi`` that accepts arbitrary
+        SQLAlchemy filter conditions rather than only ``skip``/``limit``.
+
+        Args:
+            db: Async database session.
+            skip: Number of records to skip (offset).
+            limit: Maximum number of records to return.
+            order_by: Model column name to order by.
+            order_desc: If True, order descending; ascending otherwise.
+            conditions: List of SQLAlchemy ``where`` clause expressions.
+            include_deleted: Include soft-deleted records.
+        """
+        query = select(self.model)
+        query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
+
+        for cond in conditions or []:
+            query = query.where(cond)
+
+        query = self._apply_ordering(query, order_by=order_by, order_desc=order_desc)
+        query = query.offset(skip).limit(limit)
+
+        result = await db.execute(query)
+        return list(result.scalars().all())
+
+    async def get_paginated(
+        self,
+        db: AsyncSession,
+        *,
+        page: int = 1,
+        per_page: int = 20,
+        order_by: str | None = None,
+        order_desc: bool = True,
+        conditions: list[Any] | None = None,
+        include_deleted: bool = False,
+    ) -> PaginatedResult[ModelType]:
+        """Fetch a page of records with total count and pagination metadata.
+
+        Combines ``get_multi_ordered`` and ``count_where`` into a single
+        call that returns a ``PaginatedResult`` containing ``items``,
+        ``total``, ``page``, ``per_page``, ``pages``, ``has_next``, and
+        ``has_prev``.
+
+        Args:
+            db: Async database session.
+            page: 1-indexed page number.
+            per_page: Number of items per page (clamped to >= 1).
+            order_by: Model column name to order by.
+            order_desc: If True, order descending; ascending otherwise.
+            conditions: List of SQLAlchemy ``where`` clause expressions.
+            include_deleted: Include soft-deleted records.
+        """
+        per_page = max(per_page, 1)
+        page = max(page, 1)
+        skip = (page - 1) * per_page
+
+        items = await self.get_multi_ordered(
+            db,
+            skip=skip,
+            limit=per_page,
+            order_by=order_by,
+            order_desc=order_desc,
+            conditions=conditions,
+            include_deleted=include_deleted,
+        )
+
+        total = await self.count_where(
+            db,
+            conditions=conditions,
+            include_deleted=include_deleted,
+        )
+
+        return PaginatedResult(
+            items=items,
+            total=total,
+            page=page,
+            per_page=per_page,
+        )

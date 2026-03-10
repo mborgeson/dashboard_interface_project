@@ -5,7 +5,7 @@ CRUD operations for ActivityLog model.
 from collections import defaultdict
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -69,21 +69,16 @@ class CRUDActivityLog(CRUDBase[ActivityLog, ActivityLogCreate, ActivityLogCreate
         Returns:
             Count of matching records
         """
-        query = (
-            select(func.count())
-            .select_from(ActivityLog)
-            .where(ActivityLog.deal_id == deal_id)
-        )
+        conditions: list = [ActivityLog.deal_id == deal_id]
 
         if action:
             try:
                 action_enum = ActivityAction(action)
-                query = query.where(ActivityLog.action == action_enum)
+                conditions.append(ActivityLog.action == action_enum)
             except ValueError:
                 pass
 
-        result = await db.execute(query)
-        return result.scalar() or 0
+        return await self.count_where(db, conditions=conditions)
 
     async def create_for_deal(
         self,

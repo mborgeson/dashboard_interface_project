@@ -78,6 +78,35 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         )
         return list(result.scalars().all())
 
+    def _build_transaction_conditions(
+        self,
+        *,
+        transaction_type: str | None = None,
+        property_id: int | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        category: str | None = None,
+    ) -> list:
+        """Build SQLAlchemy filter conditions for transaction queries."""
+        conditions: list = []
+
+        if transaction_type:
+            conditions.append(Transaction.type == transaction_type)
+
+        if property_id:
+            conditions.append(Transaction.property_id == property_id)
+
+        if date_from:
+            conditions.append(Transaction.date >= date_from)
+
+        if date_to:
+            conditions.append(Transaction.date <= date_to)
+
+        if category:
+            conditions.append(Transaction.category == category)
+
+        return conditions
+
     async def get_filtered(
         self,
         db: AsyncSession,
@@ -93,32 +122,21 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         order_desc: bool = True,
     ) -> list[Transaction]:
         """Get transactions with multiple filters."""
-        query = select(Transaction).where(Transaction.is_deleted.is_(False))  # noqa: E712
-
-        # Apply filters
-        if transaction_type:
-            query = query.where(Transaction.type == transaction_type)
-
-        if property_id:
-            query = query.where(Transaction.property_id == property_id)
-
-        if date_from:
-            query = query.where(Transaction.date >= date_from)
-
-        if date_to:
-            query = query.where(Transaction.date <= date_to)
-
-        if category:
-            query = query.where(Transaction.category == category)
-
-        # Apply ordering
-        if hasattr(Transaction, order_by):
-            col = getattr(Transaction, order_by)
-            query = query.order_by(col.desc() if order_desc else col.asc())
-
-        query = query.offset(skip).limit(limit)
-        result = await db.execute(query)
-        return list(result.scalars().all())
+        conditions = self._build_transaction_conditions(
+            transaction_type=transaction_type,
+            property_id=property_id,
+            date_from=date_from,
+            date_to=date_to,
+            category=category,
+        )
+        return await self.get_multi_ordered(
+            db,
+            skip=skip,
+            limit=limit,
+            order_by=order_by,
+            order_desc=order_desc,
+            conditions=conditions,
+        )
 
     async def count_filtered(
         self,
@@ -131,29 +149,14 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         category: str | None = None,
     ) -> int:
         """Count transactions with filters."""
-        query = (
-            select(func.count())
-            .select_from(Transaction)
-            .where(Transaction.is_deleted.is_(False))
+        conditions = self._build_transaction_conditions(
+            transaction_type=transaction_type,
+            property_id=property_id,
+            date_from=date_from,
+            date_to=date_to,
+            category=category,
         )
-
-        if transaction_type:
-            query = query.where(Transaction.type == transaction_type)
-
-        if property_id:
-            query = query.where(Transaction.property_id == property_id)
-
-        if date_from:
-            query = query.where(Transaction.date >= date_from)
-
-        if date_to:
-            query = query.where(Transaction.date <= date_to)
-
-        if category:
-            query = query.where(Transaction.category == category)
-
-        result = await db.execute(query)
-        return result.scalar() or 0
+        return await self.count_where(db, conditions=conditions)
 
     async def get_summary(
         self,
