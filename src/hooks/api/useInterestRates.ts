@@ -18,7 +18,7 @@ import type {
   YieldCurvePoint,
   HistoricalRate,
   RateDataSource,
-} from '@/features/interest-rates/types';
+} from '@/types/interest-rates';
 
 // ============================================================================
 // Query Key Factory

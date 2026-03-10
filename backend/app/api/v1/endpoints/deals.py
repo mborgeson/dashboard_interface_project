@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import cache
 from app.core.permissions import (
     CurrentUser,
     get_current_user,
@@ -690,6 +691,7 @@ async def create_deal(
         user_email=current_user.email,
     )
 
+    await cache.invalidate_deals()
     return new_deal
 
 
@@ -765,6 +767,7 @@ async def update_deal(
         fields_changed=list(update_data.keys()),
     )
 
+    await cache.invalidate_deals()
     return updated_deal
 
 
@@ -840,6 +843,7 @@ async def patch_deal(
         fields_changed=list(update_data.keys()),
     )
 
+    await cache.invalidate_deals()
     return updated_deal
 
 
@@ -916,6 +920,7 @@ async def update_deal_stage(
         user_email=current_user.email,
     )
 
+    await cache.invalidate_deals()
     return updated_deal
 
 
@@ -966,6 +971,7 @@ async def delete_deal(
         user_id=current_user.id,
         user_email=current_user.email,
     )
+    await cache.invalidate_deals()
     return None
 
 

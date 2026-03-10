@@ -1,24 +1,8 @@
 import { create } from 'zustand';
 
-import type { Property } from '@/types/property';
-import type { Deal } from '@/types/deal';
-import type { Document } from '@/types/document';
-import type { Transaction } from '@/types/transaction';
+import type { SearchResult } from '@/types/search';
 
-export interface SearchResult {
-  type: 'property' | 'deal' | 'document' | 'transaction';
-  id: string;
-  title: string;
-  subtitle: string;
-  category?: string;
-  metadata?: {
-    value?: string;
-    amount?: string;
-    date?: string;
-    property?: string;
-  };
-  item: Property | Deal | Document | Transaction;
-}
+export type { SearchResult } from '@/types/search';
 
 interface SearchState {
   searchQuery: string;

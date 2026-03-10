@@ -5,15 +5,9 @@ import { useTransactionsWithMockFallback } from '@/hooks/api/useTransactions';
 
 import type { Property } from '@/types/property';
 import type { Transaction } from '@/types/transaction';
+import type { SearchResult } from '@/types/search';
 
-export interface SearchResult {
-  type: 'property' | 'transaction';
-  id: string;
-  title: string;
-  subtitle: string;
-  matchedField?: string;
-  item: Property | Transaction;
-}
+export type { SearchResult } from '@/types/search';
 
 export function useGlobalSearch(query: string) {
   const [debouncedQuery, setDebouncedQuery] = useState(query);

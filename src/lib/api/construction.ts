@@ -31,7 +31,7 @@ import type {
   DeliveryTimelineItem,
   ConstructionDataQuality,
   ConstructionImportStatus,
-} from '@/features/construction-pipeline/types';
+} from '@/types/construction-pipeline';
 import { z } from 'zod';
 
 const BASE = '/construction-pipeline';

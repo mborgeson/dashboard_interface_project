@@ -1,9 +1,17 @@
 /**
  * API Client for backend communication
  * Handles requests to the FastAPI backend
+ *
+ * Features:
+ * - ETag-based conditional requests: caches ETags per URL and sends
+ *   If-None-Match on GET requests. On 304 responses, returns cached data
+ *   instead of re-parsing the (empty) response body.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+
+/** Per-URL ETag + cached response body for conditional GET requests. */
+const etagCache = new Map<string, { etag: string; data: unknown }>();
 
 export class ApiError extends Error {
   status: number;
@@ -51,10 +59,28 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
+  // For GET requests, send If-None-Match if we have a cached ETag
+  const method = fetchOptions.method ?? 'GET';
+  if (method === 'GET') {
+    const cached = etagCache.get(url);
+    if (cached) {
+      (headers as Record<string, string>)['If-None-Match'] = cached.etag;
+    }
+  }
+
   const response = await fetch(url, {
     ...fetchOptions,
     headers,
   });
+
+  // Handle 304 Not Modified — return cached data
+  if (response.status === 304) {
+    const cached = etagCache.get(url);
+    if (cached) {
+      return cached.data as T;
+    }
+    // Fallback: if somehow we got 304 without cache, treat as empty
+  }
 
   if (!response.ok) {
     let errorData: unknown;
@@ -75,7 +101,17 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   // Handle empty responses
   const contentType = response.headers.get('content-type');
   if (contentType?.includes('application/json')) {
-    return response.json();
+    const data = await response.json();
+
+    // Cache ETag for GET responses
+    if (method === 'GET') {
+      const etag = response.headers.get('etag');
+      if (etag) {
+        etagCache.set(url, { etag, data });
+      }
+    }
+
+    return data;
   }
 
   return {} as T;

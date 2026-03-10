@@ -1,3 +1,5 @@
+export type TimeframeComparison = 'mom' | 'qoq' | 'yoy';
+
 export interface SubmarketMetrics {
   name: string;
   avgRent: number;

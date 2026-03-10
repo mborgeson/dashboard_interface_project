@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import LONG_TTL, SHORT_TTL, cache
 from app.core.permissions import require_viewer
 from app.db.session import get_db
 from app.models import Deal, DealStage, Property
@@ -56,6 +57,11 @@ async def get_dashboard_metrics(
     - Key performance indicators
     - Recent activity
     """
+    cache_key = "analytics_dashboard"
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     # Query portfolio summary from Property table
     property_stats = await db.execute(
         select(
@@ -179,7 +185,7 @@ async def get_dashboard_metrics(
 
     # Use mock data as fallback when database is empty
     if total_properties == 0:
-        return {
+        mock_result = {
             "portfolio_summary": {
                 "total_properties": 45,
                 "total_units": 5240,
@@ -220,6 +226,8 @@ async def get_dashboard_metrics(
                 },
             ],
         }
+        await cache.set(cache_key, mock_result, ttl=LONG_TTL)
+        return mock_result
 
     # Build alerts based on actual data
     alerts = []
@@ -240,7 +248,7 @@ async def get_dashboard_metrics(
             }
         )
 
-    return {
+    result = {
         "portfolio_summary": {
             "total_properties": total_properties,
             "total_units": prop_row.total_units if prop_row else 0,
@@ -267,6 +275,9 @@ async def get_dashboard_metrics(
         if recent_activity
         else [{"type": "info", "message": "No recent activity", "timestamp": None}],
     }
+
+    await cache.set(cache_key, result, ttl=SHORT_TTL)
+    return result
 
 
 @router.get("/portfolio")
@@ -640,6 +651,11 @@ async def get_deal_pipeline_analytics(
     """
     Get deal pipeline analytics and metrics.
     """
+    cache_key = f"deal_stats:{time_period}"
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     # Get time period start date
     period_start = _get_time_period_start(time_period)
 
@@ -686,7 +702,7 @@ async def get_deal_pipeline_analytics(
 
     # Return mock data if no deals exist
     if total_deals == 0:
-        return {
+        mock_result = {
             "time_period": time_period,
             "funnel": {
                 "dead": 12,
@@ -724,6 +740,8 @@ async def get_deal_pipeline_analytics(
                 "capital_deployed": 85000000,
             },
         }
+        await cache.set(cache_key, mock_result, ttl=LONG_TTL)
+        return mock_result
 
     # Calculate conversion rates using the 6 frontend stages
     def calc_conversion(from_count: int, to_count: int) -> float:
@@ -796,7 +814,7 @@ async def get_deal_pipeline_analytics(
         "avg_contract_to_close": None,
     }
 
-    return {
+    result = {
         "time_period": time_period,
         "funnel": funnel,
         "funnel_labels": {
@@ -819,3 +837,6 @@ async def get_deal_pipeline_analytics(
             else 0,
         },
     }
+
+    await cache.set(cache_key, result, ttl=SHORT_TTL)
+    return result

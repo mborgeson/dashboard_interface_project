@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { Deal, DealStage } from '@/types/deal';
 
-export interface DealFilters {
+export interface DealFilterState {
   stages: DealStage[];
   propertyTypes: string[];
   assignees: string[];
@@ -12,9 +12,8 @@ export interface DealFilters {
   equityCommitmentRange: [number | null, number | null];
 }
 
-export type { DealFilters as DealFiltersType };
 
-const DEFAULT_FILTERS: DealFilters = {
+const DEFAULT_FILTERS: DealFilterState = {
   stages: [],
   propertyTypes: [],
   assignees: [],
@@ -28,7 +27,7 @@ const DEFAULT_FILTERS: DealFilters = {
 export function useDeals(initialDeals: Deal[]) {
   // Track local stage overrides from drag-and-drop (keyed by deal ID)
   const [stageOverrides, setStageOverrides] = useState<Record<string, { stage: DealStage; timeline: Deal['timeline'] }>>({});
-  const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<DealFilterState>(DEFAULT_FILTERS);
 
   // Merge API data with local drag-and-drop overrides.
   // Stale overrides (for deals no longer in the list) are simply ignored
@@ -200,7 +199,7 @@ export function useDeals(initialDeals: Deal[]) {
     };
   }, [filteredDeals]);
 
-  const updateFilters = (updates: Partial<DealFilters>) => {
+  const updateFilters = (updates: Partial<DealFilterState>) => {
     setFilters((prev) => ({ ...prev, ...updates }));
   };
 

@@ -27,7 +27,7 @@ import type {
   ImportStatus,
   ReminderStatus,
   FilterOptions,
-} from '@/features/sales-analysis/types';
+} from '@/types/sales-analysis';
 import { z } from 'zod';
 
 function filtersToParams(

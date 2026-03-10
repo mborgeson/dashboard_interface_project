@@ -23,6 +23,7 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.middleware.error_handler import ErrorHandlerMiddleware
+from app.middleware.etag import ETagMiddleware
 from app.middleware.rate_limiter import RateLimitMiddleware
 from app.middleware.request_id import RequestIDMiddleware, get_request_id
 from app.services.data_extraction.scheduler import MarketDataScheduler
@@ -283,7 +284,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
-    expose_headers=["X-Request-ID"],
+    expose_headers=["X-Request-ID", "ETag"],
     max_age=600,  # Cache preflight responses for 10 minutes
 )
 
@@ -293,6 +294,9 @@ app.add_middleware(MetricsMiddleware)
 # Add rate limiting middleware (if enabled)
 if settings.RATE_LIMIT_ENABLED:
     app.add_middleware(RateLimitMiddleware)
+
+# Add ETag middleware (conditional responses for GET requests)
+app.add_middleware(ETagMiddleware)
 
 # Add security headers middleware (defense-in-depth)
 app.add_middleware(SecurityHeadersMiddleware)

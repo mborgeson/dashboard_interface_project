@@ -1,11 +1,11 @@
 import { Search, X } from 'lucide-react';
 import { shortPropertyName } from '@/lib/utils/formatters';
 import type { TransactionType } from '@/types';
-import type { TransactionFilters } from '../hooks/useTransactionFilters';
+import type { TransactionFilterState } from '../hooks/useTransactionFilters';
 
 interface TransactionFiltersProps {
-  filters: TransactionFilters;
-  onUpdateFilters: (updates: Partial<TransactionFilters>) => void;
+  filters: TransactionFilterState;
+  onUpdateFilters: (updates: Partial<TransactionFilterState>) => void;
   onClearFilters: () => void;
   properties: Array<{ id: string; name: string }>;
 }

@@ -6,3 +6,6 @@ export type { PageLoadingStateProps } from './PageLoadingState';
 
 export { InlineEmptyState } from './InlineEmptyState';
 export type { InlineEmptyStateProps } from './InlineEmptyState';
+
+export { VirtualizedTable } from './VirtualizedTable';
+export type { VirtualizedTableProps } from './VirtualizedTable';

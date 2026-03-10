@@ -1,7 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Users, Briefcase, DollarSign } from 'lucide-react';
-import type { MSAOverview } from '@/types/market';
-import type { TimeframeComparison } from '../MarketPage';
+import type { MSAOverview, TimeframeComparison } from '@/types/market';
 
 const TIMEFRAME_LABELS: Record<TimeframeComparison, string> = {
   mom: 'MoM',

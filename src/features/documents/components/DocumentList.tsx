@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { VirtualizedTable } from '@/components/shared';
 import {
   ChevronDown,
   ChevronUp,
@@ -105,49 +107,51 @@ export function DocumentList({
   };
 
   // Sort documents
-  const sortedDocuments = [...documents].sort((a, b) => {
-    let aVal: string | number | Date;
-    let bVal: string | number | Date;
+  const sortedDocuments = useMemo(() => {
+    return [...documents].sort((a, b) => {
+      let aVal: string | number | Date;
+      let bVal: string | number | Date;
 
-    switch (sortColumn) {
-      case 'name':
-        aVal = a.name.toLowerCase();
-        bVal = b.name.toLowerCase();
-        break;
-      case 'type':
-        aVal = a.type;
-        bVal = b.type;
-        break;
-      case 'propertyName':
-        aVal = a.propertyName;
-        bVal = b.propertyName;
-        break;
-      case 'size':
-        aVal = a.size;
-        bVal = b.size;
-        break;
-      case 'uploadedAt':
-        aVal = a.uploadedAt.getTime();
-        bVal = b.uploadedAt.getTime();
-        break;
-      case 'uploadedBy':
-        aVal = a.uploadedBy;
-        bVal = b.uploadedBy;
-        break;
-      default:
-        return 0;
-    }
+      switch (sortColumn) {
+        case 'name':
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+          break;
+        case 'type':
+          aVal = a.type;
+          bVal = b.type;
+          break;
+        case 'propertyName':
+          aVal = a.propertyName;
+          bVal = b.propertyName;
+          break;
+        case 'size':
+          aVal = a.size;
+          bVal = b.size;
+          break;
+        case 'uploadedAt':
+          aVal = a.uploadedAt.getTime();
+          bVal = b.uploadedAt.getTime();
+          break;
+        case 'uploadedBy':
+          aVal = a.uploadedBy;
+          bVal = b.uploadedBy;
+          break;
+        default:
+          return 0;
+      }
 
-    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc'
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+
       return sortDirection === 'asc'
-        ? aVal.localeCompare(bVal)
-        : bVal.localeCompare(aVal);
-    }
-
-    return sortDirection === 'asc'
-      ? (aVal as number) - (bVal as number)
-      : (bVal as number) - (aVal as number);
-  });
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
+    });
+  }, [documents, sortColumn, sortDirection]);
 
   // Handle selection
   const handleSelectAll = () => {
@@ -195,188 +199,190 @@ export function DocumentList({
     <Card>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b bg-muted/50">
-              <tr>
-                <th className="p-4 text-left">
+          <VirtualizedTable
+            rows={sortedDocuments}
+            estimateRowHeight={52}
+            overscan={10}
+            getRowKey={(doc) => doc.id}
+            height={600}
+            virtualizeThreshold={50}
+            renderHeader={() => (
+              <TableRow>
+                <TableHead className="w-12">
                   <Checkbox
                     checked={
                       selectedDocs.size === documents.length && documents.length > 0
                     }
                     onCheckedChange={handleSelectAll}
                   />
-                </th>
-                <th className="p-4 text-left"></th>
-                <th
-                  className="p-4 text-left cursor-pointer hover:bg-muted"
+                </TableHead>
+                <TableHead className="w-16"></TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted"
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Name</span>
+                    <span>Name</span>
                     <SortIcon column="name" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
-                </th>
-                <th
-                  className="p-4 text-left cursor-pointer hover:bg-muted"
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted"
                   onClick={() => handleSort('type')}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Type</span>
+                    <span>Type</span>
                     <SortIcon column="type" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
-                </th>
-                <th
-                  className="p-4 text-left cursor-pointer hover:bg-muted"
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted"
                   onClick={() => handleSort('propertyName')}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Property</span>
+                    <span>Property</span>
                     <SortIcon column="propertyName" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
-                </th>
-                <th
-                  className="p-4 text-left cursor-pointer hover:bg-muted"
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted"
                   onClick={() => handleSort('size')}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Size</span>
+                    <span>Size</span>
                     <SortIcon column="size" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
-                </th>
-                <th
-                  className="p-4 text-left cursor-pointer hover:bg-muted"
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted"
                   onClick={() => handleSort('uploadedAt')}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Uploaded</span>
+                    <span>Uploaded</span>
                     <SortIcon column="uploadedAt" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
-                </th>
-                <th
-                  className="p-4 text-left cursor-pointer hover:bg-muted"
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted"
                   onClick={() => handleSort('uploadedBy')}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Uploaded By</span>
+                    <span>Uploaded By</span>
                     <SortIcon column="uploadedBy" sortColumn={sortColumn} sortDirection={sortDirection} />
                   </div>
-                </th>
-                <th className="p-4 text-left">
-                  <span className="text-sm font-medium">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedDocuments.map((doc) => (
-                <>
-                  <tr
-                    key={doc.id}
-                    className="border-b hover:bg-muted/50 cursor-pointer"
-                    onClick={() => toggleExpand(doc.id)}
-                  >
-                    <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedDocs.has(doc.id)}
-                        onCheckedChange={() => handleSelectDoc(doc.id)}
-                      />
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {expandedDocs.has(doc.id) ? (
-                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            )}
+            renderRow={(doc) => (
+              <>
+                <TableRow
+                  key={doc.id}
+                  className="cursor-pointer"
+                  onClick={() => toggleExpand(doc.id)}
+                >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedDocs.has(doc.id)}
+                      onCheckedChange={() => handleSelectDoc(doc.id)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {expandedDocs.has(doc.id) ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      {getFileIcon(doc)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium text-sm">{doc.name}</div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {getDocumentTypeLabel(doc.type)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{doc.propertyName}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {formatFileSize(doc.size)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {dayjs(doc.uploadedAt).format('MMM D, YYYY')}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {doc.uploadedBy}
+                    </span>
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onView?.(doc)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDownload?.(doc)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete?.(doc)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                {expandedDocs.has(doc.id) && (
+                  <TableRow key={`${doc.id}-details`} className="bg-muted/20">
+                    <TableCell colSpan={9}>
+                      <div className="space-y-2 text-sm">
+                        {doc.description && (
+                          <div>
+                            <span className="font-medium">Description: </span>
+                            <span className="text-muted-foreground">
+                              {doc.description}
+                            </span>
+                          </div>
                         )}
-                        {getFileIcon(doc)}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-medium text-sm">{doc.name}</div>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm text-muted-foreground">
-                        {getDocumentTypeLabel(doc.type)}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm">{doc.propertyName}</span>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm text-muted-foreground">
-                        {formatFileSize(doc.size)}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm text-muted-foreground">
-                        {dayjs(doc.uploadedAt).format('MMM D, YYYY')}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm text-muted-foreground">
-                        {doc.uploadedBy}
-                      </span>
-                    </td>
-                    <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onView?.(doc)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDownload?.(doc)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDelete?.(doc)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                  {expandedDocs.has(doc.id) && (
-                    <tr key={`${doc.id}-details`} className="border-b bg-muted/20">
-                      <td colSpan={9} className="p-4">
-                        <div className="space-y-2 text-sm">
-                          {doc.description && (
-                            <div>
-                              <span className="font-medium">Description: </span>
-                              <span className="text-muted-foreground">
-                                {doc.description}
-                              </span>
+                        {doc.tags.length > 0 && (
+                          <div>
+                            <span className="font-medium">Tags: </span>
+                            <div className="inline-flex flex-wrap gap-1 mt-1">
+                              {doc.tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
                             </div>
-                          )}
-                          {doc.tags.length > 0 && (
-                            <div>
-                              <span className="font-medium">Tags: </span>
-                              <div className="inline-flex flex-wrap gap-1 mt-1">
-                                {doc.tags.map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </>
-              ))}
-            </tbody>
-          </table>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
+            )}
+          />
         </div>
 
         {/* Bulk Actions Footer */}

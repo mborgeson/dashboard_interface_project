@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import type { DealStage } from '@/types/deal';
-import type { DealFilters as DealFiltersType } from '../hooks/useDeals';
+import type { DealFilterState } from '../hooks/useDeals';
 import { DEAL_STAGE_LABELS } from '@/types/deal';
 import { Filter, X, Search } from 'lucide-react';
 import { ToggleButton } from '@/components/ui/ToggleButton';
 
 interface DealFiltersProps {
-  filters: DealFiltersType;
-  onUpdateFilters: (updates: Partial<DealFiltersType>) => void;
+  filters: DealFilterState;
+  onUpdateFilters: (updates: Partial<DealFilterState>) => void;
   onClearFilters: () => void;
 }
 

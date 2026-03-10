@@ -11,6 +11,7 @@ from app.api.v1.endpoints._property_transforms import (
     _decimal_to_float,
     to_frontend_property,
 )
+from app.core.cache import LONG_TTL, cache
 from app.core.permissions import (
     CurrentUser,
     get_current_user,
@@ -57,6 +58,11 @@ async def list_properties_dashboard(
     List all properties in the nested frontend format.
     Returns { properties: [...], total: N } matching the frontend Property type.
     """
+    cache_key = "property_dashboard_list"
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     items = await property_crud.get_multi_filtered(
         db,
         skip=0,
@@ -70,7 +76,10 @@ async def list_properties_dashboard(
     items = await property_crud.enrich_financial_data_batch(db, items)
 
     properties = [to_frontend_property(p) for p in items]
-    return {"properties": properties, "total": total}
+    result = {"properties": properties, "total": total}
+
+    await cache.set(cache_key, result, ttl=LONG_TTL)
+    return result
 
 
 @router.get(
@@ -127,6 +136,11 @@ async def get_portfolio_summary(
     Get portfolio-level summary statistics.
     Returns PropertySummaryStats matching the frontend type.
     """
+    cache_key = "portfolio_summary"
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     items = await property_crud.get_multi_filtered(
         db,
         skip=0,
@@ -199,7 +213,7 @@ async def get_portfolio_summary(
             coc_weighted += coc * equity
             equity_sum += equity
 
-    return {
+    result = {
         "totalProperties": total_properties,
         "totalUnits": total_units,
         "totalValue": round(total_value, 2),
@@ -210,6 +224,9 @@ async def get_portfolio_summary(
         "portfolioCashOnCash": round(coc_weighted / equity_sum, 4) if equity_sum else 0,
         "portfolioIRR": round(irr_weighted / equity_sum, 4) if equity_sum else 0,
     }
+
+    await cache.set(cache_key, result, ttl=LONG_TTL)
+    return result
 
 
 @router.get(
@@ -332,6 +349,7 @@ async def create_property(
     """
     new_property = await property_crud.create(db, obj_in=property_data)
     logger.info(f"Created property: {new_property.name} (ID: {new_property.id})")
+    await cache.invalidate_properties()
     return new_property
 
 
@@ -366,7 +384,7 @@ async def update_property(
         db, db_obj=existing, obj_in=property_data
     )
     logger.info(f"Updated property: {property_id}")
-
+    await cache.invalidate_properties()
     return updated_property
 
 
@@ -398,6 +416,7 @@ async def delete_property(
 
     await property_crud.remove(db, id=property_id)
     logger.info(f"Deleted property: {property_id}")
+    await cache.invalidate_properties()
     return None
 
 

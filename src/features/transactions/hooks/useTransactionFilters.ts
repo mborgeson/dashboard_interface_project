@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { Transaction, TransactionType } from '@/types';
 
-export interface TransactionFilters {
+export interface TransactionFilterState {
   searchTerm: string;
   types: TransactionType[];
   dateFrom: string;
@@ -15,7 +15,7 @@ export interface SortConfig {
 }
 
 export function useTransactionFilters(transactions: Transaction[]) {
-  const [filters, setFilters] = useState<TransactionFilters>({
+  const [filters, setFilters] = useState<TransactionFilterState>({
     searchTerm: '',
     types: [],
     dateFrom: '',
@@ -97,7 +97,7 @@ export function useTransactionFilters(transactions: Transaction[]) {
     return sorted;
   }, [filteredTransactions, sortConfig]);
 
-  const updateFilters = (updates: Partial<TransactionFilters>) => {
+  const updateFilters = (updates: Partial<TransactionFilterState>) => {
     setFilters((prev) => ({ ...prev, ...updates }));
   };
 

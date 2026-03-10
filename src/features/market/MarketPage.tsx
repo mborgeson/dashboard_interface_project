@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageLoadingState } from '@/components/shared';
 
-export type TimeframeComparison = 'mom' | 'qoq' | 'yoy';
+export type { TimeframeComparison } from '@/types/market';
 
 // Lazy load ReportWizard modal for code splitting
 const ReportWizard = lazy(() =>

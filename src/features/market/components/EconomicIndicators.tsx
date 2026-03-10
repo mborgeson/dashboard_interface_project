@@ -1,8 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
-import type { EconomicIndicator } from '@/types/market';
-import type { TimeframeComparison } from '../MarketPage';
+import type { EconomicIndicator, TimeframeComparison } from '@/types/market';
 
 const TIMEFRAME_LABELS: Record<TimeframeComparison, string> = {
   mom: 'MoM',
