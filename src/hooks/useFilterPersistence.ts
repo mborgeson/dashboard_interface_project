@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 /**
@@ -26,6 +26,10 @@ export function useFilterPersistence<T extends Record<string, FilterValue>>(
   } = options;
 
   const [searchParams, setSearchParams] = useSearchParams();
+
+  /** Guard: tracks whether we are currently pushing filter state to the URL.
+   *  Prevents re-entrant cycles (filter→URL→searchParams change→filter→…). */
+  const isSyncingToUrlRef = useRef(false);
 
   // Serialize filter value to string
   const serializeValue = (value: FilterValue): string | null => {
@@ -84,14 +88,18 @@ export function useFilterPersistence<T extends Record<string, FilterValue>>(
   useEffect(() => {
     if (!enabled) return;
 
+    // Skip if this effect was triggered by our own URL update
+    if (isSyncingToUrlRef.current) {
+      isSyncingToUrlRef.current = false;
+      return;
+    }
+
     const newParams = new URLSearchParams(searchParams);
-    let hasChanges = false;
 
     // Remove all existing filter params
     Array.from(newParams.keys()).forEach((key) => {
       if (key.startsWith(paramPrefix)) {
         newParams.delete(key);
-        hasChanges = true;
       }
     });
 
@@ -102,12 +110,15 @@ export function useFilterPersistence<T extends Record<string, FilterValue>>(
       const serialized = serializeValue(value);
       if (serialized !== null) {
         newParams.set(`${paramPrefix}${key}`, serialized);
-        hasChanges = true;
       }
     });
 
-    // Update URL if there are changes
-    if (hasChanges) {
+    // Only update URL if the params actually differ
+    const currentSorted = new URLSearchParams([...searchParams.entries()].sort()).toString();
+    const newSorted = new URLSearchParams([...newParams.entries()].sort()).toString();
+
+    if (currentSorted !== newSorted) {
+      isSyncingToUrlRef.current = true;
       setSearchParams(newParams, { replace: true });
     }
   }, [filters, enabled, paramPrefix, excludeFields, searchParams, setSearchParams]);

@@ -11,7 +11,22 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 /** Per-URL ETag + cached response body for conditional GET requests. */
+const ETAG_CACHE_MAX_SIZE = 100;
 const etagCache = new Map<string, { etag: string; data: unknown }>();
+
+/** Add an entry to the ETag cache with LRU-like eviction. */
+function etagCacheSet(url: string, entry: { etag: string; data: unknown }) {
+  // Delete first so re-insertion moves key to end (most-recent)
+  etagCache.delete(url);
+  etagCache.set(url, entry);
+  // Evict oldest entry (first key) when over limit
+  if (etagCache.size > ETAG_CACHE_MAX_SIZE) {
+    const oldest = etagCache.keys().next().value;
+    if (oldest !== undefined) {
+      etagCache.delete(oldest);
+    }
+  }
+}
 
 /** Guard against concurrent refresh attempts — only one in-flight at a time. */
 let refreshPromise: Promise<boolean> | null = null;
@@ -135,7 +150,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
         const data = await freshResponse.json();
         const etag = freshResponse.headers.get('etag');
         if (etag) {
-          etagCache.set(url, { etag, data });
+          etagCacheSet(url, { etag, data });
         }
         return data;
       }
@@ -170,7 +185,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
             if (method === 'GET') {
               const etag = retryResponse.headers.get('etag');
               if (etag) {
-                etagCache.set(url, { etag, data });
+                etagCacheSet(url, { etag, data });
               }
             }
             return data;
@@ -205,7 +220,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     if (method === 'GET') {
       const etag = response.headers.get('etag');
       if (etag) {
-        etagCache.set(url, { etag, data });
+        etagCacheSet(url, { etag, data });
       }
     }
 

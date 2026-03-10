@@ -13,6 +13,7 @@ from app.core.cache import LONG_TTL, SHORT_TTL, cache
 from app.core.permissions import require_viewer
 from app.db.session import get_db
 from app.models import Deal, DealStage, Property
+from app.models.activity_log import ActivityAction, ActivityLog
 from app.services.ml import get_rent_growth_predictor
 
 router = APIRouter(dependencies=[Depends(require_viewer)])
@@ -43,6 +44,131 @@ def _get_time_period_start(time_period: str) -> datetime:
         return now - timedelta(days=365 * 5)
     else:  # all
         return datetime(1970, 1, 1, tzinfo=UTC)
+
+
+async def _compute_cycle_times(
+    db: AsyncSession, period_start: datetime
+) -> dict[str, float | None]:
+    """
+    Compute average deal cycle times from ActivityLog stage_changed events.
+
+    Looks at stage transitions logged in the activity_logs table to calculate
+    how long deals spend in each phase of the pipeline.
+
+    Returns dict with keys:
+        avg_initial_to_close: Average days from first stage entry to closed
+        avg_active_review: Average days spent in active review stages
+        avg_contract_to_close: Average days from under_contract to closed
+    """
+    # Fetch all stage_changed events in the period, ordered by deal and time
+    stage_events_result = await db.execute(
+        select(
+            ActivityLog.deal_id,
+            ActivityLog.meta,
+            ActivityLog.created_at,
+        )
+        .where(
+            ActivityLog.action == ActivityAction.STAGE_CHANGED,
+            ActivityLog.created_at >= period_start,
+        )
+        .order_by(ActivityLog.deal_id, ActivityLog.created_at)
+    )
+    stage_events = stage_events_result.fetchall()
+
+    if not stage_events:
+        # No stage change history available
+        return {
+            # TODO: No stage_changed events found; cycle times unavailable
+            "avg_initial_to_close": None,
+            "avg_active_review": None,
+            "avg_contract_to_close": None,
+        }
+
+    # Group events by deal_id
+    from collections import defaultdict
+
+    deal_events: dict[int, list[tuple[dict | None, datetime]]] = defaultdict(list)
+    for row in stage_events:
+        deal_events[row.deal_id].append((row.meta, row.created_at))
+
+    # Active review stages (backend enum values)
+    active_review_stages = {"underwriting", "due_diligence", "loi_submitted"}
+    # Initial stages
+    initial_stages = {"lead", "initial_review"}
+
+    initial_to_close_days: list[float] = []
+    active_review_days: list[float] = []
+    contract_to_close_days: list[float] = []
+
+    for _deal_id, events in deal_events.items():
+        first_entry_time: datetime | None = None
+        active_review_enter: datetime | None = None
+        active_review_total: float = 0
+        contract_enter: datetime | None = None
+        closed_time: datetime | None = None
+
+        for meta, created_at in events:
+            if not meta:
+                continue
+            old_stage = meta.get("old_stage")
+            new_stage = meta.get("new_stage")
+
+            # Track first pipeline entry (entering initial stages)
+            if first_entry_time is None and new_stage in (
+                initial_stages | active_review_stages | {"under_contract"}
+            ):
+                first_entry_time = created_at
+
+            # Track entering active review
+            if new_stage in active_review_stages and active_review_enter is None:
+                active_review_enter = created_at
+
+            # Track leaving active review
+            if (
+                old_stage in active_review_stages
+                and new_stage not in active_review_stages
+                and active_review_enter is not None
+            ):
+                active_review_total += (
+                    created_at - active_review_enter
+                ).total_seconds() / 86400
+                active_review_enter = None
+
+            # Track entering under_contract
+            if new_stage == "under_contract":
+                contract_enter = created_at
+
+            # Track closing
+            if new_stage == "closed":
+                closed_time = created_at
+
+        # Compute per-deal metrics
+        if first_entry_time and closed_time:
+            days = (closed_time - first_entry_time).total_seconds() / 86400
+            initial_to_close_days.append(days)
+
+        if active_review_total > 0:
+            active_review_days.append(active_review_total)
+
+        if contract_enter and closed_time:
+            days = (closed_time - contract_enter).total_seconds() / 86400
+            contract_to_close_days.append(days)
+
+    return {
+        "avg_initial_to_close": round(
+            sum(initial_to_close_days) / len(initial_to_close_days), 1
+        )
+        if initial_to_close_days
+        else None,
+        "avg_active_review": round(sum(active_review_days) / len(active_review_days), 1)
+        if active_review_days
+        else None,
+        "avg_contract_to_close": round(
+            sum(contract_to_close_days) / len(contract_to_close_days), 1
+        )
+        if contract_to_close_days
+        else None,
+    }
 
 
 @router.get("/dashboard")
@@ -262,8 +388,10 @@ async def get_dashboard_metrics(
             else 0,
         },
         "kpis": {
-            "ytd_noi_growth": 0.0,  # Would need historical NOI data to calculate
-            "ytd_rent_growth": 0.0,  # Would need historical rent data to calculate
+            # TODO: Requires time-series NOI data pipeline to compute growth
+            "ytd_noi_growth": None,
+            # TODO: Requires time-series rent data pipeline to compute growth
+            "ytd_rent_growth": None,
             "deals_in_pipeline": deals_in_pipeline,
             "deals_closed_ytd": deals_closed_ytd,
             "capital_deployed_ytd": capital_deployed_ytd or 0,
@@ -427,11 +555,16 @@ async def get_portfolio_analytics(
     return {
         "time_period": time_period,
         "performance": {
-            "total_return": 0.0,  # Would need historical value data
-            "income_return": 0.0,  # Would need historical NOI data
-            "appreciation_return": 0.0,  # Would need historical value data
-            "benchmark_return": 0.0,  # Would need external benchmark data
-            "alpha": 0.0,
+            # TODO: Requires time-series property valuation data pipeline
+            "total_return": None,
+            # TODO: Requires time-series NOI data pipeline
+            "income_return": None,
+            # TODO: Requires time-series property valuation data pipeline
+            "appreciation_return": None,
+            # TODO: Requires external benchmark data feed (e.g., NCREIF, NAREIT)
+            "benchmark_return": None,
+            # alpha = total_return - benchmark_return; computable once both are available
+            "alpha": None,
         },
         "composition": {
             "by_type": composition_by_type,
@@ -441,7 +574,8 @@ async def get_portfolio_analytics(
             "noi": {
                 "values": [current_noi] if current_noi else [],
                 "periods": ["Current"],
-                "growth_rate": 0.0,  # Would need historical data
+                # TODO: Requires time-series NOI data pipeline
+                "growth_rate": None,
             },
             "occupancy": {
                 "values": [round(current_occupancy, 1)] if current_occupancy else [],
@@ -450,7 +584,8 @@ async def get_portfolio_analytics(
             "rent_psf": {
                 "values": [round(current_rent_psf, 2)] if current_rent_psf else [],
                 "periods": ["Current"],
-                "growth_rate": 0.0,  # Would need historical data
+                # TODO: Requires time-series rent data pipeline
+                "growth_rate": None,
             },
         },
     }
@@ -806,13 +941,8 @@ async def get_deal_pipeline_analytics(
     ) or 0
     avg_deal_size = total_value / total_reviewed if total_reviewed > 0 else 0
 
-    # Cycle time calculations would need tracking of stage transition timestamps
-    # For now, returning placeholder values (would need stage history tracking)
-    cycle_times = {
-        "avg_initial_to_close": None,  # Would need stage transition history
-        "avg_active_review": None,
-        "avg_contract_to_close": None,
-    }
+    # Compute cycle times from ActivityLog stage_changed events
+    cycle_times = await _compute_cycle_times(db, period_start)
 
     result = {
         "time_period": time_period,

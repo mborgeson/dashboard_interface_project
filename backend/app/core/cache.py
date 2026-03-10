@@ -14,6 +14,8 @@ Key prefix scheme:
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import hashlib
 import json
 import time
@@ -45,9 +47,13 @@ class CacheService:
     Redis preferred, memory store as fallback.
     """
 
+    # How often the background task sweeps expired memory entries (seconds)
+    CLEANUP_INTERVAL: int = 300  # 5 minutes
+
     def __init__(self) -> None:
         self._redis: Any = None
         self._init_attempted = False
+        self._cleanup_task: asyncio.Task[None] | None = None
 
     async def _ensure_redis(self) -> None:
         """Lazily initialize async Redis connection if configured."""
@@ -258,6 +264,34 @@ class CacheService:
         if expired:
             logger.debug(f"Cache: cleaned {len(expired)} expired memory entries")
         return len(expired)
+
+    async def start_cleanup_task(self) -> None:
+        """Start the periodic background task that evicts expired memory entries."""
+        if self._cleanup_task is not None:
+            return  # already running
+        self._cleanup_task = asyncio.create_task(self._periodic_cleanup())
+        logger.info(
+            f"Cache: background cleanup task started (interval={self.CLEANUP_INTERVAL}s)"
+        )
+
+    async def stop_cleanup_task(self) -> None:
+        """Cancel the periodic cleanup background task."""
+        if self._cleanup_task is None:
+            return
+        self._cleanup_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self._cleanup_task
+        self._cleanup_task = None
+        logger.info("Cache: background cleanup task stopped")
+
+    async def _periodic_cleanup(self) -> None:
+        """Loop that calls cleanup_memory() on a fixed interval."""
+        while True:
+            await asyncio.sleep(self.CLEANUP_INTERVAL)
+            try:
+                self.cleanup_memory()
+            except Exception as e:  # noqa: BLE001
+                logger.error(f"Cache: cleanup_memory error: {e}")
 
 
 def make_cache_key(*parts: str) -> str:

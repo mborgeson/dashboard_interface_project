@@ -209,6 +209,44 @@ export function useWebSocket(
   }, [connectWs, enabled]);
 
   // -----------------------------------------------------------------------
+  // F-024: Reconnect when auth token refreshes
+  // -----------------------------------------------------------------------
+
+  useEffect(() => {
+    let prevToken = useAuthStore.getState().accessToken;
+
+    const unsubscribe = useAuthStore.subscribe((state) => {
+      const newToken = state.accessToken;
+      if (newToken !== prevToken) {
+        prevToken = newToken;
+
+        if (!wsRef.current) return;
+
+        if (!newToken) {
+          // Token cleared (logout) — close without reconnecting.
+          // Clear the reconnect timer to prevent the onclose handler from
+          // scheduling a reconnect, then close the socket.
+          if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+          }
+          retriesRef.current = maxRetries; // exhaust retries so onclose won't reconnect
+          wsRef.current.close();
+          return;
+        }
+
+        // Token refreshed — reconnect with the new token.
+        // Reset retries so onclose handler will trigger a fresh reconnect
+        // that reads the updated token from authStore.
+        retriesRef.current = 0;
+        wsRef.current.close();
+      }
+    });
+
+    return unsubscribe;
+  }, [enabled, maxRetries]);
+
+  // -----------------------------------------------------------------------
   // Public API
   // -----------------------------------------------------------------------
 

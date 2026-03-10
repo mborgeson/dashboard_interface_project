@@ -11,12 +11,15 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from loguru import logger
+from sqlalchemy import func
+from sqlalchemy import select as sa_select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import require_analyst
 from app.crud import deal as deal_crud
 from app.crud import property as property_crud
 from app.db.session import get_db
+from app.models import Deal, DealStage, Property
 from app.services.export_service import get_excel_service
 from app.services.pdf_service import get_pdf_service
 
@@ -179,55 +182,104 @@ async def export_analytics_excel(
 
     Returns a downloadable Excel file with multiple sheets.
     """
-    # Generate mock analytics data (same as analytics endpoint)
+    # Query live portfolio summary from the properties table
+    analytics_summary = await property_crud.get_analytics_summary(db)
+
+    # Query total portfolio value (sum of purchase_price)
+    value_result = await db.execute(sa_select(func.sum(Property.purchase_price)))
+    total_value = value_result.scalar()
+
+    # Query deal pipeline counts
+    deals_closed = await deal_crud.count_filtered(db, stage="closed")
+    deals_realized = await deal_crud.count_filtered(db, stage="realized")
+
+    # Count active pipeline deals (exclude dead/closed/realized)
+    active_stages = ["initial_review", "active_review", "under_contract"]
+    deals_in_pipeline = 0
+    for stg in active_stages:
+        deals_in_pipeline += await deal_crud.count_filtered(db, stage=stg)
+
+    # Sum capital deployed (final_price of closed + realized deals)
+    capital_result = await db.execute(
+        sa_select(func.sum(Deal.final_price)).where(
+            Deal.stage.in_([DealStage.CLOSED, DealStage.REALIZED]),
+            Deal.is_deleted.is_(False),
+        )
+    )
+    capital_deployed = capital_result.scalar()
+
     dashboard_metrics = {
         "portfolio_summary": {
-            "total_properties": 45,
-            "total_units": 5240,
-            "total_sf": 1250000,
-            "total_value": 425000000,
-            "avg_occupancy": 94.5,
-            "avg_cap_rate": 5.8,
+            "total_properties": analytics_summary["total_properties"],
+            "total_units": analytics_summary["total_units"] or 0,
+            "total_sf": analytics_summary["total_sf"] or 0,
+            "total_value": float(total_value) if total_value else 0,
+            "avg_occupancy": (
+                round(analytics_summary["avg_occupancy"], 2)
+                if analytics_summary["avg_occupancy"]
+                else None
+            ),
+            "avg_cap_rate": (
+                round(analytics_summary["avg_cap_rate"], 2)
+                if analytics_summary["avg_cap_rate"]
+                else None
+            ),
         },
         "kpis": {
-            "ytd_noi_growth": 4.2,
-            "ytd_rent_growth": 3.8,
-            "deals_in_pipeline": 12,
-            "deals_closed_ytd": 5,
-            "capital_deployed_ytd": 85000000,
+            "ytd_noi_growth": None,  # Cannot compute without time-series data
+            "ytd_rent_growth": None,  # Cannot compute without time-series data
+            "deals_in_pipeline": deals_in_pipeline,
+            "deals_closed_ytd": deals_closed + deals_realized,
+            "capital_deployed_ytd": (
+                float(capital_deployed) if capital_deployed else 0
+            ),
         },
     }
 
+    # Performance returns require time-series benchmarking data not yet available
     portfolio_analytics = {
         "time_period": time_period,
         "performance": {
-            "total_return": 12.5,
-            "income_return": 6.2,
-            "appreciation_return": 6.3,
-            "benchmark_return": 10.8,
-            "alpha": 1.7,
+            "total_return": None,
+            "income_return": None,
+            "appreciation_return": None,
+            "benchmark_return": None,
+            "alpha": None,
         },
     }
 
+    # Build deal pipeline funnel from actual stage counts
+    stage_counts: dict[str, int] = {}
+    for stage_enum in DealStage:
+        stage_counts[stage_enum.value] = await deal_crud.count_filtered(
+            db, stage=stage_enum.value
+        )
+
+    funnel_total = sum(stage_counts.values())
+
+    # Compute conversion rates from actual funnel data
+    def _rate(numerator: int, denominator: int) -> float | None:
+        return round(numerator / denominator * 100, 1) if denominator > 0 else None
+
     deal_pipeline = {
-        "funnel": {
-            "leads": 45,
-            "initial_review": 28,
-            "underwriting": 15,
-            "due_diligence": 8,
-            "loi_submitted": 4,
-            "under_contract": 2,
-            "closed": 5,
-            "dead": 12,
-        },
+        "funnel": stage_counts,
         "conversion_rates": {
-            "lead_to_review": 62.2,
-            "review_to_underwriting": 53.6,
-            "underwriting_to_dd": 53.3,
-            "dd_to_loi": 50.0,
-            "loi_to_contract": 50.0,
-            "contract_to_close": 71.4,
-            "overall": 11.1,
+            "review_to_active": _rate(
+                stage_counts.get("active_review", 0),
+                stage_counts.get("initial_review", 0),
+            ),
+            "active_to_contract": _rate(
+                stage_counts.get("under_contract", 0),
+                stage_counts.get("active_review", 0),
+            ),
+            "contract_to_close": _rate(
+                stage_counts.get("closed", 0),
+                stage_counts.get("under_contract", 0),
+            ),
+            "overall": _rate(
+                stage_counts.get("closed", 0) + stage_counts.get("realized", 0),
+                funnel_total,
+            ),
         },
     }
 
@@ -435,7 +487,6 @@ async def export_portfolio_pdf(
     try:
         # Get deals from database
         deals = await deal_crud.get_multi_filtered(db, limit=1000)
-        deals_count = await deal_crud.count_filtered(db)
 
         # Convert deals to dicts for PDF service
         deals_data = []
@@ -460,32 +511,66 @@ async def export_portfolio_pdf(
         # Get analytics from database
         analytics_summary = await property_crud.get_analytics_summary(db)
 
+        # Query total portfolio value (sum of purchase_price)
+        value_result = await db.execute(sa_select(func.sum(Property.purchase_price)))
+        total_value = value_result.scalar()
+
+        # Query deal pipeline counts
+        deals_closed = await deal_crud.count_filtered(db, stage="closed")
+        deals_realized = await deal_crud.count_filtered(db, stage="realized")
+
+        # Count active pipeline deals (exclude dead/closed/realized)
+        active_stages = ["initial_review", "active_review", "under_contract"]
+        deals_in_pipeline = 0
+        for stg in active_stages:
+            deals_in_pipeline += await deal_crud.count_filtered(db, stage=stg)
+
+        # Sum capital deployed (final_price of closed + realized deals)
+        capital_result = await db.execute(
+            sa_select(func.sum(Deal.final_price)).where(
+                Deal.stage.in_([DealStage.CLOSED, DealStage.REALIZED]),
+                Deal.is_deleted.is_(False),
+            )
+        )
+        capital_deployed = capital_result.scalar()
+
         dashboard_metrics = {
             "portfolio_summary": {
                 "total_properties": analytics_summary["total_properties"],
                 "total_units": analytics_summary["total_units"] or 0,
                 "total_sf": analytics_summary["total_sf"] or 0,
-                "total_value": 425000000,
-                "avg_occupancy": analytics_summary["avg_occupancy"] or 94.5,
-                "avg_cap_rate": analytics_summary["avg_cap_rate"] or 5.8,
+                "total_value": float(total_value) if total_value else 0,
+                "avg_occupancy": (
+                    round(analytics_summary["avg_occupancy"], 2)
+                    if analytics_summary["avg_occupancy"]
+                    else None
+                ),
+                "avg_cap_rate": (
+                    round(analytics_summary["avg_cap_rate"], 2)
+                    if analytics_summary["avg_cap_rate"]
+                    else None
+                ),
             },
             "kpis": {
-                "ytd_noi_growth": 4.2,
-                "ytd_rent_growth": 3.8,
-                "deals_in_pipeline": deals_count,
-                "deals_closed_ytd": 5,
-                "capital_deployed_ytd": 85000000,
+                "ytd_noi_growth": None,  # Cannot compute without time-series data
+                "ytd_rent_growth": None,  # Cannot compute without time-series data
+                "deals_in_pipeline": deals_in_pipeline,
+                "deals_closed_ytd": deals_closed + deals_realized,
+                "capital_deployed_ytd": (
+                    float(capital_deployed) if capital_deployed else 0
+                ),
             },
         }
 
+        # Performance returns require time-series benchmarking data not yet available
         portfolio_analytics = {
             "time_period": time_period,
             "performance": {
-                "total_return": 12.5,
-                "income_return": 6.2,
-                "appreciation_return": 6.3,
-                "benchmark_return": 10.8,
-                "alpha": 1.7,
+                "total_return": None,
+                "income_return": None,
+                "appreciation_return": None,
+                "benchmark_return": None,
+                "alpha": None,
             },
         }
 

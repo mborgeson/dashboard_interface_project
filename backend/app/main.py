@@ -194,7 +194,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     except Exception as e:
         logger.warning(f"Redis unavailable, falling back to in-memory: {e}")
 
-    # await init_websocket_manager()
+    # Initialize WebSocket connection manager
+    try:
+        from app.services.websocket_manager import get_connection_manager
+
+        ws_manager = get_connection_manager()
+        logger.info(
+            "WebSocket connection manager initialized",
+            max_per_client=ws_manager._max_connections_per_client,
+        )
+    except Exception as e:
+        logger.warning(f"WebSocket manager initialization failed: {e}")
+        ws_manager = None
+
     # await load_ml_models()
 
     # Initialize extraction scheduler
@@ -243,12 +255,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         enabled=settings.INTEREST_RATE_SCHEDULE_ENABLED,
     )
 
+    # Start cache background cleanup task (evicts expired in-memory entries)
+    from app.core.cache import cache as cache_service
+
+    await cache_service.start_cleanup_task()
+    logger.info("Cache cleanup task started")
+
     logger.info("Application startup complete")
 
     yield
 
     # Shutdown
     logger.info("Shutting down application...")
+
+    # Stop cache cleanup task
+    await cache_service.stop_cleanup_task()
+    logger.info("Cache cleanup task stopped")
 
     # Shutdown interest rate scheduler
     await interest_rate_scheduler.stop()
@@ -276,7 +298,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     except Exception as e:
         logger.debug(f"Redis cleanup: {e}")
 
-    # await close_websocket_manager()
+    # Gracefully disconnect all WebSocket connections
+    try:
+        if ws_manager is not None:
+            active = ws_manager.connection_count
+            if active > 0:
+                for cid in list(ws_manager._connections.keys()):
+                    await ws_manager.disconnect(cid)
+                logger.info(
+                    "WebSocket connections closed",
+                    disconnected=active,
+                )
+            else:
+                logger.info("WebSocket manager shutdown (no active connections)")
+    except Exception as e:
+        logger.warning(f"WebSocket manager shutdown error: {e}")
 
     logger.info("Application shutdown complete")
 

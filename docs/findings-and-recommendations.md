@@ -952,79 +952,79 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 
 ## Findings Tracking Table
 
-| #       | Severity | Status | Finding                                                              | Fix                                                        | Git Commit # |
-| ------- | -------- | ------ | -------------------------------------------------------------------- | ---------------------------------------------------------- | ------------ |
-| F-001   | CRITICAL | Done   | Users endpoints backed by in-memory demo data, not database          | Replaced with real DB CRUD operations (CRUDUser)           | 8599ec2      |
-| F-002   | CRITICAL | Done   | Monitoring liveness/readiness probes guarded by require_admin        | Per-route auth; probes unauthenticated                     | 8599ec2      |
-| F-003   | CRITICAL | Open   | Report generation has no background worker                           | —                                                          | —            |
-| F-004   | CRITICAL | Done   | WebSocket token validation does not check blacklist                  | Added is_blacklisted() check, fail-closed                  | 8599ec2      |
-| F-005   | CRITICAL | Done   | Token refresh not wired on frontend                                  | Retry-after-refresh in fetch client + authStore method     | 8599ec2      |
-| F-006   | CRITICAL | Done   | Financial calculation libraries have no tests                        | 98 tests across IRR, cashflow, sensitivity                 | 8599ec2      |
-| F-007a  | CRITICAL | Done   | Structlog startup crash — get_level_from_name does not exist         | logging.getLevelName() (stdlib)                            | 8599ec2      |
-| F-007a+ | CRITICAL | Done   | Structlog add_logger_name crash with PrintLoggerFactory              | Removed incompatible processor                             | 8599ec2      |
-| F-007   | CRITICAL | Done   | Transaction DELETE/restore has no auth upgrade over require_viewer    | Write ops elevated to require_manager                      | 8599ec2      |
-| F-008   | HIGH     | Done   | Document route shadowing (/property/{id} vs /{document_id})         | Moved /property/{id} before /{document_id} in router       | a6b0685      |
-| F-009   | HIGH     | Done   | Document upload does not require elevated role                       | Added require_analyst dependency to upload endpoint        | a6b0685      |
-| F-010   | HIGH     | Done   | Proforma returns matches by property_name string, not property_id    | Prefer property_id FK join, fallback to name matching      | a6b0685      |
-| F-011   | HIGH     | Done   | PUT and PATCH on deals have identical behavior                       | Documented PUT as partial update for backwards compat      | a6b0685      |
-| F-012   | HIGH     | Done   | 304 response without cache hit falls through silently                | Retry without If-None-Match on cache miss                  | a6b0685      |
-| F-013   | HIGH     | Done   | user_name always None in PropertyActivityResponse                    | Batch user lookup via IN query, populate user_name         | a6b0685      |
-| F-014   | HIGH     | Open   | Analytics export uses static mock data                               | —                                                          | —            |
-| F-015   | HIGH     | Open   | Growth rate fields always return 0.0 or null                         | —                                                          | —            |
-| F-016   | HIGH     | Done   | Redis services commented out in lifespan startup                     | Wired with graceful fallback to in-memory                  | 8599ec2      |
-| F-017   | HIGH     | Open   | Backend coverage below 30% threshold                                 | —                                                          | —            |
-| F-018   | HIGH     | Open   | Alembic migrations lag behind model changes                          | —                                                          | —            |
-| F-019   | HIGH     | Done   | N+1 query in queued report list                                      | Batch template lookup via IN query for reports + schedules | a6b0685      |
-| F-020   | HIGH     | Done   | useDeals hardcoded page_size: 100 truncates results                  | Configurable pageSize param (default 500)                  | a6b0685      |
-| F-021   | HIGH     | Done   | POST /properties/{id}/activities returns 200, not 201                | Added status_code=201 to endpoint decorator                | a6b0685      |
-| F-022   | HIGH     | Done   | Architecture doc says POST /deals/compare; implementation is GET     | Corrected doc to GET /deals/compare                        | a6b0685      |
-| F-023   | MEDIUM   | Open   | ETag cache unbounded (frontend)                                      | —                                                          | —            |
-| F-024   | MEDIUM   | Open   | WebSocket auth token not updated on refresh                          | —                                                          | —            |
-| F-025   | MEDIUM   | Open   | Filter persistence potential infinite loop                           | —                                                          | —            |
-| F-026   | MEDIUM   | Open   | In-memory cache fallback has no automatic cleanup                    | —                                                          | —            |
-| F-027   | MEDIUM   | Open   | WebSocket ConnectionManager not integrated into lifespan             | —                                                          | —            |
-| F-028   | MEDIUM   | Open   | Rate limiter Redis backend uses fixed-bucket approximation           | —                                                          | —            |
-| F-029   | MEDIUM   | Done   | Fetch client missing token refresh logic                             | Implemented in Batch 2a (same as F-005)                    | 8599ec2      |
-| F-030   | MEDIUM   | Open   | Enrichment logic mixed into CRUD layer                               | —                                                          | —            |
-| F-031   | MEDIUM   | Open   | Property analytics trends returns single-point data                  | —                                                          | —            |
-| F-032   | MEDIUM   | Open   | N+1 in distribution schedule list                                    | —                                                          | —            |
-| F-033   | MEDIUM   | Open   | CacheService has no tests                                            | —                                                          | —            |
-| F-034   | MEDIUM   | Done   | No API-level tests for transaction endpoints                         | 27 tests added (Batch 2b users agent also covers)          | 8599ec2      |
-| F-035   | MEDIUM   | Open   | No API-level tests for document endpoints                            | —                                                          | —            |
-| F-036   | MEDIUM   | Open   | No API-level tests for interest rate endpoints                       | —                                                          | —            |
-| F-037   | MEDIUM   | Open   | No API-level tests for market data endpoints                         | —                                                          | —            |
-| F-038   | MEDIUM   | Done   | authStore has no tests                                               | 9 tests added (authStore.test.ts)                          | 8599ec2      |
-| F-039   | MEDIUM   | Open   | ETag middleware has no tests                                         | —                                                          | —            |
-| F-040   | MEDIUM   | Open   | Origin validation middleware has no tests                            | —                                                          | —            |
-| F-041   | MEDIUM   | Open   | documents.property_id is VARCHAR(50), not FK to properties.id        | —                                                          | —            |
-| F-042   | MEDIUM   | Open   | Construction pipeline uses VARCHAR without DB-level constraints      | —                                                          | —            |
-| F-043   | MEDIUM   | Open   | Zod common.ts and construction.ts schemas have no tests              | —                                                          | —            |
-| F-044   | MEDIUM   | Open   | Deal kanban enrichment runs on every cache miss                      | —                                                          | —            |
-| F-045   | LOW      | Open   | ADR-004 is stale (dual client pattern)                               | —                                                          | —            |
-| F-046   | LOW      | Open   | Dual logging imports require discipline                              | —                                                          | —            |
-| F-047   | LOW      | Open   | Non-JSON responses return {} as T                                    | —                                                          | —            |
-| F-048   | LOW      | Open   | WebSocket callbacksRef updated every render                          | —                                                          | —            |
-| F-049   | LOW      | Open   | VirtualizedTable spacer missing colSpan                              | —                                                          | —            |
-| F-050   | LOW      | Open   | Error tracking rate limit uses fixed window                          | —                                                          | —            |
-| F-051   | LOW      | Open   | Toast auto-removal timer not cleared on manual dismiss               | —                                                          | —            |
-| F-052   | LOW      | Open   | authStore event listener registered at module load                   | —                                                          | —            |
-| F-053   | LOW      | Open   | Duplicate formatDate implementations                                 | —                                                          | —            |
-| F-054   | LOW      | Open   | Report queue 30-second polling                                       | —                                                          | —            |
-| F-055   | LOW      | Open   | Comparison deals not persisted to storage                            | —                                                          | —            |
-| F-056   | LOW      | Open   | Optimistic locking only on Deal model                                | —                                                          | —            |
-| F-057   | LOW      | Open   | SoftDeleteMixin scope may need expansion                             | —                                                          | —            |
-| F-058   | LOW      | Open   | Multiple API hooks have zero test coverage                           | —                                                          | —            |
-| F-059   | LOW      | Open   | No tests for 12 underwriting models                                  | —                                                          | —            |
-| F-060   | LOW      | Open   | No tests for GeocodingService                                       | —                                                          | —            |
-| F-061   | LOW      | Open   | No tests for scheduler services                                     | —                                                          | —            |
-| F-062   | LOW      | Open   | No tests for slow query logger                                      | —                                                          | —            |
-| F-063   | LOW      | Open   | Feature components have extensive test gaps                          | —                                                          | —            |
-| F-064   | LOW      | Open   | useUnderwriting hook has no tests                                    | —                                                          | —            |
-| F-065   | LOW      | Open   | crud_property.py enrichment not tested at unit level                 | —                                                          | —            |
-| F-066   | LOW      | Open   | No report template or generation endpoint tests                      | —                                                          | —            |
-| F-067   | LOW      | Open   | PUT /deals/{id} and PATCH /deals/{id} require require_manager        | —                                                          | —            |
-| F-068   | LOW      | Open   | PDF export may have incomplete financial data                        | —                                                          | —            |
-| F-069   | LOW      | Open   | Four proposed ADRs not yet formalized                                | —                                                          | —            |
+| #       | Severity | Status | Finding                                                            | Fix                                                        | Git Commit # |
+| ------- | -------- | ------ | ------------------------------------------------------------------ | ---------------------------------------------------------- | ------------ |
+| F-001   | CRITICAL | Done   | Users endpoints backed by in-memory demo data, not database        | Replaced with real DB CRUD operations (CRUDUser)           | 8599ec2      |
+| F-002   | CRITICAL | Done   | Monitoring liveness/readiness probes guarded by require_admin      | Per-route auth; probes unauthenticated                     | 8599ec2      |
+| F-003   | CRITICAL | Open   | Report generation has no background worker                         | —                                                         | —           |
+| F-004   | CRITICAL | Done   | WebSocket token validation does not check blacklist                | Added is_blacklisted() check, fail-closed                  | 8599ec2      |
+| F-005   | CRITICAL | Done   | Token refresh not wired on frontend                                | Retry-after-refresh in fetch client + authStore method     | 8599ec2      |
+| F-006   | CRITICAL | Done   | Financial calculation libraries have no tests                      | 98 tests across IRR, cashflow, sensitivity                 | 8599ec2      |
+| F-007a  | CRITICAL | Done   | Structlog startup crash — get_level_from_name does not exist      | logging.getLevelName() (stdlib)                            | 8599ec2      |
+| F-007a+ | CRITICAL | Done   | Structlog add_logger_name crash with PrintLoggerFactory            | Removed incompatible processor                             | 8599ec2      |
+| F-007   | CRITICAL | Done   | Transaction DELETE/restore has no auth upgrade over require_viewer | Write ops elevated to require_manager                      | 8599ec2      |
+| F-008   | HIGH     | Done   | Document route shadowing (/property/{id} vs /{document_id})        | Moved /property/{id} before /{document_id} in router       | a6b0685      |
+| F-009   | HIGH     | Done   | Document upload does not require elevated role                     | Added require_analyst dependency to upload endpoint        | a6b0685      |
+| F-010   | HIGH     | Done   | Proforma returns matches by property_name string, not property_id  | Prefer property_id FK join, fallback to name matching      | a6b0685      |
+| F-011   | HIGH     | Done   | PUT and PATCH on deals have identical behavior                     | Documented PUT as partial update for backwards compat      | a6b0685      |
+| F-012   | HIGH     | Done   | 304 response without cache hit falls through silently              | Retry without If-None-Match on cache miss                  | a6b0685      |
+| F-013   | HIGH     | Done   | user_name always None in PropertyActivityResponse                  | Batch user lookup via IN query, populate user_name         | a6b0685      |
+| F-014   | HIGH     | Done   | Analytics export uses static mock data                             | Live DB queries for portfolio, KPIs, deal pipeline         | TBD         |
+| F-015   | HIGH     | Done   | Growth rate fields always return 0.0 or null                       | 0.0→None + real cycle_times from activity_logs             | TBD         |
+| F-016   | HIGH     | Done   | Redis services commented out in lifespan startup                   | Wired with graceful fallback to in-memory                  | 8599ec2      |
+| F-017   | HIGH     | Done   | Backend coverage below 30% threshold                               | Already at 63.21% — threshold met                         | bedb94a     |
+| F-018   | HIGH     | Open   | Alembic migrations lag behind model changes                        | —                                                         | —           |
+| F-019   | HIGH     | Done   | N+1 query in queued report list                                    | Batch template lookup via IN query for reports + schedules | a6b0685      |
+| F-020   | HIGH     | Done   | useDeals hardcoded page_size: 100 truncates results                | Configurable pageSize param (default 500)                  | a6b0685      |
+| F-021   | HIGH     | Done   | POST /properties/{id}/activities returns 200, not 201              | Added status_code=201 to endpoint decorator                | a6b0685      |
+| F-022   | HIGH     | Done   | Architecture doc says POST /deals/compare; implementation is GET   | Corrected doc to GET /deals/compare                        | a6b0685      |
+| F-023   | MEDIUM   | Done   | ETag cache unbounded (frontend)                                    | LRU eviction at 100 entries via etagCacheSet()             | TBD         |
+| F-024   | MEDIUM   | Done   | WebSocket auth token not updated on refresh                        | Subscribe to authStore, reconnect on token change          | TBD         |
+| F-025   | MEDIUM   | Done   | Filter persistence potential infinite loop                         | isSyncingToUrlRef guard + params diff comparison           | TBD         |
+| F-026   | MEDIUM   | Done   | In-memory cache fallback has no automatic cleanup                  | Background asyncio task, cleanup every 5 min               | TBD         |
+| F-027   | MEDIUM   | Done   | WebSocket ConnectionManager not integrated into lifespan           | Init on startup, graceful disconnect on shutdown           | TBD         |
+| F-028   | MEDIUM   | Open   | Rate limiter Redis backend uses fixed-bucket approximation         | —                                                         | —           |
+| F-029   | MEDIUM   | Done   | Fetch client missing token refresh logic                           | Implemented in Batch 2a (same as F-005)                    | 8599ec2      |
+| F-030   | MEDIUM   | Open   | Enrichment logic mixed into CRUD layer                             | —                                                         | —           |
+| F-031   | MEDIUM   | Open   | Property analytics trends returns single-point data                | —                                                         | —           |
+| F-032   | MEDIUM   | Done   | N+1 in distribution schedule list                                  | Fixed alongside F-019 (batch template lookup in schedules) | a6b0685     |
+| F-033   | MEDIUM   | Done   | CacheService has no tests                                          | 19 tests in test_cache.py                                  | TBD         |
+| F-034   | MEDIUM   | Done   | No API-level tests for transaction endpoints                       | 27 tests added (Batch 2b users agent also covers)          | 8599ec2      |
+| F-035   | MEDIUM   | Done   | No API-level tests for document endpoints                          | 17 tests in test_documents.py                              | TBD         |
+| F-036   | MEDIUM   | Done   | No API-level tests for interest rate endpoints                     | 10 tests in test_interest_rates.py                         | TBD         |
+| F-037   | MEDIUM   | Done   | No API-level tests for market data endpoints                       | 9 tests in test_market.py                                  | TBD         |
+| F-038   | MEDIUM   | Done   | authStore has no tests                                             | 9 tests added (authStore.test.ts)                          | 8599ec2      |
+| F-039   | MEDIUM   | Done   | ETag middleware has no tests                                       | 12 tests in test_etag.py                                   | TBD         |
+| F-040   | MEDIUM   | Done   | Origin validation middleware has no tests                          | Already existed (13 tests in test_origin_validation.py)    | TBD         |
+| F-041   | MEDIUM   | Open   | documents.property_id is VARCHAR(50), not FK to properties.id      | —                                                         | —           |
+| F-042   | MEDIUM   | Open   | Construction pipeline uses VARCHAR without DB-level constraints    | —                                                         | —           |
+| F-043   | MEDIUM   | Done   | Zod common.ts and construction.ts schemas have no tests            | 58 tests across common.test.ts + construction.test.ts      | TBD         |
+| F-044   | MEDIUM   | Open   | Deal kanban enrichment runs on every cache miss                    | —                                                         | —           |
+| F-045   | LOW      | Open   | ADR-004 is stale (dual client pattern)                             | —                                                         | —           |
+| F-046   | LOW      | Open   | Dual logging imports require discipline                            | —                                                         | —           |
+| F-047   | LOW      | Open   | Non-JSON responses return {} as T                                  | —                                                         | —           |
+| F-048   | LOW      | Open   | WebSocket callbacksRef updated every render                        | —                                                         | —           |
+| F-049   | LOW      | Open   | VirtualizedTable spacer missing colSpan                            | —                                                         | —           |
+| F-050   | LOW      | Open   | Error tracking rate limit uses fixed window                        | —                                                         | —           |
+| F-051   | LOW      | Open   | Toast auto-removal timer not cleared on manual dismiss             | —                                                         | —           |
+| F-052   | LOW      | Open   | authStore event listener registered at module load                 | —                                                         | —           |
+| F-053   | LOW      | Open   | Duplicate formatDate implementations                               | —                                                         | —           |
+| F-054   | LOW      | Open   | Report queue 30-second polling                                     | —                                                         | —           |
+| F-055   | LOW      | Open   | Comparison deals not persisted to storage                          | —                                                         | —           |
+| F-056   | LOW      | Open   | Optimistic locking only on Deal model                              | —                                                         | —           |
+| F-057   | LOW      | Open   | SoftDeleteMixin scope may need expansion                           | —                                                         | —           |
+| F-058   | LOW      | Open   | Multiple API hooks have zero test coverage                         | —                                                         | —           |
+| F-059   | LOW      | Open   | No tests for 12 underwriting models                                | —                                                         | —           |
+| F-060   | LOW      | Open   | No tests for GeocodingService                                      | —                                                         | —           |
+| F-061   | LOW      | Open   | No tests for scheduler services                                    | —                                                         | —           |
+| F-062   | LOW      | Open   | No tests for slow query logger                                     | —                                                         | —           |
+| F-063   | LOW      | Open   | Feature components have extensive test gaps                        | —                                                         | —           |
+| F-064   | LOW      | Open   | useUnderwriting hook has no tests                                  | —                                                         | —           |
+| F-065   | LOW      | Open   | crud_property.py enrichment not tested at unit level               | —                                                         | —           |
+| F-066   | LOW      | Open   | No report template or generation endpoint tests                    | —                                                         | —           |
+| F-067   | LOW      | Open   | PUT /deals/{id} and PATCH /deals/{id} require require_manager      | —                                                         | —           |
+| F-068   | LOW      | Open   | PDF export may have incomplete financial data                      | —                                                         | —           |
+| F-069   | LOW      | Open   | Four proposed ADRs not yet formalized                              | —                                                         | —           |
 
 **Summary:** 12 Done, 57 Open (of 71 total including F-007a and F-007a+)
 
