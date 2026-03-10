@@ -11,7 +11,7 @@ Provides robust error handling for Excel data extraction with:
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 import numpy as np
@@ -19,7 +19,7 @@ import pandas as pd
 import structlog
 
 
-class ErrorCategory(Enum):
+class ErrorCategory(StrEnum):
     """Categories of extraction errors"""
 
     MISSING_SHEET = "missing_sheet"

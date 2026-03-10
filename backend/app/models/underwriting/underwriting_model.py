@@ -3,7 +3,7 @@ UnderwritingModel - Parent entity linking property/deal to underwriting data.
 """
 
 from datetime import datetime
-from enum import StrEnum as PyEnum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from app.models.underwriting.unit_mix import UnitMix
 
 
-class UnderwritingStatus(PyEnum):
+class UnderwritingStatus(StrEnum):
     """Status of the underwriting model."""
 
     DRAFT = "draft"
@@ -90,7 +90,7 @@ class UnderwritingModel(Base, TimestampMixin, SoftDeleteMixin, SourceTrackingMix
 
     # Status and workflow
     status: Mapped[UnderwritingStatus] = mapped_column(
-        Enum(UnderwritingStatus),
+        Enum(UnderwritingStatus, values_callable=lambda e: [m.value for m in e]),
         default=UnderwritingStatus.DRAFT,
         nullable=False,
         index=True,

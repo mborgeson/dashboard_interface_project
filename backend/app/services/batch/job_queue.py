@@ -9,7 +9,7 @@ import asyncio
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from enum import Enum, StrEnum
+from enum import IntEnum, StrEnum
 from heapq import heappop, heappush
 from typing import Any
 
@@ -28,7 +28,7 @@ class JobStatus(StrEnum):
     RETRY = "retry"
 
 
-class JobPriority(int, Enum):
+class JobPriority(IntEnum):
     """Job priority levels (lower number = higher priority)."""
 
     CRITICAL = 1

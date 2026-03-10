@@ -4,7 +4,7 @@ Transaction model for tracking financial transactions across properties.
 
 from datetime import date
 from decimal import Decimal
-from enum import StrEnum as PyEnum
+from enum import StrEnum
 
 from sqlalchemy import (
     JSON,
@@ -22,7 +22,7 @@ from app.db.base import Base
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class TransactionType(PyEnum):
+class TransactionType(StrEnum):
     """Transaction type categories."""
 
     ACQUISITION = "acquisition"
@@ -65,6 +65,7 @@ class Transaction(Base, TimestampMixin, SoftDeleteMixin):
     category: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
+        index=True,
     )  # Purchase, Unit Renovation, Quarterly Distribution, etc.
     amount: Mapped[Decimal] = mapped_column(
         Numeric(15, 2),

@@ -6,6 +6,7 @@ import { DocumentFilters } from './components/DocumentFilters';
 import { DocumentGrid } from './components/DocumentGrid';
 import { DocumentList } from './components/DocumentList';
 import { useDocuments } from './hooks/useDocuments';
+import { useToast } from '@/hooks/useToast';
 import type { Document, DocumentType } from '@/types/document';
 import { EmptyDocuments } from '@/components/ui/empty-state';
 
@@ -20,6 +21,7 @@ export function DocumentsPage() {
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const { info, success: showSuccess } = useToast();
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,18 +40,18 @@ export function DocumentsPage() {
   // Mock handlers
   const handleView = (document: Document) => {
     console.log('View document:', document);
-    alert(`Viewing: ${document.name}`);
+    info(`Viewing: ${document.name}`);
   };
 
   const handleDownload = (document: Document) => {
     console.log('Download document:', document);
-    alert(`Downloading: ${document.name}`);
+    info(`Downloading: ${document.name}`);
   };
 
   const handleDelete = (document: Document) => {
     console.log('Delete document:', document);
     if (confirm(`Are you sure you want to delete "${document.name}"?`)) {
-      alert('Document deleted (mock)');
+      showSuccess('Document deleted (mock)');
     }
   };
 

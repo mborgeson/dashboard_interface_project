@@ -14,15 +14,17 @@ Exception handling priority:
 6. Generic Exception — logged, returns 500 with request_id for correlation
 """
 
+import structlog
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
-from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 from app.middleware.request_id import get_request_id
+
+slog = structlog.get_logger("app.middleware.error_handler")
 
 
 def _build_error_response(
@@ -62,11 +64,12 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             raise
         except SQLAlchemyError as exc:
             rid = get_request_id() or "unknown"
-            logger.error(
-                "Database error",
+            slog.error(
+                "database_error",
                 request_id=rid,
                 path=request.url.path,
                 method=request.method,
+                error_type="database_error",
                 error=str(exc),
             )
             return _build_error_response(
@@ -77,11 +80,13 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             )
         except ValidationError as exc:
             rid = get_request_id() or "unknown"
-            logger.warning(
-                "Validation error",
+            slog.warning(
+                "validation_error",
                 request_id=rid,
                 path=request.url.path,
-                errors=exc.error_count(),
+                method=request.method,
+                error_type="validation_error",
+                error_count=exc.error_count(),
             )
             return _build_error_response(
                 status_code=422,
@@ -91,11 +96,12 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             )
         except PermissionError as exc:
             rid = get_request_id() or "unknown"
-            logger.warning(
-                "Permission denied",
+            slog.warning(
+                "permission_denied",
                 request_id=rid,
                 path=request.url.path,
                 method=request.method,
+                error_type="permission_error",
             )
             return _build_error_response(
                 status_code=403,
@@ -105,10 +111,12 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             )
         except ValueError as exc:
             rid = get_request_id() or "unknown"
-            logger.warning(
-                "Value error",
+            slog.warning(
+                "value_error",
                 request_id=rid,
                 path=request.url.path,
+                method=request.method,
+                error_type="value_error",
                 error=str(exc),
             )
             return _build_error_response(
@@ -119,11 +127,12 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             )
         except Exception:
             rid = get_request_id() or "unknown"
-            logger.exception(
-                "Unhandled exception",
+            slog.exception(
+                "unhandled_exception",
                 request_id=rid,
                 path=request.url.path,
                 method=request.method,
+                error_type="internal_error",
             )
             return _build_error_response(
                 status_code=500,

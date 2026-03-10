@@ -15,6 +15,7 @@ class TimestampMixin:
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
         nullable=False,
+        index=True,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -31,6 +32,7 @@ class SoftDeleteMixin:
         Boolean,
         default=False,
         nullable=False,
+        index=True,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),

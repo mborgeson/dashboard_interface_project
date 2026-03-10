@@ -4,8 +4,8 @@ Deal endpoints for pipeline management and Kanban board operations.
 
 from datetime import UTC, datetime
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -52,6 +52,7 @@ from app.schemas.deal import (
 from app.services import get_websocket_manager
 
 router = APIRouter()
+slog = structlog.get_logger("app.api.deals")
 
 
 async def _enrich_deals_with_extraction(
@@ -560,7 +561,14 @@ async def compare_deals(
     add_mc("Deal Score", "deal_score")
     add_mc("Unlevered IRR", "unlevered_irr")
 
-    logger.info(f"User {current_user.email} compared deals: {deal_ids}")
+    slog.info(
+        "deals_compared",
+        user_email=current_user.email,
+        user_id=current_user.id,
+        deal_ids=deal_ids,
+        deal_count=len(deal_ids),
+        overall_recommendation=overall_rec,
+    )
 
     return DealComparisonResponse(
         deals=deal_responses,
@@ -614,7 +622,13 @@ async def create_deal(
         data={"id": new_deal.id, "name": new_deal.name},
     )
 
-    logger.info(f"Created deal: {new_deal.name} (ID: {new_deal.id})")
+    slog.info(
+        "deal_created",
+        deal_id=new_deal.id,
+        deal_name=new_deal.name,
+        user_id=current_user.id,
+        user_email=current_user.email,
+    )
 
     return new_deal
 
@@ -669,7 +683,13 @@ async def update_deal(
         data={"id": updated_deal.id, "name": updated_deal.name},
     )
 
-    logger.info(f"Updated deal: {deal_id}")
+    slog.info(
+        "deal_updated",
+        deal_id=deal_id,
+        user_id=current_user.id,
+        user_email=current_user.email,
+        fields_changed=list(update_data.keys()),
+    )
 
     return updated_deal
 
@@ -724,7 +744,13 @@ async def patch_deal(
         data={"id": updated_deal.id, "name": updated_deal.name},
     )
 
-    logger.info(f"Patched deal: {deal_id}")
+    slog.info(
+        "deal_patched",
+        deal_id=deal_id,
+        user_id=current_user.id,
+        user_email=current_user.email,
+        fields_changed=list(update_data.keys()),
+    )
 
     return updated_deal
 
@@ -781,7 +807,14 @@ async def update_deal_stage(
         },
     )
 
-    logger.info(f"Deal {deal_id} moved from {old_stage} to {stage_data.stage}")
+    slog.info(
+        "deal_stage_changed",
+        deal_id=deal_id,
+        old_stage=old_stage.value if hasattr(old_stage, "value") else str(old_stage),
+        new_stage=stage_data.stage,
+        user_id=current_user.id,
+        user_email=current_user.email,
+    )
 
     return updated_deal
 
@@ -816,7 +849,12 @@ async def delete_deal(
         data={"id": deal_id},
     )
 
-    logger.info(f"Soft-deleted deal: {deal_id}")
+    slog.info(
+        "deal_deleted",
+        deal_id=deal_id,
+        user_id=current_user.id,
+        user_email=current_user.email,
+    )
     return None
 
 
@@ -859,7 +897,13 @@ async def restore_deal(
         data={"id": deal_id, "name": restored.name},
     )
 
-    logger.info(f"Restored deal: {deal_id}")
+    slog.info(
+        "deal_restored",
+        deal_id=deal_id,
+        deal_name=restored.name,
+        user_id=current_user.id,
+        user_email=current_user.email,
+    )
     return DealResponse.model_validate(restored)
 
 
@@ -891,8 +935,11 @@ async def add_deal_activity(
     # Create and persist the activity
     created_activity = await deal_activity.create(db, obj_in=activity_data)
 
-    logger.info(
-        f"Activity logged for deal {deal_id}: {activity.activity_type} by user {current_user.id}"
+    slog.info(
+        "deal_activity_logged",
+        deal_id=deal_id,
+        activity_type=activity.activity_type,
+        user_id=current_user.id,
     )
 
     return created_activity
@@ -981,10 +1028,16 @@ async def toggle_watchlist(
 
     if is_watched:
         message = f"Deal '{deal.name}' added to your watchlist"
-        logger.info(f"User {current_user.email} added deal {deal_id} to watchlist")
     else:
         message = f"Deal '{deal.name}' removed from your watchlist"
-        logger.info(f"User {current_user.email} removed deal {deal_id} from watchlist")
+
+    slog.info(
+        "deal_watchlist_toggled",
+        deal_id=deal_id,
+        is_watched=is_watched,
+        user_id=current_user.id,
+        user_email=current_user.email,
+    )
 
     return WatchlistToggleResponse(
         deal_id=deal_id,
@@ -1135,9 +1188,12 @@ async def create_deal_activity_log(
         meta=meta,
     )
 
-    logger.info(
-        f"Activity log created for deal {deal_id}: {activity_data.action} "
-        f"by user {current_user.id}"
+    slog.info(
+        "deal_activity_log_created",
+        deal_id=deal_id,
+        action=activity_data.action.value,
+        user_id=current_user.id,
+        description=activity_data.description,
     )
 
     return ActivityLogResponse.model_validate(created_log, from_attributes=True)

@@ -4,6 +4,7 @@ Authentication endpoints for login, logout, and token management.
 
 import time
 
+import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from loguru import logger
@@ -22,6 +23,7 @@ from app.schemas.auth import RefreshTokenRequest, Token
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+slog = structlog.get_logger("app.api.auth")
 
 
 def _get_demo_users() -> dict:
@@ -94,7 +96,12 @@ async def login(
         )
         refresh_token = create_refresh_token(subject=str(db_user.id))
 
-        logger.info(f"User logged in: {form_data.username}")
+        slog.info(
+            "user_login_success",
+            user_id=db_user.id,
+            email=form_data.username,
+            auth_method="database",
+        )
 
         return Token(
             access_token=access_token,
@@ -117,7 +124,12 @@ async def login(
         )
         refresh_token = create_refresh_token(subject=str(demo_user["id"]))
 
-        logger.info(f"Demo user logged in: {form_data.username}")
+        slog.info(
+            "user_login_success",
+            user_id=demo_user["id"],
+            email=form_data.username,
+            auth_method="demo",
+        )
 
         return Token(
             access_token=access_token,
@@ -127,6 +139,11 @@ async def login(
         )
 
     # Authentication failed
+    slog.warning(
+        "user_login_failed",
+        email=form_data.username,
+        reason="invalid_credentials",
+    )
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Incorrect email or password",
@@ -159,7 +176,10 @@ async def refresh_token(request: RefreshTokenRequest):
 
     # Check if user's tokens have been globally revoked (replay attack response)
     if user_id and await token_blacklist.is_user_revoked(user_id):
-        logger.warning(f"Refresh attempt for revoked user: {user_id}")
+        slog.warning(
+            "token_refresh_revoked_user",
+            user_id=user_id,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="All sessions have been revoked. Please log in again.",
@@ -174,9 +194,10 @@ async def refresh_token(request: RefreshTokenRequest):
                 user_id,
                 expires_in=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
             )
-        logger.warning(
-            f"Replay attack detected for user {user_id}, "
-            f"blacklisted refresh token reused: {jti[:8]}..."
+        slog.warning(
+            "token_replay_attack_detected",
+            user_id=user_id,
+            jti_prefix=jti[:8] if jti else None,
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -189,7 +210,12 @@ async def refresh_token(request: RefreshTokenRequest):
         ttl = max(0, int(exp) - int(time.time()))
         if ttl > 0:
             await token_blacklist.add(jti, ttl)
-            logger.debug(f"Refresh token rotated, old token blacklisted: {jti[:8]}...")
+            slog.debug(
+                "token_refresh_rotated",
+                user_id=user_id,
+                jti_prefix=jti[:8],
+                ttl_seconds=ttl,
+            )
 
     # Create new tokens (rotation: both access and refresh are new)
     access_token = create_access_token(subject=user_id)
@@ -225,7 +251,11 @@ async def logout(
                     ttl = max(0, int(exp) - int(time.time()))
                     if ttl > 0:
                         await token_blacklist.add(jti, ttl)
-                        logger.info(f"Token blacklisted: {jti[:8]}... (TTL: {ttl}s)")
+                        slog.info(
+                            "user_logout",
+                            jti_prefix=jti[:8],
+                            ttl_seconds=ttl,
+                        )
         except Exception as e:
             # Token may be invalid or expired, no need to blacklist
             logger.debug(f"Logout token processing skipped: {e}")

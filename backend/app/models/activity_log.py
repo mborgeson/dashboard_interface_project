@@ -7,7 +7,7 @@ with JSON metadata support for storing old/new values on changes.
 
 import uuid
 from datetime import UTC, datetime
-from enum import StrEnum as PyEnum
+from enum import StrEnum
 
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -17,7 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
 
-class ActivityAction(PyEnum):
+class ActivityAction(StrEnum):
     """Types of actions that can be logged for deals."""
 
     CREATED = "created"

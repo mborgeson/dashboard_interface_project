@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/useToast';
 import type { UnderwritingInputs, AssumptionPreset } from '@/types';
 import { Save, Upload, Download } from 'lucide-react';
 
@@ -91,6 +92,7 @@ const AGGRESSIVE_PRESET: AssumptionPreset = {
 const PRESETS = [CONSERVATIVE_PRESET, MODERATE_PRESET, AGGRESSIVE_PRESET];
 
 export function AssumptionsPresets({ onLoadPreset, currentInputs }: AssumptionsPresetsProps) {
+  const { success, error: showError, warning } = useToast();
   const handleSaveCustom = () => {
     const presetName = prompt('Enter a name for this preset:');
     if (!presetName) return;
@@ -104,14 +106,14 @@ export function AssumptionsPresets({ onLoadPreset, currentInputs }: AssumptionsP
     });
 
     localStorage.setItem('customPresets', JSON.stringify(customPresets));
-    alert('Preset saved successfully!');
+    success('Preset saved successfully!');
   };
 
   const handleLoadCustom = () => {
     const customPresets = JSON.parse(localStorage.getItem('customPresets') || '[]');
     
     if (customPresets.length === 0) {
-      alert('No custom presets saved');
+      warning('No custom presets saved');
       return;
     }
 
@@ -164,10 +166,10 @@ export function AssumptionsPresets({ onLoadPreset, currentInputs }: AssumptionsP
           const preset = JSON.parse(event.target?.result as string);
           if (preset.inputs) {
             onLoadPreset(preset.inputs);
-            alert('Preset imported successfully!');
+            success('Preset imported successfully!');
           }
         } catch {
-          alert('Error importing preset. Please check the file format.');
+          showError('Error importing preset. Please check the file format.');
         }
       };
       reader.readAsText(file);

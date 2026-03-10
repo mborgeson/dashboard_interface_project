@@ -4,7 +4,7 @@ Deal model for tracking investment opportunities through the pipeline.
 
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from enum import StrEnum as PyEnum
+from enum import StrEnum
 
 from sqlalchemy import (
     JSON,
@@ -13,6 +13,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -24,7 +25,7 @@ from app.db.base import Base
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class DealStage(PyEnum):
+class DealStage(StrEnum):
     """Deal pipeline stages for Kanban board (6-stage model)."""
 
     DEAD = "dead"
@@ -58,6 +59,8 @@ class Deal(Base, TimestampMixin, SoftDeleteMixin):
             "deal_score >= 0 AND deal_score <= 100",
             name="ck_deals_deal_score_range",
         ),
+        # Composite index for Kanban board ordering (stage filter + stage_order sort)
+        Index("ix_deals_stage_stage_order", "stage", "stage_order"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -70,6 +73,7 @@ class Deal(Base, TimestampMixin, SoftDeleteMixin):
     deal_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
+        index=True,
     )  # acquisition, disposition, development
 
     # Pipeline Stage
@@ -90,11 +94,13 @@ class Deal(Base, TimestampMixin, SoftDeleteMixin):
         Integer,
         ForeignKey("properties.id"),
         nullable=True,
+        index=True,
     )
     assigned_user_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("users.id"),
         nullable=True,
+        index=True,
     )
 
     # Financial Terms
@@ -160,6 +166,7 @@ class Deal(Base, TimestampMixin, SoftDeleteMixin):
         String(20),
         default="medium",
         nullable=False,
+        index=True,
     )  # low, medium, high, urgent
 
     # Stage history for tracking movement
