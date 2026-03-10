@@ -1,11 +1,14 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
-interface Props {
+export interface ErrorBoundaryProps {
   children: ReactNode;
-  fallback?: ReactNode;
+  /** Static fallback node, or render function receiving the error and a reset callback */
+  fallback?: ReactNode | ((error: Error, reset: () => void) => ReactNode);
+  /** Called when an error is caught */
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface State {
@@ -14,8 +17,8 @@ interface State {
   errorInfo: ErrorInfo | null;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
       hasError: false,
@@ -30,10 +33,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    this.setState({
-      error,
-      errorInfo,
-    });
+    this.setState({ error, errorInfo });
+    this.props.onError?.(error, errorInfo);
   }
 
   handleReset = (): void => {
@@ -46,8 +47,15 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render(): ReactNode {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
+      const { fallback } = this.props;
+      const { error } = this.state;
+
+      if (typeof fallback === 'function' && error) {
+        return fallback(error, this.handleReset);
+      }
+
+      if (fallback !== undefined && typeof fallback !== 'function') {
+        return fallback;
       }
 
       return (
@@ -73,10 +81,10 @@ export class ErrorBoundary extends Component<Props, State> {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {this.state.error && (
+              {error && (
                 <div className="rounded-md bg-muted p-4">
                   <p className="font-mono text-sm text-muted-foreground">
-                    <span className="font-semibold">Error:</span> {this.state.error.message}
+                    <span className="font-semibold">Error:</span> {error.message}
                   </p>
                 </div>
               )}
@@ -94,7 +102,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
               <div className="flex gap-3">
                 <Button onClick={this.handleReset} variant="default">
-                  Retry
+                  Try Again
                 </Button>
                 <Button
                   onClick={() => window.location.reload()}

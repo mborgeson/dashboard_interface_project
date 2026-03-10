@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { InlineEmptyState } from '@/components/shared';
 import {
   BarChart,
   Bar,
@@ -55,7 +56,7 @@ export function ClassificationBreakdown({ data, isLoading }: ClassificationBreak
           <CardTitle>Classification Breakdown</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-muted-foreground py-8">No data available</p>
+          <InlineEmptyState />
         </CardContent>
       </Card>
     );

@@ -14,6 +14,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import type { DealActivity } from '@/hooks/api/useDeals';
 import { cn } from '@/lib/utils';
+import { formatRelativeTime, formatTime } from '@/lib/dateUtils';
 
 interface ActivityItemProps {
   activity: DealActivity;
@@ -76,40 +77,6 @@ const ACTIVITY_TYPE_CONFIG: Record<ActivityType, ActivityTypeConfig> = {
   },
 };
 
-function formatTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) {
-    return 'just now';
-  }
-  if (diffMins < 60) {
-    return `${diffMins}m ago`;
-  }
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-  if (diffDays < 7) {
-    return `${diffDays}d ago`;
-  }
-
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
-
 export function ActivityItem({ activity, isLast }: ActivityItemProps) {
   const config = ACTIVITY_TYPE_CONFIG[activity.type];
   const Icon = config.icon;
@@ -140,7 +107,7 @@ export function ActivityItem({ activity, isLast }: ActivityItemProps) {
                 {config.label}
               </span>
               <span className="text-xs text-neutral-400">•</span>
-              <span className="text-xs text-neutral-500">{formatTimeAgo(activity.timestamp)}</span>
+              <span className="text-xs text-neutral-500">{formatRelativeTime(activity.timestamp)}</span>
             </div>
             <p className="text-sm text-neutral-900">{activity.description}</p>
           </div>

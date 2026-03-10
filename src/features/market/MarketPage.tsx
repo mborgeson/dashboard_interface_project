@@ -9,7 +9,7 @@ import { MarketHeatmap } from './components/MarketHeatmap';
 import { Download, RefreshCw, TrendingUp, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
-import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
+import { PageLoadingState } from '@/components/shared';
 
 export type TimeframeComparison = 'mom' | 'qoq' | 'yoy';
 
@@ -101,37 +101,15 @@ export function MarketPage() {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-page-title text-primary-500">Market Data</h1>
-            <p className="text-sm text-neutral-600 mt-1">
-              Phoenix MSA real estate market analysis and economic indicators
-            </p>
-          </div>
-          <MarketSubNav />
-        </div>
-
-        {/* Overview Stats Skeleton */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <StatCardSkeleton key={i} />
-          ))}
-        </div>
-
-        {/* Economic Indicators Skeleton */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <StatCardSkeleton key={i} />
-          ))}
-        </div>
-
-        {/* Charts Skeleton */}
-        <ChartSkeleton height={384} />
-        <ChartSkeleton height={384} />
-        <ChartSkeleton height={500} />
-      </div>
+      <PageLoadingState
+        title="Market Data"
+        subtitle="Phoenix MSA real estate market analysis and economic indicators"
+        titleClassName="text-page-title text-primary-500"
+        headerExtra={<MarketSubNav />}
+        statCards={4}
+        chartHeights={[384, 384, 500]}
+        className="p-6"
+      />
     );
   }
 

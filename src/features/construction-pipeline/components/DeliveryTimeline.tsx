@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { InlineEmptyState } from '@/components/shared';
 import {
   BarChart,
   Bar,
@@ -39,7 +40,7 @@ export function DeliveryTimeline({ data, isLoading }: DeliveryTimelineProps) {
           <CardTitle>Delivery Timeline</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-muted-foreground py-8">No delivery data available</p>
+          <InlineEmptyState message="No delivery data available" />
         </CardContent>
       </Card>
     );

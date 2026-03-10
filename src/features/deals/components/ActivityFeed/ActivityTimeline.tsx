@@ -3,40 +3,12 @@
  */
 import { useMemo } from 'react';
 import type { DealActivity } from '@/hooks/api/useDeals';
+import { getDateGroupLabel } from '@/lib/dateUtils';
 import { ActivityItem } from './ActivityItem';
 
 interface ActivityTimelineProps {
   activities: DealActivity[];
   groupByDate?: boolean;
-}
-
-function getDateGroup(date: Date): string {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const activityDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-  if (activityDate.getTime() === today.getTime()) {
-    return 'Today';
-  }
-  if (activityDate.getTime() === yesterday.getTime()) {
-    return 'Yesterday';
-  }
-
-  // Check if within the last 7 days
-  const weekAgo = new Date(today);
-  weekAgo.setDate(weekAgo.getDate() - 7);
-  if (activityDate > weekAgo) {
-    return date.toLocaleDateString('en-US', { weekday: 'long' });
-  }
-
-  // Otherwise, show the full date
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: activityDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-  });
 }
 
 export function ActivityTimeline({
@@ -53,7 +25,7 @@ export function ActivityTimeline({
     let currentActivities: DealActivity[] = [];
 
     for (const activity of activities) {
-      const group = getDateGroup(activity.timestamp);
+      const group = getDateGroupLabel(activity.timestamp);
       if (group !== currentGroup) {
         if (currentGroup !== null) {
           groups.push({ group: currentGroup, activities: currentActivities });

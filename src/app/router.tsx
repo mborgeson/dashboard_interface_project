@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider as ReactRouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { PageSuspenseWrapper } from '@/components/SuspenseWrapper';
+import { FeatureErrorBoundary } from '@/components/FeatureErrorBoundary';
 import { useAuthStore } from '@/stores/authStore';
 import {
   AnalyticsPage,
@@ -77,14 +78,20 @@ const router = createBrowserRouter(
           children: [
             {
               index: true,
-              element: <DashboardMain />,
+              element: (
+                <FeatureErrorBoundary featureName="Dashboard">
+                  <DashboardMain />
+                </FeatureErrorBoundary>
+              ),
             },
             {
               path: 'investments',
               element: (
-                <LazyRoute>
-                  <InvestmentsPage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Investments">
+                  <LazyRoute>
+                    <InvestmentsPage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
@@ -98,9 +105,11 @@ const router = createBrowserRouter(
             {
               path: 'deals',
               element: (
-                <LazyRoute>
-                  <DealsRoute />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Deals">
+                  <LazyRoute>
+                    <DealsRoute />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
@@ -114,9 +123,11 @@ const router = createBrowserRouter(
             {
               path: 'analytics',
               element: (
-                <LazyRoute>
-                  <AnalyticsPage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Analytics">
+                  <LazyRoute>
+                    <AnalyticsPage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
@@ -162,9 +173,11 @@ const router = createBrowserRouter(
             {
               path: 'reporting',
               element: (
-                <LazyRoute>
-                  <ReportingSuitePage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Reporting">
+                  <LazyRoute>
+                    <ReportingSuitePage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {

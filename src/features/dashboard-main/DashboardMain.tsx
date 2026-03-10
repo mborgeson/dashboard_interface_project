@@ -6,7 +6,7 @@ import { TrendingUp, Building2, DollarSign, Percent } from 'lucide-react';
 import { PropertyMap } from './components/PropertyMap';
 import { PortfolioPerformanceChart } from './components/PortfolioPerformanceChart';
 import { PropertyDistributionChart } from './components/PropertyDistributionChart';
-import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
+import { PageLoadingState, StatCard } from '@/components/shared';
 import { MarketTrendsWidget } from '@/features/market/components/widgets/MarketTrendsWidget';
 import { MarketOverviewWidget } from '@/features/market/components/widgets/MarketOverviewWidget';
 import { SubmarketComparisonWidget } from '@/features/market/components/widgets/SubmarketComparisonWidget';
@@ -43,30 +43,13 @@ export function DashboardMain() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-page-title text-neutral-900 font-semibold">
-            Portfolio Dashboard
-          </h1>
-          <p className="text-neutral-600 mt-1">
-            Loading real-time performance data...
-          </p>
-        </div>
-
-        {/* Hero Stats Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <StatCardSkeleton key={i} />
-          ))}
-        </div>
-
-        {/* Content Skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartSkeleton height={300} />
-          <ChartSkeleton height={300} />
-        </div>
-      </div>
+      <PageLoadingState
+        title="Portfolio Dashboard"
+        subtitle="Loading real-time performance data..."
+        statCards={4}
+        chartHeights={[300, 300]}
+        chartLayout="grid"
+      />
     );
   }
 
@@ -109,55 +92,38 @@ export function DashboardMain() {
 
       {/* Hero Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="p-6 shadow-card hover:shadow-card-hover transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-primary-50 rounded-lg">
-              <DollarSign className="w-6 h-6 text-primary-500" />
-            </div>
-          </div>
-          <div className="text-hero-stat text-neutral-900">
-            {formatCurrency(totalValue, true)}
-          </div>
-          <div className="text-sm text-neutral-600 mt-1">Portfolio Value</div>
-        </Card>
-
-        <Card className="p-6 shadow-card hover:shadow-card-hover transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-accent-50 rounded-lg">
-              <Building2 className="w-6 h-6 text-accent-500" />
-            </div>
-          </div>
-          <div className="text-hero-stat text-neutral-900">
-            {formatNumber(totalUnits)}
-          </div>
-          <div className="text-sm text-neutral-600 mt-1">
-            Total Units {avgOccupancy > 0 && `• ${formatPercent(avgOccupancy)} Occupied`}
-          </div>
-        </Card>
-
-        <Card className="p-6 shadow-card hover:shadow-card-hover transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-green-50 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-          <div className="text-hero-stat text-neutral-900">
-            {totalNOI > 0 ? formatCurrency(totalNOI / 12, true) : '--'}
-          </div>
-          <div className="text-sm text-neutral-600 mt-1">Monthly NOI</div>
-        </Card>
-
-        <Card className="p-6 shadow-card hover:shadow-card-hover transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <Percent className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-          <div className="text-hero-stat text-neutral-900">
-            {avgCapRate > 0 ? formatPercent(avgCapRate) : '--'}
-          </div>
-          <div className="text-sm text-neutral-600 mt-1">Average Cap Rate</div>
-        </Card>
+        <StatCard
+          variant="hero"
+          icon={DollarSign}
+          iconColor="text-primary-500"
+          iconBgColor="bg-primary-50"
+          label="Portfolio Value"
+          value={formatCurrency(totalValue, true)}
+        />
+        <StatCard
+          variant="hero"
+          icon={Building2}
+          iconColor="text-accent-500"
+          iconBgColor="bg-accent-50"
+          label={`Total Units${avgOccupancy > 0 ? ` • ${formatPercent(avgOccupancy)} Occupied` : ''}`}
+          value={formatNumber(totalUnits)}
+        />
+        <StatCard
+          variant="hero"
+          icon={TrendingUp}
+          iconColor="text-green-600"
+          iconBgColor="bg-green-50"
+          label="Monthly NOI"
+          value={totalNOI > 0 ? formatCurrency(totalNOI / 12, true) : '--'}
+        />
+        <StatCard
+          variant="hero"
+          icon={Percent}
+          iconColor="text-blue-600"
+          iconBgColor="bg-blue-50"
+          label="Average Cap Rate"
+          value={avgCapRate > 0 ? formatPercent(avgCapRate) : '--'}
+        />
       </div>
 
       {/* Portfolio Overview */}

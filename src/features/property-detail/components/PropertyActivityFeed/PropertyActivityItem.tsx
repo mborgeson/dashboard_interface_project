@@ -11,6 +11,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import type { PropertyActivity, PropertyActivityType } from '@/hooks/api/usePropertyActivities';
 import { cn } from '@/lib/utils';
+import { formatRelativeTime, formatTime } from '@/lib/dateUtils';
 
 interface PropertyActivityItemProps {
   activity: PropertyActivity;
@@ -58,41 +59,6 @@ const ACTIVITY_TYPE_CONFIG: Record<PropertyActivityType, ActivityTypeConfig> = {
     label: 'Document',
   },
 };
-
-function formatTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) {
-    return 'just now';
-  }
-  if (diffMins < 60) {
-    return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
-  }
-  if (diffHours < 24) {
-    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
-  }
-  if (diffDays < 7) {
-    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
-  }
-
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
-  });
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
 
 function getInitials(name: string): string {
   return name
@@ -144,7 +110,7 @@ export function PropertyActivityItem({ activity, isLast }: PropertyActivityItemP
                 <Icon className="w-3 h-3" />
                 {config.label}
               </div>
-              <span className="text-xs text-neutral-400">{formatTimeAgo(activity.timestamp)}</span>
+              <span className="text-xs text-neutral-400">{formatRelativeTime(activity.timestamp)}</span>
             </div>
 
             {/* Description */}

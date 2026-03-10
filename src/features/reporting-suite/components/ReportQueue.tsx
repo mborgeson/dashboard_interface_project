@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatRelativeTime } from '@/lib/dateUtils';
 import {
   Download,
   RefreshCw,
@@ -106,20 +107,6 @@ export function ReportQueue() {
       link.click();
       document.body.removeChild(link);
     }
-  };
-
-  const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffDays > 0) return `${diffDays}d ago`;
-    if (diffHours > 0) return `${diffHours}h ago`;
-    if (diffMins > 0) return `${diffMins}m ago`;
-    return 'Just now';
   };
 
   const pendingCount = reports.filter(r => r.status === 'pending').length;
@@ -277,9 +264,9 @@ export function ReportQueue() {
                   </td>
                   <td className="px-4 py-4">
                     <div>
-                      <p className="text-sm text-neutral-600">{getTimeAgo(report.requestedAt)}</p>
+                      <p className="text-sm text-neutral-600">{formatRelativeTime(report.requestedAt)}</p>
                       {report.completedAt && (
-                        <p className="text-xs text-neutral-400">Completed {getTimeAgo(report.completedAt)}</p>
+                        <p className="text-xs text-neutral-400">Completed {formatRelativeTime(report.completedAt)}</p>
                       )}
                     </div>
                   </td>

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { InlineEmptyState } from '@/components/shared';
 import { CheckCircle, XCircle, Clock, Database } from 'lucide-react';
 import type { ConstructionDataQuality } from '../types';
 
@@ -47,7 +48,7 @@ export function SourceFreshness({ data, isLoading }: SourceFreshnessProps) {
           <CardTitle>Data Quality & Sources</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-muted-foreground py-8">No data available</p>
+          <InlineEmptyState />
         </CardContent>
       </Card>
     );

@@ -18,10 +18,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { KPICard } from './components/KPICard';
 import { DistributionCharts } from './components/DistributionCharts';
 import { ComparisonCharts } from './components/ComparisonCharts';
-import { StatCardSkeleton, ChartSkeleton } from '@/components/skeletons';
+import { PageLoadingState, StatCard } from '@/components/shared';
 
 type DateRange = '30' | '90' | '365' | 'all';
 
@@ -276,40 +275,14 @@ export function AnalyticsPage() {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-page-title text-primary-500">Portfolio Analytics</h1>
-            <p className="text-sm text-neutral-600 mt-1">
-              Comprehensive performance analysis and insights
-            </p>
-          </div>
-        </div>
-
-        {/* KPI Summary Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <StatCardSkeleton key={i} />
-          ))}
-        </div>
-
-        {/* Charts Skeleton */}
-        <div className="space-y-6">
-          <div>
-            <div className="h-6 w-48 bg-neutral-200 animate-pulse rounded mb-4" />
-            <ChartSkeleton height={320} />
-          </div>
-          <div>
-            <div className="h-6 w-48 bg-neutral-200 animate-pulse rounded mb-4" />
-            <ChartSkeleton height={320} />
-          </div>
-          <div>
-            <div className="h-6 w-48 bg-neutral-200 animate-pulse rounded mb-4" />
-            <ChartSkeleton height={384} />
-          </div>
-        </div>
-      </div>
+      <PageLoadingState
+        title="Portfolio Analytics"
+        subtitle="Comprehensive performance analysis and insights"
+        titleClassName="text-page-title text-primary-500"
+        statCards={4}
+        chartHeights={[320, 320, 384]}
+        className="p-6"
+      />
     );
   }
 
@@ -371,29 +344,25 @@ export function AnalyticsPage() {
 
       {/* KPI Summary Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPICard
-          title="Portfolio IRR"
-          value={portfolioKPIs.irr}
-          format="percentage"
-          description="Weighted average internal rate of return"
+        <StatCard
+          label="Portfolio IRR"
+          value={portfolioKPIs.irr === 0 ? 'N/A' : `${(portfolioKPIs.irr * 100).toFixed(2)}%`}
+          subtitle="Weighted average internal rate of return"
         />
-        <KPICard
-          title="Cash-on-Cash Return"
-          value={portfolioKPIs.cashOnCash}
-          format="percentage"
-          description="Weighted average annual cash return"
+        <StatCard
+          label="Cash-on-Cash Return"
+          value={portfolioKPIs.cashOnCash === 0 ? 'N/A' : `${(portfolioKPIs.cashOnCash * 100).toFixed(2)}%`}
+          subtitle="Weighted average annual cash return"
         />
-        <KPICard
-          title="Equity Multiple"
-          value={portfolioKPIs.equityMultiple}
-          format="decimal"
-          description="Total return multiple on invested capital"
+        <StatCard
+          label="Equity Multiple"
+          value={portfolioKPIs.equityMultiple === 0 ? 'N/A' : portfolioKPIs.equityMultiple.toFixed(2)}
+          subtitle="Total return multiple on invested capital"
         />
-        <KPICard
-          title="Average DSCR"
-          value={portfolioKPIs.avgDSCR}
-          format="decimal"
-          description="Debt service coverage ratio"
+        <StatCard
+          label="Average DSCR"
+          value={portfolioKPIs.avgDSCR === 0 ? 'N/A' : portfolioKPIs.avgDSCR.toFixed(2)}
+          subtitle="Debt service coverage ratio"
         />
       </div>
 
