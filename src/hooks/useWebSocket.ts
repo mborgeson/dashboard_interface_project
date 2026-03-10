@@ -107,7 +107,6 @@ export function useWebSocket(
   // on every render. The no-dep effect is intentional — we always want the
   // ref to hold the latest callbacks without triggering reconnects.
   const callbacksRef = useRef({ onOpen, onClose, onMessage, onError });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     callbacksRef.current = { onOpen, onClose, onMessage, onError };
   });

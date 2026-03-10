@@ -325,6 +325,9 @@ async def export_property_pdf(
                 detail=f"Property {property_id} not found",
             )
 
+        # Enrich financial data before export (F-068)
+        prop = await property_crud.enrich_financial_data(db, prop)
+
         # Convert to dict for PDF service
         property_data = {
             "id": prop.id,
@@ -508,6 +511,10 @@ async def export_portfolio_pdf(
                 }
             )
 
+        # Enrich financial data before computing analytics (F-068)
+        all_properties = await property_crud.get_multi_filtered(db, limit=1000)
+        await property_crud.enrich_financial_data_batch(db, all_properties)
+
         # Get analytics from database
         analytics_summary = await property_crud.get_analytics_summary(db)
 
@@ -574,8 +581,7 @@ async def export_portfolio_pdf(
             },
         }
 
-        # Get properties from database for report
-        all_properties = await property_crud.get_multi_filtered(db, limit=1000)
+        # Build properties data for report (already fetched + enriched above)
         properties_data = []
         for prop in all_properties:
             properties_data.append(

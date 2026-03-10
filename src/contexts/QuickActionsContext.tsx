@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 
 // Quick action types
 export type QuickAction =
@@ -53,6 +53,7 @@ const QuickActionsContext = createContext<QuickActionsState | null>(null);
 
 const MAX_RECENT_ACTIONS = 10;
 const MAX_COMPARE_DEALS = 4;
+const COMPARISON_STORAGE_KEY = 'comparison-deals';
 
 interface QuickActionsProviderProps {
   children: ReactNode;
@@ -62,8 +63,21 @@ export function QuickActionsProvider({ children }: QuickActionsProviderProps) {
   // Command palette state
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
-  // Comparison state
-  const [selectedDealsForComparison, setSelectedDealsForComparison] = useState<string[]>([]);
+  // Comparison state — hydrate from sessionStorage
+  const [selectedDealsForComparison, setSelectedDealsForComparison] = useState<string[]>(() => {
+    try {
+      const stored = sessionStorage.getItem(COMPARISON_STORAGE_KEY);
+      if (stored) {
+        const parsed: unknown = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')) {
+          return parsed as string[];
+        }
+      }
+    } catch {
+      // Ignore corrupt data
+    }
+    return [];
+  });
   const [isInCompareMode, setIsInCompareMode] = useState(false);
 
   // Watchlist state
@@ -74,6 +88,15 @@ export function QuickActionsProvider({ children }: QuickActionsProviderProps) {
 
   // Shortcuts help state
   const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
+
+  // Persist comparison selection to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(COMPARISON_STORAGE_KEY, JSON.stringify(selectedDealsForComparison));
+    } catch {
+      // Storage full or unavailable — ignore
+    }
+  }, [selectedDealsForComparison]);
 
   // Command palette handlers
   const openCommandPalette = useCallback(() => setCommandPaletteOpen(true), []);
