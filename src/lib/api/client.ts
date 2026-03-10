@@ -47,9 +47,12 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
   }
 
-  // Set default headers
+  // Detect URLSearchParams body — let fetch set Content-Type automatically
+  const isFormData = fetchOptions.body instanceof URLSearchParams;
+
+  // Set default headers (skip Content-Type for form-urlencoded — fetch handles it)
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...fetchOptions.headers,
   };
 
@@ -89,7 +92,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     } catch {
       errorData = await response.text();
     }
-    // Dispatch auth event on 401 to match axios interceptor behavior
+    // Dispatch auth event on 401 so authStore can auto-clear state
     if (response.status === 401) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
@@ -125,21 +128,21 @@ export const apiClient = {
     request<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data instanceof URLSearchParams ? data : data ? JSON.stringify(data) : undefined,
     }),
 
   put: <T>(endpoint: string, data?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       ...options,
       method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data instanceof URLSearchParams ? data : data ? JSON.stringify(data) : undefined,
     }),
 
   patch: <T>(endpoint: string, data?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       ...options,
       method: 'PATCH',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data instanceof URLSearchParams ? data : data ? JSON.stringify(data) : undefined,
     }),
 
   delete: <T>(endpoint: string, options?: RequestOptions) =>

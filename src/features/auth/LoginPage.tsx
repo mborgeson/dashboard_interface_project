@@ -38,9 +38,9 @@ export function LoginPage() {
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'Login failed. Check your credentials and try again.';
-      // Axios wraps errors — try to pull out the response detail
-      const axiosDetail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(axiosDetail || message);
+      // ApiError carries the parsed response body in .data
+      const detail = (err as { data?: { detail?: string } })?.data?.detail;
+      setError(detail || message);
     } finally {
       setSubmitting(false);
     }

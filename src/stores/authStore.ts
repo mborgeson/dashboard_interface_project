@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api } from '@/lib/api';
+import { apiClient } from '@/lib/api/client';
 
 interface User {
   id: number;
@@ -34,17 +34,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     params.append('username', email);
     params.append('password', password);
 
-    const { data } = await api.post<{ access_token: string; refresh_token: string; token_type: string }>(
+    const data = await apiClient.post<{ access_token: string; refresh_token: string; token_type: string }>(
       '/auth/login',
       params,
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
     );
 
     localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('refresh_token', data.refresh_token);
 
     // Fetch user profile
-    const { data: user } = await api.get<User>('/auth/me');
+    const user = await apiClient.get<User>('/auth/me');
 
     set({
       accessToken: data.access_token,
@@ -57,7 +56,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
-      await api.post('/auth/logout');
+      await apiClient.post('/auth/logout');
     } catch {
       // Ignore errors — clear state regardless
     }
@@ -80,7 +79,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     try {
-      const { data: user } = await api.get<User>('/auth/me');
+      const user = await apiClient.get<User>('/auth/me');
       set({
         accessToken: token,
         refreshToken: localStorage.getItem('refresh_token'),
@@ -97,7 +96,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
-// Listen for 401 events from the API interceptor to auto-clear auth state
+// Listen for 401 events from the API client to auto-clear auth state
 window.addEventListener('auth:unauthorized', () => {
   const { isAuthenticated } = useAuthStore.getState();
   if (isAuthenticated) {
