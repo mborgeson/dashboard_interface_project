@@ -467,6 +467,8 @@ describe('useApproveGroup', () => {
       await result.current.mutate('Group A');
     });
 
-    expect(result.current.error).toBeNull();
+    await waitFor(() => {
+      expect(result.current.error).toBeNull();
+    });
   });
 });
