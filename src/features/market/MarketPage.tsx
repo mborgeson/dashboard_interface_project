@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageLoadingState } from '@/components/shared';
 
+import type { TimeframeComparison } from '@/types/market';
 export type { TimeframeComparison } from '@/types/market';
 
 // Lazy load ReportWizard modal for code splitting
