@@ -158,7 +158,14 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
     CRUD operations for Property model with property-specific methods.
     """
 
-    async def enrich_financial_data(self, db: AsyncSession, prop: Property) -> Property:
+    async def enrich_financial_data(
+        self,
+        db: AsyncSession,
+        prop: Property,
+        *,
+        _prefetched_base: dict[str, float | str | None] | None = None,
+        _prefetched_year: list[tuple[str, float | None]] | None = None,
+    ) -> Property:
         """
         Populate a property's direct columns and financial_data JSON from
         extracted_values if financial_data is currently NULL/empty.
@@ -169,51 +176,63 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
 
         The property is updated in-place and committed to DB so subsequent
         requests are served from the cached column.
+
+        When called from ``enrich_financial_data_batch``, pre-fetched data
+        is passed via ``_prefetched_base`` and ``_prefetched_year`` to avoid
+        per-property DB queries (N+1 elimination).
         """
         # Import here to avoid circular imports at module level
         from app.models.extraction import ExtractedValue
 
-        # Build name variants for matching
-        short_name = prop.name.split("(")[0].strip() if prop.name else ""
-        name_variants = [prop.name]
-        if short_name and short_name != prop.name:
-            name_variants.append(short_name)
-
         field_values: dict[str, float | str | None] = {}
 
-        for variant in name_variants:
-            if not variant:
-                continue
-            rows = (
-                await db.execute(
-                    select(
-                        ExtractedValue.field_name,
-                        ExtractedValue.value_numeric,
-                        ExtractedValue.value_text,
-                    )
-                    .where(
-                        and_(
-                            or_(
-                                ExtractedValue.property_name == variant,
-                                ExtractedValue.property_name.like(variant + " (%"),
-                            ),
-                            ExtractedValue.is_error.is_(False),
-                            ExtractedValue.field_name.in_(list(_ALL_HYDRATION_FIELDS)),
+        if _prefetched_base is not None:
+            # Use pre-fetched data from batch method
+            field_values = dict(_prefetched_base)
+        else:
+            # Fallback: query per-property (original behavior)
+            short_name = prop.name.split("(")[0].strip() if prop.name else ""
+            name_variants = [prop.name]
+            if short_name and short_name != prop.name:
+                name_variants.append(short_name)
+
+            for variant in name_variants:
+                if not variant:
+                    continue
+                rows = (
+                    await db.execute(
+                        select(
+                            ExtractedValue.field_name,
+                            ExtractedValue.value_numeric,
+                            ExtractedValue.value_text,
+                        )
+                        .where(
+                            and_(
+                                or_(
+                                    ExtractedValue.property_name == variant,
+                                    ExtractedValue.property_name.like(variant + " (%"),
+                                ),
+                                ExtractedValue.is_error.is_(False),
+                                ExtractedValue.field_name.in_(
+                                    list(_ALL_HYDRATION_FIELDS)
+                                ),
+                            )
+                        )
+                        .order_by(
+                            ExtractedValue.field_name,
+                            ExtractedValue.created_at.desc(),
                         )
                     )
-                    .order_by(
-                        ExtractedValue.field_name,
-                        ExtractedValue.created_at.desc(),
-                    )
-                )
-            ).all()
+                ).all()
 
-            for fname, vnumeric, vtext in rows:
-                if fname not in field_values:
-                    field_values[fname] = vnumeric if vnumeric is not None else vtext
+                for fname, vnumeric, vtext in rows:
+                    if fname not in field_values:
+                        field_values[fname] = (
+                            vnumeric if vnumeric is not None else vtext
+                        )
 
-            if field_values:
-                break  # Found data with this variant
+                if field_values:
+                    break  # Found data with this variant
 
         changed = False
 
@@ -368,7 +387,9 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
                 ops_by_year,
                 expenses,
                 ev_changed,
-            ) = await self._build_ops_from_extracted_values(db, prop, expenses)
+            ) = await self._build_ops_from_extracted_values(
+                db, prop, expenses, _prefetched_year=_prefetched_year
+            )
             if ev_changed:
                 changed = True
 
@@ -423,6 +444,8 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
         db: AsyncSession,
         prop: Property,
         existing_expenses: dict,
+        *,
+        _prefetched_year: list[tuple[str, float | None]] | None = None,
     ) -> tuple[dict, dict, bool]:
         """
         Build ``operationsByYear`` dict from ``extracted_values`` rows.
@@ -433,47 +456,54 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
         rows, groups them by year number, and assembles the same JSON
         structure that the frontend's OperationsTab expects.
 
+        When ``_prefetched_year`` is provided (from batch enrichment),
+        the DB query is skipped entirely.
+
         Returns:
             (ops_by_year dict, expenses dict, changed bool)
         """
         from app.models.extraction import ExtractedValue
 
-        # Build name variants for matching (same logic as enrich_financial_data)
-        short_name = prop.name.split("(")[0].strip() if prop.name else ""
-        name_variants = [prop.name]
-        if short_name and short_name != prop.name:
-            name_variants.append(short_name)
-
         # Collect all YEAR_N fields for this property
         year_rows: list[tuple[str, float | None]] = []
-        for variant in name_variants:
-            if not variant:
-                continue
-            rows = (
-                await db.execute(
-                    select(
-                        ExtractedValue.field_name,
-                        ExtractedValue.value_numeric,
-                    )
-                    .where(
-                        and_(
-                            or_(
-                                ExtractedValue.property_name == variant,
-                                ExtractedValue.property_name.like(variant + " (%"),
-                            ),
-                            ExtractedValue.is_error.is_(False),
-                            # Use LIKE for SQLite compatibility; Python regex
-                            # in the loop below does precise matching.
-                            ExtractedValue.field_name.like("%_YEAR_%"),
-                        )
-                    )
-                    .order_by(ExtractedValue.created_at.desc())
-                )
-            ).all()
 
-            if rows:
-                year_rows = [(r[0], r[1]) for r in rows]
-                break
+        if _prefetched_year is not None:
+            year_rows = _prefetched_year
+        else:
+            # Fallback: query per-property (original behavior)
+            short_name = prop.name.split("(")[0].strip() if prop.name else ""
+            name_variants = [prop.name]
+            if short_name and short_name != prop.name:
+                name_variants.append(short_name)
+
+            for variant in name_variants:
+                if not variant:
+                    continue
+                rows = (
+                    await db.execute(
+                        select(
+                            ExtractedValue.field_name,
+                            ExtractedValue.value_numeric,
+                        )
+                        .where(
+                            and_(
+                                or_(
+                                    ExtractedValue.property_name == variant,
+                                    ExtractedValue.property_name.like(variant + " (%"),
+                                ),
+                                ExtractedValue.is_error.is_(False),
+                                # Use LIKE for SQLite compatibility; Python regex
+                                # in the loop below does precise matching.
+                                ExtractedValue.field_name.like("%_YEAR_%"),
+                            )
+                        )
+                        .order_by(ExtractedValue.created_at.desc())
+                    )
+                ).all()
+
+                if rows:
+                    year_rows = [(r[0], r[1]) for r in rows]
+                    break
 
         if not year_rows:
             return {}, existing_expenses, False
@@ -550,6 +580,136 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
         )
 
         return ops_by_year, expenses, True
+
+    async def enrich_financial_data_batch(
+        self, db: AsyncSession, properties: list[Property]
+    ) -> list[Property]:
+        """Batch-enrich multiple properties that are missing financial_data.
+
+        Instead of issuing 2-3 DB queries per property (N+1 pattern), this
+        method collects all name variants, executes two bulk queries (base
+        fields + YEAR_N fields), partitions the results by property name,
+        and then delegates to the existing per-property enrichment logic.
+
+        Properties that already have ``financial_data`` are skipped.
+
+        Returns the full list with enriched properties in their original positions.
+        """
+        from app.models.extraction import ExtractedValue
+
+        # Identify properties needing enrichment
+        needs_enrichment = [p for p in properties if not p.financial_data]
+        if not needs_enrichment:
+            return properties
+
+        # Build name→property mapping and collect all name variants
+        all_names: list[str] = []
+        name_to_props: dict[str, list[Property]] = {}
+        for prop in needs_enrichment:
+            short_name = prop.name.split("(")[0].strip() if prop.name else ""
+            variants = [prop.name] if prop.name else []
+            if short_name and short_name != prop.name:
+                variants.append(short_name)
+            for v in variants:
+                name_to_props.setdefault(v, []).append(prop)
+                all_names.append(v)
+
+        if not all_names:
+            return properties
+
+        # Build OR conditions for all property name variants
+        name_conditions = []
+        for name in set(all_names):
+            name_conditions.append(ExtractedValue.property_name == name)
+            name_conditions.append(ExtractedValue.property_name.like(name + " (%"))
+
+        # Bulk query 1: base hydration fields for all properties
+        base_rows = (
+            await db.execute(
+                select(
+                    ExtractedValue.property_name,
+                    ExtractedValue.field_name,
+                    ExtractedValue.value_numeric,
+                    ExtractedValue.value_text,
+                )
+                .where(
+                    and_(
+                        or_(*name_conditions),
+                        ExtractedValue.is_error.is_(False),
+                        ExtractedValue.field_name.in_(list(_ALL_HYDRATION_FIELDS)),
+                    )
+                )
+                .order_by(
+                    ExtractedValue.property_name,
+                    ExtractedValue.field_name,
+                    ExtractedValue.created_at.desc(),
+                )
+            )
+        ).all()
+
+        # Bulk query 2: YEAR_N fields for all properties
+        year_rows = (
+            await db.execute(
+                select(
+                    ExtractedValue.property_name,
+                    ExtractedValue.field_name,
+                    ExtractedValue.value_numeric,
+                )
+                .where(
+                    and_(
+                        or_(*name_conditions),
+                        ExtractedValue.is_error.is_(False),
+                        ExtractedValue.field_name.like("%_YEAR_%"),
+                    )
+                )
+                .order_by(
+                    ExtractedValue.property_name,
+                    ExtractedValue.created_at.desc(),
+                )
+            )
+        ).all()
+
+        # Partition base rows by property name → {field_name: value}
+        # We match property_name against each property's name variants
+        def _match_prop_name(prop_name_from_db: str, prop: Property) -> bool:
+            """Check if an extracted value row belongs to a given property."""
+            short = prop.name.split("(")[0].strip() if prop.name else ""
+            return bool(
+                prop_name_from_db == prop.name
+                or (short and prop_name_from_db == short)
+                or (prop.name and prop_name_from_db.startswith(prop.name + " ("))
+                or (short and prop_name_from_db.startswith(short + " ("))
+            )
+
+        for prop in needs_enrichment:
+            # Build per-property base field dict (dedup by field_name, first=latest)
+            prop_base: dict[str, float | str | None] = {}
+            for pname, fname, vnumeric, vtext in base_rows:
+                if fname not in prop_base and _match_prop_name(pname, prop):
+                    prop_base[fname] = vnumeric if vnumeric is not None else vtext
+
+            # Build per-property year rows list
+            prop_year: list[tuple[str, float | None]] = [
+                (fname, vnumeric)
+                for pname, fname, vnumeric in year_rows
+                if _match_prop_name(pname, prop)
+            ]
+
+            await self.enrich_financial_data(
+                db,
+                prop,
+                _prefetched_base=prop_base if prop_base else {},
+                _prefetched_year=prop_year if prop_year else [],
+            )
+
+        logger.info(
+            "batch_financial_data_enrichment",
+            properties_enriched=len(needs_enrichment),
+            base_rows_fetched=len(base_rows),
+            year_rows_fetched=len(year_rows),
+        )
+
+        return properties
 
     def _build_property_conditions(
         self,

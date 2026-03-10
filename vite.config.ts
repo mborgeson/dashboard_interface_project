@@ -59,7 +59,9 @@ export default defineConfig({
           ],
           // Icons — extracted from main chunk to reduce app shell size
           "vendor-icons": ["lucide-react"],
-          // Chart libraries
+          // Chart libraries — kept as a manual chunk so recharts doesn't
+          // get duplicated across multiple lazy route chunks. Only loaded
+          // when a chart-using route is first visited.
           "vendor-charts": ["recharts"],
           // Map libraries
           "vendor-maps": ["leaflet", "react-leaflet", "leaflet.markercluster"],
@@ -92,10 +94,9 @@ export default defineConfig({
         },
       },
     },
-    // Only lazy-loaded chunks (exceljs 937KB, vendor-charts 455KB, jspdf 353KB,
-    // html2canvas 201KB) exceed this limit — all are loaded on demand, not at
-    // page load, so the warning is noise.
-    chunkSizeWarningLimit: 1000,
+    // Only lazy-loaded chunks (exceljs ~937KB, jspdf ~386KB, html2canvas ~201KB)
+    // exceed this limit — all are loaded on demand, not at page load.
+    chunkSizeWarningLimit: 500,
   },
   // Optimize deps for faster dev startup
   optimizeDeps: {
@@ -103,7 +104,6 @@ export default defineConfig({
       "react",
       "react-dom",
       "react-router-dom",
-      "recharts",
       "zustand",
       "lucide-react",
     ],

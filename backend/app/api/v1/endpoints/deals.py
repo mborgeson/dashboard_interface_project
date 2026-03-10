@@ -296,7 +296,17 @@ async def _enrich_deals_with_extraction(
     return deal_responses
 
 
-@router.get("/", response_model=DealListResponse)
+@router.get(
+    "/",
+    response_model=DealListResponse,
+    summary="List deals",
+    description="List all deals in the pipeline with filtering by stage, type, priority, "
+    "and assigned user. Supports pagination and sorting. Results are enriched with "
+    "extraction-derived financial metrics (IRR, MOIC, cap rates, etc.).",
+    responses={
+        200: {"description": "Paginated list of deals with extraction enrichment"},
+    },
+)
 async def list_deals(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -349,7 +359,19 @@ async def list_deals(
     )
 
 
-@router.get("/kanban", response_model=KanbanBoardResponse)
+@router.get(
+    "/kanban",
+    response_model=KanbanBoardResponse,
+    summary="Get Kanban board",
+    description="Get all deals organized by pipeline stage for the Kanban board view. "
+    "Each deal is enriched with extraction-derived metrics and includes up to 3 recent "
+    "activity log entries. Supports filtering by deal type and assigned user.",
+    responses={
+        200: {
+            "description": "Deals grouped by stage with counts and recent activities"
+        },
+    },
+)
 async def get_kanban_board(
     deal_type: str | None = None,
     assigned_user_id: int | None = None,
@@ -404,7 +426,23 @@ async def get_kanban_board(
     )
 
 
-@router.get("/compare", response_model=DealComparisonResponse)
+@router.get(
+    "/compare",
+    response_model=DealComparisonResponse,
+    summary="Compare deals side-by-side",
+    description="Compare 2-10 deals with detailed metric comparisons including levered/unlevered "
+    "IRR, NOI margin, cap rates, and deal scores. Returns a recommendation based on "
+    "weighted scoring across all metrics.",
+    responses={
+        200: {
+            "description": "Side-by-side deal comparison with summary and recommendation"
+        },
+        400: {
+            "description": "Invalid deal IDs or fewer than 2 / more than 10 deals specified"
+        },
+        404: {"description": "One or more deal IDs not found"},
+    },
+)
 async def compare_deals(
     ids: str = Query(
         ...,
@@ -460,16 +498,18 @@ async def compare_deals(
             unique_ids.append(id)
     deal_ids = unique_ids
 
-    # Fetch deals and build DealResponse objects (same as list/kanban endpoints)
-    deal_responses: list[DealResponse] = []
-    for deal_id in deal_ids:
-        deal = await deal_crud.get_with_relations(db, deal_id)
-        if not deal:
+    # Batch-fetch all deals in a single query instead of one query per deal (N+1 fix)
+    deals = await deal_crud.get_by_ids(db, ids=deal_ids)
+    found_ids = {d.id for d in deals}
+    for did in deal_ids:
+        if did not in found_ids:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Deal {deal_id} not found",
+                detail=f"Deal {did} not found",
             )
-        deal_responses.append(DealResponse.model_validate(deal))
+    # Preserve the original order requested by the caller
+    deals_by_id = {d.id: d for d in deals}
+    deal_responses = [DealResponse.model_validate(deals_by_id[did]) for did in deal_ids]
 
     # Enrich with extraction data (same pipeline as kanban endpoint)
     deal_responses = await _enrich_deals_with_extraction(db, deal_responses)
@@ -579,7 +619,17 @@ async def compare_deals(
     )
 
 
-@router.get("/{deal_id}", response_model=DealResponse)
+@router.get(
+    "/{deal_id}",
+    response_model=DealResponse,
+    summary="Get deal by ID",
+    description="Retrieve a single deal with all extraction-enriched financial metrics "
+    "including cap rates, IRR, MOIC, unit counts, and location data.",
+    responses={
+        200: {"description": "Deal details with extraction enrichment"},
+        404: {"description": "Deal not found"},
+    },
+)
 async def get_deal(
     deal_id: int,
     db: AsyncSession = Depends(get_db),
@@ -602,7 +652,17 @@ async def get_deal(
     return enriched[0]
 
 
-@router.post("/", response_model=DealResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=DealResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new deal",
+    description="Create a new deal in the acquisition pipeline. Triggers a WebSocket "
+    "notification to all connected clients. Requires manager role.",
+    responses={
+        201: {"description": "Deal created successfully"},
+    },
+)
 async def create_deal(
     deal_data: DealCreate,
     db: AsyncSession = Depends(get_db),
@@ -633,7 +693,21 @@ async def create_deal(
     return new_deal
 
 
-@router.put("/{deal_id}", response_model=DealResponse)
+@router.put(
+    "/{deal_id}",
+    response_model=DealResponse,
+    summary="Update a deal",
+    description="Full update of a deal using optimistic locking. The client must include "
+    "the `version` field from its last read. Returns 409 Conflict if the deal has been "
+    "modified by another user since then. Requires manager role.",
+    responses={
+        200: {"description": "Deal updated successfully"},
+        404: {"description": "Deal not found"},
+        409: {
+            "description": "Optimistic locking conflict — deal was modified by another user"
+        },
+    },
+)
 async def update_deal(
     deal_id: int,
     deal_data: DealUpdate,
@@ -694,7 +768,21 @@ async def update_deal(
     return updated_deal
 
 
-@router.patch("/{deal_id}", response_model=DealResponse)
+@router.patch(
+    "/{deal_id}",
+    response_model=DealResponse,
+    summary="Partially update a deal",
+    description="Partial update of a deal using optimistic locking. Only fields included "
+    "in the request body are updated. The `version` field is required for conflict "
+    "detection. Requires manager role.",
+    responses={
+        200: {"description": "Deal updated successfully"},
+        404: {"description": "Deal not found"},
+        409: {
+            "description": "Optimistic locking conflict — deal was modified by another user"
+        },
+    },
+)
 async def patch_deal(
     deal_id: int,
     deal_data: DealUpdate,
@@ -755,7 +843,19 @@ async def patch_deal(
     return updated_deal
 
 
-@router.patch("/{deal_id}/stage", response_model=DealResponse)
+@router.patch(
+    "/{deal_id}/stage",
+    response_model=DealResponse,
+    summary="Update deal stage",
+    description="Move a deal to a different pipeline stage, typically triggered by "
+    "Kanban board drag-and-drop. Sends a WebSocket notification with the stage change. "
+    "Requires manager role.",
+    responses={
+        200: {"description": "Deal stage updated successfully"},
+        400: {"description": "Invalid stage value"},
+        404: {"description": "Deal not found"},
+    },
+)
 async def update_deal_stage(
     deal_id: int,
     stage_data: DealStageUpdate,
@@ -819,7 +919,18 @@ async def update_deal_stage(
     return updated_deal
 
 
-@router.delete("/{deal_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{deal_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a deal",
+    description="Soft-delete a deal from the pipeline. The deal is marked as deleted but "
+    "retained in the database for audit purposes. Use the restore endpoint to undo. "
+    "Requires manager role.",
+    responses={
+        204: {"description": "Deal deleted successfully"},
+        404: {"description": "Deal not found"},
+    },
+)
 async def delete_deal(
     deal_id: int,
     db: AsyncSession = Depends(get_db),
@@ -858,7 +969,19 @@ async def delete_deal(
     return None
 
 
-@router.post("/{deal_id}/restore", response_model=DealResponse)
+@router.post(
+    "/{deal_id}/restore",
+    response_model=DealResponse,
+    summary="Restore a deleted deal",
+    description="Restore a previously soft-deleted deal back into the pipeline. "
+    "Returns 400 if the deal is not currently deleted. Requires manager role.",
+    responses={
+        200: {"description": "Deal restored successfully"},
+        400: {"description": "Deal is not deleted"},
+        404: {"description": "Deal not found"},
+        500: {"description": "Failed to restore deal"},
+    },
+)
 async def restore_deal(
     deal_id: int,
     db: AsyncSession = Depends(get_db),
@@ -907,7 +1030,17 @@ async def restore_deal(
     return DealResponse.model_validate(restored)
 
 
-@router.post("/{deal_id}/activity", response_model=DealActivityResponse)
+@router.post(
+    "/{deal_id}/activity",
+    response_model=DealActivityResponse,
+    summary="Add deal activity",
+    description="Add an activity log entry to a deal with automatic user attribution "
+    "from the authenticated session.",
+    responses={
+        200: {"description": "Activity created successfully"},
+        404: {"description": "Deal not found"},
+    },
+)
 async def add_deal_activity(
     deal_id: int,
     activity: DealActivityCreate,
@@ -945,7 +1078,17 @@ async def add_deal_activity(
     return created_activity
 
 
-@router.get("/{deal_id}/activity", response_model=DealActivityListResponse)
+@router.get(
+    "/{deal_id}/activity",
+    response_model=DealActivityListResponse,
+    summary="Get deal activities",
+    description="Retrieve paginated activity history for a deal in reverse chronological "
+    "order. Supports filtering by activity type.",
+    responses={
+        200: {"description": "Paginated list of deal activities"},
+        404: {"description": "Deal not found"},
+    },
+)
 async def get_deal_activities(
     deal_id: int,
     db: AsyncSession = Depends(get_db),
@@ -997,7 +1140,17 @@ async def get_deal_activities(
     )
 
 
-@router.post("/{deal_id}/watchlist", response_model=WatchlistToggleResponse)
+@router.post(
+    "/{deal_id}/watchlist",
+    response_model=WatchlistToggleResponse,
+    summary="Toggle deal watchlist",
+    description="Add or remove a deal from the current user's watchlist. If the deal is "
+    "currently watched, it will be removed; otherwise it will be added.",
+    responses={
+        200: {"description": "Watchlist status toggled successfully"},
+        404: {"description": "Deal not found"},
+    },
+)
 async def toggle_watchlist(
     deal_id: int,
     db: AsyncSession = Depends(get_db),
@@ -1047,7 +1200,15 @@ async def toggle_watchlist(
     )
 
 
-@router.get("/{deal_id}/watchlist/status")
+@router.get(
+    "/{deal_id}/watchlist/status",
+    summary="Get watchlist status",
+    description="Check whether a deal is on the current user's watchlist.",
+    responses={
+        200: {"description": "Watchlist status for the deal"},
+        404: {"description": "Deal not found"},
+    },
+)
 async def get_watchlist_status(
     deal_id: int,
     db: AsyncSession = Depends(get_db),
@@ -1081,7 +1242,19 @@ async def get_watchlist_status(
 # =============================================================================
 
 
-@router.get("/{deal_id}/activity-log", response_model=ActivityLogListResponse)
+@router.get(
+    "/{deal_id}/activity-log",
+    response_model=ActivityLogListResponse,
+    summary="Get deal activity logs",
+    description="Retrieve UUID-based activity logs for a deal with JSONB metadata support. "
+    "Returns entries in reverse chronological order. Supports filtering by action type "
+    "(created, updated, stage_changed, document_added, note_added, etc.).",
+    responses={
+        200: {"description": "Paginated activity logs"},
+        400: {"description": "Invalid action type"},
+        404: {"description": "Deal not found"},
+    },
+)
 async def get_deal_activity_logs(
     deal_id: int,
     db: AsyncSession = Depends(get_db),
@@ -1148,7 +1321,17 @@ async def get_deal_activity_logs(
     )
 
 
-@router.post("/{deal_id}/activity-log", response_model=ActivityLogResponse)
+@router.post(
+    "/{deal_id}/activity-log",
+    response_model=ActivityLogResponse,
+    summary="Create deal activity log entry",
+    description="Add a manual activity log entry to a deal's audit trail. Activity logs "
+    "are immutable once created. User ID is automatically set from the authenticated session.",
+    responses={
+        200: {"description": "Activity log entry created"},
+        404: {"description": "Deal not found"},
+    },
+)
 async def create_deal_activity_log(
     deal_id: int,
     activity_data: ActivityLogCreate,
@@ -1241,7 +1424,17 @@ PROFORMA_FIELDS = {
 }
 
 
-@router.get("/{deal_id}/proforma-returns")
+@router.get(
+    "/{deal_id}/proforma-returns",
+    summary="Get proforma returns",
+    description="Retrieve proforma-specific extracted values for a deal including year-specific "
+    "IRR, MOIC, NOI per unit, cap rates, DSCR, and debt yield. Values are grouped by category "
+    "and sourced from the extraction pipeline.",
+    responses={
+        200: {"description": "Proforma return metrics grouped by category"},
+        404: {"description": "Deal not found"},
+    },
+)
 async def get_deal_proforma_returns(
     deal_id: int,
     db: AsyncSession = Depends(get_db),

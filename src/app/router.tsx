@@ -4,6 +4,7 @@ import { PageSuspenseWrapper } from '@/components/SuspenseWrapper';
 import { FeatureErrorBoundary } from '@/components/FeatureErrorBoundary';
 import { useAuthStore } from '@/stores/authStore';
 import {
+  DashboardMain,
   AnalyticsPage,
   InvestmentsPage,
   PropertyDetailPage,
@@ -21,9 +22,6 @@ import {
   LoginPage,
   routerOptions,
 } from './routes';
-
-// Eager load - Dashboard is the landing page
-import { DashboardMain } from '@/features/dashboard-main/DashboardMain';
 
 // Wrapper for lazy-loaded routes
 function LazyRoute({ children }: { children: React.ReactNode }) {
@@ -80,7 +78,9 @@ const router = createBrowserRouter(
               index: true,
               element: (
                 <FeatureErrorBoundary featureName="Dashboard">
-                  <DashboardMain />
+                  <LazyRoute>
+                    <DashboardMain />
+                  </LazyRoute>
                 </FeatureErrorBoundary>
               ),
             },

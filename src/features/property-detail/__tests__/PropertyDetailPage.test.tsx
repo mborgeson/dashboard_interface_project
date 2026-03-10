@@ -299,16 +299,18 @@ describe('PropertyDetailPage', () => {
   });
 
   describe('Loading state', () => {
-    it('shows loading spinner while data is being fetched', () => {
+    it('shows loading skeleton while data is being fetched', () => {
       mockUseProperty.mockReturnValue({
         data: undefined,
         isLoading: true,
         error: null,
       });
 
-      render(<PropertyDetailPage />);
+      const { container } = render(<PropertyDetailPage />);
 
-      expect(screen.getByText('Loading property details...')).toBeInTheDocument();
+      // The PropertyDetailSkeleton renders multiple animate-pulse skeleton elements
+      const skeletonElements = container.querySelectorAll('.animate-pulse');
+      expect(skeletonElements.length).toBeGreaterThan(0);
     });
 
     it('shows back navigation during loading', () => {

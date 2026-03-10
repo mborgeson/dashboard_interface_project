@@ -178,6 +178,24 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
             "stage_counts": stage_counts,
         }
 
+    async def get_by_ids(
+        self,
+        db: AsyncSession,
+        *,
+        ids: list[int],
+        include_deleted: bool = False,
+    ) -> list[Deal]:
+        """Batch-fetch multiple deals by ID in a single query.
+
+        Returns deals matching any of the given IDs (order not guaranteed).
+        """
+        if not ids:
+            return []
+        query = select(Deal).where(Deal.id.in_(ids))
+        query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
+        result = await db.execute(query)
+        return list(result.scalars().all())
+
     async def update_optimistic(
         self,
         db: AsyncSession,

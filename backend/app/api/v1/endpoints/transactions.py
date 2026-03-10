@@ -22,7 +22,16 @@ from app.schemas.transaction import (
 router = APIRouter(dependencies=[Depends(require_viewer)])
 
 
-@router.get("/", response_model=TransactionListResponse)
+@router.get(
+    "/",
+    response_model=TransactionListResponse,
+    summary="List transactions",
+    description="List all financial transactions with filtering by type, property, category, "
+    "and date range. Supports pagination and sorting.",
+    responses={
+        200: {"description": "Paginated list of transactions"},
+    },
+)
 async def list_transactions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -79,7 +88,17 @@ async def list_transactions(
     )
 
 
-@router.get("/summary", response_model=TransactionSummaryResponse)
+@router.get(
+    "/summary",
+    response_model=TransactionSummaryResponse,
+    summary="Get transaction summary",
+    description="Return aggregate transaction statistics including totals for acquisitions, "
+    "dispositions, capital improvements, refinances, and distributions. Supports filtering "
+    "by property and date range.",
+    responses={
+        200: {"description": "Transaction summary statistics grouped by type"},
+    },
+)
 async def get_transaction_summary(
     property_id: int | None = None,
     date_from: date | None = None,
@@ -109,7 +128,15 @@ async def get_transaction_summary(
     )
 
 
-@router.get("/by-property/{property_id}", response_model=list[TransactionResponse])
+@router.get(
+    "/by-property/{property_id}",
+    response_model=list[TransactionResponse],
+    summary="Get transactions by property",
+    description="Retrieve all transactions associated with a specific property.",
+    responses={
+        200: {"description": "List of transactions for the property"},
+    },
+)
 async def get_transactions_by_property(
     property_id: int,
     skip: int = Query(0, ge=0),
@@ -128,7 +155,17 @@ async def get_transactions_by_property(
     return transactions
 
 
-@router.get("/by-type/{transaction_type}", response_model=list[TransactionResponse])
+@router.get(
+    "/by-type/{transaction_type}",
+    response_model=list[TransactionResponse],
+    summary="Get transactions by type",
+    description="Retrieve all transactions of a specific type. Valid types: acquisition, "
+    "disposition, capital_improvement, refinance, distribution.",
+    responses={
+        200: {"description": "List of transactions of the specified type"},
+        400: {"description": "Invalid transaction type"},
+    },
+)
 async def get_transactions_by_type(
     transaction_type: str,
     skip: int = Query(0, ge=0),
@@ -162,7 +199,16 @@ async def get_transactions_by_type(
     return transactions
 
 
-@router.get("/{transaction_id}", response_model=TransactionResponse)
+@router.get(
+    "/{transaction_id}",
+    response_model=TransactionResponse,
+    summary="Get transaction by ID",
+    description="Retrieve a single transaction by its database ID.",
+    responses={
+        200: {"description": "Transaction details"},
+        404: {"description": "Transaction not found"},
+    },
+)
 async def get_transaction(
     transaction_id: int,
     db: AsyncSession = Depends(get_db),
@@ -182,7 +228,15 @@ async def get_transaction(
 
 
 @router.post(
-    "/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED
+    "/",
+    response_model=TransactionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a transaction",
+    description="Record a new financial transaction (acquisition, disposition, capital "
+    "improvement, refinance, or distribution).",
+    responses={
+        201: {"description": "Transaction created successfully"},
+    },
 )
 async def create_transaction(
     transaction_data: TransactionCreate,
@@ -201,7 +255,16 @@ async def create_transaction(
     return new_transaction
 
 
-@router.put("/{transaction_id}", response_model=TransactionResponse)
+@router.put(
+    "/{transaction_id}",
+    response_model=TransactionResponse,
+    summary="Update a transaction",
+    description="Full update of an existing transaction's details.",
+    responses={
+        200: {"description": "Transaction updated successfully"},
+        404: {"description": "Transaction not found"},
+    },
+)
 async def update_transaction(
     transaction_id: int,
     transaction_data: TransactionUpdate,
@@ -227,7 +290,17 @@ async def update_transaction(
     return updated_transaction
 
 
-@router.patch("/{transaction_id}", response_model=TransactionResponse)
+@router.patch(
+    "/{transaction_id}",
+    response_model=TransactionResponse,
+    summary="Partially update a transaction",
+    description="Partial update of a transaction. Only fields included in the request "
+    "body are modified.",
+    responses={
+        200: {"description": "Transaction updated successfully"},
+        404: {"description": "Transaction not found"},
+    },
+)
 async def patch_transaction(
     transaction_id: int,
     transaction_data: TransactionUpdate,
@@ -253,7 +326,17 @@ async def patch_transaction(
     return updated_transaction
 
 
-@router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{transaction_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a transaction",
+    description="Soft-delete a transaction. The record is marked as deleted but retained "
+    "in the database. Use the restore endpoint to undo.",
+    responses={
+        204: {"description": "Transaction deleted successfully"},
+        404: {"description": "Transaction not found"},
+    },
+)
 async def delete_transaction(
     transaction_id: int,
     db: AsyncSession = Depends(get_db),
@@ -281,6 +364,14 @@ async def delete_transaction(
 @router.post(
     "/{transaction_id}/restore",
     response_model=TransactionResponse,
+    summary="Restore a deleted transaction",
+    description="Restore a previously soft-deleted transaction. Returns 400 if the "
+    "transaction is not currently deleted.",
+    responses={
+        200: {"description": "Transaction restored successfully"},
+        400: {"description": "Transaction is not deleted"},
+        404: {"description": "Transaction not found"},
+    },
 )
 async def restore_transaction(
     transaction_id: int,

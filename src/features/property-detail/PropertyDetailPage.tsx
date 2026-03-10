@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useProperty } from '@/hooks/api/useProperties';
+import { PropertyDetailSkeleton } from './components/PropertyDetailSkeleton';
 import { PropertyHero } from './components/PropertyHero';
 import { OverviewTab } from './components/OverviewTab';
 import { FinancialsTab } from './components/FinancialsTab';
@@ -33,11 +34,7 @@ export function PropertyDetailPage() {
           Back to Investments
         </button>
 
-        {/* Loading Skeleton */}
-        <div className="flex flex-col items-center justify-center min-h-[400px]">
-          <Loader2 className="w-12 h-12 text-primary-500 animate-spin mb-4" />
-          <p className="text-gray-600">Loading property details...</p>
-        </div>
+        <PropertyDetailSkeleton />
       </div>
     );
   }

@@ -38,7 +38,17 @@ from app.schemas.property import (
 router = APIRouter()
 
 
-@router.get("/dashboard")
+@router.get(
+    "/dashboard",
+    summary="List properties (dashboard format)",
+    description="List all properties in the nested frontend format used by the dashboard. "
+    "Properties missing financial_data are lazily enriched from extracted values.",
+    responses={
+        200: {
+            "description": "Properties list in frontend-compatible format with total count"
+        },
+    },
+)
 async def list_properties_dashboard(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_analyst),
@@ -56,16 +66,23 @@ async def list_properties_dashboard(
     )
     total = await property_crud.count_filtered(db)
 
-    # Lazy enrichment for any properties missing financial_data
-    for i, p in enumerate(items):
-        if not p.financial_data:
-            items[i] = await property_crud.enrich_financial_data(db, p)
+    # Batch enrichment: 2 queries for all properties instead of 2-3 per property (N+1 fix)
+    items = await property_crud.enrich_financial_data_batch(db, items)
 
     properties = [to_frontend_property(p) for p in items]
     return {"properties": properties, "total": total}
 
 
-@router.get("/dashboard/{property_id}")
+@router.get(
+    "/dashboard/{property_id}",
+    summary="Get property (dashboard format)",
+    description="Get a single property in the nested frontend format. Lazily enriches "
+    "financial_data from extracted_values if it has not been populated yet.",
+    responses={
+        200: {"description": "Property in frontend-compatible format"},
+        404: {"description": "Property not found"},
+    },
+)
 async def get_property_dashboard(
     property_id: int,
     db: AsyncSession = Depends(get_db),
@@ -93,7 +110,15 @@ async def get_property_dashboard(
     return to_frontend_property(prop)
 
 
-@router.get("/summary")
+@router.get(
+    "/summary",
+    summary="Get portfolio summary",
+    description="Return portfolio-level summary statistics including total properties, units, "
+    "value, NOI, average occupancy, average cap rate, and equity-weighted IRR and cash-on-cash.",
+    responses={
+        200: {"description": "Portfolio summary statistics"},
+    },
+)
 async def get_portfolio_summary(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_analyst),
@@ -123,10 +148,8 @@ async def get_portfolio_summary(
             "portfolioIRR": 0,
         }
 
-    # Lazy enrichment for any properties missing financial_data
-    for i, p in enumerate(items):
-        if not p.financial_data:
-            items[i] = await property_crud.enrich_financial_data(db, p)
+    # Batch enrichment: 2 queries for all properties instead of 2-3 per property (N+1 fix)
+    items = await property_crud.enrich_financial_data_batch(db, items)
 
     total_properties = len(items)
     total_units = sum(p.total_units or 0 for p in items)
@@ -189,7 +212,16 @@ async def get_portfolio_summary(
     }
 
 
-@router.get("/", response_model=PropertyListResponse)
+@router.get(
+    "/",
+    response_model=PropertyListResponse,
+    summary="List properties",
+    description="List all properties with filtering by type, city, state, market, and unit "
+    "count range. Supports pagination and sorting.",
+    responses={
+        200: {"description": "Paginated list of properties"},
+    },
+)
 async def list_properties(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -251,7 +283,16 @@ async def list_properties(
     )
 
 
-@router.get("/{property_id}", response_model=PropertyResponse)
+@router.get(
+    "/{property_id}",
+    response_model=PropertyResponse,
+    summary="Get property by ID",
+    description="Retrieve a single property by its database ID.",
+    responses={
+        200: {"description": "Property details"},
+        404: {"description": "Property not found"},
+    },
+)
 async def get_property(
     property_id: int,
     db: AsyncSession = Depends(get_db),
@@ -271,7 +312,16 @@ async def get_property(
     return property_obj
 
 
-@router.post("/", response_model=PropertyResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=PropertyResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a property",
+    description="Create a new property record. Requires manager role.",
+    responses={
+        201: {"description": "Property created successfully"},
+    },
+)
 async def create_property(
     property_data: PropertyCreate,
     db: AsyncSession = Depends(get_db),
@@ -285,7 +335,16 @@ async def create_property(
     return new_property
 
 
-@router.put("/{property_id}", response_model=PropertyResponse)
+@router.put(
+    "/{property_id}",
+    response_model=PropertyResponse,
+    summary="Update a property",
+    description="Full update of an existing property. Requires manager role.",
+    responses={
+        200: {"description": "Property updated successfully"},
+        404: {"description": "Property not found"},
+    },
+)
 async def update_property(
     property_id: int,
     property_data: PropertyUpdate,
@@ -311,7 +370,16 @@ async def update_property(
     return updated_property
 
 
-@router.delete("/{property_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{property_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a property",
+    description="Soft-delete a property. Requires manager role.",
+    responses={
+        204: {"description": "Property deleted successfully"},
+        404: {"description": "Property not found"},
+    },
+)
 async def delete_property(
     property_id: int,
     db: AsyncSession = Depends(get_db),
@@ -333,7 +401,19 @@ async def delete_property(
     return None
 
 
-@router.get("/{property_id}/analytics")
+@router.get(
+    "/{property_id}/analytics",
+    summary="Get property analytics",
+    description="Return analytics data for a property including current performance metrics, "
+    "rent/occupancy trends, and market comparables from properties in the same market and type. "
+    "Falls back to mock data if no real metrics are available.",
+    responses={
+        200: {
+            "description": "Property analytics with metrics, trends, and market comparables"
+        },
+        404: {"description": "Property not found"},
+    },
+)
 async def get_property_analytics(
     property_id: int,
     db: AsyncSession = Depends(get_db),
@@ -477,7 +557,18 @@ async def get_property_analytics(
     }
 
 
-@router.get("/{property_id}/activities", response_model=PropertyActivityListResponse)
+@router.get(
+    "/{property_id}/activities",
+    response_model=PropertyActivityListResponse,
+    summary="Get property activities",
+    description="Retrieve paginated activity history for a property including views, edits, "
+    "comments, status changes, and document uploads. Supports filtering by activity type.",
+    responses={
+        200: {"description": "Paginated list of property activities"},
+        400: {"description": "Invalid activity_type filter value"},
+        404: {"description": "Property not found"},
+    },
+)
 async def get_property_activities(
     property_id: int,
     skip: int = Query(0, ge=0),
@@ -562,7 +653,18 @@ async def get_property_activities(
     )
 
 
-@router.post("/{property_id}/activities", response_model=PropertyActivityResponse)
+@router.post(
+    "/{property_id}/activities",
+    response_model=PropertyActivityResponse,
+    summary="Create property activity",
+    description="Log a new activity entry for a property such as comments, document uploads, "
+    "or manual status changes. Views and edits are typically logged automatically.",
+    responses={
+        200: {"description": "Activity created successfully"},
+        400: {"description": "Property ID in body does not match path parameter"},
+        404: {"description": "Property not found"},
+    },
+)
 async def create_property_activity(
     property_id: int,
     activity_data: PropertyActivityCreate,

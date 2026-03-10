@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
+import { reportComponentError } from '../services/errorTracking';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
@@ -67,6 +68,9 @@ export function FeatureErrorBoundary({
           onReset={reset}
         />
       )}
+      onError={(error, errorInfo) => {
+        reportComponentError(error, errorInfo.componentStack ?? '');
+      }}
     >
       {children}
     </ErrorBoundary>

@@ -63,7 +63,19 @@ def _get_demo_users() -> dict:
     return users
 
 
-@router.post("/login", response_model=Token)
+@router.post(
+    "/login",
+    response_model=Token,
+    summary="Login",
+    description="Authenticate a user with email and password. Returns JWT access and refresh "
+    "tokens. Tries database authentication first, then falls back to demo users in "
+    "non-production environments.",
+    responses={
+        200: {"description": "Authentication successful, tokens returned"},
+        401: {"description": "Invalid email or password"},
+        403: {"description": "User account is disabled"},
+    },
+)
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
 ):
@@ -151,7 +163,18 @@ async def login(
     )
 
 
-@router.post("/refresh", response_model=Token)
+@router.post(
+    "/refresh",
+    response_model=Token,
+    summary="Refresh token",
+    description="Exchange a refresh token for new access and refresh tokens. Implements "
+    "refresh token rotation — the old refresh token is blacklisted after use. Detects "
+    "replay attacks and revokes all user sessions if a used token is resubmitted.",
+    responses={
+        200: {"description": "New access and refresh tokens issued"},
+        401: {"description": "Invalid, expired, or reused refresh token"},
+    },
+)
 async def refresh_token(request: RefreshTokenRequest):
     """
     Refresh access token using refresh token (with rotation).
@@ -229,7 +252,15 @@ async def refresh_token(request: RefreshTokenRequest):
     )
 
 
-@router.post("/logout")
+@router.post(
+    "/logout",
+    summary="Logout",
+    description="Invalidate the current access token by adding it to the blacklist. "
+    "The token remains blacklisted until its natural expiration time.",
+    responses={
+        200: {"description": "Successfully logged out"},
+    },
+)
 async def logout(
     authorization: str | None = Header(None, alias="Authorization"),
 ):
@@ -263,7 +294,16 @@ async def logout(
     return {"message": "Successfully logged out"}
 
 
-@router.get("/me")
+@router.get(
+    "/me",
+    summary="Get current user",
+    description="Return the profile of the currently authenticated user including ID, email, "
+    "role, and full name. Falls back to token claims for demo users without a database record.",
+    responses={
+        200: {"description": "Current user profile"},
+        401: {"description": "Invalid, expired, or revoked token"},
+    },
+)
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),

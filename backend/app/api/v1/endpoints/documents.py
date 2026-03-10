@@ -22,7 +22,16 @@ from app.schemas.document import (
 router = APIRouter(dependencies=[Depends(require_viewer)])
 
 
-@router.get("/", response_model=DocumentListResponse)
+@router.get(
+    "/",
+    response_model=DocumentListResponse,
+    summary="List documents",
+    description="List all documents with filtering by type, property, search term, and date range. "
+    "Supports pagination and sorting.",
+    responses={
+        200: {"description": "Paginated list of documents"},
+    },
+)
 async def list_documents(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -80,7 +89,16 @@ async def list_documents(
     )
 
 
-@router.get("/stats", response_model=DocumentStats)
+@router.get(
+    "/stats",
+    response_model=DocumentStats,
+    summary="Get document statistics",
+    description="Return aggregate statistics about documents including total count, "
+    "total storage size, breakdown by document type, and recent uploads count (last 30 days).",
+    responses={
+        200: {"description": "Document statistics"},
+    },
+)
 async def get_document_stats(
     db: AsyncSession = Depends(get_db),
 ):
@@ -103,7 +121,17 @@ async def get_document_stats(
     )
 
 
-@router.get("/{document_id}", response_model=DocumentResponse)
+@router.get(
+    "/{document_id}",
+    response_model=DocumentResponse,
+    summary="Get document by ID",
+    description="Retrieve a single document's metadata by its ID. Returns 404 if the "
+    "document does not exist or has been soft-deleted.",
+    responses={
+        200: {"description": "Document metadata"},
+        404: {"description": "Document not found or deleted"},
+    },
+)
 async def get_document(
     document_id: int,
     db: AsyncSession = Depends(get_db),
@@ -122,7 +150,17 @@ async def get_document(
     return doc
 
 
-@router.post("/", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create document metadata",
+    description="Create a new document metadata entry without file upload. "
+    "Use POST /upload to upload a file with metadata.",
+    responses={
+        201: {"description": "Document metadata created"},
+    },
+)
 async def create_document(
     document_data: DocumentCreate,
     db: AsyncSession = Depends(get_db),
@@ -141,7 +179,18 @@ async def create_document(
     return new_doc
 
 
-@router.post("/upload", response_model=DocumentUploadResponse)
+@router.post(
+    "/upload",
+    response_model=DocumentUploadResponse,
+    summary="Upload a document",
+    description="Upload a document file with metadata. File content is validated for type "
+    "and size. Note: file storage backend is not yet implemented — metadata is saved but "
+    "file content is not persisted.",
+    responses={
+        200: {"description": "Document uploaded and metadata saved"},
+        422: {"description": "File validation failed (invalid type, size, or content)"},
+    },
+)
 async def upload_document(
     file: UploadFile,
     property_id: str | None = None,
@@ -203,7 +252,17 @@ async def upload_document(
     )
 
 
-@router.get("/{document_id}/download")
+@router.get(
+    "/{document_id}/download",
+    summary="Download a document",
+    description="Download a document file by ID. Note: file storage is not yet implemented — "
+    "this endpoint currently returns 501 Not Implemented.",
+    responses={
+        200: {"description": "File content stream"},
+        404: {"description": "Document not found or deleted"},
+        501: {"description": "File download not yet implemented"},
+    },
+)
 async def download_document(
     document_id: int,
     db: AsyncSession = Depends(get_db),
@@ -228,7 +287,17 @@ async def download_document(
     )
 
 
-@router.put("/{document_id}", response_model=DocumentResponse)
+@router.put(
+    "/{document_id}",
+    response_model=DocumentResponse,
+    summary="Update document metadata",
+    description="Full update of a document's metadata fields. Returns 404 if the document "
+    "does not exist or has been soft-deleted.",
+    responses={
+        200: {"description": "Document metadata updated"},
+        404: {"description": "Document not found or deleted"},
+    },
+)
 async def update_document(
     document_id: int,
     document_data: DocumentUpdate,
@@ -253,7 +322,17 @@ async def update_document(
     return updated_doc
 
 
-@router.patch("/{document_id}", response_model=DocumentResponse)
+@router.patch(
+    "/{document_id}",
+    response_model=DocumentResponse,
+    summary="Partially update document metadata",
+    description="Partial update of a document's metadata. Only fields included in the "
+    "request body are modified.",
+    responses={
+        200: {"description": "Document metadata updated"},
+        404: {"description": "Document not found or deleted"},
+    },
+)
 async def patch_document(
     document_id: int,
     document_data: DocumentUpdate,
@@ -278,7 +357,17 @@ async def patch_document(
     return updated_doc
 
 
-@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{document_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a document",
+    description="Soft-delete a document. The document is marked as deleted but not "
+    "permanently removed from the database.",
+    responses={
+        204: {"description": "Document deleted successfully"},
+        404: {"description": "Document not found or already deleted"},
+    },
+)
 async def delete_document(
     document_id: int,
     db: AsyncSession = Depends(get_db),
@@ -302,7 +391,16 @@ async def delete_document(
     return None
 
 
-@router.get("/property/{property_id}", response_model=DocumentListResponse)
+@router.get(
+    "/property/{property_id}",
+    response_model=DocumentListResponse,
+    summary="Get documents by property",
+    description="Retrieve all documents associated with a specific property. "
+    "Supports pagination.",
+    responses={
+        200: {"description": "Paginated list of documents for the property"},
+    },
+)
 async def get_documents_by_property(
     property_id: str,
     page: int = Query(1, ge=1),

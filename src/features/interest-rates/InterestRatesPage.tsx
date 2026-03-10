@@ -6,6 +6,7 @@ import { TreasuryYieldCurve } from './components/TreasuryYieldCurve';
 import { RateComparisons } from './components/RateComparisons';
 import { DataSources } from './components/DataSources';
 import { useInterestRates, getAsOfDate } from './hooks/useInterestRates';
+import { InterestRatesSkeleton } from './components/InterestRatesSkeleton';
 import type { RateDataSource } from './types';
 
 const dataSources: RateDataSource[] = [
@@ -248,10 +249,7 @@ export function InterestRatesPage() {
           )}
 
           {isLoading && !keyRates.length ? (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-8 h-8 text-neutral-400 animate-spin" />
-              <span className="ml-3 text-neutral-500">Loading rate data...</span>
-            </div>
+            <InterestRatesSkeleton />
           ) : (
             renderContent()
           )}

@@ -1,9 +1,11 @@
 import { lazy } from 'react';
 
-// Eager load - Dashboard is the landing page
-// Note: DashboardMain is imported in router.tsx to avoid circular dependencies
-
-// Lazy load all other pages for code splitting
+// All pages are lazy-loaded for code splitting.
+// DashboardMain is lazy too — the Suspense fallback provides instant feedback
+// while the dashboard chunk loads (typically from cache on repeat visits).
+export const DashboardMain = lazy(() =>
+  import('@/features/dashboard-main/DashboardMain').then(m => ({ default: m.DashboardMain }))
+);
 export const AnalyticsPage = lazy(() =>
   import('@/features/analytics').then(m => ({ default: m.AnalyticsPage }))
 );

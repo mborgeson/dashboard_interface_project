@@ -5,7 +5,7 @@ CRUD operations for Document model.
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import Integer, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -155,41 +155,41 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         return await self.count_where(db, conditions=conditions)
 
     async def get_stats(self, db: AsyncSession) -> dict[str, Any]:
-        """Get document statistics."""
-        # Total documents count
-        total_result = await db.execute(
-            select(func.count())
-            .select_from(Document)
-            .where(Document.is_deleted.is_(False))
-        )
-        total_documents = total_result.scalar() or 0
+        """Get document statistics.
 
-        # Total size
-        size_result = await db.execute(
-            select(func.sum(Document.size)).where(Document.is_deleted.is_(False))
-        )
-        total_size = size_result.scalar() or 0
-
-        # Count by type
-        by_type: dict[str, int] = {}
-        for doc_type in DocumentType:
-            type_result = await db.execute(
-                select(func.count())
-                .select_from(Document)
-                .where(Document.type == doc_type)
-                .where(Document.is_deleted.is_(False))
-            )
-            by_type[doc_type.value] = type_result.scalar() or 0
-
-        # Recent uploads (last 30 days)
+        Optimized to use a single GROUP BY query for per-type counts
+        instead of N separate COUNT queries (one per DocumentType).
+        """
+        # Single query for total count, total size, and recent uploads count
         cutoff = datetime.now(UTC) - timedelta(days=30)
-        recent_result = await db.execute(
-            select(func.count())
+        agg_result = await db.execute(
+            select(
+                func.count().label("total"),
+                func.coalesce(func.sum(Document.size), 0).label("total_size"),
+                func.sum(func.cast(Document.uploaded_at >= cutoff, Integer)).label(
+                    "recent"
+                ),
+            )
             .select_from(Document)
-            .where(Document.uploaded_at >= cutoff)
             .where(Document.is_deleted.is_(False))
         )
-        recent_uploads = recent_result.scalar() or 0
+        agg_row = agg_result.one()
+        total_documents = agg_row.total or 0
+        total_size = agg_row.total_size or 0
+        recent_uploads = agg_row.recent or 0
+
+        # Single GROUP BY query for per-type counts (replaces N+1 loop)
+        type_result = await db.execute(
+            select(Document.type, func.count().label("cnt"))
+            .where(Document.is_deleted.is_(False))
+            .group_by(Document.type)
+        )
+        type_counts = {row.type: row.cnt for row in type_result.all()}
+
+        # Ensure all document types are present (defaulting to 0)
+        by_type: dict[str, int] = {
+            dt.value: type_counts.get(dt.value, 0) for dt in DocumentType
+        }
 
         return {
             "total_documents": total_documents,

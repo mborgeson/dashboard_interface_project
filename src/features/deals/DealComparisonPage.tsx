@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
+import { ComparisonSkeleton } from './components/comparison/ComparisonSkeleton';
 
 type ViewMode = 'table' | 'charts' | 'both';
 
@@ -194,26 +195,7 @@ export function DealComparisonPage() {
 
   // Loading state
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Link
-            to="/deals"
-            className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 mb-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Deals
-          </Link>
-        </div>
-
-        <div className="bg-white rounded-lg border border-neutral-200 shadow-card p-12">
-          <div className="flex flex-col items-center justify-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-neutral-200 border-t-blue-600 mb-4" />
-            <p className="text-neutral-600">Loading comparison data...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <ComparisonSkeleton dealCount={dealIds.length || 3} />;
   }
 
   // Error state
