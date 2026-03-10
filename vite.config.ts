@@ -78,8 +78,8 @@ export default defineConfig({
             "zustand",
             "fuse.js",
           ],
-          // HTTP + command palette
-          "vendor-misc": ["axios", "cmdk", "date-fns"],
+          // Command palette + utilities
+          "vendor-misc": ["cmdk", "date-fns"],
           // NOTE: jspdf and exceljs are dynamically imported
           // in src/features/underwriting/utils/exporters.ts
           // Vite creates separate lazy chunks for these automatically.
