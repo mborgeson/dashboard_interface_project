@@ -973,7 +973,7 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-015   | HIGH     | Done   | Growth rate fields always return 0.0 or null                       | 0.0→None + real cycle_times from activity_logs             | f65dc05     |
 | F-016   | HIGH     | Done   | Redis services commented out in lifespan startup                   | Wired with graceful fallback to in-memory                  | 8599ec2      |
 | F-017   | HIGH     | Done   | Backend coverage below 30% threshold                               | Already at 63.21% — threshold met                         | bedb94a     |
-| F-018   | HIGH     | Open   | Alembic migrations lag behind model changes                        | —                                                         | —           |
+| F-018   | HIGH     | Done   | Alembic migrations lag behind model changes                        | Catch-up migration: version col, audit_logs_admin, soft-delete, 21 CHECK constraints, 16 indexes | pending     |
 | F-019   | HIGH     | Done   | N+1 query in queued report list                                    | Batch template lookup via IN query for reports + schedules | a6b0685      |
 | F-020   | HIGH     | Done   | useDeals hardcoded page_size: 100 truncates results                | Configurable pageSize param (default 500)                  | a6b0685      |
 | F-021   | HIGH     | Done   | POST /properties/{id}/activities returns 200, not 201              | Added status_code=201 to endpoint decorator                | a6b0685      |
@@ -997,7 +997,7 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-039   | MEDIUM   | Done   | ETag middleware has no tests                                       | 12 tests in test_etag.py                                   | f65dc05     |
 | F-040   | MEDIUM   | Done   | Origin validation middleware has no tests                          | Already existed (13 tests in test_origin_validation.py)    | f65dc05     |
 | F-041   | MEDIUM   | Done   | documents.property_id is VARCHAR(50), not FK to properties.id      | Model + schema + CRUD updated; Alembic migration created   | e8e12ce     |
-| F-042   | MEDIUM   | Open   | Construction pipeline uses VARCHAR without DB-level constraints    | —                                                         | —           |
+| F-042   | MEDIUM   | Done   | Construction pipeline uses VARCHAR without DB-level constraints    | 4 CHECK constraints: pipeline_status, classification, txn type, doc type | pending     |
 | F-043   | MEDIUM   | Done   | Zod common.ts and construction.ts schemas have no tests            | 58 tests across common.test.ts + construction.test.ts      | f65dc05     |
 | F-044   | MEDIUM   | Done   | Deal kanban enrichment runs on every cache miss                    | 30-min cache TTL with invalidation on extraction runs      | 5164070     |
 | F-045   | LOW      | Done   | ADR-004 is stale (dual client pattern)                             | ADR-004 marked Superseded by ADR-008                       | e8e12ce     |
@@ -1011,14 +1011,14 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-053   | LOW      | Done   | Duplicate formatDate implementations                               | 4 local formatDate consolidated into dateUtils.ts          | 5164070     |
 | F-054   | LOW      | Done   | Report queue 30-second polling                                     | Conditional polling: 10s when pending, stopped when done   | e8e12ce     |
 | F-055   | LOW      | Done   | Comparison deals not persisted to storage                          | sessionStorage hydration + persist via useEffect           | 584fd2c     |
-| F-056   | LOW      | Open   | Optimistic locking only on Deal model                              | —                                                         | —           |
+| F-056   | LOW      | Accepted Risk | Optimistic locking only on Deal model                       | Single admin user; no concurrent edit scenarios currently   | —           |
 | F-057   | LOW      | Done   | SoftDeleteMixin scope may need expansion                           | Added SoftDeleteMixin to ActivityLog; CRUD filters updated | e8e12ce     |
 | F-058   | LOW      | Done   | Multiple API hooks have zero test coverage                         | 68 tests: useDeals (41) + useProperties (27)               | 0d00b35     |
 | F-059   | LOW      | Done   | No tests for 12 underwriting models                                | 66 tests covering all 12 models, relationships, enums      | 0d00b35     |
 | F-060   | LOW      | Done   | No tests for GeocodingService                                      | 19 tests: geocoding, mocked HTTP, rate limiting            | 0d00b35     |
 | F-061   | LOW      | Done   | No tests for scheduler services                                    | Scheduler lifecycle tests                                  | 0d00b35     |
 | F-062   | LOW      | Done   | No tests for slow query logger                                     | Slow query detection + parameter sanitization tests        | 0d00b35     |
-| F-063   | LOW      | Open   | Feature components have extensive test gaps                        | —                                                         | —           |
+| F-063   | LOW      | Accepted Risk | Feature components have extensive test gaps                 | High-value hooks tested (F-058/F-064); UI wrappers low ROI | —           |
 | F-064   | LOW      | Done   | useUnderwriting hook has no tests                                  | 42 tests: IRR, sensitivity, edge cases                     | 0d00b35     |
 | F-065   | LOW      | Done   | crud_property.py enrichment not tested at unit level               | Enrichment service unit tests (pure functions)             | 0d00b35     |
 | F-066   | LOW      | Done   | No report template or generation endpoint tests                    | 34 tests: CRUD, generation, auth                           | 0d00b35     |
@@ -1026,6 +1026,6 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-068   | LOW      | Done   | PDF export may have incomplete financial data                      | enrich_financial_data before single + portfolio PDF export | 584fd2c     |
 | F-069   | LOW      | Done   | Four proposed ADRs not yet formalized                              | Created ADR-008, 009, 010, 011                             | e8e12ce     |
 
-**Summary:** 66 Done, 5 Open (of 71 total including F-007a and F-007a+)
+**Summary:** 69 Done, 2 Accepted Risk, 0 Open (of 71 total including F-007a and F-007a+)
 
 *End of findings report. Generated 2026-03-10 by Team 66 (Regeneration). Tracking table updated 2026-03-10.*

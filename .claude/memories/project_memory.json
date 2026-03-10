@@ -2,8 +2,8 @@
   "memories": [
     {
       "type": "completed_features",
-      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt, Extraction Hardening (2026-02-12→03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Overhaul + v5 (2026-03-04). Group Pipeline Frontend, Vite opt (2026-03-05). Cap Rate TC T3 re-run + 49 regression tests (2026-03-05). UW Grouping Expansion: 9 groups, 66 files (2026-03-06). Proforma Returns UI Option C (2026-03-06). Phase 2-3 Dashboard Integrity (2026-03-06). Phase 4 Final Gate (2026-03-09). Architecture review v2: 59/71 findings resolved (83%). Test gap batch 0d00b35 (+383 tests). F-055 comparison persistence + F-068 PDF enrichment (584fd2c). Batch 3 running: 7 agents for F-003/041/045+069/046/054/057/067.",
-      "added_at": "2026-03-10T16:15:00.000000",
+      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt, Extraction Hardening (2026-02-12→03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Overhaul + v5 (2026-03-04). Group Pipeline Frontend, Vite opt (2026-03-05). Cap Rate TC T3 re-run + 49 regression tests (2026-03-05). UW Grouping Expansion: 9 groups, 66 files (2026-03-06). Proforma Returns UI Option C (2026-03-06). Phase 2-3 Dashboard Integrity (2026-03-06). Phase 4 Final Gate (2026-03-09). Architecture review v2: 71/71 findings resolved (100%) — 69 Done + 2 Accepted Risk. Key batches: 8599ec2, a6b0685, f65dc05, 5164070, 0d00b35, 584fd2c, e8e12ce. Final batch: F-018 catch-up migration, F-042 VARCHAR CHECK constraints, F-056/F-063 accepted risk.",
+      "added_at": "2026-03-10T18:35:00.000000",
       "source": "consolidated"
     },
     {
@@ -14,8 +14,8 @@
     },
     {
       "type": "tech_decisions",
-      "content": "Zod: .nullable().optional() + ?? undefined (NOT ?? 0). TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch). shadcn needs CSS vars in :root + tailwind mappings. KPICard: treatZeroAsNA prop (default true). Property detail: lazy enrichment via CRUDProperty.enrich_financial_data() — delegates to services/enrichment.py. Zod property schema expects full nested structure — backend must return 0s not null objects. SQLite tests: no server_default, datetime.now(UTC), StaticPool. _dec()/to_decimal() converts float->Decimal. _property_transforms.py: _is_placeholder_city() catches Unknown/submarkets-as-cities. F-047: client.ts returns null as unknown as T for non-JSON, keep Promise<T> signature to avoid cascade.",
-      "added_at": "2026-03-10T07:30:00.000000",
+      "content": "Zod: .nullable().optional() + ?? undefined (NOT ?? 0). TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch). shadcn needs CSS vars in :root + tailwind mappings. KPICard: treatZeroAsNA prop (default true). Property detail: lazy enrichment via CRUDProperty.enrich_financial_data() — delegates to services/enrichment.py. Zod property schema expects full nested structure — backend must return 0s not null objects. SQLite tests: no server_default, datetime.now(UTC), StaticPool. _dec()/to_decimal() converts float->Decimal. _property_transforms.py: _is_placeholder_city() catches Unknown/submarkets-as-cities. F-047: client.ts returns null as unknown as T for non-JSON, keep Promise<T> signature to avoid cascade. documents.property_id is now Integer FK (was VARCHAR). Type cascade lesson: changing model property types (e.g. string→number) cascades through schemas, CRUD, API, frontend types, hooks, filters, tests — UI filter types (strings from select components) must stay as strings even when data model changes. deploy.yml with workflow_run trigger caused spam — deleted, .disabled version remains.",
+      "added_at": "2026-03-10T18:35:00.000000",
       "source": "consolidated"
     },
     {
@@ -26,8 +26,8 @@
     },
     {
       "type": "remaining_tasks",
-      "content": "59/71 findings resolved (83%). 7 agents running for batch 3: F-003 (CRITICAL background worker), F-041 (documents FK migration), F-045+F-069 (ADR docs), F-046 (dual logging), F-054 (report polling), F-057 (soft-delete), F-067 (auth docs). After batch 3: F-018 (Alembic sync), F-042 (VARCHAR constraints — chains on F-041), F-056 (optimistic locking), F-063 (component test umbrella). CI: backend timeout=600s, -p no:randomly. Tracking: docs/findings-and-recommendations.md. Total tests: 3,792. OTHER: Extract 28 ungrouped files, production hosting, mobile/iOS, security audit.",
-      "added_at": "2026-03-10T16:15:00.000000",
+      "content": "Architecture review v2: 71/71 COMPLETE (69 Done + 2 Accepted Risk). CI: backend timeout=600s, -p no:randomly. Tracking: docs/findings-and-recommendations.md. Total tests: 3,804 (2,538 backend + 1,266 frontend). Alembic head: c5d6e7f8a9b0 (chain: 7c415cc1b77a → a3b8f1c2d4e5 F-041 → b4c5d6e7f8a9 F-018 → c5d6e7f8a9b0 F-042). NEXT: Extract 28 ungrouped files, production hosting (Oracle Cloud Free Tier or Hetzner CX22), mobile/iOS, security audit.",
+      "added_at": "2026-03-10T18:35:00.000000",
       "source": "consolidated"
     }
   ],
@@ -35,41 +35,17 @@
   "realtime_memories": [
     {
       "type": "claude_response",
-      "content": "All 7 actively working (36–76 log lines each). No completions yet — they're mid-execution. The larger ones (F-003 background worker, F-041 migration) will take longer. I'll be notified as each finishe",
-      "added_at": "2026-03-10T09:12:00.289604",
+      "content": "All findings resolved. Ready to commit and push when you say go.",
+      "added_at": "2026-03-10T10:33:35.416325",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "<task-notification> <task-id>a041a8dc90d8b7898</task-id> <tool-use-id>toolu_019tt8LhiauwTdX2jSPJ9eaJ</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T09:12:00.289646",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ad13faeda04f2db20</task-id> <tool-use-id>toolu_01C6SzXJfPQTfJkfpfeR3qP1</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T09:12:00.410195",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a735bb499e42a000c</task-id> <tool-use-id>toolu_011jzsahZKN2a7MGVhDRgEHf</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T09:12:00.517102",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "3 of 7 done:\n- **F-045+F-069** — ADR-004 superseded, 4 new ADRs created (008–011)\n- **F-067** — Auth docs corrected in `backend-architecture.md`\n- **F-054** — Report polling now conditional (only poll",
-      "added_at": "2026-03-10T09:15:32.576996",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "How are the agents progressing?",
-      "added_at": "2026-03-10T09:15:32.577031",
+      "content": "Let's commmit and push",
+      "added_at": "2026-03-10T10:33:35.416360",
       "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-03-10T09:15:32.577033"
+  "updated_at": "2026-03-10T10:33:35.416362"
 }
