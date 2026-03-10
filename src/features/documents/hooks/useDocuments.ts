@@ -33,7 +33,7 @@ export function useDocuments(filters: DocumentFilters) {
 
     // Apply property filter
     if (filters.propertyId !== 'all') {
-      filtered = filtered.filter((doc) => doc.propertyId === filters.propertyId);
+      filtered = filtered.filter((doc) => String(doc.propertyId) === filters.propertyId);
     }
 
     // Apply date range filter
