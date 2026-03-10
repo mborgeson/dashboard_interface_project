@@ -21,6 +21,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDateTime } from '@/lib/dateUtils';
 import {
   useDistributionSchedules,
   useReportTemplates,
@@ -176,15 +177,6 @@ export function Distribution() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   return (
     <div className="space-y-6">
@@ -341,11 +333,11 @@ export function Distribution() {
                 <div className="text-right text-sm">
                   {schedule.lastSent && (
                     <div className="text-neutral-500 mb-1">
-                      Last sent: {formatDate(schedule.lastSent)}
+                      Last sent: {formatDateTime(schedule.lastSent)}
                     </div>
                   )}
                   <div className="text-neutral-700 font-medium">
-                    Next: {formatDate(schedule.nextScheduled)}
+                    Next: {formatDateTime(schedule.nextScheduled)}
                   </div>
                 </div>
               </div>

@@ -23,35 +23,39 @@ interface ErrorReport {
   userAgent: string;
 }
 
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
 // ---------------------------------------------------------------------------
 // Internal state
 // ---------------------------------------------------------------------------
 
 let buffer: ErrorReport[] = [];
-let errorCountThisWindow = 0;
-let windowResetTimer: ReturnType<typeof setTimeout> | null = null;
+/** Sliding window ring buffer: timestamps of the last N errors. */
+let errorTimestamps: number[] = [];
 let flushTimer: ReturnType<typeof setInterval> | null = null;
 let initialized = false;
 
 // ---------------------------------------------------------------------------
-// Rate limiting
+// Rate limiting (sliding window)
 // ---------------------------------------------------------------------------
 
-function startRateLimitWindow(): void {
-  if (windowResetTimer !== null) return;
-  windowResetTimer = setTimeout(() => {
-    errorCountThisWindow = 0;
-    windowResetTimer = null;
-  }, 60_000);
+/**
+ * Prune timestamps older than the sliding window from the front of the array.
+ */
+function pruneOldTimestamps(now: number): void {
+  const cutoff = now - RATE_LIMIT_WINDOW_MS;
+  while (errorTimestamps.length > 0 && errorTimestamps[0] <= cutoff) {
+    errorTimestamps.shift();
+  }
 }
 
 function isRateLimited(): boolean {
-  return errorCountThisWindow >= MAX_ERRORS_PER_MINUTE;
+  pruneOldTimestamps(Date.now());
+  return errorTimestamps.length >= MAX_ERRORS_PER_MINUTE;
 }
 
-function incrementErrorCount(): void {
-  startRateLimitWindow();
-  errorCountThisWindow++;
+function recordErrorTimestamp(): void {
+  errorTimestamps.push(Date.now());
 }
 
 // ---------------------------------------------------------------------------
@@ -106,7 +110,7 @@ export function reportError(
   context?: Record<string, unknown>,
 ): void {
   if (isRateLimited()) return;
-  incrementErrorCount();
+  recordErrorTimestamp();
 
   const report: ErrorReport = {
     message: error.message,
@@ -129,7 +133,7 @@ export function reportComponentError(
   componentStack: string,
 ): void {
   if (isRateLimited()) return;
-  incrementErrorCount();
+  recordErrorTimestamp();
 
   const report: ErrorReport = {
     message: error.message,
@@ -192,11 +196,7 @@ export function initErrorTracking(): void {
 
 export function _resetForTesting(): void {
   buffer = [];
-  errorCountThisWindow = 0;
-  if (windowResetTimer !== null) {
-    clearTimeout(windowResetTimer);
-    windowResetTimer = null;
-  }
+  errorTimestamps = [];
   if (flushTimer !== null) {
     clearInterval(flushTimer);
     flushTimer = null;

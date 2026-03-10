@@ -13,6 +13,7 @@ import {
   Area,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { formatYearMonth } from '@/lib/dateUtils';
 import type { HistoricalRate } from '../types';
 
 interface RateComparisonsProps {
@@ -68,17 +69,13 @@ interface CustomTooltipProps {
   label?: string;
 }
 
-const formatDate = (dateStr: string) => {
-  const [year, month] = dateStr.split('-');
-  return `${month}/${year.slice(2)}`;
-};
 
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload || !payload.length) return null;
 
   return (
     <div className="bg-white p-3 rounded-lg shadow-lg border border-neutral-200">
-      <p className="font-medium text-neutral-900 mb-2">{formatDate(label || '')}</p>
+      <p className="font-medium text-neutral-900 mb-2">{formatYearMonth(label || '')}</p>
       {payload.map((entry, index) => (
         <div key={index} className="flex items-center justify-between gap-4 text-sm">
           <div className="flex items-center gap-2">
@@ -229,7 +226,7 @@ export function RateComparisons({ historicalData }: RateComparisonsProps) {
           {selectedView === 'fed-vs-treasury' ? (
             <LineChart data={fedVsTreasuryData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 12 }} />
+              <XAxis dataKey="date" tickFormatter={formatYearMonth} tick={{ fontSize: 12 }} />
               <YAxis
                 domain={['dataMin - 0.5', 'dataMax + 0.5']}
                 tickFormatter={(v) => `${v.toFixed(1)}%`}
@@ -256,7 +253,7 @@ export function RateComparisons({ historicalData }: RateComparisonsProps) {
           ) : selectedView === 'treasury-spread' ? (
             <AreaChart data={treasurySpreadData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 12 }} />
+              <XAxis dataKey="date" tickFormatter={formatYearMonth} tick={{ fontSize: 12 }} />
               <YAxis
                 yAxisId="left"
                 domain={['dataMin - 0.5', 'dataMax + 0.5']}
@@ -301,7 +298,7 @@ export function RateComparisons({ historicalData }: RateComparisonsProps) {
           ) : selectedView === 'mortgage-spread' ? (
             <AreaChart data={mortgageSpreadData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 12 }} />
+              <XAxis dataKey="date" tickFormatter={formatYearMonth} tick={{ fontSize: 12 }} />
               <YAxis
                 yAxisId="left"
                 domain={['dataMin - 0.5', 'dataMax + 0.5']}
@@ -345,7 +342,7 @@ export function RateComparisons({ historicalData }: RateComparisonsProps) {
           ) : (
             <LineChart data={allRatesData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 12 }} />
+              <XAxis dataKey="date" tickFormatter={formatYearMonth} tick={{ fontSize: 12 }} />
               <YAxis
                 domain={['dataMin - 0.5', 'dataMax + 0.5']}
                 tickFormatter={(v) => `${v.toFixed(1)}%`}

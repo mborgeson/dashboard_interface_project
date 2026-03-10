@@ -86,7 +86,7 @@ interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
 }
 
-async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T | null> {
   const { params, ...fetchOptions } = options;
 
   // Build URL with query parameters
@@ -154,7 +154,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
         }
         return data;
       }
-      return {} as T;
+      return null;
     }
     throw new ApiError(freshResponse.status, `API Error: ${freshResponse.statusText}`);
   }
@@ -190,7 +190,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
             }
             return data;
           }
-          return {} as T;
+          return null;
         }
         // Retry also failed — fall through to logout
       }
@@ -227,34 +227,34 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     return data;
   }
 
-  return {} as T;
+  return null;
 }
 
 export const apiClient = {
-  get: <T>(endpoint: string, options?: RequestOptions) =>
+  get: <T>(endpoint: string, options?: RequestOptions): Promise<T | null> =>
     request<T>(endpoint, { ...options, method: 'GET' }),
 
-  post: <T>(endpoint: string, data?: unknown, options?: RequestOptions) =>
+  post: <T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T | null> =>
     request<T>(endpoint, {
       ...options,
       method: 'POST',
       body: data instanceof URLSearchParams ? data : data ? JSON.stringify(data) : undefined,
     }),
 
-  put: <T>(endpoint: string, data?: unknown, options?: RequestOptions) =>
+  put: <T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T | null> =>
     request<T>(endpoint, {
       ...options,
       method: 'PUT',
       body: data instanceof URLSearchParams ? data : data ? JSON.stringify(data) : undefined,
     }),
 
-  patch: <T>(endpoint: string, data?: unknown, options?: RequestOptions) =>
+  patch: <T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T | null> =>
     request<T>(endpoint, {
       ...options,
       method: 'PATCH',
       body: data instanceof URLSearchParams ? data : data ? JSON.stringify(data) : undefined,
     }),
 
-  delete: <T>(endpoint: string, options?: RequestOptions) =>
+  delete: <T>(endpoint: string, options?: RequestOptions): Promise<T | null> =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),
 };

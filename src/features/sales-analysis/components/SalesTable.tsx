@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { format, parseISO } from 'date-fns';
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { formatDate } from '@/lib/dateUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -58,13 +58,13 @@ const coordFmt = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 4,
 });
 
-function formatDate(value: string | null): string {
+function formatSaleDate(value: string | null): string {
   if (!value) return '--';
-  try {
-    return format(parseISO(value), 'MM/dd/yyyy');
-  } catch {
-    return '--';
-  }
+  // Date-only ISO strings (YYYY-MM-DD) are parsed as UTC by the Date
+  // constructor, which shifts the day in local time. Append T00:00:00 to
+  // force local-time parsing, matching the original date-fns parseISO behaviour.
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value;
+  return formatDate(normalized, 'numeric') || '--';
 }
 
 function fmtNullNum(value: number | null, formatter: Intl.NumberFormat): string {
@@ -134,7 +134,7 @@ const columns: ColumnDef[] = [
     label: 'Sale Date',
     sortable: true,
     align: 'left',
-    format: (r) => formatDate(r.saleDate),
+    format: (r) => formatSaleDate(r.saleDate),
   },
   {
     key: 'salePrice',

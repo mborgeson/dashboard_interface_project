@@ -2,6 +2,7 @@ import type { Deal } from '@/types/deal';
 import { DEAL_STAGE_LABELS, DEAL_STAGE_COLORS } from '@/types/deal';
 import { Building2, MapPin, User, DollarSign, TrendingUp, Users, Ruler, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/dateUtils';
 
 interface DealTimelineProps {
   deals: Deal[];
@@ -45,13 +46,6 @@ export function DealTimeline({ deals }: DealTimelineProps) {
     }).format(value);
   };
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(date);
-  };
 
   /**
    * Format last sale date — handles ISO strings and Excel serial dates.

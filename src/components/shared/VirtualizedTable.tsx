@@ -13,6 +13,8 @@ export interface VirtualizedTableProps<T> {
   renderHeader: () => ReactNode;
   /** Render function for each row — should return a <TableRow> with <TableCell> children */
   renderRow: (row: T, index: number) => ReactNode;
+  /** Number of columns in the table — used for spacer colSpan alignment */
+  columnCount?: number;
   /** Estimated height of each row in pixels */
   estimateRowHeight?: number;
   /** Number of rows to render outside the visible area */
@@ -61,6 +63,7 @@ export function VirtualizedTable<T>({
   rows,
   renderHeader,
   renderRow,
+  columnCount,
   estimateRowHeight = 52,
   overscan = 10,
   getRowKey,
@@ -94,6 +97,7 @@ export function VirtualizedTable<T>({
       rows={rows}
       renderHeader={renderHeader}
       renderRow={renderRow}
+      columnCount={columnCount}
       estimateRowHeight={estimateRowHeight}
       overscan={overscan}
       getRowKey={getRowKey}
@@ -120,6 +124,7 @@ function VirtualizedTableInner<T>({
   rows,
   renderHeader,
   renderRow,
+  columnCount,
   estimateRowHeight = 52,
   overscan = 10,
   getRowKey,
@@ -166,7 +171,10 @@ function VirtualizedTableInner<T>({
           {/* Top spacer row */}
           {paddingTop > 0 && (
             <tr>
-              <td style={{ height: paddingTop, padding: 0, border: 'none' }} />
+              <td
+                colSpan={columnCount}
+                style={{ height: paddingTop, padding: 0, border: 'none' }}
+              />
             </tr>
           )}
 
@@ -182,7 +190,10 @@ function VirtualizedTableInner<T>({
           {/* Bottom spacer row */}
           {paddingBottom > 0 && (
             <tr>
-              <td style={{ height: paddingBottom, padding: 0, border: 'none' }} />
+              <td
+                colSpan={columnCount}
+                style={{ height: paddingBottom, padding: 0, border: 'none' }}
+              />
             </tr>
           )}
         </TableBody>

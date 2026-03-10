@@ -154,32 +154,50 @@ class RedisRateLimitBackend(RateLimitBackend):
         self, key: str, config: RateLimitConfig
     ) -> tuple[bool, int, int]:
         """
-        Check rate limit using Redis sliding window counter algorithm.
+        Check rate limit using Redis sliding window log algorithm.
 
-        Uses a single Redis key with INCR and EXPIRE for efficient counting.
-        The sliding window is approximated using fixed time buckets.
+        Uses a sorted set per key where each member is a unique request ID
+        scored by its timestamp. Expired entries are pruned with ZREMRANGEBYSCORE,
+        and the current count is checked with ZCARD. This gives true sliding
+        window behavior, matching the memory backend.
         """
         try:
             redis = await self._get_redis()
-            current_time = int(time.time())
-            # Create a bucket key based on the window
-            bucket_key = f"{config.key_prefix}:{key}:{current_time // config.window}"
+            current_time = time.time()
+            window_start = current_time - config.window
+            sorted_set_key = f"{config.key_prefix}:{key}"
 
-            # Use pipeline for atomic operations
+            # Unique member for this request: timestamp with enough precision
+            # to avoid collisions. Using a counter suffix for extra safety.
+            member = f"{current_time}:{id(self)}:{time.monotonic_ns()}"
+
+            # Atomic pipeline: remove expired, count current, add new, set TTL
             pipe = redis.pipeline()
-            pipe.incr(bucket_key)
-            pipe.expire(bucket_key, config.window * 2)  # Keep for 2 windows
+            pipe.zremrangebyscore(sorted_set_key, "-inf", window_start)
+            pipe.zcard(sorted_set_key)
+            pipe.zadd(sorted_set_key, {member: current_time})
+            pipe.expire(sorted_set_key, config.window + 1)
             results = await pipe.execute()
 
-            request_count = int(results[0])
+            # results[1] is the count BEFORE adding the new request
+            request_count = int(results[1])
 
-            if request_count > config.requests:
-                # Calculate retry-after
-                window_end = ((current_time // config.window) + 1) * config.window
-                retry_after = max(1, window_end - current_time)
-                return True, 0, retry_after
+            if request_count >= config.requests:
+                # Over limit — remove the member we just added
+                await redis.zrem(sorted_set_key, member)
 
-            remaining = config.requests - request_count
+                # Calculate retry-after from the oldest request in the window
+                oldest = await redis.zrange(sorted_set_key, 0, 0, withscores=True)
+                if oldest:
+                    oldest_timestamp = float(oldest[0][1])
+                    retry_after = (
+                        int(oldest_timestamp + config.window - current_time) + 1
+                    )
+                else:
+                    retry_after = config.window
+                return True, 0, max(1, retry_after)
+
+            remaining = config.requests - request_count - 1
             return False, remaining, 0
 
         except Exception as e:

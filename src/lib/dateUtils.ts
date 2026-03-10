@@ -50,7 +50,7 @@ export function isValidDate(value: unknown): boolean {
  */
 export function formatDate(
   date: string | Date | null | undefined,
-  style: 'short' | 'medium' | 'long' = 'medium',
+  style: 'short' | 'medium' | 'long' | 'numeric' = 'medium',
 ): string {
   const d = parseDate(date);
   if (!d) return '';
@@ -59,9 +59,23 @@ export function formatDate(
     short: { month: 'numeric', day: 'numeric', year: '2-digit' },
     medium: { month: 'short', day: 'numeric', year: 'numeric' },
     long: { month: 'long', day: 'numeric', year: 'numeric' },
+    numeric: { month: '2-digit', day: '2-digit', year: 'numeric' },
   };
 
   return new Intl.DateTimeFormat('en-US', optionsMap[style]).format(d);
+}
+
+/**
+ * Format a "YYYY-MM" or similar year-month string as "MM/YY".
+ *
+ * Useful for chart axis labels where space is tight.
+ */
+export function formatYearMonth(value: string | null | undefined): string {
+  if (!value) return '';
+  const parts = value.split('-');
+  if (parts.length < 2) return value;
+  const [year, month] = parts;
+  return `${month}/${year.slice(2)}`;
 }
 
 /**

@@ -290,7 +290,7 @@ describe('apiClient', () => {
   });
 
   describe('empty responses', () => {
-    it('returns empty object for non-JSON responses', async () => {
+    it('returns null for non-JSON responses', async () => {
       const resp = {
         ok: true,
         status: 204,
@@ -301,7 +301,7 @@ describe('apiClient', () => {
       } as Response;
       mockFetch.mockResolvedValue(resp);
       const result = await apiClient.delete('/test/1');
-      expect(result).toEqual({});
+      expect(result).toBeNull();
     });
   });
 });

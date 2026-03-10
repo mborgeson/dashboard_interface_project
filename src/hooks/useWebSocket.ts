@@ -103,8 +103,11 @@ export function useWebSocket(
   const unmountedRef = useRef(false);
   const connectWsRef = useRef<() => void>(() => {});
 
-  // Stable references for callbacks so effect doesn't re-run on every render
+  // Stable references for callbacks so the connection effect doesn't re-run
+  // on every render. The no-dep effect is intentional — we always want the
+  // ref to hold the latest callbacks without triggering reconnects.
   const callbacksRef = useRef({ onOpen, onClose, onMessage, onError });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     callbacksRef.current = { onOpen, onClose, onMessage, onError };
   });

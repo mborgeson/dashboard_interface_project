@@ -123,8 +123,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
-// Listen for 401 events from the API client to auto-clear auth state
-window.addEventListener('auth:unauthorized', () => {
+// Listen for 401 events from the API client to auto-clear auth state.
+// Guard against SSR/test environments where window may not exist.
+if (typeof window !== 'undefined') window.addEventListener('auth:unauthorized', () => {
   const { isAuthenticated } = useAuthStore.getState();
   if (isAuthenticated) {
     useAuthStore.setState({

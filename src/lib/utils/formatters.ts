@@ -1,3 +1,5 @@
+import { formatDate as coreFormatDate } from '@/lib/dateUtils';
+
 /**
  * Format a number as currency
  * @param value - The number to format
@@ -39,23 +41,21 @@ export function formatNumber(value: number): string {
 }
 
 /**
- * Format a date to a readable string
+ * Format a date to a readable string.
+ *
+ * Delegates to the consolidated `formatDate` in `@/lib/dateUtils`.
+ * Returns '--' for null/undefined to match the convention used by
+ * other formatters in this module (formatCurrencyOrNA, etc.).
+ *
  * @param date - The date to format
- * @param format - The format style ('short', 'medium', 'long')
- * @returns Formatted date string
+ * @param style - The format style ('short', 'medium', 'long')
+ * @returns Formatted date string, or '--' for missing values
  */
 export function formatDate(
-  date: Date | null | undefined,
-  format: 'short' | 'medium' | 'long' = 'medium'
+  date: string | Date | null | undefined,
+  style: 'short' | 'medium' | 'long' | 'numeric' = 'medium'
 ): string {
-  if (!date) return '--';
-  const optionsMap: Record<string, Intl.DateTimeFormatOptions> = {
-    short: { month: 'numeric', day: 'numeric', year: '2-digit' },
-    medium: { month: 'short', day: 'numeric', year: 'numeric' },
-    long: { month: 'long', day: 'numeric', year: 'numeric' },
-  };
-
-  return new Intl.DateTimeFormat('en-US', optionsMap[format]).format(date);
+  return coreFormatDate(date, style) || '--';
 }
 
 /**

@@ -4,7 +4,7 @@ Property endpoints for CRUD operations, analytics, and dashboard views.
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from loguru import logger
-from sqlalchemy import func, literal_column, select
+from sqlalchemy import func, literal_column, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.endpoints._property_transforms import (
@@ -23,6 +23,7 @@ from app.crud.crud_activity import property_activity
 from app.db.session import get_db
 from app.models import Property
 from app.models.activity import ActivityType as ActivityTypeModel
+from app.models.extraction import ExtractedValue
 from app.models.user import User
 from app.schemas.activity import (
     ActivityType,
@@ -40,6 +41,104 @@ from app.schemas.property import (
 )
 
 router = APIRouter()
+
+# Projected NOI fields from proforma extractions, ordered by year
+_PROJECTED_NOI_FIELDS: list[tuple[str, str]] = [
+    ("PROFORMA_NOI_YR1", "Year 1"),
+    ("PROFORMA_NOI_YR2", "Year 2"),
+    ("PROFORMA_NOI_YR3", "Year 3"),
+    ("NOI_PER_UNIT_YR2", "Year 2"),
+    ("NOI_PER_UNIT_YR3", "Year 3"),
+    ("NOI_PER_UNIT_YR5", "Year 5"),
+    ("NOI_PER_UNIT_YR7", "Year 7"),
+]
+
+# All field names we query for trend projections
+_TREND_PROJECTION_FIELDS: set[str] = {f for f, _ in _PROJECTED_NOI_FIELDS}
+
+
+async def _build_projected_trends(
+    db: AsyncSession,
+    property_id: int,
+    property_name: str,
+    current_noi: float | None,
+) -> dict:
+    """
+    Build multi-point trend data from extracted proforma projections.
+
+    Queries extracted_values for year-specific NOI fields and assembles them
+    into arrays the frontend can render as trend lines.
+
+    Returns a dict with keys: noi, periods, data_points, trend_type, note.
+    """
+    # Query extracted projections for this property
+    stmt = select(
+        ExtractedValue.field_name,
+        ExtractedValue.value_numeric,
+    ).where(
+        or_(
+            ExtractedValue.property_id == property_id,
+            ExtractedValue.property_name == property_name,
+        ),
+        ExtractedValue.field_name.in_(_TREND_PROJECTION_FIELDS),
+        ExtractedValue.is_error.is_(False),
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    # Build a lookup: field_name -> numeric value
+    projections: dict[str, float] = {}
+    for row in rows:
+        if row.value_numeric is not None:
+            projections[row.field_name] = float(row.value_numeric)
+
+    if not projections:
+        return {}
+
+    # Prefer PROFORMA_NOI series (absolute NOI), fall back to NOI_PER_UNIT
+    noi_series: list[tuple[str, float]] = []  # (period_label, value)
+    proforma_noi_keys = [
+        ("PROFORMA_NOI_YR1", "Year 1"),
+        ("PROFORMA_NOI_YR2", "Year 2"),
+        ("PROFORMA_NOI_YR3", "Year 3"),
+    ]
+    noi_per_unit_keys = [
+        ("NOI_PER_UNIT_YR2", "Year 2"),
+        ("NOI_PER_UNIT_YR3", "Year 3"),
+        ("NOI_PER_UNIT_YR5", "Year 5"),
+        ("NOI_PER_UNIT_YR7", "Year 7"),
+    ]
+
+    # Try PROFORMA_NOI first (absolute dollars)
+    for field, label in proforma_noi_keys:
+        if field in projections:
+            noi_series.append((label, round(projections[field], 2)))
+
+    # If we got fewer than 2 points from PROFORMA_NOI, try NOI_PER_UNIT
+    if len(noi_series) < 2:
+        noi_series = []
+        for field, label in noi_per_unit_keys:
+            if field in projections:
+                noi_series.append((label, round(projections[field], 2)))
+
+    if not noi_series:
+        return {}
+
+    # Prepend current NOI as "Current" if available and not already covered
+    periods = [label for label, _ in noi_series]
+    values = [val for _, val in noi_series]
+
+    if current_noi is not None and "Year 1" not in periods:
+        periods.insert(0, "Current")
+        values.insert(0, round(current_noi, 2))
+
+    return {
+        "noi": values,
+        "periods": periods,
+        "data_points": len(values),
+        "trend_type": "projected",
+        "note": "Projected from proforma underwriting model",
+    }
 
 
 @router.get(
@@ -596,7 +695,11 @@ async def get_property_analytics(
             "trends": {
                 "rent": [1400, 1425, 1450, 1475, 1490, 1500],
                 "occupancy": [94.0, 95.0, 96.0, 96.5, 96.0, 96.5],
+                "noi": [],
                 "periods": ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+                "data_points": 6,
+                "trend_type": "historical",
+                "note": "Mock data for demonstration",
             },
             "comparables": {
                 "market_avg_rent": 1425,
@@ -604,6 +707,45 @@ async def get_property_analytics(
                 "market_avg_cap_rate": 5.5,
                 "comparable_count": 0,
             },
+        }
+
+    # Try to build projected trends from extracted proforma data
+    projected_trends = await _build_projected_trends(
+        db, property_id, property_obj.name, current_noi
+    )
+
+    if projected_trends:
+        # We have multi-point projection data from proforma extractions
+        trends_data = {
+            "rent": [round(current_rent, 0)] if current_rent else [],
+            "occupancy": [round(current_occupancy, 1)] if current_occupancy else [],
+            "noi": projected_trends["noi"],
+            "periods": projected_trends["periods"],
+            "data_points": projected_trends["data_points"],
+            "trend_type": projected_trends["trend_type"],
+            "note": projected_trends["note"],
+        }
+    elif current_rent is not None or current_occupancy is not None:
+        # Single-point data only — pad with nulls so frontend shows "Insufficient data"
+        trends_data = {
+            "rent": [round(current_rent, 0)] if current_rent else [],
+            "occupancy": [round(current_occupancy, 1)] if current_occupancy else [],
+            "noi": [round(current_noi, 2)] if current_noi else [],
+            "periods": ["Current", None, None, None, None],
+            "data_points": 1,
+            "trend_type": "current_only",
+            "note": "Insufficient trend data — only current values available",
+        }
+    else:
+        # No data at all
+        trends_data = {
+            "rent": [],
+            "occupancy": [],
+            "noi": [],
+            "periods": [],
+            "data_points": 0,
+            "trend_type": "current_only",
+            "note": "No trend data available",
         }
 
     # Build response with actual data
@@ -628,13 +770,7 @@ async def get_property_analytics(
             else None,
             "rent_vs_market": rent_vs_market,
         },
-        "trends": {
-            # Trends would need historical data - returning current values as single point
-            "rent": [round(current_rent, 0)] if current_rent else [],
-            "occupancy": [round(current_occupancy, 1)] if current_occupancy else [],
-            "periods": ["Current"],
-            "note": "Historical trend data requires time-series tracking",
-        },
+        "trends": trends_data,
         "comparables": {
             "market": property_obj.market,
             "property_type": property_obj.property_type,

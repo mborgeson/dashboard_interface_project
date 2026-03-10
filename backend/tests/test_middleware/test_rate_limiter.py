@@ -185,10 +185,12 @@ class TestRedisRateLimitBackend:
 
     @pytest.mark.asyncio
     async def test_redis_backend_with_mock(self, rate_config):
-        """Test Redis backend with mocked Redis client."""
+        """Test Redis backend with mocked Redis client (sliding window sorted set)."""
         mock_redis = AsyncMock()
         mock_pipe = AsyncMock()
-        mock_pipe.execute = AsyncMock(return_value=[1, True])  # First request
+        # Pipeline results: [zremrangebyscore, zcard, zadd, expire]
+        # zcard=0 means no prior requests in window
+        mock_pipe.execute = AsyncMock(return_value=[0, 0, 1, True])
         mock_redis.pipeline = MagicMock(return_value=mock_pipe)
 
         backend = RedisRateLimitBackend(redis_client=mock_redis)
@@ -206,9 +208,16 @@ class TestRedisRateLimitBackend:
         """Test Redis backend returns rate limited when over limit."""
         mock_redis = AsyncMock()
         mock_pipe = AsyncMock()
-        # Simulate being over the limit
-        mock_pipe.execute = AsyncMock(return_value=[rate_config.requests + 1, True])
+        # zcard returns requests count == limit, so next request is denied
+        mock_pipe.execute = AsyncMock(
+            return_value=[0, rate_config.requests, 1, True]
+        )
         mock_redis.pipeline = MagicMock(return_value=mock_pipe)
+        # Mock zrem for removing the rejected member
+        mock_redis.zrem = AsyncMock()
+        # Mock zrange for oldest entry lookup (return a timestamp ~30s ago)
+        oldest_ts = time.time() - 30
+        mock_redis.zrange = AsyncMock(return_value=[(b"member", oldest_ts)])
 
         backend = RedisRateLimitBackend(redis_client=mock_redis)
 
@@ -219,6 +228,8 @@ class TestRedisRateLimitBackend:
         assert is_limited is True
         assert remaining == 0
         assert retry_after > 0
+        # The rejected member should have been removed from the sorted set
+        mock_redis.zrem.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_redis_backend_fails_open(self, rate_config):
@@ -237,6 +248,32 @@ class TestRedisRateLimitBackend:
         # Should fail open
         assert is_limited is False
         assert remaining == rate_config.requests
+
+    @pytest.mark.asyncio
+    async def test_redis_backend_sliding_window_semantics(self, rate_config):
+        """Redis backend should use true sliding window, not fixed buckets."""
+        mock_redis = AsyncMock()
+        mock_pipe = AsyncMock()
+        # Simulate 3 requests already in window (under limit of 5)
+        mock_pipe.execute = AsyncMock(return_value=[0, 3, 1, True])
+        mock_redis.pipeline = MagicMock(return_value=mock_pipe)
+
+        backend = RedisRateLimitBackend(redis_client=mock_redis)
+
+        is_limited, remaining, retry_after = await backend.is_rate_limited(
+            "test_key", rate_config
+        )
+
+        assert is_limited is False
+        assert remaining == 1  # 5 - 3 - 1 (the request just added)
+        assert retry_after == 0
+
+        # Verify sorted set operations were used (not INCR/fixed buckets)
+        pipe_calls = [str(c) for c in mock_pipe.method_calls]
+        # Pipeline should call zremrangebyscore, zcard, zadd, expire
+        assert any("zremrangebyscore" in c for c in pipe_calls)
+        assert any("zcard" in c for c in pipe_calls)
+        assert any("zadd" in c for c in pipe_calls)
 
 
 # =============================================================================
@@ -343,7 +380,7 @@ class TestRateLimitMiddleware:
         transport = ASGITransport(app=test_app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Make requests up to the limit (5 for /api/ path)
-            for i in range(5):
+            for _i in range(5):
                 response = await client.get("/api/users")
                 assert response.status_code == 200
 
@@ -360,7 +397,7 @@ class TestRateLimitMiddleware:
         transport = ASGITransport(app=test_app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Auth limit is 3
-            for i in range(3):
+            for _i in range(3):
                 response = await client.get("/api/auth/login")
                 assert response.status_code == 200
 

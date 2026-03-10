@@ -10,7 +10,6 @@ Tests the Properties API endpoints including:
 
 import pytest
 
-
 # =============================================================================
 # Auth Guard Tests
 # =============================================================================
@@ -339,6 +338,13 @@ async def test_get_property_analytics(client, db_session, auth_headers, test_pro
     assert "metrics" in data
     assert "trends" in data
     assert "comparables" in data
+
+    # F-031: Verify trend metadata fields are present
+    trends = data["trends"]
+    assert "data_points" in trends
+    assert "trend_type" in trends
+    assert trends["trend_type"] in ("projected", "historical", "current_only")
+    assert isinstance(trends["data_points"], int)
 
 
 @pytest.mark.asyncio
