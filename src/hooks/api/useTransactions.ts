@@ -234,7 +234,7 @@ export function useCreateTransaction() {
 
   return useMutation({
     mutationFn: (data: TransactionCreateInput) =>
-      post<TransactionApiResponse, TransactionCreateInput>('/transactions', data),
+      post<TransactionApiResponse>('/transactions', data),
     onSuccess: (data) => {
       // Invalidate all transaction lists
       queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
@@ -261,7 +261,7 @@ export function useUpdateTransaction() {
 
   return useMutation({
     mutationFn: ({ id, ...data }: TransactionUpdateInput) =>
-      put<TransactionApiResponse, Omit<TransactionUpdateInput, 'id'>>(`/transactions/${id}`, data),
+      put<TransactionApiResponse>(`/transactions/${id}`, data),
     onSuccess: (data) => {
       // Update the specific transaction in cache
       queryClient.setQueryData(transactionKeys.detail(data.id), data);
@@ -285,7 +285,7 @@ export function usePatchTransaction() {
 
   return useMutation({
     mutationFn: ({ id, ...data }: Partial<TransactionUpdateInput> & { id: number }) =>
-      patch<TransactionApiResponse, Partial<Omit<TransactionUpdateInput, 'id'>>>(`/transactions/${id}`, data),
+      patch<TransactionApiResponse>(`/transactions/${id}`, data),
     onSuccess: (data) => {
       // Update the specific transaction in cache
       queryClient.setQueryData(transactionKeys.detail(data.id), data);

@@ -256,7 +256,7 @@ export function useCreateDocument() {
 
   return useMutation({
     mutationFn: (data: DocumentCreateInput) =>
-      post<DocumentApiResponse, DocumentCreateInput>('/documents', data),
+      post<DocumentApiResponse>('/documents', data),
     onSuccess: () => {
       // Invalidate all document lists and stats
       queryClient.invalidateQueries({ queryKey: documentKeys.lists() });
@@ -273,7 +273,7 @@ export function useUpdateDocument() {
 
   return useMutation({
     mutationFn: ({ id, ...data }: DocumentUpdateInput) =>
-      put<DocumentApiResponse, Omit<DocumentUpdateInput, 'id'>>(`/documents/${id}`, data),
+      put<DocumentApiResponse>(`/documents/${id}`, data),
     onSuccess: (data) => {
       // Update the specific document in cache
       queryClient.setQueryData(documentKeys.detail(String(data.id)), data);

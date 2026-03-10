@@ -139,7 +139,7 @@ export function useStartExtraction() {
 
   return useMutation({
     mutationFn: (data: StartExtractionInput) =>
-      post<ExtractionRun, StartExtractionInput>('/extraction/start', data),
+      post<ExtractionRun>('/extraction/start', data),
     onSuccess: (data) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: extractionKeys.history() });

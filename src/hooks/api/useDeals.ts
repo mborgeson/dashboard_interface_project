@@ -406,7 +406,7 @@ export function useCreateDeal() {
 
   return useMutation({
     mutationFn: (data: DealCreateInput) =>
-      post<DealApiResponse, DealCreateInput>('/deals', data),
+      post<DealApiResponse>('/deals', data),
     onSuccess: () => {
       // Invalidate all deal lists and pipeline
       queryClient.invalidateQueries({ queryKey: dealKeys.lists() });
@@ -424,7 +424,7 @@ export function useUpdateDeal() {
 
   return useMutation({
     mutationFn: ({ id, ...data }: DealUpdateInput) =>
-      put<DealApiResponse, Omit<DealUpdateInput, 'id'>>(`/deals/${id}`, data),
+      put<DealApiResponse>(`/deals/${id}`, data),
     onSuccess: (data) => {
       // Update the specific deal in cache
       queryClient.setQueryData(dealKeys.detail(data.id), data);
@@ -445,7 +445,7 @@ export function useUpdateDealStage() {
 
   return useMutation({
     mutationFn: ({ id, stage, note }: DealStageUpdateInput) =>
-      patch<DealApiResponse, { stage: DealStageApi; note?: string }>(
+      patch<DealApiResponse>(
         `/deals/${id}/stage`,
         { stage, note }
       ),
@@ -519,7 +519,7 @@ export function useAddDealActivity() {
 
   return useMutation({
     mutationFn: ({ dealId, ...data }: AddActivityInput) =>
-      post<DealActivityApiResponse, Omit<AddActivityInput, 'dealId'>>(
+      post<DealActivityApiResponse>(
         `/deals/${dealId}/activity`,
         data
       ),

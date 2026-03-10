@@ -136,7 +136,7 @@ export function useCreateProperty() {
 
   return useMutation({
     mutationFn: (data: PropertyCreateInput) =>
-      post<PropertyApiResponse, PropertyCreateInput>('/properties', data),
+      post<PropertyApiResponse>('/properties', data),
     onSuccess: () => {
       // Invalidate all property lists to refetch with new data
       queryClient.invalidateQueries({ queryKey: propertyKeys.lists() });
@@ -153,7 +153,7 @@ export function useUpdateProperty() {
 
   return useMutation({
     mutationFn: ({ id, ...data }: PropertyUpdateInput) =>
-      put<PropertyApiResponse, Omit<PropertyUpdateInput, 'id'>>(`/properties/${id}`, data),
+      put<PropertyApiResponse>(`/properties/${id}`, data),
     onSuccess: (data) => {
       // Update the specific property in cache
       queryClient.setQueryData(propertyKeys.detail(data.id), data);

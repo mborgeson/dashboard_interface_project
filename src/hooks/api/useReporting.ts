@@ -419,7 +419,7 @@ export function useGenerateReportWithMockFallback() {
       format: ReportFormat;
       parameters?: Record<string, unknown>;
     }): Promise<MockGenerateReportResponse> => {
-      const response = await post<GenerateReportResponse, GenerateReportRequest>(
+      const response = await post<GenerateReportResponse>(
         '/reporting/generate',
         {
           template_id: parseInt(data.templateId, 10),
@@ -586,7 +586,7 @@ export function useCreateReportTemplate() {
 
   return useMutation({
     mutationFn: (data: ReportTemplateCreateInput) =>
-      post<ReportTemplateApiResponse, ReportTemplateCreateInput>('/reporting/templates', data),
+      post<ReportTemplateApiResponse>('/reporting/templates', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: reportingKeys.templates() });
     },
@@ -601,7 +601,7 @@ export function useUpdateReportTemplate() {
 
   return useMutation({
     mutationFn: ({ id, ...data }: ReportTemplateUpdateInput) =>
-      put<ReportTemplateApiResponse, Omit<ReportTemplateUpdateInput, 'id'>>(
+      put<ReportTemplateApiResponse>(
         `/reporting/templates/${id}`,
         data
       ),
@@ -635,7 +635,7 @@ export function useGenerateReport() {
 
   return useMutation({
     mutationFn: (data: GenerateReportRequest) =>
-      post<GenerateReportResponse, GenerateReportRequest>('/reporting/generate', data),
+      post<GenerateReportResponse>('/reporting/generate', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: reportingKeys.queue() });
     },
@@ -650,7 +650,7 @@ export function useCreateDistributionSchedule() {
 
   return useMutation({
     mutationFn: (data: DistributionScheduleCreateInput) =>
-      post<DistributionScheduleApiResponse, DistributionScheduleCreateInput>(
+      post<DistributionScheduleApiResponse>(
         '/reporting/schedules',
         data
       ),
@@ -668,7 +668,7 @@ export function useUpdateDistributionSchedule() {
 
   return useMutation({
     mutationFn: ({ id, ...data }: DistributionScheduleUpdateInput) =>
-      put<DistributionScheduleApiResponse, Omit<DistributionScheduleUpdateInput, 'id'>>(
+      put<DistributionScheduleApiResponse>(
         `/reporting/schedules/${id}`,
         data
       ),

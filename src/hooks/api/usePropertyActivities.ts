@@ -170,7 +170,7 @@ export function useAddPropertyActivity() {
 
   return useMutation({
     mutationFn: ({ propertyId, ...data }: AddPropertyActivityInput) =>
-      post<PropertyActivityApiResponse, Omit<AddPropertyActivityInput, 'propertyId'>>(
+      post<PropertyActivityApiResponse>(
         `/properties/${propertyId}/activities`,
         data
       ),
