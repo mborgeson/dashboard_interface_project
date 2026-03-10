@@ -1010,7 +1010,7 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-052   | LOW      | Done   | authStore event listener registered at module load                 | typeof window !== 'undefined' guard                        | 5164070     |
 | F-053   | LOW      | Done   | Duplicate formatDate implementations                               | 4 local formatDate consolidated into dateUtils.ts          | 5164070     |
 | F-054   | LOW      | Open   | Report queue 30-second polling                                     | —                                                         | —           |
-| F-055   | LOW      | Open   | Comparison deals not persisted to storage                          | —                                                         | —           |
+| F-055   | LOW      | Done   | Comparison deals not persisted to storage                          | sessionStorage hydration + persist via useEffect           | 584fd2c     |
 | F-056   | LOW      | Open   | Optimistic locking only on Deal model                              | —                                                         | —           |
 | F-057   | LOW      | Open   | SoftDeleteMixin scope may need expansion                           | —                                                         | —           |
 | F-058   | LOW      | Done   | Multiple API hooks have zero test coverage                         | 68 tests: useDeals (41) + useProperties (27)               | 0d00b35     |
@@ -1023,9 +1023,9 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-065   | LOW      | Done   | crud_property.py enrichment not tested at unit level               | Enrichment service unit tests (pure functions)             | 0d00b35     |
 | F-066   | LOW      | Done   | No report template or generation endpoint tests                    | 34 tests: CRUD, generation, auth                           | 0d00b35     |
 | F-067   | LOW      | Open   | PUT /deals/{id} and PATCH /deals/{id} require require_manager      | —                                                         | —           |
-| F-068   | LOW      | Open   | PDF export may have incomplete financial data                      | —                                                         | —           |
+| F-068   | LOW      | Done   | PDF export may have incomplete financial data                      | enrich_financial_data before single + portfolio PDF export | 584fd2c     |
 | F-069   | LOW      | Open   | Four proposed ADRs not yet formalized                              | —                                                         | —           |
 
-**Summary:** 57 Done, 14 Open (of 71 total including F-007a and F-007a+)
+**Summary:** 59 Done, 12 Open (of 71 total including F-007a and F-007a+)
 
 *End of findings report. Generated 2026-03-10 by Team 66 (Regeneration). Tracking table updated 2026-03-10.*
