@@ -241,6 +241,10 @@ class Settings(BaseSettings):
     RATE_LIMIT_AUTH_REQUESTS: int = 5  # Stricter limit for auth endpoints
     RATE_LIMIT_AUTH_WINDOW: int = 60  # Window for auth rate limiting
 
+    # Slow Query Detection
+    SLOW_QUERY_THRESHOLD_MS: int = 500  # Log queries exceeding this threshold (ms)
+    SLOW_QUERY_LOG_PARAMS: bool = False  # Include (sanitized) params in slow query logs
+
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

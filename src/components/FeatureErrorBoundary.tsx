@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
-import { reportComponentError } from '../services/errorTracking';
+import { reportComponentError } from '@/services/errorTracking';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 

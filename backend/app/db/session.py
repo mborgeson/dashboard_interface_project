@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool, StaticPool
 
 from app.core.config import settings
+from app.db.query_logger import attach_query_logger
 
 # Determine engine configuration based on database type
 # SQLite doesn't support pool_size, max_overflow, pool_timeout
@@ -37,6 +38,9 @@ else:
         pool_timeout=settings.DATABASE_POOL_TIMEOUT,
         pool_pre_ping=True,  # Enable connection health checks
     )
+
+# Attach slow-query detection event listeners to async engine
+attach_query_logger(engine)
 
 # Async session factory
 AsyncSessionLocal = async_sessionmaker(
@@ -68,6 +72,9 @@ else:
         pool_timeout=settings.DATABASE_POOL_TIMEOUT,
         pool_pre_ping=True,
     )
+
+# Attach slow-query detection event listeners to sync engine
+attach_query_logger(sync_engine)
 
 # Sync session factory
 SessionLocal = sessionmaker(
