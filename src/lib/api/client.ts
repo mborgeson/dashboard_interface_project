@@ -86,7 +86,7 @@ interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
 }
 
-async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T | null> {
+async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { params, ...fetchOptions } = options;
 
   // Build URL with query parameters
