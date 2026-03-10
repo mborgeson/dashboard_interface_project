@@ -154,7 +154,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
         }
         return data;
       }
-      return null;
+      return null as unknown as T;
     }
     throw new ApiError(freshResponse.status, `API Error: ${freshResponse.statusText}`);
   }
@@ -190,7 +190,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
             }
             return data;
           }
-          return null;
+          return null as unknown as T;
         }
         // Retry also failed — fall through to logout
       }
@@ -227,34 +227,34 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     return data;
   }
 
-  return null;
+  return null as unknown as T;
 }
 
 export const apiClient = {
-  get: <T>(endpoint: string, options?: RequestOptions): Promise<T | null> =>
+  get: <T>(endpoint: string, options?: RequestOptions): Promise<T> =>
     request<T>(endpoint, { ...options, method: 'GET' }),
 
-  post: <T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T | null> =>
+  post: <T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T> =>
     request<T>(endpoint, {
       ...options,
       method: 'POST',
       body: data instanceof URLSearchParams ? data : data ? JSON.stringify(data) : undefined,
     }),
 
-  put: <T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T | null> =>
+  put: <T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T> =>
     request<T>(endpoint, {
       ...options,
       method: 'PUT',
       body: data instanceof URLSearchParams ? data : data ? JSON.stringify(data) : undefined,
     }),
 
-  patch: <T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T | null> =>
+  patch: <T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T> =>
     request<T>(endpoint, {
       ...options,
       method: 'PATCH',
       body: data instanceof URLSearchParams ? data : data ? JSON.stringify(data) : undefined,
     }),
 
-  delete: <T>(endpoint: string, options?: RequestOptions): Promise<T | null> =>
+  delete: <T>(endpoint: string, options?: RequestOptions): Promise<T> =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),
 };
