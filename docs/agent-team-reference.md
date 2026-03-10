@@ -2021,3 +2021,694 @@ Some values may be genuinely unusual (not errors). For these:
 1. Verify the source Excel file contains the same value (extraction is correct)
 2. Document the anomaly with a note explaining why it's valid (e.g., "Cabana on 99th — below-market purchase, cap rate reflects 2019 pricing")
 3. Consider adding a `data_quality_flag` field to the Deal model for values that have been manually verified despite appearing anomalous
+
+---
+
+---
+
+# Comprehensive System Review & Documentation — Full-Stack Architecture Audit with Living Documentation
+
+A dedicated set of agent teams designed to thoroughly review, inventory, and document every layer of the B&R Capital dashboard application: frontend pages, components, hooks, and stores → backend API endpoints, CRUD functions, schemas, and middleware → PostgreSQL database schema, relationships, migrations, and query patterns → infrastructure configuration and cross-cutting architectural concerns. The output is a complete, accurate, living documentation suite that serves as the definitive reference for the system, plus a prioritized findings report of everything that needs fixing or improving.
+
+**Task Summary**: Conduct an exhaustive, **strictly read-only** inventory and documentation pass across every layer of the application. For each layer: catalog every artifact (component, endpoint, table, migration), document its purpose, inputs/outputs, dependencies, and known patterns. Identify all issues, inconsistencies, bugs, gaps, and improvement opportunities. Produce structured documentation files in `docs/` and a comprehensive **Findings & Recommendations Report** prioritized by severity.
+
+**Strict Read-Only Constraint**: This effort makes **ZERO changes** to the project. No code edits, no config changes, no test additions, no `.env` updates, no docstring fixes — nothing. Every agent operates in read-only mode against the codebase and database. The sole output is documentation files written to `docs/`. All identified issues, bugs, and improvement opportunities are captured in the Findings & Recommendations Report for the developer to act on separately.
+
+**Why This Needs Dedicated Teams**: The dashboard has grown significantly through iterative Claude Code sessions — new endpoints, components, extraction pipeline features, and schema changes have been added rapidly. There is no single authoritative reference documenting what exists, how it's wired, or why specific patterns were chosen. Without this, onboarding a second developer (or even context-switching after a break) requires re-reading source code. These teams produce the reference that doesn't yet exist, and surface everything that needs attention.
+
+**Documentation Principles**:
+
+| Principle | Implementation |
+| --- | --- |
+| **Strictly read-only** | No file edits, no config changes, no test additions — agents only READ source code and WRITE to `docs/` |
+| **Source-of-truth accuracy** | Every documented fact is verified by reading actual source code, not inferred from memory or comments |
+| **Structured for lookup** | Documents use consistent heading hierarchy, tables, and cross-references — designed for searching, not sequential reading |
+| **Dependency-aware** | Every component, endpoint, and table documents what it depends on and what depends on it |
+| **Pattern-explicit** | Recurring patterns (Zod nullable handling, enrichment flow, auth guards) are named and documented once, then referenced |
+| **Findings-driven** | Every issue, inconsistency, bug, gap, and improvement opportunity is captured in the Findings & Recommendations Report |
+| **Maintenance-ready** | Documentation includes "last verified" markers and instructions for keeping docs current |
+
+---
+
+## System Review & Documentation Teams
+
+### 57. Frontend Architecture Inventory
+
+| Agent Name | subagent_type | Can Edit? | Tools | Role on Team |
+| --- | --- | --- | --- | --- |
+| Explorer | `Explore` | **No** | All except Edit/Write | Systematically catalog every frontend artifact: pages (route → component mapping), shared components, feature-specific components, custom hooks, Zustand stores, Zod schemas, TypeScript types/interfaces, utility functions, and constants. For each artifact: file path, export name, props/params, dependencies (imports), and dependents (what imports it). |
+| React Expert | `react-expert` | Yes | Read, Grep, Glob, Bash, Edit, MultiEdit, Write | Analyze the component architecture: identify the component hierarchy per page, document the state management strategy (which stores serve which pages), map the data fetching pattern (hooks → API calls → Zod parse → store), document the routing structure, and identify shared vs page-specific components. |
+
+**Flow**: Explorer produces raw inventory of every frontend file with its exports and import graph → React Expert analyzes the inventory to produce an architectural overview: component hierarchy, state flow, data fetching patterns, routing → team produces a **Frontend Architecture Inventory** document.
+
+**Inventory Targets**:
+
+| Category | Location | What to Catalog |
+| --- | --- | --- |
+| Pages / Routes | `src/pages/`, `src/App.tsx` or router config | Route path, page component, auth requirement, lazy loading |
+| Feature Components | `src/features/*/components/` | Component name, props interface, parent page(s), child components |
+| Shared Components | `src/components/` | Component name, props, usage count (which features import it) |
+| Hooks | `src/features/*/hooks/`, `src/hooks/` | Hook name, params, return type, API endpoints called, stores accessed |
+| Stores | `src/stores/` | Store name, state shape, actions, which hooks/components consume it |
+| Zod Schemas | `src/lib/api/schemas/` | Schema name, fields with types and nullable/optional status, transforms |
+| API Client | `src/lib/api/` | Base URL config, interceptors, auth header injection, error handling |
+| Types | `src/types/` | Interface/type name, fields, which schemas/components use it |
+| Utils | `src/lib/`, `src/utils/` | Function name, purpose, callers |
+| Test Files | `src/**/__tests__/` | Test file, what it covers, assertion patterns |
+
+**Output**: `docs/frontend-architecture.md` — complete frontend inventory with component hierarchy, state management map, data fetching patterns, and routing structure.
+
+---
+
+### 58. Backend Architecture Inventory
+
+| Agent Name | subagent_type | Can Edit? | Tools | Role on Team |
+| --- | --- | --- | --- | --- |
+| Backend Architect | `backend-development:backend-architect` | Yes | All tools | Catalog every backend artifact: API endpoints (route, method, auth guard, request/response schemas), CRUD functions (which model, which queries, joins, filters), Pydantic schemas (request, response, internal), SQLAlchemy models, Alembic migrations, background tasks, middleware, and utility modules. For each: document inputs, outputs, side effects, and error responses. |
+| Explorer | `Explore` | **No** | All except Edit/Write | Map the backend dependency graph: which endpoints call which CRUD functions, which CRUD functions use which models, which models have which relationships. Identify shared utilities, middleware chain order, and startup/shutdown lifecycle. |
+
+**Flow**: Explorer maps the full backend file tree and import graph → Backend Architect documents each artifact's purpose, interface, and behavior → team produces a **Backend Architecture Inventory** document.
+
+**Inventory Targets**:
+
+| Category | Location | What to Catalog |
+| --- | --- | --- |
+| API Endpoints | `backend/app/api/v1/endpoints/` | Route, method, auth guard, request schema, response schema, CRUD function called, query params |
+| CRUD Functions | `backend/app/crud/` | Function name, model, query pattern (filter, join, aggregate), return type, side effects |
+| Pydantic Schemas | `backend/app/schemas/` | Schema name, fields with types/nullable/optional/default, validators, computed fields |
+| SQLAlchemy Models | `backend/app/models/` | Model name, table name, columns with types/constraints, relationships, indexes |
+| Background Tasks | `backend/app/tasks/` or inline | Task name, trigger, what it does, error handling, retry policy |
+| Middleware | `backend/app/middleware/` or `main.py` | Middleware name, order, what it intercepts, side effects |
+| Auth System | `backend/app/auth/` or `dependencies.py` | Auth flow, JWT config, role guards, permission model |
+| Extraction Pipeline | `backend/app/extraction/` | Each module's purpose, pipeline phases, data flow between modules |
+| Config / Settings | `backend/app/core/config.py` | Every setting, env var source, default value, type |
+| Alembic Migrations | `backend/alembic/versions/` | Each migration: what it changes, reversibility, dependencies |
+| Test Files | `backend/tests/` | Test file, what it covers, fixtures used |
+
+**Output**: `docs/backend-architecture.md` — complete backend inventory with endpoint catalog, CRUD map, schema reference, and middleware chain.
+
+---
+
+### 59. Database Schema & Data Model Documentation
+
+| Agent Name | subagent_type | Can Edit? | Tools | Role on Team |
+| --- | --- | --- | --- | --- |
+| Postgres Expert | `postgres-expert` | Yes | Bash(psql, pg_dump, pg_restore), Read, Grep, Edit | Connect to the PostgreSQL database and extract the live schema: all tables, columns, types, constraints, indexes, foreign keys, sequences. Compare the live schema against SQLAlchemy model definitions to identify any drift. Document the actual database state as the source of truth. |
+| Docs Writer | `docs-writer` | Yes | Read, Write, Edit, Grep, Glob, Bash, WebFetch | Produce a structured database documentation file: entity-relationship descriptions (prose, not just diagrams), table-by-table reference with column descriptions, relationship explanations, index justifications, and migration history narrative. |
+
+**Flow**: Postgres Expert extracts live schema via `pg_dump --schema-only` and introspection queries → compares against SQLAlchemy models → identifies any drift → Docs Writer transforms the raw schema into readable documentation with entity descriptions, relationship explanations, and query pattern guidance → team produces a **Database Schema Reference** document.
+
+**Documentation Sections**:
+
+1. **Entity-Relationship Overview**: Prose description of the data model — what entities exist, how they relate, cardinality
+2. **Table Reference**: Per-table: column name, type, nullable, default, constraints, description, indexed?
+3. **Relationship Map**: Every FK relationship with cascade behavior, which CRUD functions traverse each relationship
+4. **Index Catalog**: Every index with its columns, type (btree, gin, etc.), and which queries benefit from it
+5. **Migration History**: Chronological summary of schema evolution — what changed and why
+6. **Schema-Model Drift Report**: Any differences between the live DB schema and SQLAlchemy model definitions
+7. **Query Patterns**: Common query patterns used by CRUD functions — which indexes they hit, estimated complexity
+
+**Output**: `docs/database-schema.md` — complete database reference with table descriptions, relationships, indexes, migration history, and schema-model drift report.
+
+---
+
+### 60. Infrastructure & Configuration Inventory
+
+| Agent Name | subagent_type | Can Edit? | Tools | Role on Team |
+| --- | --- | --- | --- | --- |
+| Explorer | `Explore` | **No** | All except Edit/Write | Catalog every configuration artifact: env var references across the codebase, Docker/compose files, CI/CD config, MCP server config, package.json scripts, conda environment specs, Vite config, TypeScript config, ESLint/Ruff config, Alembic config. For each: file path, purpose, and what depends on it. |
+| Config Safety Reviewer | `config-safety-reviewer` | Yes | Read, Edit, Grep, Glob, Bash | Audit every configuration for documentation completeness: does every env var have a description? Are defaults documented? Are secrets properly excluded from version control? Is the config layered correctly (dev vs prod)? Document the configuration hierarchy. |
+
+**Flow**: Explorer catalogs all config files and env var references → Config Safety Reviewer audits each for completeness and safety → team produces an **Infrastructure & Configuration Reference** document.
+
+**Inventory Targets**:
+
+| Category | Files | What to Document |
+| --- | --- | --- |
+| Environment Variables | `.env`, `.env.example`, `.env.prod.example` | Every var: name, purpose, type, default, required?, secret? |
+| Docker | `Dockerfile`, `docker-compose.yml`, `docker/` | Services, ports, volumes, build args, health checks |
+| Python Environment | `environment.yml`, `pyproject.toml`, `requirements.txt` | Dependencies with version constraints, conda env name |
+| Node Environment | `package.json`, `package-lock.json` | Dependencies, scripts, engines |
+| Build Config | `vite.config.ts`, `tsconfig.json` | Build targets, paths, aliases, plugins |
+| Lint Config | `.eslintrc`, `ruff.toml` / `pyproject.toml [tool.ruff]` | Rules, ignores, line length, custom rules |
+| Database Config | `alembic.ini`, `backend/app/core/config.py` | Connection string pattern, pool settings, migration target |
+| Auth Config | Various | JWT secret, token expiry, OAuth providers, role definitions |
+
+**Output**: `docs/infrastructure-config.md` — complete infrastructure reference with env var catalog, Docker architecture, build/lint configuration, and dependency manifest.
+
+---
+
+### 61. Frontend Component & Hook Deep Documentation
+
+| Agent Name | subagent_type | Can Edit? | Tools | Role on Team |
+| --- | --- | --- | --- | --- |
+| React Expert | `react-expert` | Yes | Read, Grep, Glob, Bash, Edit, MultiEdit, Write | For every component identified by Team 57: document its purpose, props interface (with types and defaults), internal state, side effects, event handlers, child components rendered, and known edge cases. For every hook: document params, return value, API calls made, store interactions, and error handling. |
+| Docs Writer | `docs-writer` | Yes | Read, Write, Edit, Grep, Glob, Bash, WebFetch | Transform the React Expert's raw analysis into structured, readable documentation. Organize by feature domain (deals, properties, market-data, extraction). Include usage examples and prop tables. |
+
+**Flow**: React Expert performs deep analysis of every component and hook → documents behavior, state, and edge cases → Docs Writer structures the output into clean, navigable documentation organized by feature → team produces a **Frontend Component Reference** document.
+
+**Per-Component Documentation Template**:
+
+```
+## ComponentName
+
+**File**: `src/features/deals/components/ComponentName.tsx`
+**Page(s)**: Deal Detail, Deal Comparison
+**Parent(s)**: ParentComponent
+**Children**: ChildA, ChildB
+
+### Props
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| dealId | string | Yes | — | The deal UUID to display |
+
+### State & Hooks
+
+- Uses `useDealStore()` for: selectedDeal, isLoading
+- Uses `useDealQuery(dealId)` for: API fetch + cache
+- Local state: `isExpanded` (boolean, default false)
+
+### Data Flow
+
+1. `dealId` prop → `useDealQuery` → GET /deals/{id} → Zod parse → store update → re-render
+2. On mount: fetches deal data, shows skeleton loader
+3. On dealId change: re-fetches, clears stale state
+
+### Edge Cases & Known Patterns
+
+- Handles null financial metrics via `?? undefined` (displays "N/A")
+- Trend calculation guards against division by zero
+```
+
+**Output**: `docs/frontend-components.md` — per-component and per-hook deep reference organized by feature domain.
+
+---
+
+### 62. Backend Endpoint & CRUD Deep Documentation
+
+| Agent Name | subagent_type | Can Edit? | Tools | Role on Team |
+| --- | --- | --- | --- | --- |
+| Backend Architect | `backend-development:backend-architect` | Yes | All tools | For every endpoint identified by Team 58: document the full request/response cycle — HTTP method, path, auth requirement, path/query params, request body schema, response schema (with all fields), CRUD functions called, enrichment steps, error responses (with status codes and conditions). For every CRUD function: document the SQLAlchemy query, joins, filters, and how the result is transformed before return. |
+| Docs Writer | `docs-writer` | Yes | Read, Write, Edit, Grep, Glob, Bash, WebFetch | Transform the Backend Architect's analysis into structured API documentation. Organize by domain (deals, properties, extraction, market-data, auth). Include request/response examples and error code tables. |
+
+**Flow**: Backend Architect analyzes every endpoint and CRUD function in depth → documents the full request lifecycle → Docs Writer structures the output into clean API reference documentation → team produces a **Backend API & CRUD Reference** document.
+
+**Per-Endpoint Documentation Template**:
+
+```
+## GET /api/v1/deals/{deal_id}
+
+**Auth**: require_analyst (any authenticated user with analyst+ role)
+**File**: backend/app/api/v1/endpoints/deals.py
+
+### Path Parameters
+
+| Param | Type | Description |
+| --- | --- | --- |
+| deal_id | UUID | The deal to retrieve |
+
+### Response Schema: DealResponse
+
+| Field | Type | Nullable | Source |
+| --- | --- | --- | --- |
+| id | UUID | No | deals.id |
+| property_name | str | No | deals.property_name |
+| cap_rate | float | Yes | _enrich_deals_with_extraction() → ExtractedValue |
+
+### CRUD Call Chain
+
+1. `get_deal(db, deal_id)` → SQLAlchemy query with joinedload(Deal.property)
+2. `_enrich_deals_with_extraction([deal])` → bulk query ExtractedValue for financial fields
+3. Return DealResponse.model_validate(enriched_deal)
+
+### Error Responses
+
+| Code | Condition | Body |
+| --- | --- | --- |
+| 404 | deal_id not found | {"detail": "Deal not found"} |
+| 401 | Missing/invalid JWT | {"detail": "Not authenticated"} |
+```
+
+**Output**: `docs/backend-api-reference.md` — per-endpoint and per-CRUD deep reference organized by domain.
+
+---
+
+### 63. Data Flow & Integration Documentation
+
+| Agent Name | subagent_type | Can Edit? | Tools | Role on Team |
+| --- | --- | --- | --- | --- |
+| Explorer | `Explore` | **No** | All except Edit/Write | Trace end-to-end data flows for every major user action: page load, deal creation, extraction run, property search, deal comparison, market data refresh. For each flow: document every system boundary crossed (frontend → API → CRUD → DB → back). Identify shared data paths where multiple features read the same underlying data. |
+| Researcher | `researcher` | Yes | All tools | Analyze the extraction pipeline data flow in depth: SharePoint/local file discovery → fingerprinting → grouping → cell mapping → Excel parsing → ExtractedValue storage → Property/Deal sync → API enrichment → frontend display. Document the complete pipeline with decision points, error handling, and retry behavior. |
+
+**Flow**: Explorer maps all user-facing data flows across the full stack → Researcher maps the extraction pipeline's internal data flow in detail → team produces a **Data Flow & Integration Reference** document with per-flow diagrams (described in text/tables) and boundary documentation.
+
+**Critical Data Flows to Document**:
+
+| Flow Name | Trigger | Path | Key Decision Points |
+| --- | --- | --- | --- |
+| Deal List Load | Page mount | DealsKanbanBoard → useDealsList → GET /deals/ → get_deals() → enrich → response | Auth check, pagination, enrichment scope |
+| Deal Detail Load | Card click | DealDetailPage → useDeal(id) → GET /deals/{id} → get_deal() → enrich → response | 404 handling, enrichment fields |
+| Extraction Run | Admin action | ExtractionDashboard → POST /extraction/start → background_task → extractor → DB sync | File discovery, change detection, error categorization |
+| Grouping Pipeline | Admin action | GroupPipelineTab → discover → fingerprint → group → reference-map → extract | Auto-mapping tiers, dry-run gates, approval |
+| Deal Comparison | Multi-select | ComparisonView → GET /deals/compare?ids=... → get_deals_for_comparison() → response | ID validation, enrichment, field alignment |
+| Market Data Refresh | Page mount / cron | MarketDataDashboard → GET /market-data/ → get_market_data() → CoStar/FRED queries | API rate limits, cache invalidation |
+
+**Output**: `docs/data-flow-reference.md` — end-to-end data flow documentation for every major user action and system process.
+
+---
+
+### 64. Architecture Decision & Pattern Documentation
+
+| Agent Name | subagent_type | Can Edit? | Tools | Role on Team |
+| --- | --- | --- | --- | --- |
+| Researcher | `researcher` | Yes | All tools | Analyze the codebase for recurring architectural patterns and implicit design decisions. Document each pattern: what it is, where it's used, why it was chosen, and what the alternatives were. Review git history for significant architectural changes. Research best-practice context for the patterns used (FastAPI dependency injection, SQLAlchemy 2.0 async, Zustand vs Redux, Zod transforms). |
+| Docs Writer | `docs-writer` | Yes | Read, Write, Edit, Grep, Glob, Bash, WebFetch | Produce Architecture Decision Records (ADRs) for each significant design choice. Write a patterns guide that names and explains each recurring pattern so future development stays consistent. |
+
+**Flow**: Researcher identifies all architectural patterns and implicit decisions → documents rationale and tradeoffs → Docs Writer formats as ADRs and a patterns guide → team produces an **Architecture Decisions & Patterns Reference** document.
+
+**Patterns to Document**:
+
+| Pattern | Where Used | Key Details |
+| --- | --- | --- |
+| Zod `.nullable().optional()` + `?? undefined` | Frontend schemas | Why not `?? 0`? Display semantics for missing data |
+| SQLAlchemy async sessions | All CRUD | Session lifecycle, dependency injection via `get_db()` |
+| Pydantic response model enrichment | Deal endpoints | `_enrich_deals_with_extraction()` pattern — why post-query enrichment? |
+| Zustand store-per-feature | Frontend state | Why Zustand over React Query? Store boundaries |
+| Background task extraction | Extraction endpoints | Why not synchronous? Task lifecycle, status polling |
+| Auth guard decorators | All endpoints | `require_analyst` vs `require_manager` — when to use which |
+| Conda environment isolation | Python deps | Why conda over venv/uv? Environment naming convention |
+| Feature-based folder structure | Frontend `src/features/` | Colocation of components, hooks, tests per domain |
+
+**Output**: `docs/architecture-decisions.md` — ADRs for major design choices + a recurring patterns guide.
+
+---
+
+### 65. Test Coverage & Quality Documentation
+
+| Agent Name | subagent_type | Can Edit? | Tools | Role on Team |
+| --- | --- | --- | --- | --- |
+| Explorer | `Explore` | **No** | All except Edit/Write | Map the complete test inventory: every test file, what it tests (endpoint, component, hook, CRUD, model), assertion patterns used, fixtures available, and mock strategy. Cross-reference against the source inventory from Teams 57-58 to identify untested artifacts. |
+| Test Engineer | `test-engineer` | Yes | Read, Write, Edit, Bash, Grep, Glob | Analyze test quality beyond coverage numbers: are tests asserting the right things? Are error paths tested? Are auth boundaries tested? Are there tests that always pass (vacuous assertions)? Document the test strategy and produce a gap analysis. Run coverage reports (`pytest --cov`, vitest coverage) and document results. |
+
+**Flow**: Explorer catalogs all test files and maps coverage → Test Engineer analyzes test quality and runs coverage tools → team produces a **Test Coverage & Quality Reference** document with gap analysis and recommendations.
+
+**Documentation Sections**:
+
+1. **Test Inventory**: Every test file, what it covers, test count
+2. **Coverage Report**: Backend line/branch coverage per module, frontend coverage per feature
+3. **Gap Analysis**: Untested endpoints, components, hooks, CRUD functions — prioritized by risk
+4. **Test Patterns Guide**: How to write tests in this project (fixtures, mocks, auth setup, DB setup)
+5. **Test Quality Audit**: Tests with weak assertions, missing error paths, untested auth boundaries
+
+**Output**: `docs/test-coverage.md` — test inventory, coverage metrics, gap analysis, and testing patterns guide.
+
+---
+
+### 66. Documentation Review, Cross-Reference Validation & Findings Consolidation
+
+| Agent Name | subagent_type | Can Edit? | Tools | Role on Team |
+| --- | --- | --- | --- | --- |
+| Reviewer | `reviewer` | Yes | Read, Edit, Grep, Glob, Bash | Review all documentation produced by Teams 57-65 for: accuracy (does the doc match the actual code?), completeness (are there artifacts mentioned in one doc but missing from another?), consistency (are the same entities named identically across docs?), and navigability (can you find what you need quickly?). |
+| Docs Writer | `docs-writer` | Yes | Read, Write, Edit, Grep, Glob, Bash, WebFetch | Produce a **Documentation Index** (`docs/README.md`) that serves as the entry point to all documentation. Cross-link between documents. Add "last verified" timestamps. Fix any inconsistencies found by Reviewer. Consolidate ALL issues, bugs, gaps, and improvement opportunities found by every team into a single **Findings & Recommendations Report** (`docs/findings-and-recommendations.md`), prioritized by severity. |
+
+**Flow**: Reviewer audits all documentation files for accuracy and completeness → flags inconsistencies and gaps → Docs Writer fixes doc-level issues, adds cross-references, produces the documentation index, and consolidates ALL findings from every team into a single prioritized report → team produces a **Documentation Index**, **Findings & Recommendations Report**, and **Validation Report**.
+
+**Findings & Recommendations Report Structure**:
+
+The `docs/findings-and-recommendations.md` file consolidates every issue surfaced by Teams 57-65 into a single actionable document:
+
+| Section | Source Teams | Content |
+| --- | --- | --- |
+| Critical Issues | 57-63 | Bugs, data integrity violations, schema mismatches — things that produce wrong output |
+| Schema & Contract Drift | 58, 59, 62 | Pydantic ↔ Zod mismatches, SQLAlchemy ↔ DB drift, undocumented fields |
+| Test Gaps | 65 | Untested endpoints, components, error paths — prioritized by risk |
+| Configuration Gaps | 60 | Undocumented env vars, missing defaults, secrets exposure risks |
+| Architecture Improvements | 64 | Pattern violations, inconsistent conventions, tech debt opportunities |
+| Performance Concerns | 58, 59 | Missing indexes, N+1 query patterns, unnecessary queries |
+| Dead Code & Cleanup | 57, 58 | Orphaned files, unused exports, unreachable code paths |
+
+Each finding includes: **severity** (critical/high/medium/low), **location** (file path + line), **description**, **recommended fix**, and **suggested Agent Team** from the reference guide to execute the fix (e.g., "Use Teams 48-56 for Dashboard Integrity fixes").
+
+**Validation Checks**:
+
+1. Every endpoint documented in `backend-api-reference.md` appears in `data-flow-reference.md`
+2. Every component in `frontend-components.md` appears in `frontend-architecture.md`
+3. Every table in `database-schema.md` has a corresponding SQLAlchemy model in `backend-architecture.md`
+4. Every env var in `infrastructure-config.md` appears in the actual codebase
+5. No stale references — every file path mentioned in docs exists in the project
+6. Cross-document links are valid
+7. Every finding from every team appears in `findings-and-recommendations.md`
+
+**Output**: `docs/README.md` (documentation index) + `docs/findings-and-recommendations.md` (consolidated findings) + **Validation Report** listing any remaining inaccuracies.
+
+---
+
+### 67. Documentation Final Gate
+
+| Agent Name | subagent_type | Can Edit? | Tools | Role on Team |
+| --- | --- | --- | --- | --- |
+| Reviewer | `reviewer` | Yes | Read, Edit, Grep, Glob, Bash | Final review of all documentation and the documentation index. **CRITICAL**: Run `git status` and `git diff` to verify ZERO source code changes were made (only new files in `docs/` should appear). Check that all docs follow the same formatting conventions. Verify `docs/findings-and-recommendations.md` is complete — every finding from every team is represented. |
+| Tester | `tester` | Yes | Read, Write, Edit, Bash, Grep, Glob | Run the full test suite (backend + frontend) to confirm no regressions were introduced. Report test count and pass rate — must match the pre-documentation baseline exactly (no tests added, removed, or modified). |
+| Production Validator | `production-validator` | Yes | All tools | Verify: `npm run build` succeeds, `npx tsc --noEmit` passes, backend starts cleanly. Run `git diff --stat` to confirm the only changed/added files are in `docs/`. Confirm the project is in the **exact same working state** as before the documentation effort — zero functional changes. |
+
+**Flow**: All three work in parallel → Reviewer confirms documentation quality, findings completeness, and zero source code changes → Tester verifies no regressions → Production Validator confirms build integrity and zero-change guarantee → team produces **Documentation Effort Final Report**.
+
+**Output**: Final Report — documentation file count, total word count, findings count by severity, validation status, test suite status, build status, git diff confirmation (docs/ only), go/no-go.
+
+---
+
+## Quick Reference: System Review & Documentation Teams
+
+| # | Team Name | Agents | Phase | Parallel? | Purpose |
+| --- | --- | --- | --- | --- | --- |
+| 57 | Frontend Architecture Inventory | Explorer, React Expert | Discovery | Yes | Catalog all frontend artifacts and component hierarchy |
+| 58 | Backend Architecture Inventory | Backend Architect, Explorer | Discovery | Yes | Catalog all backend artifacts and dependency graph |
+| 59 | Database Schema Documentation | Postgres Expert, Docs Writer | Discovery | Yes | Extract live schema, document tables and relationships |
+| 60 | Infrastructure & Config Inventory | Explorer, Config Safety Reviewer | Discovery | Yes | Catalog all config, env vars, Docker, build tools |
+| 61 | Frontend Component Deep Docs | React Expert, Docs Writer | Documentation | Yes | Per-component and per-hook deep reference |
+| 62 | Backend Endpoint Deep Docs | Backend Architect, Docs Writer | Documentation | Yes | Per-endpoint and per-CRUD deep reference |
+| 63 | Data Flow & Integration Docs | Explorer, Researcher | Documentation | Yes | End-to-end data flow documentation |
+| 64 | Architecture Decisions & Patterns | Researcher, Docs Writer | Documentation | Yes | ADRs and recurring patterns guide |
+| 65 | Test Coverage & Quality Docs | Explorer, Test Engineer | Documentation | Yes | Test inventory, coverage, gap analysis |
+| 66 | Docs Review, Validation & Findings | Reviewer, Docs Writer | Validation | Sequential | Cross-reference validation, index creation, findings consolidation |
+| 67 | Documentation Final Gate | Reviewer, Tester, Production Validator | Final | Yes | Quality gate — no regressions, docs complete |
+
+---
+
+## Execution Plan: Step-by-Step Instructions
+
+### Overview
+
+The teams are organized into **4 phases**. Phase 1 inventories every artifact in the system. Phase 2 produces deep documentation from those inventories. Phase 3 validates cross-references and consistency. Phase 4 is the final quality gate.
+
+```
+PHASE 1: DISCOVERY & INVENTORY (Teams 57-60)     ← What exists? Where? How is it connected?
+    ↓
+PHASE 2: DEEP DOCUMENTATION (Teams 61-65)         ← Document every artifact in detail
+    ↓
+PHASE 3: VALIDATION & INDEX (Team 66)             ← Cross-reference, fix inconsistencies, build index
+    ↓
+PHASE 4: FINAL GATE (Team 67)                     ← Confirm no regressions, docs are complete
+```
+
+---
+
+### Phase 1: Discovery & Inventory (Teams 57, 58, 59, 60 — ALL PARALLEL)
+
+**What**: Catalog every artifact in the system across all layers. All 4 teams run simultaneously because they are independent read-only inventory tasks.
+
+**Launch Command** (single message with 4 Task calls):
+
+```
+Task("Frontend Inventory", "Team 57: Systematically catalog every frontend artifact in the project. Start from src/ and map: (1) ALL pages — find the router config (React Router) and list every route with its component, path, auth requirement, and lazy loading status, (2) ALL components — scan src/features/*/components/ and src/components/, for each: file path, component name, props interface, imports (dependencies), what imports it (dependents), (3) ALL hooks — scan src/features/*/hooks/ and src/hooks/, for each: hook name, params, return type, API endpoints called, stores accessed, (4) ALL Zustand stores — scan src/stores/, for each: store name, state shape (all fields with types), actions, selectors, which hooks/components consume it, (5) ALL Zod schemas — scan src/lib/api/schemas/, for each: schema name, every field with type, nullable, optional, transforms, defaults, (6) ALL TypeScript types — scan src/types/, for each: interface/type name, fields, which schemas/components use it, (7) ALL utility functions — scan src/lib/ and src/utils/, (8) ALL test files — scan src/**/__tests__/. Produce a structured inventory document. Do NOT edit any files.", "react-expert")
+
+Task("Backend Inventory", "Team 58: Systematically catalog every backend artifact in the project. Start from backend/ and map: (1) ALL API endpoints — scan backend/app/api/v1/endpoints/, for each: file path, route path, HTTP method, auth guard (require_analyst/require_manager/none), request schema, response schema, CRUD function called, query parameters, (2) ALL CRUD functions — scan backend/app/crud/, for each: function name, model, query type (select/insert/update/delete), joins, filters, return type, (3) ALL Pydantic schemas — scan backend/app/schemas/, for each: schema name, every field with type, nullable, optional, default, validators, (4) ALL SQLAlchemy models — scan backend/app/models/, for each: model name, table name, columns, relationships, indexes, (5) ALL extraction pipeline modules — scan backend/app/extraction/, for each: module name, purpose, inputs, outputs, dependencies, (6) ALL middleware — in main.py and backend/app/middleware/, (7) ALL background tasks, (8) ALL config/settings — backend/app/core/config.py, every setting with env var source and default, (9) ALL Alembic migrations — backend/alembic/versions/, each migration's purpose, (10) ALL test files — backend/tests/. Produce a structured inventory document. Do NOT edit any files.", "backend-development:backend-architect")
+
+Task("Database Inventory", "Team 59: Document the complete PostgreSQL database schema. (1) Connect to the database using the connection string from .env (port 5433) and run: pg_dump --schema-only to capture the full DDL, (2) For each table: list all columns with data type, nullable, default, constraints, (3) Map all foreign key relationships with cascade behavior, (4) List all indexes with columns and type, (5) List all sequences, (6) Compare the live schema against SQLAlchemy model definitions in backend/app/models/ — flag any drift (column in DB but not in model, or vice versa), (7) Summarize the migration history from backend/alembic/versions/ — what changed in each migration. Produce a structured schema document.", "postgres-expert")
+
+Task("Infrastructure Inventory", "Team 60: Catalog all configuration and infrastructure artifacts. (1) Find EVERY env var reference across the entire codebase — grep for os.environ, os.getenv, process.env, settings., config., import.meta.env, (2) Cross-reference each against .env, .env.example, .env.prod.example — flag undocumented vars, (3) Document Docker files: Dockerfile, docker-compose.yml, any files in docker/, (4) Document build config: vite.config.ts, tsconfig.json, tsconfig.node.json, (5) Document lint config: ESLint config, ruff config in pyproject.toml, (6) Document package managers: package.json scripts, conda environment spec, (7) Document Alembic config: alembic.ini, env.py, (8) List all MCP server references if any, (9) Document any CI/CD config. Produce a structured infrastructure document.", "Explore")
+```
+
+**Decision Point**: Review all 4 inventories. They form the factual foundation for Phase 2. Verify counts are reasonable — if the frontend inventory shows 0 hooks, something was missed.
+
+**Expected Duration**: 10-20 minutes (all parallel).
+
+---
+
+### Phase 2: Deep Documentation (Teams 61, 62, 63, 64, 65 — ALL PARALLEL)
+
+**What**: Using the inventories from Phase 1, produce comprehensive documentation for every artifact. All 5 teams run simultaneously because each produces an independent documentation file.
+
+**Pre-Condition**: Phase 1 inventories reviewed and approved.
+
+**CRITICAL READ-ONLY RULE**: Every Phase 2 agent documents what they find — bugs, inconsistencies, gaps, pattern violations — but makes **ZERO code changes**. All issues are captured in the documentation with severity, file:line, and recommended fix. Team 66 will consolidate all findings into `docs/findings-and-recommendations.md`.
+
+**Launch Command** (single message with 5 Task calls):
+
+```
+Task("Frontend Component Docs", "Team 61: Using the Phase 1 frontend inventory, produce comprehensive documentation for every frontend component and hook. For EACH component: document its purpose, full props interface (name, type, required, default, description), internal state (useState/useReducer), side effects (useEffect with dependencies), event handlers, child components rendered, Zustand stores accessed, API calls triggered, and known edge cases (null handling, loading states, error states). For EACH hook: document params, return type, API endpoint called, Zod schema used for parse, store mutations, error handling, and re-fetch triggers. Organize by feature domain: deals, properties, market-data, extraction, auth, shared. Write the output to docs/frontend-components.md. Read the actual source code for every component — do not infer from names. IMPORTANT: For every issue found (bugs, missing null guards, ?? 0 patterns, stale state, missing error handling), add a '## Issues Found' section at the end with severity, file:line, description, and recommended fix. Do NOT edit any source files.", "react-expert")
+
+Task("Backend API Docs", "Team 62: Using the Phase 1 backend inventory, produce comprehensive API documentation for every endpoint and CRUD function. For EACH endpoint: document HTTP method, full path, auth requirement, all path/query params with types, request body schema (if POST/PUT/PATCH), complete response schema (every field with type, nullable, description), the CRUD function(s) called, any enrichment steps, and ALL error responses (status code, condition, response body). For EACH CRUD function: document the SQLAlchemy query in detail — model, joins, filters, ordering, pagination, and how the result is transformed before return. Include the enrichment functions (_enrich_deals_with_extraction, etc.) as separate documented functions. Organize by domain: deals, properties, extraction, market-data, auth. Write the output to docs/backend-api-reference.md. Read the actual source code — do not infer. IMPORTANT: For every issue found (schema mismatches, missing error handlers, inconsistent auth, N+1 queries, missing validation), add a '## Issues Found' section at the end with severity, file:line, description, and recommended fix. Do NOT edit any source files.", "backend-development:backend-architect")
+
+Task("Data Flow Docs", "Team 63: Produce end-to-end data flow documentation for every major user action and system process. For EACH flow: trace the complete path from user action → React component → hook → API call → backend endpoint → CRUD function → SQLAlchemy query → database table → response → Zod parse → store update → component re-render. Document EVERY boundary crossing with what data shape changes. Flows to document: (1) deal list page load, (2) deal detail load, (3) deal creation/edit, (4) property list load, (5) property detail load, (6) deal comparison, (7) extraction run (local), (8) grouping pipeline (discover → fingerprint → group → map → extract), (9) market data sales page load, (10) construction pipeline page load, (11) auth login flow, (12) auth token refresh. Also document the extraction pipeline internal flow in detail: file discovery → fingerprinting → grouping → cell mapping → Excel parsing → value storage → property/deal sync. Write the output to docs/data-flow-reference.md. IMPORTANT: For every data flow discontinuity found (data lost between layers, type coercion, schema gaps, stale cache paths), add a '## Issues Found' section at the end with severity, file:line, description, and recommended fix. Do NOT edit any source files.", "researcher")
+
+Task("Architecture & Patterns Docs", "Team 64: Document all architectural decisions and recurring patterns in the codebase. (1) Identify every recurring pattern: Zod nullable handling, auth guard usage, Pydantic response enrichment, SQLAlchemy async session management, Zustand store conventions, background task lifecycle, error response format, test fixture patterns. For each pattern: document what it is, where it's used (with file references), why it was chosen, what the alternatives are, and how to apply it correctly. (2) Write Architecture Decision Records (ADRs) for major design choices: FastAPI over Django/Flask, SQLAlchemy async over sync, Zustand over Redux/React Query, Zod over io-ts/yup, conda over venv, feature-based folder structure, enrichment-on-read pattern for extraction data, background tasks for extraction. For each ADR: context, decision, consequences, alternatives considered. (3) Document the project's coding conventions: naming, file organization, import ordering, error handling standards. Write the output to docs/architecture-decisions.md. IMPORTANT: For every pattern violation, inconsistent convention, or architectural concern found, add a '## Issues Found' section at the end with severity, file:line, description, and recommended fix. Do NOT edit any source files.", "researcher")
+
+Task("Test Coverage Docs", "Team 65: Produce a comprehensive test documentation and coverage analysis. (1) Run coverage: conda run -n dashboard-backend pytest backend/tests/ --cov=backend/app --cov-report=term-missing -v AND npx vitest run --coverage. Capture results. (2) Map every test file to what it tests — endpoint, component, hook, CRUD function, model. (3) Identify the test GAP: every artifact (endpoint, component, hook, CRUD) that has NO test, or has tests that only cover the happy path and miss error/edge cases. (4) Analyze test quality: find tests with weak assertions (assertTrue(True), assertEqual with hardcoded values), tests missing auth boundary checks, tests that don't assert error responses. (5) Document the test strategy: how to set up test DB, how to create fixtures, how to mock auth, how to test components, test naming conventions. (6) Produce a prioritized gap list: critical (untested auth endpoints, untested error paths) → high (untested CRUD functions) → medium (untested components) → low (untested utilities). Write the output to docs/test-coverage.md. IMPORTANT: The gap list IS the findings for this team — every untested artifact is a finding. Do NOT write any new tests or edit any test files.", "test-engineer")
+```
+
+**Expected Duration**: 20-40 minutes (all parallel).
+
+---
+
+### Phase 3: Validation & Index (Team 66 — SEQUENTIAL)
+
+**What**: Cross-reference all documentation for consistency, fix gaps, and produce the documentation index.
+
+**Pre-Condition**: All Phase 2 documentation files written.
+
+**Launch Command**:
+
+```
+Task("Documentation Validation & Findings Consolidation", "Team 66: Review and cross-reference all documentation produced in Phase 2. (1) Read every doc file in docs/: frontend-architecture.md, frontend-components.md, backend-architecture.md, backend-api-reference.md, database-schema.md, infrastructure-config.md, data-flow-reference.md, architecture-decisions.md, test-coverage.md. (2) Cross-reference: every endpoint in backend-api-reference.md should appear in data-flow-reference.md. Every component in frontend-components.md should appear in frontend-architecture.md. Every table in database-schema.md should have a corresponding model in backend-architecture.md. Every env var in infrastructure-config.md should exist in the codebase. (3) Flag inconsistencies: same entity named differently across docs, stale file paths that don't exist, missing artifacts (mentioned in one doc but absent from another). (4) Fix all doc-level inconsistencies found. (5) Create docs/README.md as the documentation index. (6) CRITICAL: Consolidate ALL issues, bugs, gaps, inconsistencies, and improvement opportunities identified by EVERY team (57-65) into docs/findings-and-recommendations.md. Organize by severity (critical, high, medium, low). For each finding: severity, location (file:line), description, recommended fix, and suggested Agent Team from docs/agent-team-reference.md to execute the fix. (7) Add 'Last verified: [date]' to each doc file. Report total findings count by severity.", "reviewer")
+```
+
+**Expected Duration**: 10-20 minutes.
+
+---
+
+### Phase 4: Final Gate (Team 67 — ALL PARALLEL)
+
+**What**: Final quality gate to confirm documentation is complete and no regressions were introduced.
+
+**Pre-Condition**: Phase 3 validation complete.
+
+**Launch Command** (single message with 3 Task calls):
+
+```
+Task("Documentation Quality Review", "Team 67 - Reviewer: Final review of all documentation files in docs/. Verify: (1) every doc follows consistent formatting (heading hierarchy, table structure, code block syntax), (2) no placeholder text or TODO markers remain, (3) cross-document links are valid, (4) no code changes were made outside of docs/ (this is documentation-only), (5) README.md index is complete and all links work. Report any remaining issues.", "reviewer")
+
+Task("Regression Check", "Team 67 - Tester: Run the complete test suite to confirm no regressions: (1) conda run -n dashboard-backend pytest backend/tests/ -v (2) npm run test. Report total test count and pass rate. Both must match the pre-documentation baseline (no tests added or removed — this is a docs-only effort).", "tester")
+
+Task("Build Verification", "Team 67 - Validator: Verify project integrity: (1) npm run build succeeds with zero errors, (2) npx tsc --noEmit passes, (3) backend starts cleanly with conda run -n dashboard-backend uvicorn backend.app.main:app, (4) all documentation files are valid markdown (no syntax errors). Confirm the project is in the exact same working state as before the documentation effort.", "production-validator")
+```
+
+**Decision Point**: All three must report clean for the documentation effort to be considered complete.
+
+**Expected Duration**: 5-10 minutes (all parallel).
+
+---
+
+## Summary: Total Agent Count for System Review & Documentation
+
+| Phase | Teams | Unique Agent Types | Total Agent Instances |
+| --- | --- | --- | --- |
+| 1: Discovery & Inventory | 57, 58, 59, 60 | 5 (Explore, react-expert, backend-architect, postgres-expert, config-safety-reviewer) | 8 |
+| 2: Deep Documentation | 61, 62, 63, 64, 65 | 5 (react-expert, backend-architect, researcher, docs-writer, test-engineer) | 10 |
+| 3: Validation & Index | 66 | 2 (reviewer, docs-writer) | 2 |
+| 4: Final Gate | 67 | 3 (reviewer, tester, production-validator) | 3 |
+| **Total** | **11 teams** | **9 unique types** | **23 agent instances** |
+
+**Optimal execution with full parallelism**: ~45-90 minutes + review time between phases.
+
+---
+
+## Documentation Output Manifest
+
+| Document | Produced By | Content |
+| --- | --- | --- |
+| `docs/README.md` | Team 66 | Documentation index — table of contents linking all docs |
+| `docs/findings-and-recommendations.md` | Team 66 (consolidated from all teams) | **Primary deliverable** — every issue, bug, gap, and improvement opportunity, prioritized by severity with recommended fixes and suggested Agent Teams |
+| `docs/frontend-architecture.md` | Teams 57 | Component hierarchy, routing, state management, data fetching patterns |
+| `docs/frontend-components.md` | Team 61 | Per-component and per-hook deep reference by feature domain |
+| `docs/backend-architecture.md` | Team 58 | Endpoint catalog, CRUD map, model reference, middleware chain |
+| `docs/backend-api-reference.md` | Team 62 | Per-endpoint deep reference with schemas, errors, CRUD chains |
+| `docs/database-schema.md` | Team 59 | Table reference, relationships, indexes, migration history, drift report |
+| `docs/infrastructure-config.md` | Team 60 | Env var catalog, Docker architecture, build/lint config, dependencies |
+| `docs/data-flow-reference.md` | Team 63 | End-to-end data flow documentation for every major action |
+| `docs/architecture-decisions.md` | Team 64 | ADRs for design choices + recurring patterns guide |
+| `docs/test-coverage.md` | Team 65 | Test inventory, coverage metrics, gap analysis, testing patterns |
+
+---
+
+## Troubleshooting Guide
+
+### Common Issues and Resolution
+
+| Issue | Symptom | Team That Catches It | Resolution |
+| --- | --- | --- | --- |
+| Inventory misses files in nested dirs | Component/endpoint count lower than expected | Team 57, 58 | Verify glob patterns search recursively. Check for non-standard file locations. |
+| Schema drift between DB and models | pg_dump output doesn't match SQLAlchemy column defs | Team 59 | Document the drift. May need an Alembic migration to reconcile — note it but don't fix it (docs-only effort). |
+| Env var referenced but not in .env.example | Config doc lists var but example file missing it | Team 60 | Add to .env.example with safe default — this is the one acceptable code change. |
+| Component props inferred incorrectly | Documentation says prop is required but it has a default | Team 61 | Re-read the TypeScript interface. Check for `defaultProps` or destructuring defaults. |
+| Test coverage tool errors | pytest-cov or vitest coverage config not set up | Team 65 | Install missing coverage plugins. Document the setup for future runs. |
+| Cross-doc inconsistency | Endpoint named `/deals/` in API doc but `/api/v1/deals/` in data flow doc | Team 66 | Standardize on the full path including prefix. Fix all references. |
+
+### If Agents Attempt to Edit Code
+
+This is designed as a **strictly read-only** effort. No agent should edit any project file outside of `docs/`.
+
+1. **If an agent tries to fix a bug it found**: STOP. Document the bug in the findings report with file path, line number, description, and recommended fix — but do NOT apply the fix
+2. **If an env var is undocumented**: Document the gap in `docs/infrastructure-config.md` and add it to the findings report — do NOT edit `.env.example`
+3. **If a docstring is wrong**: Document the error in the findings report — do NOT edit the source file
+4. **If a test is missing**: Document the gap in `docs/test-coverage.md` with the recommended test — do NOT write the test
+5. **All identified issues go into `docs/findings-and-recommendations.md`** for the developer to act on in a separate effort (e.g., Teams 48-56 for Dashboard Integrity fixes)
+
+---
+
+## Optimal Prompt for Execution
+
+Copy and paste the following prompt into a Claude Code terminal to execute the full documentation pipeline.
+
+### The Prompt
+
+```
+I need you to run a comprehensive system review and documentation pipeline on this project. Follow all 4 phases below exactly. Use Claude Code's built-in Task tool to create agent teams. Communicate progress at every phase boundary.
+
+## CRITICAL CONSTRAINT: STRICTLY READ-ONLY — ZERO CHANGES
+
+This effort makes ZERO changes to the project. No code edits. No config changes. No test additions. No .env updates. No docstring fixes. Nothing. Every agent operates in read-only mode against the codebase and database. The ONLY files created are new documentation files written to `docs/`. If an agent finds a bug, schema mismatch, missing test, or any other issue — it documents the finding with severity, file:line, description, and recommended fix. It does NOT apply the fix. All findings are consolidated into `docs/findings-and-recommendations.md` in Phase 3.
+
+At the end of Phase 4, run `git diff --stat` to prove zero source files were modified. Only new files in `docs/` should appear.
+
+## PROJECT CONTEXT
+- Backend: FastAPI + SQLAlchemy 2.0 async + Alembic (Python, in `backend/`)
+- Frontend: React + TypeScript + Vite (in `src/`)
+- Database: PostgreSQL on port 5433, conda environment `dashboard-backend`
+- Backend schemas: Pydantic models in `backend/app/schemas/`
+- Frontend schemas: Zod schemas in `src/lib/api/schemas/`
+- Extraction pipeline: `backend/app/extraction/` (extractor, fingerprinter, grouping, reference_mapper, cell_mapping, group_pipeline)
+- Stores: Zustand in `src/stores/`
+- Tests: Backend pytest (`backend/tests/`), Frontend vitest (`src/`)
+- Config: `.env` in project root, `.env.prod.example`, Docker configs
+- Auth: JWT with role-based guards (require_analyst for reads, require_manager for mutations)
+- Test commands: `npm run test` (frontend), `conda run -n dashboard-backend pytest backend/tests/` (backend)
+- Build command: `npm run build`
+- Type check: `npx tsc --noEmit`
+- Documentation output directory: `docs/`
+- Agent Team Reference: `docs/agent-team-reference.md` (Teams 57-67 cover this effort)
+
+## PHASE 1: DISCOVERY & INVENTORY (Teams 57-60, ALL PARALLEL)
+
+Create tasks for all 4 inventory workstreams below, then spawn agents to work them IN PARALLEL. No file edits — inventory and documentation only. All output goes to `docs/`.
+
+1. **Frontend Architecture Inventory** (Team 57): Spawn a `react-expert` agent. It must:
+   - Map every route in the router config: path, component, auth requirement, lazy loading
+   - Catalog every component in `src/features/*/components/` and `src/components/`: file path, component name, props interface, imports, dependents
+   - Catalog every hook in `src/features/*/hooks/` and `src/hooks/`: name, params, return type, API calls, store access
+   - Catalog every Zustand store in `src/stores/`: state shape, actions, consumers
+   - Catalog every Zod schema in `src/lib/api/schemas/`: fields with types, nullable, optional, transforms
+   - Catalog every type in `src/types/`
+   - Map the component hierarchy per page
+   - Write the raw inventory to `docs/frontend-architecture.md`
+   - Do NOT edit any source files
+
+2. **Backend Architecture Inventory** (Team 58): Spawn a `backend-development:backend-architect` agent. It must:
+   - Catalog every API endpoint in `backend/app/api/v1/endpoints/`: route, method, auth guard, request/response schema, CRUD function
+   - Catalog every CRUD function in `backend/app/crud/`: function name, model, query pattern, return type
+   - Catalog every Pydantic schema in `backend/app/schemas/`: all fields with types, nullable, validators
+   - Catalog every SQLAlchemy model in `backend/app/models/`: table, columns, relationships, indexes
+   - Catalog every extraction module in `backend/app/extraction/`: purpose, inputs, outputs
+   - Document middleware chain, auth system, background tasks, settings
+   - Catalog every Alembic migration and every test file
+   - Write the raw inventory to `docs/backend-architecture.md`
+   - Do NOT edit any source files
+
+3. **Database Schema Inventory** (Team 59): Spawn a `postgres-expert` agent. It must:
+   - Run `pg_dump --schema-only` against the live database
+   - Document every table: columns, types, nullable, defaults, constraints
+   - Map all foreign key relationships with cascade behavior
+   - List all indexes with columns and type
+   - Compare live schema against SQLAlchemy models — flag drift
+   - Summarize migration history
+   - Write to `docs/database-schema.md`
+   - Do NOT edit any source files or run any migrations
+
+4. **Infrastructure Inventory** (Team 60): Spawn an `Explore` agent. It must:
+   - Grep for every env var reference across the entire codebase
+   - Cross-reference against .env.example files — flag undocumented vars
+   - Document Docker config, Vite config, TypeScript config, lint config, conda env, package.json scripts
+   - Write to `docs/infrastructure-config.md`
+   - Do NOT edit any config files — only document what exists and flag gaps
+
+After ALL 4 agents complete, present the inventories to me and WAIT for my approval before proceeding to Phase 2.
+
+## PHASE 2: DEEP DOCUMENTATION (Teams 61-65, ALL PARALLEL)
+
+After I approve the Phase 1 inventories, spawn all 5 documentation teams in parallel.
+
+CRITICAL READ-ONLY RULE: Every Phase 2 agent documents what they find — bugs, inconsistencies, gaps, pattern violations — but makes ZERO code changes. All issues are captured in the documentation with severity, file:line, and recommended fix. Team 66 will consolidate all findings into `docs/findings-and-recommendations.md`.
+
+1. **Frontend Component Deep Docs** (Team 61, `react-expert`): For every component and hook from Team 57's inventory: document purpose, full props interface, internal state, side effects, event handlers, children, stores accessed, API calls, edge cases. Organize by feature domain. Write to `docs/frontend-components.md`. For every issue found (bugs, missing null guards, ?? 0 patterns, stale state, missing error handling), add a `## Issues Found` section at the end with severity, file:line, description, and recommended fix. Do NOT edit any source files.
+
+2. **Backend API Deep Docs** (Team 62, `backend-development:backend-architect`): For every endpoint from Team 58's inventory: document full request/response cycle, all params, complete response schema with every field, CRUD chain, enrichment steps, all error responses. For every CRUD function: document the query in detail. Include enrichment functions. Write to `docs/backend-api-reference.md`. For every issue found (schema mismatches, missing error handlers, inconsistent auth, N+1 queries), add a `## Issues Found` section. Do NOT edit any source files.
+
+3. **Data Flow Documentation** (Team 63, `researcher`): Trace end-to-end data flows for every major user action: deal list load, deal detail, deal creation, property list, property detail, deal comparison, extraction run (local), grouping pipeline (all phases), market data pages, auth login, token refresh. Document every boundary crossing. Write to `docs/data-flow-reference.md`. For every data flow discontinuity found (data lost between layers, type coercion, schema gaps), add a `## Issues Found` section. Do NOT edit any source files.
+
+4. **Architecture Decisions & Patterns** (Team 64, `researcher`): Identify every recurring pattern (Zod nullable, async sessions, enrichment, Zustand conventions, auth guards, background tasks). Write ADRs for major design choices (FastAPI, SQLAlchemy async, Zustand, Zod, conda, feature folders, enrichment-on-read). Document coding conventions. Write to `docs/architecture-decisions.md`. For every pattern violation or architectural concern, add a `## Issues Found` section. Do NOT edit any source files.
+
+5. **Test Coverage Documentation** (Team 65, `test-engineer`): Run coverage tools (read-only — capture output only). Map every test file to what it tests. Identify all gaps (untested endpoints, components, CRUD, error paths). Analyze test quality (weak assertions, missing auth tests). Document test strategy (fixtures, mocks, setup). Write to `docs/test-coverage.md`. The gap list IS the findings — every untested artifact is a finding with severity. Do NOT write any new tests or edit any test files.
+
+After ALL 5 agents complete, present the documentation and WAIT for my approval before Phase 3.
+
+## PHASE 3: VALIDATION, INDEX & FINDINGS CONSOLIDATION (Team 66, SEQUENTIAL)
+
+After I approve Phase 2:
+
+Spawn a `reviewer` agent to:
+1. Cross-reference all documentation: every endpoint in API docs appears in data flow docs, every component in component docs appears in architecture docs, every table in DB docs has a model in backend docs
+2. Flag and fix all doc-level inconsistencies (naming, stale paths, missing artifacts)
+3. Create `docs/README.md` as the documentation index
+4. **CRITICAL**: Consolidate ALL issues, bugs, gaps, inconsistencies, and improvement opportunities identified by EVERY team (57-65) into `docs/findings-and-recommendations.md`. Organize by severity (critical → high → medium → low). For each finding: severity, location (file:line), description, recommended fix, and suggested Agent Team from `docs/agent-team-reference.md` to execute the fix
+5. Add "Last verified: [today's date]" to each doc
+6. Report total findings count by severity
+
+## PHASE 4: FINAL GATE (Team 67, ALL PARALLEL)
+
+After Phase 3:
+1. Spawn a `reviewer` to verify all docs follow consistent formatting, no TODOs remain, all cross-links work, `docs/findings-and-recommendations.md` is complete with every finding represented. **Run `git status` and `git diff` to verify ZERO source code changes** — only new files in `docs/` should appear.
+2. Spawn a `tester` to run full test suite (backend + frontend) — confirm zero regressions. Test count must match pre-documentation baseline exactly (no tests added, removed, or modified).
+3. Spawn a `production-validator` to verify: `npm run build`, `npx tsc --noEmit`, backend starts cleanly. Run `git diff --stat` to confirm only `docs/` files changed.
+
+Present the final report including: documentation file count, findings count by severity, test suite status, build status, and git diff confirmation. Do NOT commit or push — I will review and commit.
+
+## COMMUNICATION RULES
+- Report progress at every phase boundary
+- If any agent can't read a file or connect to the database, report immediately
+- After Phase 1, WAIT for my approval before Phase 2
+- After Phase 2, WAIT for my approval before Phase 3
+- After Phase 4, present the final summary and STOP
+- **ABSOLUTE RULE**: Do NOT edit any source files, config files, test files, or env files. The ONLY files created or modified are in `docs/`. If you find something that needs fixing, document it in the findings — do not fix it.
+```
+
+### Expected Duration
+
+| Phase | Agents | Estimated Time |
+| --- | --- | --- |
+| Phase 1: Discovery | 4 parallel | 10-20 minutes |
+| Review break | You | As long as needed |
+| Phase 2: Deep Docs | 5 parallel | 20-40 minutes |
+| Review break | You | As long as needed |
+| Phase 3: Validation | 1 sequential | 10-20 minutes |
+| Phase 4: Final Gate | 3 parallel | 5-10 minutes |
+| **Total** | | **~45-90 minutes + review time** |
+
+### What Success Looks Like
+
+After a successful run, you should have:
+
+- **ZERO changes** to any project source file (no code, config, test, or env file edits)
+- 11 documentation files in `docs/`
+- A `docs/README.md` index linking to all docs
+- A `docs/findings-and-recommendations.md` with every issue prioritized by severity — the primary actionable deliverable
+- Every frontend component, hook, store, and schema documented
+- Every backend endpoint, CRUD function, schema, and model documented
+- Complete database schema reference with relationship map and drift report
+- End-to-end data flow documentation for every major user action
+- Architecture Decision Records for all major design choices
+- Test coverage report with prioritized gap analysis
+- All documentation cross-referenced and validated for consistency
+- Zero test regressions (test suite passes, no tests added or removed)
+- Build still succeeding
+- A clear roadmap of what to fix next, organized by severity and linked to existing Agent Teams (48-56 etc.) for execution

@@ -13,6 +13,48 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 /** Per-URL ETag + cached response body for conditional GET requests. */
 const etagCache = new Map<string, { etag: string; data: unknown }>();
 
+/** Guard against concurrent refresh attempts — only one in-flight at a time. */
+let refreshPromise: Promise<boolean> | null = null;
+
+/**
+ * Attempt to refresh the access token using the stored refresh token.
+ * Returns true if successful, false otherwise.
+ * Uses localStorage directly to avoid circular dependency with authStore.
+ */
+async function attemptTokenRefresh(): Promise<boolean> {
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) return false;
+
+  // Deduplicate concurrent refresh calls
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      if (data.access_token && data.refresh_token) {
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 export class ApiError extends Error {
   status: number;
   data?: unknown;
@@ -86,17 +128,53 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   }
 
   if (!response.ok) {
+    // On 401, try token refresh before giving up (skip for the refresh endpoint itself)
+    if (response.status === 401 && !endpoint.endsWith('/auth/refresh')) {
+      const refreshed = await attemptTokenRefresh();
+      if (refreshed) {
+        // Retry the original request with the new access token
+        const newToken = localStorage.getItem('access_token');
+        const retryHeaders = { ...headers } as Record<string, string>;
+        if (newToken) {
+          retryHeaders['Authorization'] = `Bearer ${newToken}`;
+        }
+        // Remove If-None-Match for retry to avoid stale 304
+        delete retryHeaders['If-None-Match'];
+
+        const retryResponse = await fetch(url, {
+          ...fetchOptions,
+          headers: retryHeaders,
+        });
+
+        if (retryResponse.ok) {
+          const contentType = retryResponse.headers.get('content-type');
+          if (contentType?.includes('application/json')) {
+            const data = await retryResponse.json();
+            if (method === 'GET') {
+              const etag = retryResponse.headers.get('etag');
+              if (etag) {
+                etagCache.set(url, { etag, data });
+              }
+            }
+            return data;
+          }
+          return {} as T;
+        }
+        // Retry also failed — fall through to logout
+      }
+
+      // Refresh failed or retry failed — clear auth
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+      throw new ApiError(401, 'API Error: Unauthorized');
+    }
+
     let errorData: unknown;
     try {
       errorData = await response.json();
     } catch {
       errorData = await response.text();
-    }
-    // Dispatch auth event on 401 so authStore can auto-clear state
-    if (response.status === 401) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
     }
     throw new ApiError(response.status, `API Error: ${response.statusText}`, errorData);
   }

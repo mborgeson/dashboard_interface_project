@@ -22,7 +22,9 @@ from app.db.session import get_db
 from app.services.monitoring.collectors import get_collector_registry
 from app.services.monitoring.metrics import get_metrics_manager
 
-router = APIRouter(dependencies=[Depends(require_admin)])
+# Health probes are unauthenticated (required for k8s/Docker health checks).
+# Admin-only endpoints (metrics, pool-stats, etc.) add require_admin per-route.
+router = APIRouter()
 
 
 # =============================================================================
@@ -36,6 +38,7 @@ router = APIRouter(dependencies=[Depends(require_admin)])
     description="Export metrics in Prometheus format for scraping.",
     response_class=Response,
     tags=["monitoring"],
+    dependencies=[Depends(require_admin)],
 )
 async def prometheus_metrics():
     """
@@ -122,6 +125,7 @@ async def readiness_probe(db: AsyncSession = Depends(get_db)):
     summary="Detailed Health Check",
     description="Comprehensive health check with system and component status.",
     tags=["monitoring"],
+    dependencies=[Depends(require_admin)],
 )
 async def detailed_health_check(db: AsyncSession = Depends(get_db)):
     """
@@ -195,6 +199,7 @@ async def detailed_health_check(db: AsyncSession = Depends(get_db)):
     summary="Connection Pool Statistics",
     description="Get database and Redis connection pool statistics.",
     tags=["monitoring"],
+    dependencies=[Depends(require_admin)],
 )
 async def pool_stats():
     """
@@ -229,6 +234,7 @@ async def pool_stats():
     summary="Performance Statistics",
     description="Get current performance statistics and metrics summary.",
     tags=["monitoring"],
+    dependencies=[Depends(require_admin)],
 )
 async def performance_stats():
     """
@@ -257,6 +263,7 @@ async def performance_stats():
     summary="Application Info",
     description="Get application information and configuration (non-sensitive).",
     tags=["monitoring"],
+    dependencies=[Depends(require_admin)],
 )
 async def application_info():
     """

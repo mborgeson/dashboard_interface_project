@@ -16,18 +16,21 @@ from jose import JWTError, jwt
 from loguru import logger
 
 from app.core.config import settings
+from app.core.token_blacklist import token_blacklist
 from app.services.websocket_manager import get_connection_manager
 
 router = APIRouter()
 
 
-def _authenticate_token(token: str | None) -> int | None:
+async def _authenticate_token(token: str | None) -> int | None:
     """
     Validate a JWT token and return the user ID, or None for anonymous.
 
     This mirrors the logic in ``app.core.security.decode_token`` but is
     kept self-contained so the WS endpoint doesn't depend on async DB
     lookups during the handshake.
+
+    Checks the token blacklist to reject revoked tokens (e.g. after logout).
     """
     if not token:
         return None
@@ -38,6 +41,21 @@ def _authenticate_token(token: str | None) -> int | None:
         sub = payload.get("sub")
         if sub is None:
             return None
+
+        # Check if the specific token (by jti) has been blacklisted
+        jti = payload.get("jti")
+        if jti:
+            try:
+                if await token_blacklist.is_blacklisted(jti):
+                    logger.warning(
+                        f"WebSocket auth rejected: blacklisted token jti={jti[:8]}..."
+                    )
+                    return None
+            except Exception as e:
+                # Fail closed: reject token if blacklist check fails
+                logger.error(f"WebSocket blacklist check error: {e}")
+                return None
+
         return int(sub)
     except (JWTError, ValueError, TypeError):
         return None
@@ -71,7 +89,7 @@ async def websocket_endpoint(
         {"type": "notification", ...}        — user notification
         {"type": "error", "message": "..."}  — error message
     """
-    user_id = _authenticate_token(token)
+    user_id = await _authenticate_token(token)
 
     manager = get_connection_manager()
 

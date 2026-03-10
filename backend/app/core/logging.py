@@ -16,6 +16,7 @@ Request ID integration:
     request handler or downstream service and the ID will appear.
 """
 
+import logging
 import sys
 
 import structlog
@@ -53,7 +54,6 @@ def setup_structlog() -> None:
         structlog.contextvars.merge_contextvars,
         _add_request_id,
         structlog.stdlib.add_log_level,
-        structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.UnicodeDecoder(),
@@ -71,7 +71,7 @@ def setup_structlog() -> None:
             renderer,
         ],
         wrapper_class=structlog.make_filtering_bound_logger(
-            structlog.get_level_from_name(settings.LOG_LEVEL.lower()),  # type: ignore[operator]
+            logging.getLevelName(settings.LOG_LEVEL.upper()),
         ),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),

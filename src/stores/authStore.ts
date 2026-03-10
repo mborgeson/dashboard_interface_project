@@ -18,6 +18,7 @@ interface AuthState {
 
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshAccessToken: () => Promise<boolean>;
   initialize: () => Promise<void>;
 }
 
@@ -71,6 +72,30 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 
+  refreshAccessToken: async () => {
+    const storedRefreshToken = localStorage.getItem('refresh_token');
+    if (!storedRefreshToken) return false;
+
+    try {
+      const data = await apiClient.post<{ access_token: string; refresh_token: string; token_type: string }>(
+        '/auth/refresh',
+        { refresh_token: storedRefreshToken },
+      );
+
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+
+      set({
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+      });
+
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
   initialize: async () => {
     const token = localStorage.getItem('access_token');
     if (!token) {
@@ -88,7 +113,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
       });
     } catch {
-      // Token expired or invalid
+      // Access token failed — the client.ts 401 handler will have already
+      // attempted a refresh via attemptTokenRefresh(). If it succeeded,
+      // the /auth/me retry should have worked. If we're here, auth is gone.
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       set({ isLoading: false });

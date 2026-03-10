@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.permissions import require_viewer
+from app.core.permissions import require_manager, require_viewer
 from app.crud.crud_transaction import transaction as transaction_crud
 from app.db.session import get_db
 from app.schemas.transaction import (
@@ -19,6 +19,8 @@ from app.schemas.transaction import (
     TransactionUpdate,
 )
 
+# Read endpoints use require_viewer (router default).
+# Write endpoints (create, update, delete, restore) override with require_manager.
 router = APIRouter(dependencies=[Depends(require_viewer)])
 
 
@@ -237,6 +239,7 @@ async def get_transaction(
     responses={
         201: {"description": "Transaction created successfully"},
     },
+    dependencies=[Depends(require_manager)],
 )
 async def create_transaction(
     transaction_data: TransactionCreate,
@@ -264,6 +267,7 @@ async def create_transaction(
         200: {"description": "Transaction updated successfully"},
         404: {"description": "Transaction not found"},
     },
+    dependencies=[Depends(require_manager)],
 )
 async def update_transaction(
     transaction_id: int,
@@ -300,6 +304,7 @@ async def update_transaction(
         200: {"description": "Transaction updated successfully"},
         404: {"description": "Transaction not found"},
     },
+    dependencies=[Depends(require_manager)],
 )
 async def patch_transaction(
     transaction_id: int,
@@ -336,6 +341,7 @@ async def patch_transaction(
         204: {"description": "Transaction deleted successfully"},
         404: {"description": "Transaction not found"},
     },
+    dependencies=[Depends(require_manager)],
 )
 async def delete_transaction(
     transaction_id: int,
@@ -372,6 +378,7 @@ async def delete_transaction(
         400: {"description": "Transaction is not deleted"},
         404: {"description": "Transaction not found"},
     },
+    dependencies=[Depends(require_manager)],
 )
 async def restore_transaction(
     transaction_id: int,

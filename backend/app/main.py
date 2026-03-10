@@ -185,8 +185,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     collector_registry.connection_pool.set_sync_engine(sync_engine)
     logger.info("Connection pool monitoring initialized")
 
-    # Initialize services (will be implemented in services module)
-    # await init_redis()
+    # Initialize Redis (cache, rate limiter, token blacklist)
+    try:
+        from app.services.redis_service import get_redis_service
+
+        await get_redis_service()
+        logger.info("Redis service initialized", url=settings.REDIS_URL)
+    except Exception as e:
+        logger.warning(f"Redis unavailable, falling back to in-memory: {e}")
+
     # await init_websocket_manager()
     # await load_ml_models()
 
@@ -259,8 +266,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     await extraction_scheduler.shutdown()
     logger.info("Extraction scheduler shutdown complete")
 
-    # Cleanup services
-    # await close_redis()
+    # Cleanup Redis
+    try:
+        from app.services.redis_service import _redis_service
+
+        if _redis_service is not None:
+            await _redis_service.disconnect()
+            logger.info("Redis service disconnected")
+    except Exception as e:
+        logger.debug(f"Redis cleanup: {e}")
+
     # await close_websocket_manager()
 
     logger.info("Application shutdown complete")

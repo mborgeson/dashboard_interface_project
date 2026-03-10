@@ -140,7 +140,7 @@ describe('apiClient', () => {
       await expect(apiClient.get('/missing')).rejects.toThrow(ApiError);
     });
 
-    it('dispatches auth:unauthorized on 401', async () => {
+    it('dispatches auth:unauthorized on 401 when no refresh token', async () => {
       mockFetch.mockResolvedValue(jsonResponse({ detail: 'unauth' }, 401));
       await expect(apiClient.get('/protected')).rejects.toThrow();
       expect(window.dispatchEvent).toHaveBeenCalledWith(
@@ -148,10 +148,14 @@ describe('apiClient', () => {
       );
     });
 
-    it('removes tokens on 401', async () => {
+    it('removes tokens on 401 when refresh fails', async () => {
       mockStorage['access_token'] = 'old-token';
       mockStorage['refresh_token'] = 'old-refresh';
-      mockFetch.mockResolvedValue(jsonResponse({}, 401));
+      // First call: original request returns 401
+      // Second call: refresh endpoint also fails
+      mockFetch
+        .mockResolvedValueOnce(jsonResponse({}, 401))
+        .mockResolvedValueOnce(jsonResponse({ detail: 'invalid refresh' }, 401));
       await expect(apiClient.get('/protected')).rejects.toThrow();
       expect(localStorage.removeItem).toHaveBeenCalledWith('access_token');
       expect(localStorage.removeItem).toHaveBeenCalledWith('refresh_token');
@@ -168,6 +172,120 @@ describe('apiClient', () => {
       } as Response;
       mockFetch.mockResolvedValue(resp);
       await expect(apiClient.get('/broken')).rejects.toThrow(ApiError);
+    });
+  });
+
+  describe('token refresh on 401', () => {
+    it('attempts refresh and retries original request on 401', async () => {
+      mockStorage['access_token'] = 'expired-token';
+      mockStorage['refresh_token'] = 'valid-refresh';
+
+      // 1st fetch: original request → 401
+      // 2nd fetch: refresh endpoint → success with new tokens
+      // 3rd fetch: retry original request → success
+      mockFetch
+        .mockResolvedValueOnce(jsonResponse({ detail: 'expired' }, 401))
+        .mockResolvedValueOnce(jsonResponse({
+          access_token: 'new-access',
+          refresh_token: 'new-refresh',
+          token_type: 'bearer',
+        }))
+        .mockResolvedValueOnce(jsonResponse({ data: 'protected-data' }));
+
+      const result = await apiClient.get('/protected');
+      expect(result).toEqual({ data: 'protected-data' });
+
+      // Verify tokens were updated in localStorage
+      expect(localStorage.setItem).toHaveBeenCalledWith('access_token', 'new-access');
+      expect(localStorage.setItem).toHaveBeenCalledWith('refresh_token', 'new-refresh');
+
+      // Verify 3 fetch calls: original, refresh, retry
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+
+    it('retries with the new access token in Authorization header', async () => {
+      mockStorage['access_token'] = 'expired-token';
+      mockStorage['refresh_token'] = 'valid-refresh';
+
+      mockFetch
+        .mockResolvedValueOnce(jsonResponse({}, 401))
+        .mockResolvedValueOnce(jsonResponse({
+          access_token: 'fresh-token',
+          refresh_token: 'fresh-refresh',
+          token_type: 'bearer',
+        }))
+        .mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+      await apiClient.get('/protected');
+
+      // 3rd call is the retry — check it used the new token
+      const retryCall = mockFetch.mock.calls[2];
+      expect(retryCall[1].headers['Authorization']).toBe('Bearer fresh-token');
+    });
+
+    it('does not attempt refresh for the refresh endpoint itself', async () => {
+      mockStorage['access_token'] = 'token';
+      mockStorage['refresh_token'] = 'refresh';
+
+      mockFetch.mockResolvedValue(jsonResponse({ detail: 'invalid' }, 401));
+
+      // Calling refresh endpoint that returns 401 should NOT trigger another refresh
+      await expect(apiClient.post('/auth/refresh', { refresh_token: 'bad' })).rejects.toThrow(ApiError);
+
+      // Only 1 fetch call — no refresh attempt
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('clears auth and dispatches event when refresh fails', async () => {
+      mockStorage['access_token'] = 'expired';
+      mockStorage['refresh_token'] = 'also-expired';
+
+      mockFetch
+        .mockResolvedValueOnce(jsonResponse({}, 401))
+        .mockResolvedValueOnce(jsonResponse({}, 401)); // refresh also fails
+
+      await expect(apiClient.get('/protected')).rejects.toThrow(ApiError);
+
+      expect(localStorage.removeItem).toHaveBeenCalledWith('access_token');
+      expect(localStorage.removeItem).toHaveBeenCalledWith('refresh_token');
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'auth:unauthorized' }),
+      );
+    });
+
+    it('clears auth when retry after refresh also returns 401', async () => {
+      mockStorage['access_token'] = 'expired';
+      mockStorage['refresh_token'] = 'valid-refresh';
+
+      mockFetch
+        .mockResolvedValueOnce(jsonResponse({}, 401))         // original 401
+        .mockResolvedValueOnce(jsonResponse({                  // refresh succeeds
+          access_token: 'new-token',
+          refresh_token: 'new-refresh',
+          token_type: 'bearer',
+        }))
+        .mockResolvedValueOnce(jsonResponse({}, 401));         // retry also 401
+
+      await expect(apiClient.get('/protected')).rejects.toThrow(ApiError);
+
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'auth:unauthorized' }),
+      );
+    });
+
+    it('skips refresh when no refresh_token in localStorage', async () => {
+      mockStorage['access_token'] = 'expired';
+      // No refresh_token set
+
+      mockFetch.mockResolvedValue(jsonResponse({}, 401));
+
+      await expect(apiClient.get('/protected')).rejects.toThrow(ApiError);
+
+      // Only 1 fetch — no refresh attempt
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'auth:unauthorized' }),
+      );
     });
   });
 

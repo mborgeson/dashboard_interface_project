@@ -19,8 +19,9 @@ from app.core.permissions import (
     get_current_user,
     require_admin,
 )
-from app.core.security import get_password_hash
+from app.crud.crud_user import user as user_crud
 from app.db.session import get_db
+from app.models.user import User
 from app.schemas.user import (
     UserCreate,
     UserListResponse,
@@ -29,46 +30,6 @@ from app.schemas.user import (
 )
 
 router = APIRouter()
-
-# Demo data
-DEMO_USERS = [
-    {
-        "id": 1,
-        "email": "admin@bandrcapital.com",
-        "full_name": "Admin User",
-        "role": "admin",
-        "department": "Executive",
-        "is_active": True,
-        "is_verified": True,
-        "email_notifications": True,
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-12-01T00:00:00Z",
-    },
-    {
-        "id": 2,
-        "email": "analyst@bandrcapital.com",
-        "full_name": "Investment Analyst",
-        "role": "analyst",
-        "department": "Acquisitions",
-        "is_active": True,
-        "is_verified": True,
-        "email_notifications": True,
-        "created_at": "2024-03-15T00:00:00Z",
-        "updated_at": "2024-12-01T00:00:00Z",
-    },
-    {
-        "id": 3,
-        "email": "viewer@bandrcapital.com",
-        "full_name": "Portfolio Viewer",
-        "role": "viewer",
-        "department": "Asset Management",
-        "is_active": True,
-        "is_verified": True,
-        "email_notifications": False,
-        "created_at": "2024-06-01T00:00:00Z",
-        "updated_at": "2024-11-15T00:00:00Z",
-    },
-]
 
 
 @router.get("/", response_model=UserListResponse)
@@ -87,25 +48,32 @@ async def list_users(
     Requires admin role.
     """
     logger.info(f"User {current_user.email} listing users")
-    filtered = DEMO_USERS.copy()
 
+    # Build filter conditions
+    conditions: list = []
     if role:
-        filtered = [u for u in filtered if u["role"] == role]
+        conditions.append(User.role == role)
     if department:
-        filtered = [u for u in filtered if u.get("department") == department]
+        conditions.append(User.department == department)
     if is_active is not None:
-        filtered = [u for u in filtered if u["is_active"] == is_active]
+        conditions.append(User.is_active == is_active)
 
-    total = len(filtered)
-    start = (page - 1) * page_size
-    end = start + page_size
-    items = filtered[start:end]
+    result = await user_crud.get_paginated(
+        db,
+        page=page,
+        per_page=page_size,
+        order_by="id",
+        order_desc=False,
+        conditions=conditions,
+    )
 
     return UserListResponse(
-        items=items,  # type: ignore[arg-type]
-        total=total,
-        page=page,
-        page_size=page_size,
+        items=[
+            UserResponse.model_validate(u, from_attributes=True) for u in result.items
+        ],
+        total=result.total,
+        page=result.page,
+        page_size=result.per_page,
     )
 
 
@@ -127,7 +95,7 @@ async def get_user(
             detail="You can only view your own profile",
         )
 
-    user = next((u for u in DEMO_USERS if u["id"] == user_id), None)
+    user = await user_crud.get(db, user_id)
 
     if not user:
         raise HTTPException(
@@ -150,33 +118,17 @@ async def create_user(
     Requires admin role.
     """
     logger.info(f"Admin {current_user.email} creating user: {user_data.email}")
+
     # Check for existing email
-    existing = next((u for u in DEMO_USERS if u["email"] == user_data.email), None)
+    existing = await user_crud.get_by_email(db, email=user_data.email)
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
 
-    new_id = int(max(u["id"] for u in DEMO_USERS)) + 1 if DEMO_USERS else 1  # type: ignore[type-var,call-overload]
-
-    # Hash password
-    _hashed_password = get_password_hash(user_data.password)  # noqa: F841
-
-    new_user = {
-        "id": new_id,
-        "email": user_data.email,
-        "full_name": user_data.full_name,
-        "role": user_data.role,
-        "department": user_data.department,
-        "is_active": True,
-        "is_verified": False,
-        "email_notifications": True,
-        "created_at": "2024-12-05T00:00:00Z",
-        "updated_at": "2024-12-05T00:00:00Z",
-    }
-
-    logger.info(f"Created user: {new_user['email']}")
+    new_user = await user_crud.create(db, obj_in=user_data)
+    logger.info(f"Created user: {new_user.email}")
 
     return new_user
 
@@ -204,7 +156,7 @@ async def update_user(
             detail="You can only update your own profile",
         )
 
-    existing = next((u for u in DEMO_USERS if u["id"] == user_id), None)
+    existing = await user_crud.get(db, user_id)
 
     if not existing:
         raise HTTPException(
@@ -224,20 +176,18 @@ async def update_user(
             )
 
     # Check email uniqueness if changing
-    if user_data.email and user_data.email != existing["email"]:
-        email_exists = any(u for u in DEMO_USERS if u["email"] == user_data.email)
+    if user_data.email and user_data.email != existing.email:
+        email_exists = await user_crud.get_by_email(db, email=user_data.email)
         if email_exists:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already in use",
             )
 
-    update_data = user_data.model_dump(exclude_unset=True)
-    existing.update(update_data)
-
+    updated_user = await user_crud.update(db, db_obj=existing, obj_in=user_data)
     logger.info(f"User {current_user.email} updated user: {user_id}")
 
-    return existing
+    return updated_user
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -258,7 +208,7 @@ async def delete_user(
             detail="You cannot deactivate your own account",
         )
 
-    existing = next((u for u in DEMO_USERS if u["id"] == user_id), None)
+    existing = await user_crud.get(db, user_id)
 
     if not existing:
         raise HTTPException(
@@ -266,7 +216,8 @@ async def delete_user(
             detail=f"User {user_id} not found",
         )
 
-    existing["is_active"] = False
+    # Soft-delete: set is_active = False
+    await user_crud.update(db, db_obj=existing, obj_in={"is_active": False})
     logger.info(f"Admin {current_user.email} deactivated user: {user_id}")
 
     return None
@@ -283,7 +234,7 @@ async def verify_user(
 
     Requires admin role.
     """
-    existing = next((u for u in DEMO_USERS if u["id"] == user_id), None)
+    existing = await user_crud.get(db, user_id)
 
     if not existing:
         raise HTTPException(
@@ -291,7 +242,7 @@ async def verify_user(
             detail=f"User {user_id} not found",
         )
 
-    existing["is_verified"] = True
+    await user_crud.update(db, db_obj=existing, obj_in={"is_verified": True})
     logger.info(f"Admin {current_user.email} verified user: {user_id}")
 
     return {"message": f"User {user_id} verified successfully"}
