@@ -212,6 +212,27 @@ class Settings(BaseSettings):
     # Skip files larger than this size in MB
     MAX_FILE_SIZE_MB: int = 100
 
+    # API Key Authentication (service-to-service calls)
+    # Comma-separated list of valid API keys, set via API_KEYS env var
+    API_KEYS: list[str] = []
+    API_KEY_HEADER: str = "X-API-Key"
+
+    @field_validator("API_KEYS", mode="before")
+    @classmethod
+    def parse_api_keys(cls, v: Any) -> list[str]:
+        """Parse API keys from comma-separated string or list.
+
+        Environment variable format:
+        - Comma-separated: API_KEYS="key1,key2,key3"
+        """
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return [str(k).strip() for k in v if k and str(k).strip()]
+        if isinstance(v, str):
+            return [k.strip() for k in v.split(",") if k.strip()]
+        return []
+
     # Rate Limiting Settings
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_BACKEND: str = "auto"  # "memory", "redis", or "auto"
