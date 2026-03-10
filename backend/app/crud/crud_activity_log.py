@@ -38,7 +38,10 @@ class CRUDActivityLog(CRUDBase[ActivityLog, ActivityLogCreate, ActivityLogCreate
         Returns:
             List of ActivityLog records
         """
-        query = select(ActivityLog).where(ActivityLog.deal_id == deal_id)
+        query = select(ActivityLog).where(
+            ActivityLog.deal_id == deal_id,
+            ActivityLog.is_deleted.is_(False),
+        )
 
         if action:
             try:
@@ -201,7 +204,10 @@ class CRUDActivityLog(CRUDBase[ActivityLog, ActivityLogCreate, ActivityLogCreate
         # Fetch recent activities for all requested deals, ordered by recency
         query = (
             select(ActivityLog)
-            .where(ActivityLog.deal_id.in_(deal_ids))
+            .where(
+                ActivityLog.deal_id.in_(deal_ids),
+                ActivityLog.is_deleted.is_(False),
+            )
             .order_by(ActivityLog.deal_id, ActivityLog.created_at.desc())
         )
         result = await db.execute(query)

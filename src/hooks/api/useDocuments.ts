@@ -77,7 +77,7 @@ export const documentKeys = {
   list: (filters: Partial<DocumentFilters>) => [...documentKeys.lists(), filters] as const,
   details: () => [...documentKeys.all, 'detail'] as const,
   detail: (id: string) => [...documentKeys.details(), id] as const,
-  byProperty: (propertyId: string) => [...documentKeys.all, 'property', propertyId] as const,
+  byProperty: (propertyId: number) => [...documentKeys.all, 'property', propertyId] as const,
   stats: () => [...documentKeys.all, 'stats'] as const,
 };
 
@@ -220,7 +220,7 @@ export function useDocument(
  * Fetch documents for a specific property
  */
 export function useDocumentsByProperty(
-  propertyId: string,
+  propertyId: number,
   options?: Omit<UseQueryOptions<DocumentListApiResponse>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery({
@@ -326,7 +326,7 @@ export function usePrefetchDocument() {
 export function usePrefetchPropertyDocuments() {
   const queryClient = useQueryClient();
 
-  return (propertyId: string) => {
+  return (propertyId: number) => {
     queryClient.prefetchQuery({
       queryKey: documentKeys.byProperty(propertyId),
       queryFn: () => get<DocumentListApiResponse>(`/documents/property/${propertyId}`),

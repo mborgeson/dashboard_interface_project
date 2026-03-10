@@ -2,32 +2,32 @@
   "memories": [
     {
       "type": "completed_features",
-      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt (2026-02-12). Extraction Hardening (2026-03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Overhaul: kanban, aerial maps, activity feed, SharePoint (2026-03-04). Deals v5: Returns, Compare Deals, shadcn CSS (2026-03-04). Group Pipeline Frontend, Vite optimization (2026-03-05). Cap Rate TC T3 re-run + 49 regression tests (2026-03-05). UW Grouping Expansion: 9 groups, 66 files, 2,970 values (2026-03-06). Proforma Returns UI Option C (2026-03-06). Phase 2-3 Dashboard Integrity (2026-03-06, commit 70dc0ca): 30 files, 6 parallel agents — city Unknown fix, NOI per-unit/total fix, expense fallback, operationsByYear builder from YEAR_N fields, shortPropertyName across 12 components, ?? 0 → ?? undefined for N/A display, comparison chart null fixes. Tests: 1700 backend + 877 frontend.",
-      "added_at": "2026-03-06T17:40:00.000000",
+      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt, Extraction Hardening (2026-02-12→03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Overhaul + v5 (2026-03-04). Group Pipeline Frontend, Vite opt (2026-03-05). Cap Rate TC T3 re-run + 49 regression tests (2026-03-05). UW Grouping Expansion: 9 groups, 66 files (2026-03-06). Proforma Returns UI Option C (2026-03-06). Phase 2-3 Dashboard Integrity (2026-03-06). Phase 4 Final Gate (2026-03-09). Architecture review v2: 59/71 findings resolved (83%). Test gap batch 0d00b35 (+383 tests). F-055 comparison persistence + F-068 PDF enrichment (584fd2c). Batch 3 running: 7 agents for F-003/041/045+069/046/054/057/067.",
+      "added_at": "2026-03-10T16:15:00.000000",
       "source": "consolidated"
     },
     {
       "type": "user_preferences",
-      "content": "conda env: dashboard-backend. Dev: npm run dev:all (auto-opens Edge). Git: stash apply over pop, don't push unless asked. NO mock/fake data. User: matt@bandrcapital.com / Wildcats777!! / admin. User expects Agent Team approach from docs/agent-team-reference.md (Teams 48-56). Don't tunnel-vision on grep results — execute full agent team plan with 6 parallel agents. Review each page in depth. Data observations (items 8-12) are NOT issues. Cordoba != Cordova. Option C for old UW model attributes. Auth login uses form data (not JSON): data={'username':..., 'password':...}.",
-      "added_at": "2026-03-06T16:45:00.000000",
+      "content": "conda env: dashboard-backend. Dev: npm run dev:all (auto-opens Edge). Git: stash apply over pop, don't push unless asked. NO mock/fake data. User: matt@bandrcapital.com / Wildcats777!! / admin. User expects Agent Team approach from docs/agent-team-reference.md. Don't tunnel-vision on grep results — execute full agent team plan with 6 parallel agents. Data observations (items 8-12) are NOT issues. Cordoba != Cordova. Option C for old UW model attributes. Auth login uses form data (not JSON). Kill servers: kill $(lsof -ti :5173) $(lsof -ti :8000). docs/multifamily_data_guide.docx should NOT be deleted.",
+      "added_at": "2026-03-10T16:15:00.000000",
       "source": "consolidated"
     },
     {
       "type": "tech_decisions",
-      "content": "Zod: .nullable().optional() + ?? undefined (NOT ?? 0). Legitimate ?? 0: loss factor rates, sum reducers, stage value totals. TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch). shadcn needs CSS vars in :root + tailwind mappings. KPICard: treatZeroAsNA prop (default true) for financial vs count metrics. ESLint: error-level unused imports in CI. Property detail: lazy enrichment via CRUDProperty.enrich_financial_data() — queries extracted_values, builds financial_data JSON, persists to DB column as cache. Zod property schema expects full nested structure (operations, performance, valuation) — backend must return 0s not null objects. SQLite tests: no server_default, datetime.now(UTC), StaticPool. _dec() converts float->Decimal for SQLAlchemy Numeric columns. Units fallback: derive from purchasePrice/pricePerUnit. _property_transforms.py: _is_placeholder_city() catches Unknown/submarkets-as-cities; city_fallback also filtered through placeholder check; expense keys have dual legacy/full variants; NOI: prop.noi is per-unit (×units), ops.noiYear1 is total (use directly), negative noiYear1 = extraction artifact (skip). totalOperatingExpenses from group pipeline is per-unit. operationsByYear built from YEAR_N extracted values via _build_ops_from_extracted_values() in crud_property.py.",
-      "added_at": "2026-03-06T17:40:00.000000",
+      "content": "Zod: .nullable().optional() + ?? undefined (NOT ?? 0). TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch). shadcn needs CSS vars in :root + tailwind mappings. KPICard: treatZeroAsNA prop (default true). Property detail: lazy enrichment via CRUDProperty.enrich_financial_data() — delegates to services/enrichment.py. Zod property schema expects full nested structure — backend must return 0s not null objects. SQLite tests: no server_default, datetime.now(UTC), StaticPool. _dec()/to_decimal() converts float->Decimal. _property_transforms.py: _is_placeholder_city() catches Unknown/submarkets-as-cities. F-047: client.ts returns null as unknown as T for non-JSON, keep Promise<T> signature to avoid cascade.",
+      "added_at": "2026-03-10T07:30:00.000000",
       "source": "consolidated"
     },
     {
       "type": "extraction_config",
-      "content": "LOCAL_DEALS_ROOT=/mnt/c/Users/MattBorgeson/OneDrive - B&R Capital/B&R Capital - Real Estate/Deals. Quick Extraction and Group Pipeline are INDEPENDENT systems writing to same extracted_values table. All 9 deferred groups extracted (66 files, 2,970 values). 2 excluded groups are Asset Management (correctly excluded). DB: 597,713 extracted values, 329 properties, 75 runs. PLANNED: Single 'Run Full Pipeline' button. DB table: properties (PostgreSQL). 48 properties have city='Unknown' — resolved at transform layer via _is_placeholder_city fallback to Phoenix. Property names contain '(Unknown, AZ)' — frontend strips parenthetical via shortPropertyName().",
+      "content": "LOCAL_DEALS_ROOT=/mnt/c/Users/MattBorgeson/OneDrive - B&R Capital/B&R Capital - Real Estate/Deals. Quick Extraction and Group Pipeline are INDEPENDENT systems writing to same extracted_values table. All 9 deferred groups extracted (66 files, 2,970 values). DB: 597,713 extracted values, 329 properties, 75 runs. 48 properties have city='Unknown' — resolved at transform layer.",
       "added_at": "2026-03-06T17:40:00.000000",
       "source": "consolidated"
     },
     {
       "type": "remaining_tasks",
-      "content": "All 6 Phase 2-3 agents COMPLETED and committed (70dc0ca). NEXT: Phase 4 Final Gate (Team 56). HIGH: Group Pipeline safeguards — single 'Run Full Pipeline' button. MEDIUM: Extract 28 ungrouped files, Data Export. LOW: Production hosting, Mobile/iOS, Security audit.",
-      "added_at": "2026-03-06T17:40:00.000000",
+      "content": "59/71 findings resolved (83%). 7 agents running for batch 3: F-003 (CRITICAL background worker), F-041 (documents FK migration), F-045+F-069 (ADR docs), F-046 (dual logging), F-054 (report polling), F-057 (soft-delete), F-067 (auth docs). After batch 3: F-018 (Alembic sync), F-042 (VARCHAR constraints — chains on F-041), F-056 (optimistic locking), F-063 (component test umbrella). CI: backend timeout=600s, -p no:randomly. Tracking: docs/findings-and-recommendations.md. Total tests: 3,792. OTHER: Extract 28 ungrouped files, production hosting, mobile/iOS, security audit.",
+      "added_at": "2026-03-10T16:15:00.000000",
       "source": "consolidated"
     }
   ],
@@ -35,95 +35,41 @@
   "realtime_memories": [
     {
       "type": "claude_response",
-      "content": "Memory consolidated: 10 realtime entries cleared (all task notifications and session chatter), 5 core memories updated with latest state. Key updates: remaining_tasks reflects all agents completed, te",
-      "added_at": "2026-03-06T17:39:14.735095",
+      "content": "All 7 actively working (36–76 log lines each). No completions yet — they're mid-execution. The larger ones (F-003 background worker, F-041 migration) will take longer. I'll be notified as each finishe",
+      "added_at": "2026-03-10T09:12:00.289604",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "<task-notification> <task-id>af022668bd167fecf</task-id> <tool-use-id>toolu_01UDaFaoAJvdUBzdQHk3wsx8</tool-use-id> <status>completed</status> <summary>Agent \"Fix expense data flow to frontend\" complet",
-      "added_at": "2026-03-06T17:39:14.735395",
+      "content": "<task-notification> <task-id>a041a8dc90d8b7898</task-id> <tool-use-id>toolu_019tt8LhiauwTdX2jSPJ9eaJ</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
+      "added_at": "2026-03-10T09:12:00.289646",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "<task-notification> <task-id>ad13faeda04f2db20</task-id> <tool-use-id>toolu_01C6SzXJfPQTfJkfpfeR3qP1</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
+      "added_at": "2026-03-10T09:12:00.410195",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "<task-notification> <task-id>a735bb499e42a000c</task-id> <tool-use-id>toolu_011jzsahZKN2a7MGVhDRgEHf</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
+      "added_at": "2026-03-10T09:12:00.517102",
       "source": "realtime_capture"
     },
     {
       "type": "claude_response",
-      "content": "Confirmed — the re-enrichment guard is committed. Properties that were previously enriched (with acquisition/financing/returns) but missing expenses or operationsByYear will now be re-enriched on next",
-      "added_at": "2026-03-06T17:40:57.888783",
+      "content": "3 of 7 done:\n- **F-045+F-069** — ADR-004 superseded, 4 new ADRs created (008–011)\n- **F-067** — Auth docs corrected in `backend-architecture.md`\n- **F-054** — Report polling now conditional (only poll",
+      "added_at": "2026-03-10T09:15:32.576996",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "It still shows an agent running and the task \"Audit & Fix Mapping Page\" associated with the agent. Are you certain I'm fine to kill and restart the servers?",
-      "added_at": "2026-03-06T17:40:57.888815",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Confirmed — MappingPage changes are committed. That agent is a stale leftover. Safe to kill it.",
-      "added_at": "2026-03-06T17:45:31.978513",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "list_pages",
-      "added_at": "2026-03-06T17:45:31.978569",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Only a blank page open. The servers need to be restarted. Want me to run `npm run dev:all` to start them up?",
-      "added_at": "2026-03-06T17:46:19.065280",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Also, please provide a command that I can use to ensure both servers are dead and then I a command reset them/",
-      "added_at": "2026-03-06T17:46:19.065315",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Both ports are already free. Here are the commands:\n\n**Kill both servers:**\n```bash\nkill $(lsof -ti :5173,:8000) 2>/dev/null; echo \"Killed\"\n```\n\n**Restart:**\n```bash\nnpm run dev:all\n```\n\nWant me to st",
-      "added_at": "2026-03-06T17:47:14.682668",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "󰕈 mattb …/dashboard_interface_project   main $✘!?⇡   v22.21.0   dashboard-backend   17:46  ❯ kill $(lsof -ti :5173,:8000) 2>/dev/null; echo \"Killed\" lsof: unknown service :8000 in: -i :5173",
-      "added_at": "2026-03-06T17:47:14.682792",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "The comma syntax doesn't work on this `lsof` version. Use this instead:\n\n**Kill both servers:**\n```bash\nkill $(lsof -ti :5173) $(lsof -ti :8000) 2>/dev/null; echo \"Killed\"\n```\n\n**Restart:**\n```bash\nnp",
-      "added_at": "2026-03-06T17:48:09.504531",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "how do I kill the agent still showing as runing?",
-      "added_at": "2026-03-06T17:48:09.504566",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "You can kill it from within Claude Code by pressing `Escape` to cancel any running operations, or use the `/agents` dialog to find and stop it.\n\nIf that doesn't work, you can kill the underlying Claud",
-      "added_at": "2026-03-06T19:47:14.644230",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "How do I restore this conversation at this point",
-      "added_at": "2026-03-06T19:47:14.644263",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "How do I restore this conversation at this point. Also, please run a git commit and a git push command.",
-      "added_at": "2026-03-06T19:48:13.032530",
+      "content": "How are the agents progressing?",
+      "added_at": "2026-03-10T09:15:32.577031",
       "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-03-06T19:48:13.032554"
+  "updated_at": "2026-03-10T09:15:32.577033"
 }

@@ -8,11 +8,12 @@ from enum import StrEnum
 from sqlalchemy import (
     JSON,
     DateTime,
+    ForeignKey,
     Integer,
     String,
     Text,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.base import SoftDeleteMixin, TimestampMixin
@@ -45,12 +46,16 @@ class Document(Base, TimestampMixin, SoftDeleteMixin):
     )  # lease, financial, legal, due_diligence, photo, other
 
     # Property Relationship
-    property_id: Mapped[str | None] = mapped_column(
-        String(50),
+    property_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("properties.id", name="fk_documents_property_id_properties"),
         nullable=True,
         index=True,
     )
     property_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # Relationships
+    property = relationship("Property", backref="documents", lazy="selectin")
 
     # File Information
     size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)  # bytes

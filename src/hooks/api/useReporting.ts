@@ -332,7 +332,9 @@ export function useReportTemplatesWithMockFallback(
 }
 
 /**
- * Hook to fetch queued reports with mock data fallback
+ * Hook to fetch queued reports with mock data fallback.
+ * Uses smart polling: polls every 10s when pending/generating reports exist,
+ * otherwise uses a 5-minute staleTime with no automatic refetching.
  */
 export function useQueuedReportsWithMockFallback(
   filters: QueueFilters = {},
@@ -350,7 +352,15 @@ export function useQueuedReportsWithMockFallback(
         total: response.total,
       };
     },
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return false;
+      const hasActiveReports = data.reports.some(
+        (r) => r.status === 'pending' || r.status === 'generating'
+      );
+      return hasActiveReports ? 1000 * 10 : false; // 10s when active, stop when idle
+    },
     ...options,
   });
 }
@@ -440,8 +450,8 @@ export function useGenerateReportWithMockFallback() {
 }
 
 /**
- * Mock-aware hook to poll for a queued report's status
- * Simulates progress in mock mode
+ * Mock-aware hook to poll for a queued report's status.
+ * Polls every 3s while pending/generating, stops when completed/failed.
  */
 export function useQueuedReportWithMockFallback(
   id: string | null,
@@ -470,7 +480,12 @@ export function useQueuedReportWithMockFallback(
       };
     },
     enabled: !!id,
-    refetchInterval: options?.refetchInterval ?? 2000,
+    refetchInterval: options?.refetchInterval ?? ((query) => {
+      const data = query.state.data;
+      if (!data) return 1000 * 3; // Poll while waiting for first response
+      const isActive = data.status === 'pending' || data.status === 'generating';
+      return isActive ? 1000 * 3 : false; // 3s when active, stop when done
+    }),
     ...options,
   });
 }

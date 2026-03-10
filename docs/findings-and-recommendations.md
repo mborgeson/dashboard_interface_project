@@ -956,7 +956,7 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | ------- | -------- | ------ | ------------------------------------------------------------------ | ---------------------------------------------------------- | ------------ |
 | F-001   | CRITICAL | Done   | Users endpoints backed by in-memory demo data, not database        | Replaced with real DB CRUD operations (CRUDUser)           | 8599ec2      |
 | F-002   | CRITICAL | Done   | Monitoring liveness/readiness probes guarded by require_admin      | Per-route auth; probes unauthenticated                     | 8599ec2      |
-| F-003   | CRITICAL | Open   | Report generation has no background worker                         | —                                                         | —           |
+| F-003   | CRITICAL | Done   | Report generation has no background worker                         | Asyncio report_worker with PDF/Excel gen + lifespan hook   | pending     |
 | F-004   | CRITICAL | Done   | WebSocket token validation does not check blacklist                | Added is_blacklisted() check, fail-closed                  | 8599ec2      |
 | F-005   | CRITICAL | Done   | Token refresh not wired on frontend                                | Retry-after-refresh in fetch client + authStore method     | 8599ec2      |
 | F-006   | CRITICAL | Done   | Financial calculation libraries have no tests                      | 98 tests across IRR, cashflow, sensitivity                 | 8599ec2      |
@@ -996,12 +996,12 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-038   | MEDIUM   | Done   | authStore has no tests                                             | 9 tests added (authStore.test.ts)                          | 8599ec2      |
 | F-039   | MEDIUM   | Done   | ETag middleware has no tests                                       | 12 tests in test_etag.py                                   | f65dc05     |
 | F-040   | MEDIUM   | Done   | Origin validation middleware has no tests                          | Already existed (13 tests in test_origin_validation.py)    | f65dc05     |
-| F-041   | MEDIUM   | Open   | documents.property_id is VARCHAR(50), not FK to properties.id      | —                                                         | —           |
+| F-041   | MEDIUM   | Done   | documents.property_id is VARCHAR(50), not FK to properties.id      | Model + schema + CRUD updated; Alembic migration created   | pending     |
 | F-042   | MEDIUM   | Open   | Construction pipeline uses VARCHAR without DB-level constraints    | —                                                         | —           |
 | F-043   | MEDIUM   | Done   | Zod common.ts and construction.ts schemas have no tests            | 58 tests across common.test.ts + construction.test.ts      | f65dc05     |
 | F-044   | MEDIUM   | Done   | Deal kanban enrichment runs on every cache miss                    | 30-min cache TTL with invalidation on extraction runs      | 5164070     |
-| F-045   | LOW      | Open   | ADR-004 is stale (dual client pattern)                             | —                                                         | —           |
-| F-046   | LOW      | Open   | Dual logging imports require discipline                            | —                                                         | —           |
+| F-045   | LOW      | Done   | ADR-004 is stale (dual client pattern)                             | ADR-004 marked Superseded by ADR-008                       | pending     |
+| F-046   | LOW      | Done   | Dual logging imports require discipline                            | Reviewed — dual use is intentional per ADR-006             | pending     |
 | F-047   | LOW      | Done   | Non-JSON responses return {} as T                                  | Returns null; return type updated to T | null               | 5164070     |
 | F-048   | LOW      | Done   | WebSocket callbacksRef updated every render                        | eslint-disable with explanatory comment                    | 5164070     |
 | F-049   | LOW      | Done   | VirtualizedTable spacer missing colSpan                            | columnCount prop sets colSpan on spacer td elements        | 5164070     |
@@ -1009,10 +1009,10 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-051   | LOW      | Done   | Toast auto-removal timer not cleared on manual dismiss             | timerMap tracks IDs; clearTimeout on dismiss/clearAll      | 5164070     |
 | F-052   | LOW      | Done   | authStore event listener registered at module load                 | typeof window !== 'undefined' guard                        | 5164070     |
 | F-053   | LOW      | Done   | Duplicate formatDate implementations                               | 4 local formatDate consolidated into dateUtils.ts          | 5164070     |
-| F-054   | LOW      | Open   | Report queue 30-second polling                                     | —                                                         | —           |
+| F-054   | LOW      | Done   | Report queue 30-second polling                                     | Conditional polling: 10s when pending, stopped when done   | pending     |
 | F-055   | LOW      | Done   | Comparison deals not persisted to storage                          | sessionStorage hydration + persist via useEffect           | 584fd2c     |
 | F-056   | LOW      | Open   | Optimistic locking only on Deal model                              | —                                                         | —           |
-| F-057   | LOW      | Open   | SoftDeleteMixin scope may need expansion                           | —                                                         | —           |
+| F-057   | LOW      | Done   | SoftDeleteMixin scope may need expansion                           | Added SoftDeleteMixin to ActivityLog; CRUD filters updated | pending     |
 | F-058   | LOW      | Done   | Multiple API hooks have zero test coverage                         | 68 tests: useDeals (41) + useProperties (27)               | 0d00b35     |
 | F-059   | LOW      | Done   | No tests for 12 underwriting models                                | 66 tests covering all 12 models, relationships, enums      | 0d00b35     |
 | F-060   | LOW      | Done   | No tests for GeocodingService                                      | 19 tests: geocoding, mocked HTTP, rate limiting            | 0d00b35     |
@@ -1022,10 +1022,10 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-064   | LOW      | Done   | useUnderwriting hook has no tests                                  | 42 tests: IRR, sensitivity, edge cases                     | 0d00b35     |
 | F-065   | LOW      | Done   | crud_property.py enrichment not tested at unit level               | Enrichment service unit tests (pure functions)             | 0d00b35     |
 | F-066   | LOW      | Done   | No report template or generation endpoint tests                    | 34 tests: CRUD, generation, auth                           | 0d00b35     |
-| F-067   | LOW      | Open   | PUT /deals/{id} and PATCH /deals/{id} require require_manager      | —                                                         | —           |
+| F-067   | LOW      | Done   | PUT /deals/{id} and PATCH /deals/{id} require require_manager      | Fixed backend-architecture.md: POST/PUT/PATCH auth analyst→manager | —           |
 | F-068   | LOW      | Done   | PDF export may have incomplete financial data                      | enrich_financial_data before single + portfolio PDF export | 584fd2c     |
-| F-069   | LOW      | Open   | Four proposed ADRs not yet formalized                              | —                                                         | —           |
+| F-069   | LOW      | Done   | Four proposed ADRs not yet formalized                              | Created ADR-008, 009, 010, 011                             | pending     |
 
-**Summary:** 59 Done, 12 Open (of 71 total including F-007a and F-007a+)
+**Summary:** 66 Done, 5 Open (of 71 total including F-007a and F-007a+)
 
 *End of findings report. Generated 2026-03-10 by Team 66 (Regeneration). Tracking table updated 2026-03-10.*

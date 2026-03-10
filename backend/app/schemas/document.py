@@ -18,7 +18,7 @@ class DocumentBase(BaseSchema):
     type: str = Field(
         ..., pattern="^(lease|financial|legal|due_diligence|photo|other)$"
     )
-    property_id: str | None = None
+    property_id: int | None = None
     property_name: str | None = Field(None, max_length=255)
 
 
@@ -52,7 +52,7 @@ class DocumentUpdate(BaseSchema):
     type: str | None = Field(
         None, pattern="^(lease|financial|legal|due_diligence|photo|other)$"
     )
-    property_id: str | None = None
+    property_id: int | None = None
     property_name: str | None = Field(None, max_length=255)
     description: str | None = None
     tags: list[str] | None = None
@@ -75,7 +75,7 @@ class DocumentUpload(BaseSchema):
     type: str = Field(
         ..., pattern="^(lease|financial|legal|due_diligence|photo|other)$"
     )
-    property_id: str | None = None
+    property_id: int | None = None
     property_name: str | None = Field(None, max_length=255)
     description: str | None = None
     tags: list[str] | None = None

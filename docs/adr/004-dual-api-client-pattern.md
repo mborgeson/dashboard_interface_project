@@ -1,7 +1,7 @@
 # ADR-004: Dual API client pattern (axios legacy + fetch new)
 
 ## Status
-Accepted
+Superseded by ADR-008
 
 ## Context
 The frontend originally used an axios-based API client (`src/lib/api.ts`) with interceptors for auth token injection and automatic refresh on 401 responses. As the codebase grew, we wanted a lighter client without the axios dependency for new feature modules, but could not justify a full migration of existing call sites.

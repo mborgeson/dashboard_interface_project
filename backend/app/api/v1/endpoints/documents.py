@@ -36,7 +36,7 @@ async def list_documents(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     type: str | None = Query(None, alias="type"),
-    property_id: str | None = None,
+    property_id: int | None = None,
     search: str | None = None,
     date_range: str | None = Query(None, pattern="^(all|7days|30days|90days|1year)$"),
     sort_by: str | None = "uploaded_at",
@@ -132,7 +132,7 @@ async def get_document_stats(
     },
 )
 async def get_documents_by_property(
-    property_id: str,
+    property_id: int,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -235,7 +235,7 @@ async def create_document(
 )
 async def upload_document(
     file: UploadFile,
-    property_id: str | None = None,
+    property_id: int | None = None,
     property_name: str | None = None,
     type: str = Query(
         "other", pattern="^(lease|financial|legal|due_diligence|photo|other)$"

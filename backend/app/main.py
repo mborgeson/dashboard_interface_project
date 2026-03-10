@@ -34,6 +34,7 @@ from app.services.extraction.scheduler import (
 )
 from app.services.interest_rate_scheduler import InterestRateScheduler
 from app.services.monitoring import MetricsMiddleware, get_metrics_manager
+from app.services.report_worker import get_report_worker
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -255,6 +256,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         enabled=settings.INTEREST_RATE_SCHEDULE_ENABLED,
     )
 
+    # Start report generation background worker
+    report_worker = get_report_worker()
+    await report_worker.start()
+    logger.info("Report generation worker started")
+
     # Start cache background cleanup task (evicts expired in-memory entries)
     from app.core.cache import cache as cache_service
 
@@ -271,6 +277,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     # Stop cache cleanup task
     await cache_service.stop_cleanup_task()
     logger.info("Cache cleanup task stopped")
+
+    # Shutdown report worker
+    await report_worker.stop()
+    logger.info("Report generation worker stopped")
 
     # Shutdown interest rate scheduler
     await interest_rate_scheduler.stop()

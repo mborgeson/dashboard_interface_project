@@ -22,7 +22,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         self,
         db: AsyncSession,
         *,
-        property_id: str,
+        property_id: int,
         skip: int = 0,
         limit: int = 100,
     ) -> list[Document]:
@@ -75,7 +75,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         self,
         *,
         doc_type: str | None = None,
-        property_id: str | None = None,
+        property_id: int | None = None,
         search_term: str | None = None,
         date_range: str | None = None,
     ) -> list:
@@ -89,7 +89,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
             except ValueError:
                 pass  # Invalid type, ignore filter
 
-        if property_id and property_id != "all":
+        if property_id is not None:
             conditions.append(Document.property_id == property_id)
 
         if search_term:
@@ -114,7 +114,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         skip: int = 0,
         limit: int = 100,
         doc_type: str | None = None,
-        property_id: str | None = None,
+        property_id: int | None = None,
         search_term: str | None = None,
         date_range: str | None = None,
         order_by: str = "uploaded_at",
@@ -141,7 +141,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         db: AsyncSession,
         *,
         doc_type: str | None = None,
-        property_id: str | None = None,
+        property_id: int | None = None,
         search_term: str | None = None,
         date_range: str | None = None,
     ) -> int:

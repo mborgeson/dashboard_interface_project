@@ -7,7 +7,6 @@ import time
 import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -289,7 +288,7 @@ async def logout(
                         )
         except Exception as e:
             # Token may be invalid or expired, no need to blacklist
-            logger.debug(f"Logout token processing skipped: {e}")
+            slog.debug("logout_token_processing_skipped", error=str(e))
 
     return {"message": "Successfully logged out"}
 

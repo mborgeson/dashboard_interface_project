@@ -199,10 +199,10 @@ All routes prefixed with `/api/v1`. Auth guard column uses the `require_*` depen
 | GET | `/api/v1/deals/kanban` | analyst | Kanban board data grouped by stage |
 | GET | `/api/v1/deals/recent-activity` | analyst | Recent activity feed across all deals |
 | GET | `/api/v1/deals/{id}` | analyst | Single deal (`DealResponse`) |
-| POST | `/api/v1/deals/` | analyst | Create deal |
-| PUT | `/api/v1/deals/{id}` | analyst | Full update with input sanitization |
-| PATCH | `/api/v1/deals/{id}/stage` | analyst | Update deal stage (Kanban drag-and-drop) |
-| PATCH | `/api/v1/deals/{id}/optimistic` | analyst | Optimistic-locking update; returns 409 on version conflict |
+| POST | `/api/v1/deals/` | manager | Create deal |
+| PUT | `/api/v1/deals/{id}` | manager | Full update with input sanitization |
+| PATCH | `/api/v1/deals/{id}/stage` | manager | Update deal stage (Kanban drag-and-drop) |
+| PATCH | `/api/v1/deals/{id}/optimistic` | manager | Optimistic-locking update; returns 409 on version conflict |
 | DELETE | `/api/v1/deals/{id}` | manager | Soft-delete |
 | GET | `/api/v1/deals/{id}/activities` | analyst | Paginated deal activity log |
 | POST | `/api/v1/deals/{id}/activities` | authenticated | Log a deal activity |

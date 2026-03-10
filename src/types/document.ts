@@ -4,7 +4,7 @@ export interface Document {
   id: string;
   name: string;
   type: DocumentType;
-  propertyId: string;
+  propertyId: number | null;
   propertyName: string;
   size: number; // bytes
   uploadedAt: Date;
@@ -17,7 +17,7 @@ export interface Document {
 export interface DocumentFilters {
   searchTerm: string;
   type: DocumentType | 'all';
-  propertyId: string | 'all';
+  propertyId: number | 'all';
   dateRange: 'all' | '7days' | '30days' | '90days' | '1year';
 }
 

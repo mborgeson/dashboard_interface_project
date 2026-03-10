@@ -26,7 +26,7 @@ async def _create_document(
     db_session: AsyncSession,
     name: str = "Test Document",
     doc_type: str = "financial",
-    property_id: str | None = None,
+    property_id: int | None = None,
 ) -> Document:
     """Insert a document directly into the DB for testing."""
     doc = Document(
@@ -224,11 +224,11 @@ async def test_upload_requires_auth(client, db_session):
 @pytest.mark.asyncio
 async def test_get_documents_by_property(client, db_session, auth_headers):
     """GET /documents/property/{property_id} returns documents for that property."""
-    await _create_document(db_session, name="Prop Doc", property_id="prop-123")
-    await _create_document(db_session, name="Other Doc", property_id="prop-456")
+    await _create_document(db_session, name="Prop Doc", property_id=123)
+    await _create_document(db_session, name="Other Doc", property_id=456)
 
     response = await client.get(
-        "/api/v1/documents/property/prop-123",
+        "/api/v1/documents/property/123",
         headers=auth_headers,
         follow_redirects=True,
     )
@@ -236,14 +236,14 @@ async def test_get_documents_by_property(client, db_session, auth_headers):
     data = response.json()
     assert data["total"] >= 1
     for item in data["items"]:
-        assert item["property_id"] == "prop-123"
+        assert item["property_id"] == 123
 
 
 @pytest.mark.asyncio
 async def test_get_documents_by_property_empty(client, db_session, auth_headers):
     """GET /documents/property/{property_id} returns empty for unknown property."""
     response = await client.get(
-        "/api/v1/documents/property/nonexistent",
+        "/api/v1/documents/property/99999",
         headers=auth_headers,
         follow_redirects=True,
     )

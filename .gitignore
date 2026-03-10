@@ -110,3 +110,4 @@ backend/.github/
 !.claude-flow/templates/
 !.claude-flow/workflows/
 !dashboard_interface_project.code-workspace
+generated_reports/

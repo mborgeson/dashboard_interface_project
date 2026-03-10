@@ -15,6 +15,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.models.base import SoftDeleteMixin
 
 
 class ActivityAction(StrEnum):
@@ -32,7 +33,7 @@ class ActivityAction(StrEnum):
     VIEWED = "viewed"
 
 
-class ActivityLog(Base):
+class ActivityLog(Base, SoftDeleteMixin):
     """
     Activity log for tracking all changes and events on deals.
 
@@ -41,6 +42,9 @@ class ActivityLog(Base):
 
     Note: Uses JSON type for SQLite compatibility in tests. Production
     PostgreSQL will use the same JSON type which works well.
+
+    Note: SoftDeleteMixin added for audit trail completeness (F-057).
+    Requires Alembic migration to add is_deleted + deleted_at columns.
     """
 
     __tablename__ = "activity_logs"
