@@ -17,7 +17,6 @@ import pytest
 from app.crud.crud_deal import deal as deal_crud
 from app.models import Deal, DealStage
 
-
 # =============================================================================
 # Basic CRUD
 # =============================================================================

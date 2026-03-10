@@ -1,7 +1,8 @@
 """Tests for health check endpoints."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 
 async def test_legacy_health_check(client):

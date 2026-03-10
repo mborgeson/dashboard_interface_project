@@ -30,7 +30,6 @@ from app.extraction.cell_mapping import CellMapping, CellMappingParser
 from app.extraction.group_pipeline import GroupExtractionPipeline, PipelineConfig
 from app.models.extraction import ExtractedValue, ExtractionRun
 
-
 # ============================================================================
 # Sync Database Setup
 # ============================================================================

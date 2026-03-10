@@ -603,8 +603,9 @@ async def test_reminder_status_with_data(sales_client, sample_sales_data):
 @pytest.mark.asyncio
 async def test_reminder_dismissal_persists_to_database(sales_client, db_session):
     """Test that dismissals are persisted to the database (not just in-memory)."""
-    from app.models.reminder_dismissal import ReminderDismissal
     from sqlalchemy import select
+
+    from app.models.reminder_dismissal import ReminderDismissal
 
     # Dismiss the reminder
     response = await sales_client.put(f"{BASE_URL}/reminder/dismiss")
@@ -628,6 +629,7 @@ async def test_reminder_dismissal_persists_to_database(sales_client, db_session)
 async def test_reminder_status_reflects_database_dismissal(sales_client, db_session):
     """Test that reminder status reads from database, not in-memory."""
     from datetime import UTC, datetime
+
     from app.models.reminder_dismissal import ReminderDismissal
 
     now = datetime.now(UTC)
@@ -657,8 +659,9 @@ async def test_reminder_status_reflects_database_dismissal(sales_client, db_sess
 @pytest.mark.asyncio
 async def test_reminder_dismissal_unique_per_month(sales_client, db_session):
     """Test that only one dismissal record is created per user per month."""
-    from app.models.reminder_dismissal import ReminderDismissal
     from sqlalchemy import func, select
+
+    from app.models.reminder_dismissal import ReminderDismissal
 
     # Dismiss multiple times
     await sales_client.put(f"{BASE_URL}/reminder/dismiss")

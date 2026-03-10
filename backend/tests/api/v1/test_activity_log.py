@@ -23,7 +23,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Deal, User
 from app.models.activity_log import ActivityAction, ActivityLog
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

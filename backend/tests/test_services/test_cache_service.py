@@ -9,7 +9,12 @@ import time
 
 import pytest
 
-from app.core.cache import CacheService, _memory_cache, make_cache_key, make_cache_key_from_params
+from app.core.cache import (
+    CacheService,
+    _memory_cache,
+    make_cache_key,
+    make_cache_key_from_params,
+)
 
 
 @pytest.fixture(autouse=True)

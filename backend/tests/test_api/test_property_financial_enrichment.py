@@ -21,7 +21,6 @@ from app.db.base import Base
 from app.models import Property
 from app.models.extraction import ExtractedValue, ExtractionRun
 
-
 # ---------------------------------------------------------------------------
 # Helpers — create extracted_values rows via sync session (extraction models
 # use PG_UUID which works transparently on SQLite).

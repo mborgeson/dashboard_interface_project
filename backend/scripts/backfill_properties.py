@@ -10,7 +10,7 @@ Run: python -m scripts.backfill_properties [--dry-run]
 import sys
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.crud.extraction import sync_extracted_to_properties
@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     results = run(dry_run=dry_run)
 
-    print(f"\n=== Summary ===")
+    print("\n=== Summary ===")
     print(f"Runs processed: {results['runs_processed']}")
     print(f"Properties created: {results['total_properties_created']}")
     print(f"Deals created: {results['total_deals_created']}")

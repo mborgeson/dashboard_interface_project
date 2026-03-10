@@ -21,7 +21,6 @@ from starlette.testclient import TestClient
 
 from app.middleware.etag import ETagMiddleware
 
-
 # =============================================================================
 # Helpers — test the dispatch logic directly
 # =============================================================================

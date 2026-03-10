@@ -18,15 +18,14 @@ import pytest
 from app.schemas.market_data import (
     ComparablesResponse,
     EconomicIndicator,
-    MSAOverview,
     MarketOverviewResponse,
     MarketTrend,
     MarketTrendsResponse,
     MonthlyMarketData,
+    MSAOverview,
     SubmarketMetrics,
     SubmarketsResponse,
 )
-
 
 # =============================================================================
 # Mock response builders

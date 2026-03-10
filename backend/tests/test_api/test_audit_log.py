@@ -12,7 +12,6 @@ from app.main import app
 from app.models.audit_log import AuditLog
 from app.services import audit_service
 
-
 # =============================================================================
 # Helper fixtures
 # =============================================================================

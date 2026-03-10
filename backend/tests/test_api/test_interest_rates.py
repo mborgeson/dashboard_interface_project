@@ -15,7 +15,6 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-
 # =============================================================================
 # Mock data matching the Pydantic response schemas exactly
 # =============================================================================

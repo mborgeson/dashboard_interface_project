@@ -10,12 +10,11 @@ import pytest
 from fastapi import HTTPException
 
 from app.core.permissions import (
+    ROLE_HIERARCHY,
     CurrentUser,
     Role,
-    ROLE_HIERARCHY,
     check_resource_ownership,
 )
-
 
 # =============================================================================
 # Role Enum Tests

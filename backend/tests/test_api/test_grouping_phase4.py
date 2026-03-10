@@ -31,7 +31,6 @@ from app.db.session import get_sync_db
 from app.extraction.group_pipeline import GroupExtractionPipeline
 from app.models.extraction import ExtractedValue, ExtractionRun
 
-
 # ============================================================================
 # Database Setup
 # ============================================================================
