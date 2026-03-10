@@ -1,7 +1,7 @@
 /**
  * ActivityForm - Form to add new activity to a deal
  */
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -57,7 +57,7 @@ export function ActivityForm({ dealId, onSuccess, onCancel }: ActivityFormProps)
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<ActivityFormValues>({
@@ -68,7 +68,7 @@ export function ActivityForm({ dealId, onSuccess, onCancel }: ActivityFormProps)
     },
   });
 
-  const selectedType = watch('type');
+  const selectedType = useWatch({ control, name: 'type' });
 
   const onSubmit = async (values: ActivityFormValues) => {
     try {
