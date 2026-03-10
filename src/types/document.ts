@@ -17,7 +17,7 @@ export interface Document {
 export interface DocumentFilters {
   searchTerm: string;
   type: DocumentType | 'all';
-  propertyId: number | 'all';
+  propertyId: string;
   dateRange: 'all' | '7days' | '30days' | '90days' | '1year';
 }
 

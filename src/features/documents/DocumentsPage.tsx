@@ -26,7 +26,7 @@ export function DocumentsPage() {
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [documentType, setDocumentType] = useState<DocumentType | 'all'>('all');
-  const [propertyId, setPropertyId] = useState<number | 'all'>('all');
+  const [propertyId, setPropertyId] = useState<string>('all');
   const [dateRange, setDateRange] = useState<'all' | '7days' | '30days' | '90days' | '1year'>('all');
 
   // Get filtered documents and stats from API
