@@ -983,10 +983,10 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-025   | MEDIUM   | Done   | Filter persistence potential infinite loop                         | isSyncingToUrlRef guard + params diff comparison           | f65dc05     |
 | F-026   | MEDIUM   | Done   | In-memory cache fallback has no automatic cleanup                  | Background asyncio task, cleanup every 5 min               | f65dc05     |
 | F-027   | MEDIUM   | Done   | WebSocket ConnectionManager not integrated into lifespan           | Init on startup, graceful disconnect on shutdown           | f65dc05     |
-| F-028   | MEDIUM   | Open   | Rate limiter Redis backend uses fixed-bucket approximation         | —                                                         | —           |
+| F-028   | MEDIUM   | Done   | Rate limiter Redis backend uses fixed-bucket approximation         | Sorted set sliding window matching memory backend          | 5164070     |
 | F-029   | MEDIUM   | Done   | Fetch client missing token refresh logic                           | Implemented in Batch 2a (same as F-005)                    | 8599ec2      |
-| F-030   | MEDIUM   | Open   | Enrichment logic mixed into CRUD layer                             | —                                                         | —           |
-| F-031   | MEDIUM   | Open   | Property analytics trends returns single-point data                | —                                                         | —           |
+| F-030   | MEDIUM   | Done   | Enrichment logic mixed into CRUD layer                             | Extracted 420 lines to services/enrichment.py              | 5164070     |
+| F-031   | MEDIUM   | Done   | Property analytics trends returns single-point data                | Multi-point projected trends with trend_type + data_points | 5164070     |
 | F-032   | MEDIUM   | Done   | N+1 in distribution schedule list                                  | Fixed alongside F-019 (batch template lookup in schedules) | a6b0685     |
 | F-033   | MEDIUM   | Done   | CacheService has no tests                                          | 19 tests in test_cache.py                                  | f65dc05     |
 | F-034   | MEDIUM   | Done   | No API-level tests for transaction endpoints                       | 27 tests added (Batch 2b users agent also covers)          | 8599ec2      |
@@ -999,16 +999,16 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-041   | MEDIUM   | Open   | documents.property_id is VARCHAR(50), not FK to properties.id      | —                                                         | —           |
 | F-042   | MEDIUM   | Open   | Construction pipeline uses VARCHAR without DB-level constraints    | —                                                         | —           |
 | F-043   | MEDIUM   | Done   | Zod common.ts and construction.ts schemas have no tests            | 58 tests across common.test.ts + construction.test.ts      | f65dc05     |
-| F-044   | MEDIUM   | Open   | Deal kanban enrichment runs on every cache miss                    | —                                                         | —           |
+| F-044   | MEDIUM   | Done   | Deal kanban enrichment runs on every cache miss                    | 30-min cache TTL with invalidation on extraction runs      | 5164070     |
 | F-045   | LOW      | Open   | ADR-004 is stale (dual client pattern)                             | —                                                         | —           |
 | F-046   | LOW      | Open   | Dual logging imports require discipline                            | —                                                         | —           |
-| F-047   | LOW      | Open   | Non-JSON responses return {} as T                                  | —                                                         | —           |
-| F-048   | LOW      | Open   | WebSocket callbacksRef updated every render                        | —                                                         | —           |
-| F-049   | LOW      | Open   | VirtualizedTable spacer missing colSpan                            | —                                                         | —           |
-| F-050   | LOW      | Open   | Error tracking rate limit uses fixed window                        | —                                                         | —           |
-| F-051   | LOW      | Open   | Toast auto-removal timer not cleared on manual dismiss             | —                                                         | —           |
-| F-052   | LOW      | Open   | authStore event listener registered at module load                 | —                                                         | —           |
-| F-053   | LOW      | Open   | Duplicate formatDate implementations                               | —                                                         | —           |
+| F-047   | LOW      | Done   | Non-JSON responses return {} as T                                  | Returns null; return type updated to T | null               | 5164070     |
+| F-048   | LOW      | Done   | WebSocket callbacksRef updated every render                        | eslint-disable with explanatory comment                    | 5164070     |
+| F-049   | LOW      | Done   | VirtualizedTable spacer missing colSpan                            | columnCount prop sets colSpan on spacer td elements        | 5164070     |
+| F-050   | LOW      | Done   | Error tracking rate limit uses fixed window                        | Sliding window via timestamp array with pruning            | 5164070     |
+| F-051   | LOW      | Done   | Toast auto-removal timer not cleared on manual dismiss             | timerMap tracks IDs; clearTimeout on dismiss/clearAll      | 5164070     |
+| F-052   | LOW      | Done   | authStore event listener registered at module load                 | typeof window !== 'undefined' guard                        | 5164070     |
+| F-053   | LOW      | Done   | Duplicate formatDate implementations                               | 4 local formatDate consolidated into dateUtils.ts          | 5164070     |
 | F-054   | LOW      | Open   | Report queue 30-second polling                                     | —                                                         | —           |
 | F-055   | LOW      | Open   | Comparison deals not persisted to storage                          | —                                                         | —           |
 | F-056   | LOW      | Open   | Optimistic locking only on Deal model                              | —                                                         | —           |
@@ -1026,6 +1026,6 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-068   | LOW      | Open   | PDF export may have incomplete financial data                      | —                                                         | —           |
 | F-069   | LOW      | Open   | Four proposed ADRs not yet formalized                              | —                                                         | —           |
 
-**Summary:** 12 Done, 57 Open (of 71 total including F-007a and F-007a+)
+**Summary:** 49 Done, 22 Open (of 71 total including F-007a and F-007a+)
 
 *End of findings report. Generated 2026-03-10 by Team 66 (Regeneration). Tracking table updated 2026-03-10.*
