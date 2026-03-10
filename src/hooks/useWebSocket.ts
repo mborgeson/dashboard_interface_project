@@ -101,6 +101,7 @@ export function useWebSocket(
   const retriesRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unmountedRef = useRef(false);
+  const connectWsRef = useRef<() => void>(() => {});
 
   // Stable references for callbacks so effect doesn't re-run on every render
   const callbacksRef = useRef({ onOpen, onClose, onMessage, onError });
@@ -166,10 +167,13 @@ export function useWebSocket(
           maxDelay,
         );
         retriesRef.current += 1;
-        reconnectTimerRef.current = setTimeout(connectWs, delay);
+        reconnectTimerRef.current = setTimeout(() => connectWsRef.current(), delay);
       }
     };
   }, [channel, enabled, maxRetries, baseDelay, maxDelay]);
+
+  // Keep ref in sync so reconnect timer always calls latest version
+  connectWsRef.current = connectWs;
 
   // -----------------------------------------------------------------------
   // Lifecycle

@@ -138,13 +138,15 @@ export function useCursorPagination<T>(
     ...queryOptions,
   });
 
+  const nextCursor = query.data?.next_cursor ?? null;
+
   const fetchNextPage = useCallback(() => {
-    if (!query.data?.next_cursor) return;
+    if (!nextCursor) return;
 
     setCursorHistory((prev) => [...prev, cursor ?? '']);
-    setCursor(query.data.next_cursor);
+    setCursor(nextCursor);
     setDirection('next');
-  }, [query.data?.next_cursor, cursor]);
+  }, [nextCursor, cursor]);
 
   const fetchPrevPage = useCallback(() => {
     if (cursorHistory.length === 0) return;
