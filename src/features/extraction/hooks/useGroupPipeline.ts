@@ -115,6 +115,7 @@ export function useRunDiscovery() {
   return {
     mutate: async (): Promise<DiscoveryResponse | null> => {
       try {
+        mutation.reset();
         return await mutation.mutateAsync();
       } catch {
         return null;
@@ -143,6 +144,7 @@ export function useRunFingerprint() {
   return {
     mutate: async (): Promise<FingerprintResponse | null> => {
       try {
+        mutation.reset();
         return await mutation.mutateAsync();
       } catch {
         return null;
@@ -171,6 +173,7 @@ export function useRunReferenceMap() {
   return {
     mutate: async (): Promise<ReferenceMappingResponse | null> => {
       try {
+        mutation.reset();
         return await mutation.mutateAsync();
       } catch {
         return null;
@@ -199,6 +202,7 @@ export function useRunConflictCheck() {
   return {
     mutate: async (): Promise<ConflictCheckResponse | null> => {
       try {
+        mutation.reset();
         return await mutation.mutateAsync();
       } catch {
         return null;
@@ -241,6 +245,7 @@ export function useRunGroupExtraction() {
       options: { dry_run: boolean } = { dry_run: false },
     ): Promise<GroupExtractionResponse | null> => {
       try {
+        mutation.reset();
         return await mutation.mutateAsync({ name, options });
       } catch {
         return null;
@@ -273,6 +278,7 @@ export function useApproveGroup() {
   return {
     mutate: async (name: string): Promise<GroupApprovalResponse | null> => {
       try {
+        mutation.reset();
         return await mutation.mutateAsync(name);
       } catch {
         return null;
@@ -312,6 +318,7 @@ export function useRunBatchExtraction() {
       stop_on_error: boolean;
     }): Promise<BatchExtractionResponse | null> => {
       try {
+        mutation.reset();
         return await mutation.mutateAsync(options);
       } catch {
         return null;
@@ -340,6 +347,7 @@ export function useRunValidation() {
   return {
     mutate: async (): Promise<ValidationResponse | null> => {
       try {
+        mutation.reset();
         return await mutation.mutateAsync();
       } catch {
         return null;
