@@ -186,12 +186,17 @@ export function useWebSocket(
   useEffect(() => {
     unmountedRef.current = false;
 
+    let initialTimer: ReturnType<typeof setTimeout> | null = null;
     if (enabled) {
-      connectWs();
+      // Defer to avoid synchronous setState within effect body
+      initialTimer = setTimeout(() => connectWs(), 0);
     }
 
     return () => {
       unmountedRef.current = true;
+      if (initialTimer) {
+        clearTimeout(initialTimer);
+      }
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
