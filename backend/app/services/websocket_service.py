@@ -23,7 +23,7 @@ class WebSocketManager:
     - Graceful disconnection handling
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Active connections: {connection_id: WebSocket}
         self._connections: dict[str, WebSocket] = {}
         # User connections: {user_id: Set[connection_id]}
@@ -31,9 +31,9 @@ class WebSocketManager:
         # Room subscriptions: {room_id: Set[connection_id]}
         self._rooms: dict[str, set[str]] = {}
         # Connection metadata: {connection_id: metadata}
-        self._metadata: dict[str, dict] = {}
+        self._metadata: dict[str, dict[str, Any]] = {}
         # Heartbeat tasks
-        self._heartbeat_tasks: dict[str, asyncio.Task] = {}
+        self._heartbeat_tasks: dict[str, asyncio.Task[None]] = {}
 
     @property
     def connection_count(self) -> int:

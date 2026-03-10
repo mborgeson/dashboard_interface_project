@@ -59,7 +59,7 @@ class ExcelExportService:
         "realized": "1B5E20",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Excel export service."""
         self._styles_created = False
         self._header_style: NamedStyle | None = None

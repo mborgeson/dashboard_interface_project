@@ -22,7 +22,7 @@ class RedisService:
     - Connection pooling
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._pool: redis.ConnectionPool | None = None
         self._client: redis.Redis | None = None
 

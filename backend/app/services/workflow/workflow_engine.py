@@ -40,13 +40,13 @@ class WorkflowEngine:
     - Event callbacks
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._definitions: dict[str, WorkflowDefinition] = {}
         self._instances: dict[str, WorkflowInstance] = {}
         self._approval_requests: dict[str, ApprovalRequest] = {}
         self._handler_registry = StepHandlerRegistry()
         self._event_callbacks: dict[str, list[Callable]] = {}
-        self._running_tasks: dict[str, asyncio.Task] = {}
+        self._running_tasks: dict[str, asyncio.Task[None]] = {}
         self._redis_client: Any = None
         self._use_redis = False
 

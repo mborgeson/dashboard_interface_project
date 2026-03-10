@@ -63,7 +63,7 @@ class MemoryRateLimitBackend(RateLimitBackend):
     Not recommended for production with multiple workers/instances.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Store request timestamps for each key: {key: [timestamp1, timestamp2, ...]}
         self._requests: dict[str, list[float]] = defaultdict(list)
         self._lock = asyncio.Lock()

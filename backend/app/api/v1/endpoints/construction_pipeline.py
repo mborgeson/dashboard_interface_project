@@ -1099,7 +1099,7 @@ async def import_status(db_sync=Depends(get_sync_db)):
 
 
 @router.post("/fetch-all", response_model=FetchAllResponse)
-async def fetch_all_apis():
+async def fetch_all_apis() -> FetchAllResponse:
     """Trigger all 6 construction API fetches on demand.
 
     Fetches data from Census BPS, FRED permits, BLS employment,

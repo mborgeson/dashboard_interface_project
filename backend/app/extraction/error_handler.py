@@ -55,7 +55,7 @@ class ErrorHandler:
     and continued extraction despite individual field failures.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.errors: list[ExtractionError] = []
         self.error_counts: dict[ErrorCategory, int] = dict.fromkeys(ErrorCategory, 0)
         self.logger = structlog.get_logger(__name__)

@@ -27,7 +27,7 @@ class EmailService:
     - Retry logic for reliability
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._template_env: Environment | None = None
         self._setup_templates()
 

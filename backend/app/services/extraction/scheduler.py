@@ -71,7 +71,7 @@ class ExtractionScheduler:
 
     JOB_ID = "extraction_scheduled_run"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._scheduler: AsyncIOScheduler | None = None
         self._state = ExtractionSchedulerState()
         self._extraction_callback: Any = None

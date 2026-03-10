@@ -76,7 +76,7 @@ class FileMonitorScheduler:
 
     JOB_ID = "file_monitor_check"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._scheduler: AsyncIOScheduler | None = None
         self._state = MonitorSchedulerState()
         self._initialized = False

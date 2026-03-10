@@ -110,7 +110,7 @@ class InterestRatesService:
 
     CACHE_TTL = 300  # 5 minutes
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._cache: dict[str, tuple[Any, datetime]] = {}
         self._fred_api_key: str | None = getattr(settings, "FRED_API_KEY", None)
         self._market_db_engine = None

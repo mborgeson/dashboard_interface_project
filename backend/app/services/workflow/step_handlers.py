@@ -60,7 +60,7 @@ class ActionHandler(StepHandler):
     Executes registered action functions based on the step handler name.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._actions: dict[str, Callable] = {}
 
     def register_action(
@@ -120,7 +120,7 @@ class ConditionHandler(StepHandler):
     Evaluates conditions to determine the next step.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._evaluators: dict[str, Callable] = {}
 
     def register_evaluator(
@@ -287,7 +287,7 @@ class ApprovalHandler(StepHandler):
     Creates approval requests and waits for user action.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._approval_callback: Callable | None = None
 
     def set_approval_callback(
@@ -368,7 +368,7 @@ class NotificationHandler(StepHandler):
     Sends notifications via registered channels.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._channels: dict[str, Callable] = {}
 
     def register_channel(
@@ -479,7 +479,7 @@ class StepHandlerRegistry:
     Manages registration and lookup of handlers by step type.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._handlers: dict[StepType, StepHandler] = {}
         self._register_defaults()
 

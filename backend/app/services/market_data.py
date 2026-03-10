@@ -57,7 +57,7 @@ class MarketDataService:
     the API always returns data.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize market data service and market DB engine."""
         self._last_updated = datetime.now()
         self._market_db_engine = None

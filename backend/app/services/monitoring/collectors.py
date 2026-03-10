@@ -36,7 +36,7 @@ class SystemMetricsCollector:
     - Process information
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize system metrics collector."""
         self._last_collection: datetime | None = None
         self._cache_duration = timedelta(seconds=5)
@@ -122,7 +122,7 @@ class DatabaseMetricsCollector:
     - Query performance statistics
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize database metrics collector."""
         self._engine = None
 
@@ -179,7 +179,7 @@ class ApplicationMetricsCollector:
     - Underwriting model statistics
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize application metrics collector."""
         self._db_session_factory = None
         self._last_collection: datetime | None = None
@@ -279,7 +279,7 @@ class CollectorRegistry:
     coordinated metric collection.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize collector registry."""
         self.system = SystemMetricsCollector()
         self.database = DatabaseMetricsCollector()
