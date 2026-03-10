@@ -969,8 +969,8 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-011   | HIGH     | Done   | PUT and PATCH on deals have identical behavior                     | Documented PUT as partial update for backwards compat      | a6b0685      |
 | F-012   | HIGH     | Done   | 304 response without cache hit falls through silently              | Retry without If-None-Match on cache miss                  | a6b0685      |
 | F-013   | HIGH     | Done   | user_name always None in PropertyActivityResponse                  | Batch user lookup via IN query, populate user_name         | a6b0685      |
-| F-014   | HIGH     | Done   | Analytics export uses static mock data                             | Live DB queries for portfolio, KPIs, deal pipeline         | TBD         |
-| F-015   | HIGH     | Done   | Growth rate fields always return 0.0 or null                       | 0.0→None + real cycle_times from activity_logs             | TBD         |
+| F-014   | HIGH     | Done   | Analytics export uses static mock data                             | Live DB queries for portfolio, KPIs, deal pipeline         | f65dc05     |
+| F-015   | HIGH     | Done   | Growth rate fields always return 0.0 or null                       | 0.0→None + real cycle_times from activity_logs             | f65dc05     |
 | F-016   | HIGH     | Done   | Redis services commented out in lifespan startup                   | Wired with graceful fallback to in-memory                  | 8599ec2      |
 | F-017   | HIGH     | Done   | Backend coverage below 30% threshold                               | Already at 63.21% — threshold met                         | bedb94a     |
 | F-018   | HIGH     | Open   | Alembic migrations lag behind model changes                        | —                                                         | —           |
@@ -978,27 +978,27 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-020   | HIGH     | Done   | useDeals hardcoded page_size: 100 truncates results                | Configurable pageSize param (default 500)                  | a6b0685      |
 | F-021   | HIGH     | Done   | POST /properties/{id}/activities returns 200, not 201              | Added status_code=201 to endpoint decorator                | a6b0685      |
 | F-022   | HIGH     | Done   | Architecture doc says POST /deals/compare; implementation is GET   | Corrected doc to GET /deals/compare                        | a6b0685      |
-| F-023   | MEDIUM   | Done   | ETag cache unbounded (frontend)                                    | LRU eviction at 100 entries via etagCacheSet()             | TBD         |
-| F-024   | MEDIUM   | Done   | WebSocket auth token not updated on refresh                        | Subscribe to authStore, reconnect on token change          | TBD         |
-| F-025   | MEDIUM   | Done   | Filter persistence potential infinite loop                         | isSyncingToUrlRef guard + params diff comparison           | TBD         |
-| F-026   | MEDIUM   | Done   | In-memory cache fallback has no automatic cleanup                  | Background asyncio task, cleanup every 5 min               | TBD         |
-| F-027   | MEDIUM   | Done   | WebSocket ConnectionManager not integrated into lifespan           | Init on startup, graceful disconnect on shutdown           | TBD         |
+| F-023   | MEDIUM   | Done   | ETag cache unbounded (frontend)                                    | LRU eviction at 100 entries via etagCacheSet()             | f65dc05     |
+| F-024   | MEDIUM   | Done   | WebSocket auth token not updated on refresh                        | Subscribe to authStore, reconnect on token change          | f65dc05     |
+| F-025   | MEDIUM   | Done   | Filter persistence potential infinite loop                         | isSyncingToUrlRef guard + params diff comparison           | f65dc05     |
+| F-026   | MEDIUM   | Done   | In-memory cache fallback has no automatic cleanup                  | Background asyncio task, cleanup every 5 min               | f65dc05     |
+| F-027   | MEDIUM   | Done   | WebSocket ConnectionManager not integrated into lifespan           | Init on startup, graceful disconnect on shutdown           | f65dc05     |
 | F-028   | MEDIUM   | Open   | Rate limiter Redis backend uses fixed-bucket approximation         | —                                                         | —           |
 | F-029   | MEDIUM   | Done   | Fetch client missing token refresh logic                           | Implemented in Batch 2a (same as F-005)                    | 8599ec2      |
 | F-030   | MEDIUM   | Open   | Enrichment logic mixed into CRUD layer                             | —                                                         | —           |
 | F-031   | MEDIUM   | Open   | Property analytics trends returns single-point data                | —                                                         | —           |
 | F-032   | MEDIUM   | Done   | N+1 in distribution schedule list                                  | Fixed alongside F-019 (batch template lookup in schedules) | a6b0685     |
-| F-033   | MEDIUM   | Done   | CacheService has no tests                                          | 19 tests in test_cache.py                                  | TBD         |
+| F-033   | MEDIUM   | Done   | CacheService has no tests                                          | 19 tests in test_cache.py                                  | f65dc05     |
 | F-034   | MEDIUM   | Done   | No API-level tests for transaction endpoints                       | 27 tests added (Batch 2b users agent also covers)          | 8599ec2      |
-| F-035   | MEDIUM   | Done   | No API-level tests for document endpoints                          | 17 tests in test_documents.py                              | TBD         |
-| F-036   | MEDIUM   | Done   | No API-level tests for interest rate endpoints                     | 10 tests in test_interest_rates.py                         | TBD         |
-| F-037   | MEDIUM   | Done   | No API-level tests for market data endpoints                       | 9 tests in test_market.py                                  | TBD         |
+| F-035   | MEDIUM   | Done   | No API-level tests for document endpoints                          | 17 tests in test_documents.py                              | f65dc05     |
+| F-036   | MEDIUM   | Done   | No API-level tests for interest rate endpoints                     | 10 tests in test_interest_rates.py                         | f65dc05     |
+| F-037   | MEDIUM   | Done   | No API-level tests for market data endpoints                       | 9 tests in test_market.py                                  | f65dc05     |
 | F-038   | MEDIUM   | Done   | authStore has no tests                                             | 9 tests added (authStore.test.ts)                          | 8599ec2      |
-| F-039   | MEDIUM   | Done   | ETag middleware has no tests                                       | 12 tests in test_etag.py                                   | TBD         |
-| F-040   | MEDIUM   | Done   | Origin validation middleware has no tests                          | Already existed (13 tests in test_origin_validation.py)    | TBD         |
+| F-039   | MEDIUM   | Done   | ETag middleware has no tests                                       | 12 tests in test_etag.py                                   | f65dc05     |
+| F-040   | MEDIUM   | Done   | Origin validation middleware has no tests                          | Already existed (13 tests in test_origin_validation.py)    | f65dc05     |
 | F-041   | MEDIUM   | Open   | documents.property_id is VARCHAR(50), not FK to properties.id      | —                                                         | —           |
 | F-042   | MEDIUM   | Open   | Construction pipeline uses VARCHAR without DB-level constraints    | —                                                         | —           |
-| F-043   | MEDIUM   | Done   | Zod common.ts and construction.ts schemas have no tests            | 58 tests across common.test.ts + construction.test.ts      | TBD         |
+| F-043   | MEDIUM   | Done   | Zod common.ts and construction.ts schemas have no tests            | 58 tests across common.test.ts + construction.test.ts      | f65dc05     |
 | F-044   | MEDIUM   | Open   | Deal kanban enrichment runs on every cache miss                    | —                                                         | —           |
 | F-045   | LOW      | Open   | ADR-004 is stale (dual client pattern)                             | —                                                         | —           |
 | F-046   | LOW      | Open   | Dual logging imports require discipline                            | —                                                         | —           |
