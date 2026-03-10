@@ -98,7 +98,7 @@ export function ExtractionHistory({
         <CardContent>
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <p className="text-sm text-neutral-600 mb-4">{error.message}</p>
-            <Button variant="outline" size="sm" onClick={refetch}>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
             </Button>
@@ -116,7 +116,7 @@ export function ExtractionHistory({
             <History className="h-5 w-5" />
             Extraction History
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={refetch}>
+          <Button variant="ghost" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>

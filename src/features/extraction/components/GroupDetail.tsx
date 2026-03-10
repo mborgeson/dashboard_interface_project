@@ -51,7 +51,7 @@ export function GroupDetail({ groupName, onClose }: GroupDetailProps) {
         <CardContent className="py-6 text-center">
           <p className="text-sm text-red-600 mb-2">{error?.message ?? 'Group not found'}</p>
           <div className="flex items-center justify-center gap-2">
-            <Button variant="outline" size="sm" onClick={refetch}>Retry</Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>
             <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
           </div>
         </CardContent>

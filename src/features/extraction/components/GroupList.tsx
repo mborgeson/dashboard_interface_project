@@ -114,7 +114,7 @@ export function GroupList({ onGroupSelect }: GroupListProps) {
       <Card>
         <CardContent className="py-6 text-center">
           <p className="text-sm text-red-600 mb-2">{error.message}</p>
-          <Button variant="outline" size="sm" onClick={refetch}>Retry</Button>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>
         </CardContent>
       </Card>
     );

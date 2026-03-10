@@ -99,7 +99,7 @@ export function ExtractedPropertyList({
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <AlertTriangle className="h-10 w-10 text-amber-500 mb-2" />
             <p className="text-sm text-neutral-600 mb-4">{error.message}</p>
-            <Button variant="outline" size="sm" onClick={refetch}>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
             </Button>
@@ -131,7 +131,7 @@ export function ExtractedPropertyList({
             >
               <Filter className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={refetch}>
+            <Button variant="ghost" size="sm" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
