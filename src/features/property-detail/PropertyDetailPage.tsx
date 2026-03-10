@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useProperty } from '@/hooks/api/useProperties';
 import { PropertyDetailSkeleton } from './components/PropertyDetailSkeleton';
 import { PropertyHero } from './components/PropertyHero';
