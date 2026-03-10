@@ -228,6 +228,7 @@ class TestDealSchemaSanitization:
         deal = DealUpdate(
             name="<em>Updated</em> Deal",
             notes="Notes with <a href='javascript:alert(1)'>link</a>",
+            version=1,
         )
         assert deal.name is not None
         assert "<em>" not in deal.name
