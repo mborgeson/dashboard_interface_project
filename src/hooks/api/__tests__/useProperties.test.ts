@@ -82,7 +82,14 @@ const fakeProperty = {
     assetType: 'Garden',
     amenities: ['Pool', 'Fitness Center'],
   },
-};
+  acquisition: { date: new Date(), purchasePrice: 0, pricePerUnit: 0, closingCosts: 0, acquisitionFee: 0, totalInvested: 0, landAndAcquisitionCosts: 0, hardCosts: 0, softCosts: 0, lenderClosingCosts: 0, equityClosingCosts: 0, totalAcquisitionBudget: 0 },
+  financing: { loanAmount: 0, loanToValue: 0, interestRate: 0, loanTerm: 0, amortization: 0, monthlyPayment: 0, lender: null, originationDate: new Date(), maturityDate: null },
+  valuation: { currentValue: 0, lastAppraisalDate: new Date(), capRate: 0, appreciationSinceAcquisition: 0 },
+  operations: { occupancy: 0, averageRent: 0, rentPerSqft: 0, monthlyRevenue: 0, otherIncome: 0, expenses: { realEstateTaxes: 0, otherExpenses: 0, propertyInsurance: 0, staffingPayroll: 0, propertyManagementFee: 0, repairsAndMaintenance: 0, turnover: 0, contractServices: 0, reservesForReplacement: 0, adminLegalSecurity: 0, advertisingLeasingMarketing: 0, total: 0 }, noi: 0, operatingExpenseRatio: 0, grossPotentialRevenue: 0, netRentalIncome: 0, otherIncomeAnnual: 0, vacancyLoss: 0, concessions: 0 },
+  operationsByYear: [],
+  performance: { leveredIrr: 0, leveredMoic: 0, unleveredIrr: null, unleveredMoic: null, totalEquityCommitment: 0, totalCashFlowsToEquity: 0, netCashFlowsToEquity: 0, holdPeriodYears: 0, exitCapRate: 0, totalBasisPerUnitClose: 0, seniorLoanBasisPerUnitClose: 0, totalBasisPerUnitExit: null, seniorLoanBasisPerUnitExit: null },
+  images: { main: '', gallery: [] },
+} satisfies import('@/types/property').Property;
 
 const fakePropertiesResponse = {
   properties: [fakeProperty],
