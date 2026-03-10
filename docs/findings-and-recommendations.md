@@ -973,7 +973,7 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-015   | HIGH     | Done   | Growth rate fields always return 0.0 or null                       | 0.0→None + real cycle_times from activity_logs             | f65dc05     |
 | F-016   | HIGH     | Done   | Redis services commented out in lifespan startup                   | Wired with graceful fallback to in-memory                  | 8599ec2      |
 | F-017   | HIGH     | Done   | Backend coverage below 30% threshold                               | Already at 63.21% — threshold met                         | bedb94a     |
-| F-018   | HIGH     | Done   | Alembic migrations lag behind model changes                        | Catch-up migration: version col, audit_logs_admin, soft-delete, 21 CHECK constraints, 16 indexes | pending     |
+| F-018   | HIGH     | Done   | Alembic migrations lag behind model changes                        | Catch-up migration: version col, audit_logs_admin, soft-delete, 21 CHECK constraints, 16 indexes | dfbe156     |
 | F-019   | HIGH     | Done   | N+1 query in queued report list                                    | Batch template lookup via IN query for reports + schedules | a6b0685      |
 | F-020   | HIGH     | Done   | useDeals hardcoded page_size: 100 truncates results                | Configurable pageSize param (default 500)                  | a6b0685      |
 | F-021   | HIGH     | Done   | POST /properties/{id}/activities returns 200, not 201              | Added status_code=201 to endpoint decorator                | a6b0685      |
@@ -997,7 +997,7 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-039   | MEDIUM   | Done   | ETag middleware has no tests                                       | 12 tests in test_etag.py                                   | f65dc05     |
 | F-040   | MEDIUM   | Done   | Origin validation middleware has no tests                          | Already existed (13 tests in test_origin_validation.py)    | f65dc05     |
 | F-041   | MEDIUM   | Done   | documents.property_id is VARCHAR(50), not FK to properties.id      | Model + schema + CRUD updated; Alembic migration created   | e8e12ce     |
-| F-042   | MEDIUM   | Done   | Construction pipeline uses VARCHAR without DB-level constraints    | 4 CHECK constraints: pipeline_status, classification, txn type, doc type | pending     |
+| F-042   | MEDIUM   | Done   | Construction pipeline uses VARCHAR without DB-level constraints    | 4 CHECK constraints: pipeline_status, classification, txn type, doc type | dfbe156     |
 | F-043   | MEDIUM   | Done   | Zod common.ts and construction.ts schemas have no tests            | 58 tests across common.test.ts + construction.test.ts      | f65dc05     |
 | F-044   | MEDIUM   | Done   | Deal kanban enrichment runs on every cache miss                    | 30-min cache TTL with invalidation on extraction runs      | 5164070     |
 | F-045   | LOW      | Done   | ADR-004 is stale (dual client pattern)                             | ADR-004 marked Superseded by ADR-008                       | e8e12ce     |
