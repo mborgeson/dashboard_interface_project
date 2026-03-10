@@ -107,6 +107,36 @@ DB_CONNECTION_POOL_CHECKED_OUT = Gauge(
     labelnames=["pool_type"],
 )
 
+DB_CONNECTION_POOL_OVERFLOW = Gauge(
+    name="database_connection_pool_overflow",
+    documentation="Current number of overflow connections beyond pool size",
+    labelnames=["pool_type"],
+)
+
+DB_CONNECTION_POOL_CHECKED_IN = Gauge(
+    name="database_connection_pool_checked_in",
+    documentation="Number of connections currently available in pool",
+    labelnames=["pool_type"],
+)
+
+REDIS_CONNECTION_POOL_SIZE = Gauge(
+    name="redis_connection_pool_created",
+    documentation="Number of connections created in Redis pool",
+    labelnames=["pool_name"],
+)
+
+REDIS_CONNECTION_POOL_AVAILABLE = Gauge(
+    name="redis_connection_pool_available",
+    documentation="Number of available connections in Redis pool",
+    labelnames=["pool_name"],
+)
+
+REDIS_CONNECTION_POOL_IN_USE = Gauge(
+    name="redis_connection_pool_in_use",
+    documentation="Number of connections currently in use in Redis pool",
+    labelnames=["pool_name"],
+)
+
 
 # =============================================================================
 # Cache Metrics (Redis)

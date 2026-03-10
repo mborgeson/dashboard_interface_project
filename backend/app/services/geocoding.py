@@ -8,6 +8,8 @@ import asyncio
 import httpx
 from loguru import logger
 
+from app.core.config import settings
+
 
 async def geocode_address(
     street: str,
@@ -38,7 +40,7 @@ async def geocode_address(
     }
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT) as client:
             response = await client.get(url, params=params, headers=headers)
             response.raise_for_status()
             results = response.json()
@@ -73,7 +75,7 @@ async def geocode_with_fallback(
         if result:
             return result
         # Rate limit pause before retry
-        await asyncio.sleep(1.1)
+        await asyncio.sleep(settings.GEOCODING_RATE_LIMIT_DELAY)
 
     # Fallback: city + state
     result = await geocode_address("", city, state, zip_code)

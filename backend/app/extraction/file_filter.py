@@ -88,7 +88,7 @@ class FileFilter:
         self.cutoff_date = self._parse_cutoff_date(settings.CUTOFF_DATE)
 
         # Max file size in bytes
-        self.max_size_bytes = getattr(settings, "MAX_FILE_SIZE_MB", 100) * 1024 * 1024
+        self.max_size_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
 
         self.logger.info(
             "file_filter_initialized",
@@ -96,7 +96,7 @@ class FileFilter:
             exclude_patterns=self.exclude_patterns,
             valid_extensions=list(self.valid_extensions),
             cutoff_date=self.cutoff_date.isoformat() if self.cutoff_date else None,
-            max_size_mb=getattr(settings, "MAX_FILE_SIZE_MB", 100),
+            max_size_mb=settings.MAX_FILE_SIZE_MB,
         )
 
     def _compile_pattern(self, pattern: str) -> re.Pattern | None:

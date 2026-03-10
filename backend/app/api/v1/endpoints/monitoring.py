@@ -191,6 +191,40 @@ async def detailed_health_check(db: AsyncSession = Depends(get_db)):
 
 
 @router.get(
+    "/pool-stats",
+    summary="Connection Pool Statistics",
+    description="Get database and Redis connection pool statistics.",
+    tags=["monitoring"],
+)
+async def pool_stats():
+    """
+    Get connection pool statistics.
+
+    Returns detailed pool metrics for:
+    - SQLAlchemy async engine pool (size, checked out, overflow, checked in)
+    - SQLAlchemy sync engine pool (size, checked out, overflow, checked in)
+    - Redis connection pools (cache, token_blacklist, redis_service)
+    - Summary with utilization percentages
+    """
+    collector_registry = get_collector_registry()
+
+    # Wire engines if not already set
+    try:
+        from app.db.session import engine, sync_engine
+
+        if collector_registry.connection_pool._engine is None:
+            collector_registry.connection_pool.set_engine(engine)
+        if collector_registry.connection_pool._sync_engine is None:
+            collector_registry.connection_pool.set_sync_engine(sync_engine)
+    except Exception as e:
+        logger.debug(f"Could not wire engines to pool collector: {e}")
+
+    pool_metrics = await collector_registry.connection_pool.collect()
+
+    return pool_metrics
+
+
+@router.get(
     "/stats",
     summary="Performance Statistics",
     description="Get current performance statistics and metrics summary.",

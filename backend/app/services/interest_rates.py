@@ -108,7 +108,7 @@ class InterestRatesService:
     Returns empty/error response when neither source is available.
     """
 
-    CACHE_TTL = 300  # 5 minutes
+    CACHE_TTL = settings.INTEREST_RATE_CACHE_TTL
 
     def __init__(self) -> None:
         self._cache: dict[str, tuple[Any, datetime]] = {}
@@ -129,7 +129,11 @@ class InterestRatesService:
         try:
             from sqlalchemy import create_engine, text
 
-            self._market_db_engine = create_engine(db_url, pool_size=2, max_overflow=1)
+            self._market_db_engine = create_engine(
+                db_url,
+                pool_size=settings.INTEREST_RATE_DB_POOL_SIZE,
+                max_overflow=settings.INTEREST_RATE_DB_MAX_OVERFLOW,
+            )
             # Test connection
             with self._market_db_engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
@@ -161,7 +165,7 @@ class InterestRatesService:
         if not self._fred_api_key:
             return None
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT) as client:
                 response = await client.get(
                     "https://api.stlouisfed.org/fred/series/observations",
                     params={
@@ -194,7 +198,7 @@ class InterestRatesService:
         if not self._fred_api_key:
             return None
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT_LONG) as client:
                 response = await client.get(
                     "https://api.stlouisfed.org/fred/series/observations",
                     params={

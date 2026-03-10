@@ -11,6 +11,8 @@ from typing import Any
 
 from loguru import logger
 
+from app.core.config import settings
+
 from .workflow_models import (
     StepDefinition,
     StepType,
@@ -579,7 +581,7 @@ async def http_request_action(
     method = step_config.get("method", "GET").upper()
     headers = step_config.get("headers", {})
     body = step_config.get("body")
-    timeout = step_config.get("timeout", 30)
+    timeout = step_config.get("timeout", settings.WORKFLOW_HTTP_TIMEOUT)
 
     # Format URL with variables
     with contextlib.suppress(KeyError, ValueError):

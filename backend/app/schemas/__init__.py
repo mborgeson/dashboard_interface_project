@@ -40,6 +40,12 @@ from .grouping import (
     PipelineStatusResponse,
     ReferenceMappingResponse,
 )
+from .pagination import (
+    CursorPaginatedResponse,
+    CursorPaginationParams,
+    decode_cursor,
+    encode_cursor,
+)
 from .property import PropertyCreate, PropertyResponse, PropertyUpdate
 from .user import UserCreate, UserInDB, UserResponse, UserUpdate
 
@@ -92,4 +98,9 @@ __all__ = [
     "GroupExtractionRequest",
     "GroupExtractionResponse",
     "PipelineStatusResponse",
+    # Cursor pagination
+    "CursorPaginationParams",
+    "CursorPaginatedResponse",
+    "encode_cursor",
+    "decode_cursor",
 ]

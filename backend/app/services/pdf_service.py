@@ -16,6 +16,8 @@ from typing import Any
 
 from loguru import logger
 
+from app.core.config import settings
+
 try:
     from reportlab.lib.enums import TA_CENTER
     from reportlab.lib.pagesizes import letter
@@ -677,7 +679,7 @@ class PDFReportService:
             prop_headers = ["Name", "Type", "Location", "Occupancy", "NOI"]
             prop_data = [prop_headers]
 
-            for prop in properties[:10]:  # Limit to 10 properties
+            for prop in properties[: settings.PDF_MAX_PROPERTIES]:
                 prop_data.append(
                     [
                         prop.get("name", "N/A")[:25],
@@ -695,10 +697,10 @@ class PDFReportService:
             prop_table.setStyle(self._create_table_style())
             elements.append(prop_table)
 
-            if len(properties) > 10:
+            if len(properties) > settings.PDF_MAX_PROPERTIES:
                 elements.append(
                     Paragraph(
-                        f"... and {len(properties) - 10} more properties",
+                        f"... and {len(properties) - settings.PDF_MAX_PROPERTIES} more properties",
                         self._styles["BodyText"],
                     )
                 )
@@ -712,7 +714,7 @@ class PDFReportService:
             deal_headers = ["Name", "Type", "Stage", "Asking Price", "IRR"]
             deal_data = [deal_headers]
 
-            for deal in deals[:10]:  # Limit to 10 deals
+            for deal in deals[: settings.PDF_MAX_DEALS]:
                 deal_data.append(
                     [
                         deal.get("name", "N/A")[:25],
@@ -734,10 +736,10 @@ class PDFReportService:
             deal_table.setStyle(self._create_table_style())
             elements.append(deal_table)
 
-            if len(deals) > 10:
+            if len(deals) > settings.PDF_MAX_DEALS:
                 elements.append(
                     Paragraph(
-                        f"... and {len(deals) - 10} more deals",
+                        f"... and {len(deals) - settings.PDF_MAX_DEALS} more deals",
                         self._styles["BodyText"],
                     )
                 )

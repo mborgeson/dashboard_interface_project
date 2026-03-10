@@ -26,6 +26,8 @@ import openpyxl
 import pyxlsb
 import structlog
 
+from app.core.config import settings
+
 from .cell_mapping import CellMapping
 from .error_handler import ErrorHandler
 
@@ -496,11 +498,18 @@ class BatchProcessor:
     """
 
     def __init__(
-        self, extractor: ExcelDataExtractor, batch_size: int = 10, max_workers: int = 4
+        self,
+        extractor: ExcelDataExtractor,
+        batch_size: int | None = None,
+        max_workers: int | None = None,
     ):
         self.extractor = extractor
-        self.batch_size = batch_size
-        self.max_workers = max_workers
+        self.batch_size = (
+            batch_size if batch_size is not None else settings.EXTRACTION_BATCH_SIZE
+        )
+        self.max_workers = (
+            max_workers if max_workers is not None else settings.EXTRACTION_MAX_WORKERS
+        )
         self.logger = structlog.get_logger().bind(component="BatchProcessor")
 
     def process_files(

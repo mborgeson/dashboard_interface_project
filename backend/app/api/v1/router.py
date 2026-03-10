@@ -23,6 +23,7 @@ from app.api.v1.endpoints import (
     sales_analysis,
     transactions,
     users,
+    ws,
 )
 
 api_router = APIRouter()
@@ -64,3 +65,4 @@ api_router.include_router(
     prefix="/construction-pipeline",
     tags=["construction-pipeline"],
 )
+api_router.include_router(ws.router, tags=["websocket"])

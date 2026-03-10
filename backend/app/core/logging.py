@@ -105,7 +105,7 @@ def setup_logging() -> None:
         logger.add(
             "logs/app_{time:YYYY-MM-DD}.log",
             rotation="00:00",
-            retention="30 days",
+            retention=f"{settings.LOG_RETENTION_DAYS} days",
             compression="gz",
             format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | "
             "{name}:{function}:{line} | {extra[request_id]} | {message}",
@@ -116,7 +116,7 @@ def setup_logging() -> None:
         logger.add(
             "logs/error_{time:YYYY-MM-DD}.log",
             rotation="00:00",
-            retention="90 days",
+            retention=f"{settings.LOG_ERROR_RETENTION_DAYS} days",
             compression="gz",
             format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | "
             "{name}:{function}:{line} | {extra[request_id]} | {message}",

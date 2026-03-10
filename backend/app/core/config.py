@@ -244,6 +244,52 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    LOG_RETENTION_DAYS: int = 30  # Retention for app log files
+    LOG_ERROR_RETENTION_DAYS: int = 90  # Retention for error log files
+
+    # Cache TTL Settings (seconds)
+    CACHE_SHORT_TTL: int = 300  # 5 minutes — frequently-changing data
+    CACHE_LONG_TTL: int = 7200  # 2 hours — rarely-changing aggregates
+
+    # HTTP Client Settings
+    HTTP_TIMEOUT: float = 10.0  # Default timeout for external HTTP requests (seconds)
+    HTTP_TIMEOUT_LONG: float = 15.0  # Timeout for slower external APIs (seconds)
+    REDIS_SOCKET_CONNECT_TIMEOUT: int = 5  # Redis socket connect timeout (seconds)
+
+    # File Upload Size Limits (MB)
+    UPLOAD_MAX_EXCEL_MB: int = 50  # .xlsx, .xlsm, .xls
+    UPLOAD_MAX_PDF_MB: int = 25  # .pdf
+    UPLOAD_MAX_CSV_MB: int = 10  # .csv
+    UPLOAD_MAX_DOCX_MB: int = 25  # .docx
+
+    # Geocoding Settings
+    GEOCODING_RATE_LIMIT_DELAY: float = (
+        1.1  # Nominatim rate limit (seconds between requests)
+    )
+
+    # Construction Pipeline Import
+    CONSTRUCTION_MIN_UNITS: int = 50  # Minimum unit threshold for pipeline import
+
+    # Extraction Batch Processing
+    EXTRACTION_BATCH_SIZE: int = 10  # Files per batch
+    EXTRACTION_MAX_WORKERS: int = 4  # Thread pool workers for batch extraction
+
+    # Interest Rate Service
+    INTEREST_RATE_CACHE_TTL: int = 300  # 5 minutes in-memory cache
+    INTEREST_RATE_DB_POOL_SIZE: int = 2  # Market data DB pool size
+    INTEREST_RATE_DB_MAX_OVERFLOW: int = 1  # Market data DB max overflow
+
+    # Rate Limiting — Token Refresh
+    RATE_LIMIT_REFRESH_REQUESTS: int = 10  # Requests per window for token refresh
+    # Rate Limiting — Cleanup
+    RATE_LIMIT_CLEANUP_WINDOW: int = 3600  # Max window for memory cleanup (seconds)
+
+    # PDF Report Limits
+    PDF_MAX_PROPERTIES: int = 10  # Max properties shown in PDF summary table
+    PDF_MAX_DEALS: int = 10  # Max deals shown in PDF pipeline table
+
+    # Workflow HTTP Step
+    WORKFLOW_HTTP_TIMEOUT: int = 30  # Default timeout for workflow HTTP steps (seconds)
 
     # Extraction Scheduler Settings
     EXTRACTION_SCHEDULE_ENABLED: bool = True

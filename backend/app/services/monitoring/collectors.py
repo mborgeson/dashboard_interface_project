@@ -17,10 +17,15 @@ from loguru import logger
 
 from app.services.monitoring.metrics import (
     ACTIVE_USERS,
+    DB_CONNECTION_POOL_CHECKED_IN,
     DB_CONNECTION_POOL_CHECKED_OUT,
+    DB_CONNECTION_POOL_OVERFLOW,
     DB_CONNECTION_POOL_SIZE,
     DEALS_COUNT,
     PROPERTIES_COUNT,
+    REDIS_CONNECTION_POOL_AVAILABLE,
+    REDIS_CONNECTION_POOL_IN_USE,
+    REDIS_CONNECTION_POOL_SIZE,
     UNDERWRITING_MODELS_COUNT,
 )
 
@@ -117,7 +122,7 @@ class DatabaseMetricsCollector:
     Collects database connection and query metrics.
 
     Metrics include:
-    - Connection pool status
+    - Connection pool status (async and sync engines)
     - Active connections
     - Query performance statistics
     """
@@ -125,45 +130,80 @@ class DatabaseMetricsCollector:
     def __init__(self) -> None:
         """Initialize database metrics collector."""
         self._engine = None
+        self._sync_engine = None
 
     def set_engine(self, engine) -> None:
-        """Set the SQLAlchemy engine for pool monitoring."""
+        """Set the SQLAlchemy async engine for pool monitoring."""
         self._engine = engine
+
+    def set_sync_engine(self, engine) -> None:
+        """Set the SQLAlchemy sync engine for pool monitoring."""
+        self._sync_engine = engine
+
+    def _collect_pool_stats(self, pool, pool_type: str) -> dict[str, Any]:
+        """Extract pool statistics from a SQLAlchemy pool and update Prometheus gauges."""
+        pool_status = {
+            "size": pool.size(),
+            "checked_out": pool.checkedout(),
+            "overflow": pool.overflow(),
+            "checked_in": pool.checkedin(),
+        }
+
+        # Update Prometheus gauges
+        DB_CONNECTION_POOL_SIZE.labels(pool_type=pool_type).set(pool_status["size"])
+        DB_CONNECTION_POOL_CHECKED_OUT.labels(pool_type=pool_type).set(
+            pool_status["checked_out"]
+        )
+        DB_CONNECTION_POOL_OVERFLOW.labels(pool_type=pool_type).set(
+            pool_status["overflow"]
+        )
+        DB_CONNECTION_POOL_CHECKED_IN.labels(pool_type=pool_type).set(
+            pool_status["checked_in"]
+        )
+
+        return pool_status
 
     async def collect(self) -> dict[str, Any]:
         """Collect database metrics."""
-        metrics = {
+        metrics: dict[str, Any] = {
             "timestamp": datetime.now(UTC).isoformat(),
             "connected": False,
             "pool": {},
         }
 
-        if self._engine is None:
+        if self._engine is None and self._sync_engine is None:
             return metrics
 
         try:
-            # Get pool statistics
-            pool = self._engine.pool
+            # Async engine pool stats
+            if self._engine is not None:
+                pool = self._engine.pool
+                metrics["pool"]["async"] = self._collect_pool_stats(pool, "async")
+                metrics["connected"] = True
 
-            pool_status = {
-                "size": pool.size(),
-                "checked_out": pool.checkedout(),
-                "overflow": pool.overflow(),
-                "checked_in": pool.checkedin(),
-            }
-
-            metrics["pool"] = pool_status
-            metrics["connected"] = True
-
-            # Update Prometheus gauges
-            DB_CONNECTION_POOL_SIZE.labels(pool_type="main").set(pool_status["size"])
-            DB_CONNECTION_POOL_CHECKED_OUT.labels(pool_type="main").set(
-                pool_status["checked_out"]
-            )
+                # Keep backward-compatible top-level keys
+                metrics["pool"]["size"] = metrics["pool"]["async"]["size"]
+                metrics["pool"]["checked_out"] = metrics["pool"]["async"]["checked_out"]
+                metrics["pool"]["overflow"] = metrics["pool"]["async"]["overflow"]
+                metrics["pool"]["checked_in"] = metrics["pool"]["async"]["checked_in"]
 
         except Exception as e:
-            logger.warning(f"Failed to collect database metrics: {e}")
-            metrics["error"] = str(e)
+            logger.warning(f"Failed to collect async database pool metrics: {e}")
+            metrics["pool"]["async_error"] = str(e)
+
+        try:
+            # Sync engine pool stats
+            if self._sync_engine is not None:
+                pool = self._sync_engine.pool
+                metrics["pool"]["sync"] = self._collect_pool_stats(pool, "sync")
+                metrics["connected"] = True
+
+        except Exception as e:
+            logger.warning(f"Failed to collect sync database pool metrics: {e}")
+            metrics["pool"]["sync_error"] = str(e)
+
+        if not metrics["connected"]:
+            metrics["error"] = "No engines available"
 
         return metrics
 
@@ -266,6 +306,187 @@ class ApplicationMetricsCollector:
         return metrics
 
 
+class ConnectionPoolCollector:
+    """
+    Collects connection pool statistics for both database and Redis.
+
+    Provides a unified view of all connection pool health metrics:
+    - SQLAlchemy async/sync engine pool stats
+    - Redis connection pool stats (when available)
+    """
+
+    def __init__(self) -> None:
+        """Initialize connection pool collector."""
+        self._engine = None
+        self._sync_engine = None
+        self._last_collection: datetime | None = None
+        self._cache_duration = timedelta(seconds=3)
+        self._cached_metrics: dict[str, Any] = {}
+
+    def set_engine(self, engine) -> None:
+        """Set the SQLAlchemy async engine for pool monitoring."""
+        self._engine = engine
+
+    def set_sync_engine(self, engine) -> None:
+        """Set the SQLAlchemy sync engine for pool monitoring."""
+        self._sync_engine = engine
+
+    def _collect_sqlalchemy_pool(self, pool, label: str) -> dict[str, Any]:
+        """Extract stats from a SQLAlchemy connection pool."""
+        return {
+            "size": pool.size(),
+            "checked_out": pool.checkedout(),
+            "overflow": pool.overflow(),
+            "checked_in": pool.checkedin(),
+            "max_overflow": getattr(pool, "_max_overflow", None),
+            "pool_class": type(pool).__name__,
+            "label": label,
+        }
+
+    async def _collect_redis_pool(self, name: str, redis_client: Any) -> dict[str, Any]:
+        """Extract stats from a Redis connection pool."""
+        stats: dict[str, Any] = {
+            "name": name,
+            "backend": "redis",
+            "available": False,
+        }
+
+        if redis_client is None:
+            stats["backend"] = "memory"
+            return stats
+
+        try:
+            pool = getattr(redis_client, "connection_pool", None)
+            if pool is None:
+                stats["note"] = "no connection pool attribute"
+                return stats
+
+            stats["available"] = True
+            stats["pool_class"] = type(pool).__name__
+            stats["max_connections"] = getattr(pool, "max_connections", None)
+
+            # ConnectionPool exposes _created_connections and _available_connections
+            created = getattr(pool, "_created_connections", None)
+            if created is not None:
+                stats["created_connections"] = created
+
+            available_conns = getattr(pool, "_available_connections", None)
+            if available_conns is not None:
+                stats["available_connections"] = len(available_conns)
+
+            in_use = getattr(pool, "_in_use_connections", None)
+            if in_use is not None:
+                stats["in_use_connections"] = len(in_use)
+            elif created is not None and available_conns is not None:
+                stats["in_use_connections"] = created - len(available_conns)
+
+            # Update Prometheus gauges
+            if created is not None:
+                REDIS_CONNECTION_POOL_SIZE.labels(pool_name=name).set(created)
+            if available_conns is not None:
+                REDIS_CONNECTION_POOL_AVAILABLE.labels(pool_name=name).set(
+                    len(available_conns)
+                )
+            if "in_use_connections" in stats:
+                REDIS_CONNECTION_POOL_IN_USE.labels(pool_name=name).set(
+                    stats["in_use_connections"]
+                )
+
+        except Exception as e:
+            stats["error"] = str(e)
+            logger.debug(f"Failed to collect Redis pool stats for {name}: {e}")
+
+        return stats
+
+    async def collect(self) -> dict[str, Any]:
+        """Collect all connection pool statistics."""
+        now = datetime.now(UTC)
+
+        # Return cached if still valid
+        if self._last_collection and now - self._last_collection < self._cache_duration:
+            return self._cached_metrics
+
+        metrics: dict[str, Any] = {
+            "timestamp": now.isoformat(),
+            "database": {},
+            "redis": {},
+        }
+
+        # Database pools
+        try:
+            if self._engine is not None:
+                pool = self._engine.pool
+                metrics["database"]["async"] = self._collect_sqlalchemy_pool(
+                    pool, "async"
+                )
+        except Exception as e:
+            metrics["database"]["async_error"] = str(e)
+
+        try:
+            if self._sync_engine is not None:
+                pool = self._sync_engine.pool
+                metrics["database"]["sync"] = self._collect_sqlalchemy_pool(
+                    pool, "sync"
+                )
+        except Exception as e:
+            metrics["database"]["sync_error"] = str(e)
+
+        # Redis pools — collect from known Redis singletons
+        redis_clients: list[tuple[str, Any]] = []
+
+        try:
+            from app.core.cache import cache
+
+            redis_clients.append(("cache", cache._redis))
+        except Exception:
+            pass
+
+        try:
+            from app.core.token_blacklist import token_blacklist
+
+            redis_clients.append(("token_blacklist", token_blacklist._redis))
+        except Exception:
+            pass
+
+        try:
+            from app.services.redis_service import _redis_service
+
+            if _redis_service is not None and _redis_service._client is not None:
+                redis_clients.append(("redis_service", _redis_service._client))
+        except Exception:
+            pass
+
+        for name, client in redis_clients:
+            metrics["redis"][name] = await self._collect_redis_pool(name, client)
+
+        # Summary
+        db_total_checked_out = 0
+        db_total_size = 0
+        for pool_data in metrics["database"].values():
+            if isinstance(pool_data, dict):
+                db_total_checked_out += pool_data.get("checked_out", 0)
+                db_total_size += pool_data.get("size", 0)
+
+        metrics["summary"] = {
+            "db_pool_total_size": db_total_size,
+            "db_pool_total_checked_out": db_total_checked_out,
+            "db_pool_utilization_pct": (
+                round(db_total_checked_out / db_total_size * 100, 1)
+                if db_total_size > 0
+                else 0.0
+            ),
+            "redis_pools_configured": len(redis_clients),
+            "redis_pools_connected": sum(
+                1 for name, client in redis_clients if client is not None
+            ),
+        }
+
+        self._cached_metrics = metrics
+        self._last_collection = now
+
+        return metrics
+
+
 # =============================================================================
 # Collector Registry
 # =============================================================================
@@ -284,6 +505,7 @@ class CollectorRegistry:
         self.system = SystemMetricsCollector()
         self.database = DatabaseMetricsCollector()
         self.application = ApplicationMetricsCollector()
+        self.connection_pool = ConnectionPoolCollector()
 
     async def collect_all(self) -> dict[str, Any]:
         """Collect metrics from all collectors."""
@@ -291,6 +513,7 @@ class CollectorRegistry:
             self.system.collect(),
             self.database.collect(),
             self.application.collect(),
+            self.connection_pool.collect(),
             return_exceptions=True,
         )
 
@@ -304,6 +527,9 @@ class CollectorRegistry:
             "application": results[2]
             if not isinstance(results[2], Exception)
             else {"error": str(results[2])},
+            "connection_pools": results[3]
+            if not isinstance(results[3], Exception)
+            else {"error": str(results[3])},
         }
 
 

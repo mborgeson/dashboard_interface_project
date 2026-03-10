@@ -106,8 +106,8 @@ class MemoryRateLimitBackend(RateLimitBackend):
     async def cleanup(self) -> None:
         """Remove all expired entries to prevent memory leaks."""
         current_time = time.time()
-        # Use a reasonable max window (1 hour) for cleanup
-        max_window = 3600
+        # Use a reasonable max window for cleanup
+        max_window = settings.RATE_LIMIT_CLEANUP_WINDOW
 
         async with self._lock:
             keys_to_remove = []
@@ -216,8 +216,8 @@ class RateLimiter:
         self._backend_type = backend
         self._rules: list[tuple[str, RateLimitConfig]] = []
         self._default_config = RateLimitConfig(
-            requests=getattr(settings, "RATE_LIMIT_REQUESTS", 100),
-            window=getattr(settings, "RATE_LIMIT_WINDOW", 60),
+            requests=settings.RATE_LIMIT_REQUESTS,
+            window=settings.RATE_LIMIT_WINDOW,
         )
         # Store instance for test access
         RateLimiter._instance = self
@@ -354,8 +354,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         limiter = RateLimiter(backend="auto")
 
         # Auth endpoints - stricter limits to prevent brute force
-        auth_requests = getattr(settings, "RATE_LIMIT_AUTH_REQUESTS", 5)
-        auth_window = getattr(settings, "RATE_LIMIT_AUTH_WINDOW", 60)
+        auth_requests = settings.RATE_LIMIT_AUTH_REQUESTS
+        auth_window = settings.RATE_LIMIT_AUTH_WINDOW
         limiter.add_rule(
             "/api/v1/auth/login",
             requests=auth_requests,
@@ -370,14 +370,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         )
         limiter.add_rule(
             "/api/v1/auth/refresh",
-            requests=10,
+            requests=settings.RATE_LIMIT_REFRESH_REQUESTS,
             window=auth_window,
             key_prefix="rl:auth",
         )
 
         # API endpoints - standard limits
-        api_requests = getattr(settings, "RATE_LIMIT_REQUESTS", 100)
-        api_window = getattr(settings, "RATE_LIMIT_WINDOW", 60)
+        api_requests = settings.RATE_LIMIT_REQUESTS
+        api_window = settings.RATE_LIMIT_WINDOW
         limiter.add_rule(
             "/api/", requests=api_requests, window=api_window, key_prefix="rl:api"
         )

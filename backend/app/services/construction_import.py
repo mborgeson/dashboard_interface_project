@@ -16,6 +16,7 @@ import pandas as pd
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.construction import (
     ConstructionProject,
     ConstructionSourceLog,
@@ -203,7 +204,7 @@ FLOAT_COLUMNS = {
 }
 
 # Minimum unit threshold for import
-MIN_UNITS = 50
+MIN_UNITS: int = settings.CONSTRUCTION_MIN_UNITS
 
 
 # ── Result dataclasses ──────────────────────────────────────────────────────

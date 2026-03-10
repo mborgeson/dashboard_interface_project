@@ -31,8 +31,10 @@ CACHE_PREFIX = "dashboard"
 
 # Default TTLs (seconds)
 DEFAULT_TTL: int = settings.REDIS_CACHE_TTL  # 1 hour from config
-SHORT_TTL: int = 300  # 5 minutes — for data that changes more often
-LONG_TTL: int = 7200  # 2 hours — for rarely-changing aggregates
+SHORT_TTL: int = (
+    settings.CACHE_SHORT_TTL
+)  # 5 minutes — for data that changes more often
+LONG_TTL: int = settings.CACHE_LONG_TTL  # 2 hours — for rarely-changing aggregates
 
 
 class CacheService:
@@ -63,7 +65,7 @@ class CacheService:
             self._redis = aioredis.from_url(
                 settings.REDIS_URL,
                 decode_responses=True,
-                socket_connect_timeout=5,
+                socket_connect_timeout=settings.REDIS_SOCKET_CONNECT_TIMEOUT,
             )
             await self._redis.ping()
             logger.info("Cache: async Redis connection established")

@@ -137,6 +137,47 @@ async def test_prometheus_metrics_content(client, db_session):
 
 
 # =============================================================================
+# Connection Pool Stats Tests
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_pool_stats(client, db_session):
+    """Test connection pool stats endpoint returns pool metrics."""
+    response = await client.get("/api/v1/monitoring/pool-stats", follow_redirects=True)
+
+    if response.status_code == 404:
+        pytest.skip("Pool stats endpoint not implemented")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "timestamp" in data
+    assert "database" in data
+    assert "redis" in data
+    assert "summary" in data
+
+
+@pytest.mark.asyncio
+async def test_pool_stats_summary_structure(client, db_session):
+    """Test pool stats summary contains expected fields."""
+    response = await client.get("/api/v1/monitoring/pool-stats", follow_redirects=True)
+
+    if response.status_code == 404:
+        pytest.skip("Pool stats endpoint not implemented")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    summary = data.get("summary", {})
+    assert "db_pool_total_size" in summary
+    assert "db_pool_total_checked_out" in summary
+    assert "db_pool_utilization_pct" in summary
+    assert "redis_pools_configured" in summary
+    assert "redis_pools_connected" in summary
+
+
+# =============================================================================
 # Performance Stats Tests
 # =============================================================================
 

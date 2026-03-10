@@ -167,3 +167,13 @@ class PropertyListResponse(BaseSchema):
     total: int
     page: int
     page_size: int
+
+
+class PropertyCursorPaginatedResponse(BaseSchema):
+    """Cursor-paginated list of properties."""
+
+    items: list[PropertyResponse]
+    next_cursor: str | None = None
+    prev_cursor: str | None = None
+    has_more: bool = False
+    total: int | None = None

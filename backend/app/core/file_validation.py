@@ -9,19 +9,27 @@ proforma and deal files.
 import mimetypes
 from dataclasses import dataclass
 
+from app.core.config import settings
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-# Max file sizes in bytes
-MAX_FILE_SIZES: dict[str, int] = {
-    ".xlsx": 50 * 1024 * 1024,  # 50 MB
-    ".xlsm": 50 * 1024 * 1024,  # 50 MB
-    ".xls": 50 * 1024 * 1024,  # 50 MB
-    ".pdf": 25 * 1024 * 1024,  # 25 MB
-    ".csv": 10 * 1024 * 1024,  # 10 MB
-    ".docx": 25 * 1024 * 1024,  # 25 MB
-}
+
+def _build_max_file_sizes() -> dict[str, int]:
+    """Build max file size map from settings (values in MB -> bytes)."""
+    return {
+        ".xlsx": settings.UPLOAD_MAX_EXCEL_MB * 1024 * 1024,
+        ".xlsm": settings.UPLOAD_MAX_EXCEL_MB * 1024 * 1024,
+        ".xls": settings.UPLOAD_MAX_EXCEL_MB * 1024 * 1024,
+        ".pdf": settings.UPLOAD_MAX_PDF_MB * 1024 * 1024,
+        ".csv": settings.UPLOAD_MAX_CSV_MB * 1024 * 1024,
+        ".docx": settings.UPLOAD_MAX_DOCX_MB * 1024 * 1024,
+    }
+
+
+# Max file sizes in bytes (built from config)
+MAX_FILE_SIZES: dict[str, int] = _build_max_file_sizes()
 
 # Extension -> acceptable MIME types
 ALLOWED_MIME_TYPES: dict[str, set[str]] = {

@@ -2,7 +2,7 @@
 CRUD (Create, Read, Update, Delete) operations for database models.
 """
 
-from app.crud.base import CRUDBase, PaginatedResult
+from app.crud.base import CRUDBase, CursorPaginatedResult, PaginatedResult
 from app.crud.crud_activity import deal_activity, property_activity, watchlist
 from app.crud.crud_activity_log import activity_log
 from app.crud.crud_deal import deal
@@ -15,9 +15,12 @@ from app.crud.crud_report_template import (
 )
 from app.crud.crud_transaction import transaction
 from app.crud.crud_user import user
+from app.schemas.pagination import CursorPaginationParams
 
 __all__ = [
     "CRUDBase",
+    "CursorPaginatedResult",
+    "CursorPaginationParams",
     "PaginatedResult",
     "deal",
     "document",

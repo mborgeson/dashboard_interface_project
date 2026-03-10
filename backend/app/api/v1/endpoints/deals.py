@@ -43,6 +43,7 @@ from app.schemas.comparison import (
 )
 from app.schemas.deal import (
     DealCreate,
+    DealCursorPaginatedResponse,
     DealListResponse,
     DealResponse,
     DealStageUpdate,
@@ -50,6 +51,7 @@ from app.schemas.deal import (
     KanbanBoardResponse,
     RecentActivityItem,
 )
+from app.schemas.pagination import CursorPaginationParams
 from app.services import get_websocket_manager
 
 router = APIRouter()
@@ -357,6 +359,80 @@ async def list_deals(
         total=total,
         page=page,
         page_size=page_size,
+    )
+
+
+@router.get(
+    "/cursor",
+    response_model=DealCursorPaginatedResponse,
+    summary="List deals (cursor pagination)",
+    description="List deals using cursor-based pagination for efficient, stable paging. "
+    "Supports filtering by stage, type, priority, and assigned user. "
+    "Results are enriched with extraction-derived financial metrics.",
+    responses={
+        200: {"description": "Cursor-paginated list of deals"},
+        400: {"description": "Invalid cursor"},
+    },
+)
+async def list_deals_cursor(
+    cursor: str | None = Query(
+        None, description="Opaque cursor from previous response"
+    ),
+    limit: int = Query(20, ge=1, le=100, description="Items per page"),
+    direction: str = Query(
+        "next", pattern="^(next|prev)$", description="Pagination direction"
+    ),
+    stage: str | None = None,
+    deal_type: str | None = None,
+    priority: str | None = None,
+    assigned_user_id: int | None = None,
+    sort_by: str | None = "created_at",
+    sort_order: str = "desc",
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
+):
+    """
+    List deals with cursor-based pagination.
+
+    Cursor pagination provides stable, efficient paging even when new deals
+    are added or existing deals change position in the sort order.
+    """
+    order_desc = sort_order.lower() == "desc"
+
+    # Build filter conditions
+    conditions = deal_crud._build_deal_conditions(
+        stage=stage,
+        deal_type=deal_type,
+        priority=priority,
+        assigned_user_id=assigned_user_id,
+    )
+
+    params = CursorPaginationParams(cursor=cursor, limit=limit, direction=direction)
+
+    try:
+        result = await deal_crud.get_cursor_paginated(
+            db,
+            params=params,
+            order_by=sort_by or "created_at",
+            order_desc=order_desc,
+            conditions=conditions,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    # Convert ORM items to Pydantic, then enrich with extraction data
+    deal_responses = [DealResponse.model_validate(item) for item in result.items]
+    enriched = await _enrich_deals_with_extraction(db, deal_responses)
+
+    return DealCursorPaginatedResponse(
+        items=enriched,
+        next_cursor=result.next_cursor,
+        prev_cursor=result.prev_cursor,
+        has_more=result.has_more,
+        total=result.total,
     )
 
 

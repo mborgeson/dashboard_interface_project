@@ -11,6 +11,7 @@ Provides comprehensive application monitoring capabilities:
 
 from app.services.monitoring.collectors import (
     ApplicationMetricsCollector,
+    ConnectionPoolCollector,
     DatabaseMetricsCollector,
     SystemMetricsCollector,
 )
@@ -52,4 +53,5 @@ __all__ = [
     "SystemMetricsCollector",
     "DatabaseMetricsCollector",
     "ApplicationMetricsCollector",
+    "ConnectionPoolCollector",
 ]

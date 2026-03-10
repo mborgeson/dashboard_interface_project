@@ -174,6 +174,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     metrics_manager.initialize()
     logger.info("Metrics manager initialized")
 
+    # Wire database engines into monitoring collectors
+    from app.db.session import engine, sync_engine
+    from app.services.monitoring.collectors import get_collector_registry
+
+    collector_registry = get_collector_registry()
+    collector_registry.database.set_engine(engine)
+    collector_registry.database.set_sync_engine(sync_engine)
+    collector_registry.connection_pool.set_engine(engine)
+    collector_registry.connection_pool.set_sync_engine(sync_engine)
+    logger.info("Connection pool monitoring initialized")
+
     # Initialize services (will be implemented in services module)
     # await init_redis()
     # await init_websocket_manager()

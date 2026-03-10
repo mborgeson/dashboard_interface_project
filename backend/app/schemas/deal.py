@@ -253,6 +253,16 @@ class DealListResponse(BaseSchema):
     page_size: int
 
 
+class DealCursorPaginatedResponse(BaseSchema):
+    """Cursor-paginated list of deals."""
+
+    items: list[DealResponse]
+    next_cursor: str | None = None
+    prev_cursor: str | None = None
+    has_more: bool = False
+    total: int | None = None
+
+
 class KanbanBoardResponse(BaseSchema):
     """Kanban board with deals grouped by stage."""
 

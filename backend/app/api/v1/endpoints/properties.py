@@ -29,8 +29,10 @@ from app.schemas.activity import (
     PropertyActivityListResponse,
     PropertyActivityResponse,
 )
+from app.schemas.pagination import CursorPaginationParams
 from app.schemas.property import (
     PropertyCreate,
+    PropertyCursorPaginatedResponse,
     PropertyListResponse,
     PropertyResponse,
     PropertyUpdate,
@@ -297,6 +299,77 @@ async def list_properties(
         total=total,
         page=page,
         page_size=page_size,
+    )
+
+
+@router.get(
+    "/cursor",
+    response_model=PropertyCursorPaginatedResponse,
+    summary="List properties (cursor pagination)",
+    description="List properties using cursor-based pagination for efficient, stable paging. "
+    "Supports the same filters as the standard list endpoint.",
+    responses={
+        200: {"description": "Cursor-paginated list of properties"},
+        400: {"description": "Invalid cursor"},
+    },
+)
+async def list_properties_cursor(
+    cursor: str | None = Query(
+        None, description="Opaque cursor from previous response"
+    ),
+    limit: int = Query(20, ge=1, le=100, description="Items per page"),
+    direction: str = Query(
+        "next", pattern="^(next|prev)$", description="Pagination direction"
+    ),
+    property_type: str | None = None,
+    city: str | None = None,
+    state: str | None = None,
+    market: str | None = None,
+    min_units: int | None = None,
+    max_units: int | None = None,
+    sort_by: str | None = "name",
+    sort_order: str = "asc",
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
+):
+    """
+    List properties with cursor-based pagination.
+
+    Cursor pagination provides stable, efficient paging without offset scans.
+    """
+    order_desc = sort_order.lower() == "desc"
+
+    conditions = property_crud._build_property_conditions(
+        property_type=property_type,
+        city=city,
+        state=state,
+        market=market,
+        min_units=min_units,
+        max_units=max_units,
+    )
+
+    params = CursorPaginationParams(cursor=cursor, limit=limit, direction=direction)
+
+    try:
+        result = await property_crud.get_cursor_paginated(
+            db,
+            params=params,
+            order_by=sort_by or "name",
+            order_desc=order_desc,
+            conditions=conditions,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return PropertyCursorPaginatedResponse(
+        items=result.items,  # type: ignore[arg-type]
+        next_cursor=result.next_cursor,
+        prev_cursor=result.prev_cursor,
+        has_more=result.has_more,
+        total=result.total,
     )
 
 
