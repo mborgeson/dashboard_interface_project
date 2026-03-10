@@ -2,7 +2,7 @@
 CRUD (Create, Read, Update, Delete) operations for database models.
 """
 
-from app.crud.base import CRUDBase
+from app.crud.base import CRUDBase, PaginatedResult
 from app.crud.crud_activity import deal_activity, property_activity, watchlist
 from app.crud.crud_activity_log import activity_log
 from app.crud.crud_deal import deal
@@ -18,6 +18,7 @@ from app.crud.crud_user import user
 
 __all__ = [
     "CRUDBase",
+    "PaginatedResult",
     "deal",
     "document",
     "property",
