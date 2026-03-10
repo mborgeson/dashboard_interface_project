@@ -105,7 +105,9 @@ export function useWebSocket(
 
   // Stable references for callbacks so effect doesn't re-run on every render
   const callbacksRef = useRef({ onOpen, onClose, onMessage, onError });
-  callbacksRef.current = { onOpen, onClose, onMessage, onError };
+  useEffect(() => {
+    callbacksRef.current = { onOpen, onClose, onMessage, onError };
+  });
 
   // -----------------------------------------------------------------------
   // Connect / reconnect
@@ -173,7 +175,9 @@ export function useWebSocket(
   }, [channel, enabled, maxRetries, baseDelay, maxDelay]);
 
   // Keep ref in sync so reconnect timer always calls latest version
-  connectWsRef.current = connectWs;
+  useEffect(() => {
+    connectWsRef.current = connectWs;
+  });
 
   // -----------------------------------------------------------------------
   // Lifecycle
