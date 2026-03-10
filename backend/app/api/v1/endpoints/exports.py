@@ -1,5 +1,9 @@
 """
 Export endpoints for Excel and PDF generation.
+
+Note: Generic exception handling (logging + 500 response) is handled by
+ErrorHandlerMiddleware. Endpoint-specific try/except is only needed for
+exceptions that require non-default status codes (e.g. ImportError -> 501).
 """
 
 from datetime import datetime
@@ -35,71 +39,60 @@ async def export_properties_excel(
 
     Returns a downloadable Excel file.
     """
-    try:
-        # Get properties from database
-        properties = await property_crud.get_multi_filtered(
-            db,
-            property_type=property_type,
-            market=market,
-            limit=1000,
+    # Get properties from database
+    properties = await property_crud.get_multi_filtered(
+        db,
+        property_type=property_type,
+        market=market,
+        limit=1000,
+    )
+
+    # Convert to dicts for export service
+    filtered = []
+    for prop in properties:
+        filtered.append(
+            {
+                "id": prop.id,
+                "name": prop.name,
+                "property_type": prop.property_type,
+                "address": prop.address,
+                "city": prop.city,
+                "state": prop.state,
+                "zip_code": prop.zip_code,
+                "market": prop.market,
+                "total_units": prop.total_units,
+                "total_sf": prop.total_sf,
+                "year_built": prop.year_built,
+                "occupancy_rate": (
+                    float(prop.occupancy_rate) if prop.occupancy_rate else None
+                ),
+                "cap_rate": float(prop.cap_rate) if prop.cap_rate else None,
+                "noi": float(prop.noi) if prop.noi else None,
+            }
         )
 
-        # Convert to dicts for export service
-        filtered = []
-        for prop in properties:
-            filtered.append(
-                {
-                    "id": prop.id,
-                    "name": prop.name,
-                    "property_type": prop.property_type,
-                    "address": prop.address,
-                    "city": prop.city,
-                    "state": prop.state,
-                    "zip_code": prop.zip_code,
-                    "market": prop.market,
-                    "total_units": prop.total_units,
-                    "total_sf": prop.total_sf,
-                    "year_built": prop.year_built,
-                    "occupancy_rate": (
-                        float(prop.occupancy_rate) if prop.occupancy_rate else None
-                    ),
-                    "cap_rate": float(prop.cap_rate) if prop.cap_rate else None,
-                    "noi": float(prop.noi) if prop.noi else None,
-                }
-            )
-
-        if not filtered:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No properties match the specified criteria",
-            )
-
-        # Generate Excel file
-        excel_service = get_excel_service()
-        buffer = excel_service.export_properties(
-            filtered, include_analytics=include_analytics
-        )
-
-        # Return as downloadable file
-        filename = f"properties_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-
-        return StreamingResponse(
-            buffer,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={filename}"},
-        )
-
-    except ImportError as e:
+    if not filtered:
         raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail=f"Excel export not available: {str(e)}",
-        ) from e
-    except Exception as e:
-        logger.error(f"Excel export failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to generate Excel export",
-        ) from e
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No properties match the specified criteria",
+        )
+
+    # Generate Excel file
+    # ImportError from missing openpyxl will be caught by ErrorHandlerMiddleware
+    # and returned as a 500 (acceptable — openpyxl should always be installed)
+    excel_service = get_excel_service()
+    buffer = excel_service.export_properties(
+        filtered, include_analytics=include_analytics
+    )
+
+    # Return as downloadable file
+    filename = f"properties_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.get("/deals/excel")
@@ -118,79 +111,60 @@ async def export_deals_excel(
 
     Returns a downloadable Excel file.
     """
-    try:
-        # Fetch deals from database
-        deals = await deal_crud.get_multi_filtered(
-            db,
-            stage=stage,
-            deal_type=deal_type,
-            limit=1000,  # Export limit
+    # Fetch deals from database
+    deals = await deal_crud.get_multi_filtered(
+        db,
+        stage=stage,
+        deal_type=deal_type,
+        limit=1000,  # Export limit
+    )
+
+    if not deals:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No deals match the specified criteria",
         )
 
-        if not deals:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No deals match the specified criteria",
-            )
-
-        # Convert SQLAlchemy models to dicts for export service
-        filtered = []
-        for deal in deals:
-            filtered.append(
-                {
-                    "id": deal.id,
-                    "name": deal.name,
-                    "deal_type": deal.deal_type,
-                    "stage": (
-                        deal.stage.value
-                        if hasattr(deal.stage, "value")
-                        else str(deal.stage)
-                    ),
-                    "asking_price": (
-                        float(deal.asking_price) if deal.asking_price else None
-                    ),
-                    "offer_price": (
-                        float(deal.offer_price) if deal.offer_price else None
-                    ),
-                    "final_price": (
-                        float(deal.final_price) if deal.final_price else None
-                    ),
-                    "projected_irr": (
-                        float(deal.projected_irr) if deal.projected_irr else None
-                    ),
-                    "priority": deal.priority,
-                    "created_at": (
-                        deal.created_at.isoformat() if deal.created_at else None
-                    ),
-                }
-            )
-
-        # Generate Excel file
-        excel_service = get_excel_service()
-        buffer = excel_service.export_deals(filtered, include_pipeline=include_pipeline)
-
-        # Return as downloadable file
-        filename = f"deals_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-
-        return StreamingResponse(
-            buffer,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={filename}"},
+    # Convert SQLAlchemy models to dicts for export service
+    filtered = []
+    for deal in deals:
+        filtered.append(
+            {
+                "id": deal.id,
+                "name": deal.name,
+                "deal_type": deal.deal_type,
+                "stage": (
+                    deal.stage.value
+                    if hasattr(deal.stage, "value")
+                    else str(deal.stage)
+                ),
+                "asking_price": (
+                    float(deal.asking_price) if deal.asking_price else None
+                ),
+                "offer_price": (float(deal.offer_price) if deal.offer_price else None),
+                "final_price": (float(deal.final_price) if deal.final_price else None),
+                "projected_irr": (
+                    float(deal.projected_irr) if deal.projected_irr else None
+                ),
+                "priority": deal.priority,
+                "created_at": (
+                    deal.created_at.isoformat() if deal.created_at else None
+                ),
+            }
         )
 
-    except ImportError as e:
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail=f"Excel export not available: {str(e)}",
-        ) from e
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Excel export failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to generate Excel export",
-        ) from e
+    # Generate Excel file
+    excel_service = get_excel_service()
+    buffer = excel_service.export_deals(filtered, include_pipeline=include_pipeline)
+
+    # Return as downloadable file
+    filename = f"deals_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.get("/analytics/excel")
@@ -205,87 +179,74 @@ async def export_analytics_excel(
 
     Returns a downloadable Excel file with multiple sheets.
     """
-    try:
-        # Generate mock analytics data (same as analytics endpoint)
-        dashboard_metrics = {
-            "portfolio_summary": {
-                "total_properties": 45,
-                "total_units": 5240,
-                "total_sf": 1250000,
-                "total_value": 425000000,
-                "avg_occupancy": 94.5,
-                "avg_cap_rate": 5.8,
-            },
-            "kpis": {
-                "ytd_noi_growth": 4.2,
-                "ytd_rent_growth": 3.8,
-                "deals_in_pipeline": 12,
-                "deals_closed_ytd": 5,
-                "capital_deployed_ytd": 85000000,
-            },
-        }
+    # Generate mock analytics data (same as analytics endpoint)
+    dashboard_metrics = {
+        "portfolio_summary": {
+            "total_properties": 45,
+            "total_units": 5240,
+            "total_sf": 1250000,
+            "total_value": 425000000,
+            "avg_occupancy": 94.5,
+            "avg_cap_rate": 5.8,
+        },
+        "kpis": {
+            "ytd_noi_growth": 4.2,
+            "ytd_rent_growth": 3.8,
+            "deals_in_pipeline": 12,
+            "deals_closed_ytd": 5,
+            "capital_deployed_ytd": 85000000,
+        },
+    }
 
-        portfolio_analytics = {
-            "time_period": time_period,
-            "performance": {
-                "total_return": 12.5,
-                "income_return": 6.2,
-                "appreciation_return": 6.3,
-                "benchmark_return": 10.8,
-                "alpha": 1.7,
-            },
-        }
+    portfolio_analytics = {
+        "time_period": time_period,
+        "performance": {
+            "total_return": 12.5,
+            "income_return": 6.2,
+            "appreciation_return": 6.3,
+            "benchmark_return": 10.8,
+            "alpha": 1.7,
+        },
+    }
 
-        deal_pipeline = {
-            "funnel": {
-                "leads": 45,
-                "initial_review": 28,
-                "underwriting": 15,
-                "due_diligence": 8,
-                "loi_submitted": 4,
-                "under_contract": 2,
-                "closed": 5,
-                "dead": 12,
-            },
-            "conversion_rates": {
-                "lead_to_review": 62.2,
-                "review_to_underwriting": 53.6,
-                "underwriting_to_dd": 53.3,
-                "dd_to_loi": 50.0,
-                "loi_to_contract": 50.0,
-                "contract_to_close": 71.4,
-                "overall": 11.1,
-            },
-        }
+    deal_pipeline = {
+        "funnel": {
+            "leads": 45,
+            "initial_review": 28,
+            "underwriting": 15,
+            "due_diligence": 8,
+            "loi_submitted": 4,
+            "under_contract": 2,
+            "closed": 5,
+            "dead": 12,
+        },
+        "conversion_rates": {
+            "lead_to_review": 62.2,
+            "review_to_underwriting": 53.6,
+            "underwriting_to_dd": 53.3,
+            "dd_to_loi": 50.0,
+            "loi_to_contract": 50.0,
+            "contract_to_close": 71.4,
+            "overall": 11.1,
+        },
+    }
 
-        # Generate Excel file
-        excel_service = get_excel_service()
-        buffer = excel_service.export_analytics_report(
-            dashboard_metrics,
-            portfolio_analytics,
-            deal_pipeline,
-        )
+    # Generate Excel file
+    excel_service = get_excel_service()
+    buffer = excel_service.export_analytics_report(
+        dashboard_metrics,
+        portfolio_analytics,
+        deal_pipeline,
+    )
 
-        # Return as downloadable file
-        filename = f"analytics_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    # Return as downloadable file
+    filename = f"analytics_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
 
-        return StreamingResponse(
-            buffer,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={filename}"},
-        )
-
-    except ImportError as e:
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail=f"Excel export not available: {str(e)}",
-        ) from e
-    except Exception as e:
-        logger.error(f"Analytics Excel export failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to generate Excel export",
-        ) from e
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.get("/properties/{property_id}/pdf")

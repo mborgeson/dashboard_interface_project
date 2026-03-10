@@ -22,6 +22,7 @@ from starlette.responses import Response
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.middleware.error_handler import ErrorHandlerMiddleware
 from app.middleware.rate_limiter import RateLimitMiddleware
 from app.middleware.request_id import RequestIDMiddleware, get_request_id
 from app.services.data_extraction.scheduler import MarketDataScheduler
@@ -295,6 +296,9 @@ if settings.RATE_LIMIT_ENABLED:
 
 # Add security headers middleware (defense-in-depth)
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Add error handling middleware (catches unhandled exceptions, returns structured JSON)
+app.add_middleware(ErrorHandlerMiddleware)
 
 # Add origin validation middleware (defense-in-depth for state-changing requests)
 app.add_middleware(OriginValidationMiddleware)
