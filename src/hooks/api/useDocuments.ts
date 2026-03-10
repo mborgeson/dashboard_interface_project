@@ -93,7 +93,7 @@ function transformDocumentFromApi(apiDoc: DocumentApiResponse): Document {
     id: String(apiDoc.id),
     name: apiDoc.name,
     type: apiDoc.type as DocumentType,
-    propertyId: apiDoc.property_id || apiDoc.propertyId || '',
+    propertyId: Number(apiDoc.property_id || apiDoc.propertyId) || null,
     propertyName: apiDoc.property_name || apiDoc.propertyName || '',
     size: apiDoc.size,
     uploadedAt: new Date(apiDoc.uploaded_at || apiDoc.uploadedAt || Date.now()),
