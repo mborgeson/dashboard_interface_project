@@ -23,6 +23,7 @@ from app.crud.crud_activity import property_activity
 from app.db.session import get_db
 from app.models import Property
 from app.models.activity import ActivityType as ActivityTypeModel
+from app.models.user import User
 from app.schemas.activity import (
     ActivityType,
     PropertyActivityCreate,
@@ -715,6 +716,15 @@ async def get_property_activities(
         activity_type=activity_type,
     )
 
+    # Batch lookup user display names to avoid N+1 queries
+    user_ids = list({a.user_id for a in activities if a.user_id is not None})
+    user_name_map: dict[int, str] = {}
+    if user_ids:
+        user_rows = await db.execute(
+            select(User.id, User.full_name).where(User.id.in_(user_ids))
+        )
+        user_name_map = {row.id: row.full_name for row in user_rows}
+
     # Convert to response models
     items = []
     for activity in activities:
@@ -723,7 +733,9 @@ async def get_property_activities(
                 id=activity.id,
                 property_id=activity.property_id,
                 user_id=activity.user_id,
-                user_name=None,  # Would need join with users table
+                user_name=user_name_map.get(activity.user_id)
+                if activity.user_id
+                else None,
                 activity_type=ActivityType(activity.activity_type.value),
                 description=activity.description,
                 field_changed=activity.field_changed,
@@ -748,11 +760,12 @@ async def get_property_activities(
 @router.post(
     "/{property_id}/activities",
     response_model=PropertyActivityResponse,
+    status_code=status.HTTP_201_CREATED,
     summary="Create property activity",
     description="Log a new activity entry for a property such as comments, document uploads, "
     "or manual status changes. Views and edits are typically logged automatically.",
     responses={
-        200: {"description": "Activity created successfully"},
+        201: {"description": "Activity created successfully"},
         400: {"description": "Property ID in body does not match path parameter"},
         404: {"description": "Property not found"},
     },

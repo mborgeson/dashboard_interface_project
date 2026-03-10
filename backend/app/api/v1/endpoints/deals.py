@@ -2,11 +2,12 @@
 Deal endpoints for pipeline management and Kanban board operations.
 """
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import Row, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import cache
@@ -774,10 +775,11 @@ async def create_deal(
 @router.put(
     "/{deal_id}",
     response_model=DealResponse,
-    summary="Update a deal",
-    description="Full update of a deal using optimistic locking. The client must include "
-    "the `version` field from its last read. Returns 409 Conflict if the deal has been "
-    "modified by another user since then. Requires manager role.",
+    summary="Update a deal (partial update)",
+    description="Partial update of a deal using optimistic locking (same behavior as PATCH "
+    "for backwards compatibility — only fields present in the request body are updated). "
+    "The client must include the `version` field from its last read. Returns 409 Conflict "
+    "if the deal has been modified by another user since then. Requires manager role.",
     responses={
         200: {"description": "Deal updated successfully"},
         404: {"description": "Deal not found"},
@@ -794,6 +796,10 @@ async def update_deal(
 ):
     """
     Update an existing deal (with optimistic locking).
+
+    NOTE: Despite being a PUT endpoint, this performs a partial update
+    (only fields present in the request body are modified) for backwards
+    compatibility with existing clients. Behaves identically to PATCH.
 
     The client must include the `version` field from its last read.
     If another user has updated the deal since then, a 409 Conflict is returned.
@@ -1539,36 +1545,55 @@ async def get_deal_proforma_returns(
 
     deal_name = deal.name
 
-    # Also try the base name without "(City, ST)" suffix
-    # sync_extracted_to_properties may have stored either variant
-    import re as _re
-
-    base_name_match = _re.match(r"^(.+?)\s*\([^)]+,\s*[A-Z]{2}\)", deal_name)
-    names_to_search = [deal_name]
-    if base_name_match:
-        names_to_search.append(base_name_match.group(1).strip())
-
-    # Query extracted_values for proforma fields matching this deal
-    from sqlalchemy import or_
-
-    stmt = (
-        select(
-            ExtractedValue.field_name,
-            ExtractedValue.field_category,
-            ExtractedValue.value_numeric,
-            ExtractedValue.value_text,
-            ExtractedValue.source_file,
+    # Prefer property_id FK join over string matching on names
+    rows: Sequence[Row] = []
+    if deal.property_id is not None:
+        stmt = (
+            select(
+                ExtractedValue.field_name,
+                ExtractedValue.field_category,
+                ExtractedValue.value_numeric,
+                ExtractedValue.value_text,
+                ExtractedValue.source_file,
+            )
+            .where(
+                ExtractedValue.property_id == deal.property_id,
+                ExtractedValue.field_name.in_(PROFORMA_FIELDS),
+                ExtractedValue.is_error.is_(False),
+            )
+            .order_by(ExtractedValue.field_category, ExtractedValue.field_name)
         )
-        .where(
-            or_(*[ExtractedValue.property_name == n for n in names_to_search]),
-            ExtractedValue.field_name.in_(PROFORMA_FIELDS),
-            ExtractedValue.is_error.is_(False),
-        )
-        .order_by(ExtractedValue.field_category, ExtractedValue.field_name)
-    )
+        result = await db.execute(stmt)
+        rows = result.all()
 
-    result = await db.execute(stmt)
-    rows = result.all()
+    # Fall back to name-matching if no property_id link or no results found
+    if not rows:
+        import re as _re
+
+        from sqlalchemy import or_
+
+        base_name_match = _re.match(r"^(.+?)\s*\([^)]+,\s*[A-Z]{2}\)", deal_name)
+        names_to_search = [deal_name]
+        if base_name_match:
+            names_to_search.append(base_name_match.group(1).strip())
+
+        stmt = (
+            select(
+                ExtractedValue.field_name,
+                ExtractedValue.field_category,
+                ExtractedValue.value_numeric,
+                ExtractedValue.value_text,
+                ExtractedValue.source_file,
+            )
+            .where(
+                or_(*[ExtractedValue.property_name == n for n in names_to_search]),
+                ExtractedValue.field_name.in_(PROFORMA_FIELDS),
+                ExtractedValue.is_error.is_(False),
+            )
+            .order_by(ExtractedValue.field_category, ExtractedValue.field_name)
+        )
+        result = await db.execute(stmt)
+        rows = result.all()
 
     if not rows:
         return {"deal_id": deal_id, "deal_name": deal_name, "groups": [], "total": 0}

@@ -210,7 +210,7 @@ All routes prefixed with `/api/v1`. Auth guard column uses the `require_*` depen
 | POST | `/api/v1/deals/{id}/watchlist` | authenticated | Toggle watchlist membership |
 | GET | `/api/v1/deals/{id}/activity-log` | analyst | Structured activity log entries |
 | GET | `/api/v1/deals/{id}/proforma-returns` | analyst | Extracted proforma return metrics from `extracted_values` |
-| POST | `/api/v1/deals/compare` | analyst | Compare 2-5 deals side-by-side (`DealComparisonResponse`) |
+| GET | `/api/v1/deals/compare?ids=1,2,3` | analyst | Compare 2-10 deals side-by-side (`DealComparisonResponse`) |
 
 ### Analytics (`/api/v1/analytics`)
 

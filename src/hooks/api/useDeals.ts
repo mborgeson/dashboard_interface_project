@@ -57,13 +57,14 @@ export interface DealsWithFallbackResponse {
  * Errors propagate to React Query error state
  */
 export function useDealsWithMockFallback(
+  { pageSize = 500 }: { pageSize?: number } = {},
   options?: Omit<UseQueryOptions<DealsWithFallbackResponse>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery({
     queryKey: dealKeys.lists(),
     queryFn: async (): Promise<DealsWithFallbackResponse> => {
       // Backend returns { items: [...], total, page, page_size }
-      const response = await get<{ items: unknown[]; total: number }>('/deals', { page_size: 100 });
+      const response = await get<{ items: unknown[]; total: number }>('/deals', { page_size: pageSize });
       return {
         deals: response.items?.map((item) => backendDealSchema.parse(item)) ?? [],
         total: response.total ?? 0,

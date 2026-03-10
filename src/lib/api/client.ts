@@ -124,7 +124,24 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     if (cached) {
       return cached.data as T;
     }
-    // Fallback: if somehow we got 304 without cache, treat as empty
+    // Cache was cleared (e.g., on logout) between request and response.
+    // Retry without If-None-Match to get a fresh response.
+    const retryHeaders = { ...headers } as Record<string, string>;
+    delete retryHeaders['If-None-Match'];
+    const freshResponse = await fetch(url, { ...fetchOptions, headers: retryHeaders });
+    if (freshResponse.ok) {
+      const ct = freshResponse.headers.get('content-type');
+      if (ct?.includes('application/json')) {
+        const data = await freshResponse.json();
+        const etag = freshResponse.headers.get('etag');
+        if (etag) {
+          etagCache.set(url, { etag, data });
+        }
+        return data;
+      }
+      return {} as T;
+    }
+    throw new ApiError(freshResponse.status, `API Error: ${freshResponse.statusText}`);
   }
 
   if (!response.ok) {

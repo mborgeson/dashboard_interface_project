@@ -7,7 +7,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.file_validation import validate_upload
-from app.core.permissions import require_viewer
+from app.core.permissions import require_analyst, require_viewer
 from app.crud.crud_document import document as document_crud
 from app.db.session import get_db
 from app.schemas.document import (
@@ -122,6 +122,47 @@ async def get_document_stats(
 
 
 @router.get(
+    "/property/{property_id}",
+    response_model=DocumentListResponse,
+    summary="Get documents by property",
+    description="Retrieve all documents associated with a specific property. "
+    "Supports pagination.",
+    responses={
+        200: {"description": "Paginated list of documents for the property"},
+    },
+)
+async def get_documents_by_property(
+    property_id: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get all documents for a specific property.
+    """
+    skip = (page - 1) * page_size
+
+    items = await document_crud.get_by_property(
+        db,
+        property_id=property_id,
+        skip=skip,
+        limit=page_size,
+    )
+
+    total = await document_crud.count_filtered(
+        db,
+        property_id=property_id,
+    )
+
+    return DocumentListResponse(
+        items=items,  # type: ignore[arg-type]
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get(
     "/{document_id}",
     response_model=DocumentResponse,
     summary="Get document by ID",
@@ -182,6 +223,7 @@ async def create_document(
 @router.post(
     "/upload",
     response_model=DocumentUploadResponse,
+    dependencies=[Depends(require_analyst)],
     summary="Upload a document",
     description="Upload a document file with metadata. File content is validated for type "
     "and size. Note: file storage backend is not yet implemented — metadata is saved but "
@@ -389,44 +431,3 @@ async def delete_document(
 
     logger.info(f"Deleted document: {document_id}")
     return None
-
-
-@router.get(
-    "/property/{property_id}",
-    response_model=DocumentListResponse,
-    summary="Get documents by property",
-    description="Retrieve all documents associated with a specific property. "
-    "Supports pagination.",
-    responses={
-        200: {"description": "Paginated list of documents for the property"},
-    },
-)
-async def get_documents_by_property(
-    property_id: str,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Get all documents for a specific property.
-    """
-    skip = (page - 1) * page_size
-
-    items = await document_crud.get_by_property(
-        db,
-        property_id=property_id,
-        skip=skip,
-        limit=page_size,
-    )
-
-    total = await document_crud.count_filtered(
-        db,
-        property_id=property_id,
-    )
-
-    return DocumentListResponse(
-        items=items,  # type: ignore[arg-type]
-        total=total,
-        page=page,
-        page_size=page_size,
-    )

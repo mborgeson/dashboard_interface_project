@@ -963,21 +963,21 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-007a  | CRITICAL | Done   | Structlog startup crash — get_level_from_name does not exist         | logging.getLevelName() (stdlib)                            | 8599ec2      |
 | F-007a+ | CRITICAL | Done   | Structlog add_logger_name crash with PrintLoggerFactory              | Removed incompatible processor                             | 8599ec2      |
 | F-007   | CRITICAL | Done   | Transaction DELETE/restore has no auth upgrade over require_viewer    | Write ops elevated to require_manager                      | 8599ec2      |
-| F-008   | HIGH     | Open   | Document route shadowing (/property/{id} vs /{document_id})         | —                                                          | —            |
-| F-009   | HIGH     | Open   | Document upload does not require elevated role                       | —                                                          | —            |
-| F-010   | HIGH     | Open   | Proforma returns matches by property_name string, not property_id    | —                                                          | —            |
-| F-011   | HIGH     | Open   | PUT and PATCH on deals have identical behavior                       | —                                                          | —            |
-| F-012   | HIGH     | Open   | 304 response without cache hit falls through silently                | —                                                          | —            |
-| F-013   | HIGH     | Open   | user_name always None in PropertyActivityResponse                    | —                                                          | —            |
+| F-008   | HIGH     | Done   | Document route shadowing (/property/{id} vs /{document_id})         | Moved /property/{id} before /{document_id} in router       | TBD          |
+| F-009   | HIGH     | Done   | Document upload does not require elevated role                       | Added require_analyst dependency to upload endpoint        | TBD          |
+| F-010   | HIGH     | Done   | Proforma returns matches by property_name string, not property_id    | Prefer property_id FK join, fallback to name matching      | TBD          |
+| F-011   | HIGH     | Done   | PUT and PATCH on deals have identical behavior                       | Documented PUT as partial update for backwards compat      | TBD          |
+| F-012   | HIGH     | Done   | 304 response without cache hit falls through silently                | Retry without If-None-Match on cache miss                  | TBD          |
+| F-013   | HIGH     | Done   | user_name always None in PropertyActivityResponse                    | Batch user lookup via IN query, populate user_name         | TBD          |
 | F-014   | HIGH     | Open   | Analytics export uses static mock data                               | —                                                          | —            |
 | F-015   | HIGH     | Open   | Growth rate fields always return 0.0 or null                         | —                                                          | —            |
 | F-016   | HIGH     | Done   | Redis services commented out in lifespan startup                     | Wired with graceful fallback to in-memory                  | 8599ec2      |
 | F-017   | HIGH     | Open   | Backend coverage below 30% threshold                                 | —                                                          | —            |
 | F-018   | HIGH     | Open   | Alembic migrations lag behind model changes                          | —                                                          | —            |
-| F-019   | HIGH     | Open   | N+1 query in queued report list                                      | —                                                          | —            |
-| F-020   | HIGH     | Open   | useDeals hardcoded page_size: 100 truncates results                  | —                                                          | —            |
-| F-021   | HIGH     | Open   | POST /properties/{id}/activities returns 200, not 201                | —                                                          | —            |
-| F-022   | HIGH     | Open   | Architecture doc says POST /deals/compare; implementation is GET     | —                                                          | —            |
+| F-019   | HIGH     | Done   | N+1 query in queued report list                                      | Batch template lookup via IN query for reports + schedules | TBD          |
+| F-020   | HIGH     | Done   | useDeals hardcoded page_size: 100 truncates results                  | Configurable pageSize param (default 500)                  | TBD          |
+| F-021   | HIGH     | Done   | POST /properties/{id}/activities returns 200, not 201                | Added status_code=201 to endpoint decorator                | TBD          |
+| F-022   | HIGH     | Done   | Architecture doc says POST /deals/compare; implementation is GET     | Corrected doc to GET /deals/compare                        | TBD          |
 | F-023   | MEDIUM   | Open   | ETag cache unbounded (frontend)                                      | —                                                          | —            |
 | F-024   | MEDIUM   | Open   | WebSocket auth token not updated on refresh                          | —                                                          | —            |
 | F-025   | MEDIUM   | Open   | Filter persistence potential infinite loop                           | —                                                          | —            |

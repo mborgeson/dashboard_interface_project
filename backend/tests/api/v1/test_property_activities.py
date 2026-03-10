@@ -363,7 +363,7 @@ async def test_create_view_activity(client, test_property, auth_headers):
         headers=auth_headers,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
 
     assert data["activity_type"] == "view"
@@ -389,7 +389,7 @@ async def test_create_edit_activity(client, test_property, auth_headers):
         headers=auth_headers,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
 
     assert data["activity_type"] == "edit"
@@ -414,7 +414,7 @@ async def test_create_comment_activity(client, test_property, auth_headers):
         headers=auth_headers,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
 
     assert data["activity_type"] == "comment"
@@ -441,7 +441,7 @@ async def test_create_status_change_activity(client, test_property, auth_headers
         headers=auth_headers,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
 
     assert data["activity_type"] == "status_change"
@@ -465,7 +465,7 @@ async def test_create_document_upload_activity(client, test_property, auth_heade
         headers=auth_headers,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
 
     assert data["activity_type"] == "document_upload"
@@ -550,7 +550,7 @@ async def test_create_activity_persists(client, test_property, auth_headers):
         headers=auth_headers,
     )
 
-    assert create_response.status_code == 200
+    assert create_response.status_code == 201
     created = create_response.json()
 
     # Retrieve activities

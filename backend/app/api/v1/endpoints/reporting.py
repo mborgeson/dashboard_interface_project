@@ -19,6 +19,7 @@ from app.crud.crud_report_template import (
 )
 from app.db.session import get_db
 from app.models.report_settings import ReportSettings
+from app.models.report_template import ReportTemplate
 from app.schemas.reporting import (
     DistributionScheduleCreate,
     DistributionScheduleListResponse,
@@ -242,15 +243,29 @@ async def list_queued_reports(
         template_id=template_id,
     )
 
+    # Batch lookup template names to avoid N+1 queries
+    template_ids = list(
+        {item.template_id for item in items if item.template_id is not None}
+    )
+    template_name_map: dict[int, str] = {}
+    if template_ids:
+        template_rows = await db.execute(
+            select(ReportTemplate.id, ReportTemplate.name).where(
+                ReportTemplate.id.in_(template_ids)
+            )
+        )
+        template_name_map = {row.id: row.name for row in template_rows}
+
     # Enrich with template names
     enriched_items = []
     for item in items:
-        template = await template_crud.get(db, item.template_id)
         item_dict = {
             "id": item.id,
             "name": item.name,
             "template_id": item.template_id,
-            "template_name": template.name if template else None,
+            "template_name": template_name_map.get(item.template_id)
+            if item.template_id
+            else None,
             "format": item.format,
             "requested_by": item.requested_by,
             "status": item.status,
@@ -331,17 +346,35 @@ async def list_schedules(
     else:
         items = await schedule_crud.get_multi(db, skip=0, limit=100)
 
+    # Batch lookup template names to avoid N+1 queries
+    sched_template_ids = list(
+        {
+            item.template_id
+            for item in items
+            if item.template_id is not None and not item.is_deleted
+        }
+    )
+    sched_template_map: dict[int, str] = {}
+    if sched_template_ids:
+        sched_rows = await db.execute(
+            select(ReportTemplate.id, ReportTemplate.name).where(
+                ReportTemplate.id.in_(sched_template_ids)
+            )
+        )
+        sched_template_map = {row.id: row.name for row in sched_rows}
+
     # Enrich with template names
     enriched_items = []
     for item in items:
         if item.is_deleted:
             continue
-        template = await template_crud.get(db, item.template_id)
         item_dict = {
             "id": item.id,
             "name": item.name,
             "template_id": item.template_id,
-            "template_name": template.name if template else None,
+            "template_name": sched_template_map.get(item.template_id)
+            if item.template_id
+            else None,
             "recipients": item.recipients,
             "frequency": item.frequency,
             "day_of_week": item.day_of_week,

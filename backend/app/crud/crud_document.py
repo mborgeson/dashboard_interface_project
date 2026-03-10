@@ -5,7 +5,7 @@ CRUD operations for Document model.
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import Integer, func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -166,7 +166,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
             select(
                 func.count().label("total"),
                 func.coalesce(func.sum(Document.size), 0).label("total_size"),
-                func.sum(func.cast(Document.uploaded_at >= cutoff, Integer)).label(
+                func.sum(case((Document.uploaded_at >= cutoff, 1), else_=0)).label(
                     "recent"
                 ),
             )
