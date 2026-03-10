@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Save,
   Upload,
@@ -18,6 +19,16 @@ import { cn } from '@/lib/utils';
 import type { ReportSettings as ReportSettingsType } from '@/data/mockReportingData';
 import { fetchReportSettings, updateReportSettings } from '@/lib/api/reporting';
 
+// ============================================================================
+// Query Key
+// ============================================================================
+
+const reportSettingsKey = ['reporting', 'settings'] as const;
+
+// ============================================================================
+// Constants
+// ============================================================================
+
 const fontOptions = [
   { value: 'Inter', label: 'Inter (Default)' },
   { value: 'Roboto', label: 'Roboto' },
@@ -29,9 +40,9 @@ const fontOptions = [
 ];
 
 const pageSizeOptions = [
-  { value: 'letter', label: 'Letter (8.5" × 11")' },
-  { value: 'a4', label: 'A4 (210mm × 297mm)' },
-  { value: 'legal', label: 'Legal (8.5" × 14")' },
+  { value: 'letter', label: 'Letter (8.5" x 11")' },
+  { value: 'a4', label: 'A4 (210mm x 297mm)' },
+  { value: 'legal', label: 'Legal (8.5" x 14")' },
 ];
 
 const orientationOptions = [
@@ -39,59 +50,64 @@ const orientationOptions = [
   { value: 'landscape', label: 'Landscape' },
 ];
 
+// ============================================================================
+// Component
+// ============================================================================
+
 export function ReportSettings() {
-  const [settings, setSettings] = useState<ReportSettingsType | null>(null);
+  const queryClient = useQueryClient();
+  const [localSettings, setLocalSettings] = useState<ReportSettingsType | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState('');
 
-  const loadSettings = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchReportSettings();
-      setSettings(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load settings');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Fetch settings via React Query
+  const {
+    data: fetchedSettings,
+    isLoading: loading,
+    error: fetchError,
+    refetch,
+  } = useQuery({
+    queryKey: reportSettingsKey,
+    queryFn: fetchReportSettings,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    loadSettings();
-  }, [loadSettings]);
+  // Save settings mutation
+  const saveMutation = useMutation({
+    mutationFn: (settings: Partial<ReportSettingsType>) =>
+      updateReportSettings(settings),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(reportSettingsKey, updated);
+      setLocalSettings(null);
+      setHasChanges(false);
+      setSavedMessage('Settings saved successfully!');
+      setTimeout(() => setSavedMessage(''), 3000);
+    },
+  });
+
+  // The displayed settings: local edits take priority over fetched data
+  const settings = localSettings ?? fetchedSettings ?? null;
+  const error = saveMutation.error?.message ?? (fetchError ? (fetchError instanceof Error ? fetchError.message : 'Failed to load settings') : null);
 
   const handleChange = <K extends keyof ReportSettingsType>(key: K, value: ReportSettingsType[K]) => {
-    setSettings(prev => prev ? { ...prev, [key]: value } : prev);
+    const base = localSettings ?? fetchedSettings;
+    if (!base) return;
+    setLocalSettings({ ...base, [key]: value });
     setHasChanges(true);
     setSavedMessage('');
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!settings) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const updated = await updateReportSettings(settings);
-      setSettings(updated);
-      setHasChanges(false);
-      setSavedMessage('Settings saved successfully!');
-      setTimeout(() => setSavedMessage(''), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save settings');
-    } finally {
-      setSaving(false);
-    }
-  };
+    saveMutation.mutate(settings);
+  }, [settings, saveMutation]);
 
-  const handleReset = async () => {
-    await loadSettings();
+  const handleReset = useCallback(async () => {
+    setLocalSettings(null);
     setHasChanges(false);
     setSavedMessage('');
-  };
+    await refetch();
+  }, [refetch]);
 
   if (loading) {
     return (
@@ -108,7 +124,7 @@ export function ReportSettings() {
         <AlertCircle className="w-8 h-8 text-red-500" />
         <p className="text-sm text-red-600">{error}</p>
         <button
-          onClick={loadSettings}
+          onClick={() => refetch()}
           className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
         >
           Retry
@@ -143,7 +159,7 @@ export function ReportSettings() {
           </button>
           <button
             onClick={handleSave}
-            disabled={!hasChanges || saving}
+            disabled={!hasChanges || saveMutation.isPending}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
               hasChanges
@@ -152,7 +168,7 @@ export function ReportSettings() {
             )}
           >
             <Save className="w-4 h-4" />
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>

@@ -1,88 +1,28 @@
 /**
  * Hook for fetching and managing interest rate data
- * Fetches live data from the backend API (DB -> FRED fallback)
- * Includes localStorage caching to reduce API calls
+ *
+ * Wraps the React Query hooks from src/hooks/api/useInterestRates.ts
+ * to provide the same combined interface that InterestRatesPage expects.
+ * React Query manages caching, so the legacy localStorage caching is removed.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { KeyRate, YieldCurvePoint, HistoricalRate } from "../types";
 import {
-  fetchKeyRates,
-  fetchYieldCurve,
-  fetchHistoricalRates,
-  isApiConfigured,
-} from "@/services/interestRatesApi";
-
-interface InterestRatesData {
-  keyRates: KeyRate[];
-  yieldCurve: YieldCurvePoint[];
-  historicalRates: HistoricalRate[];
-  lastUpdated: Date | null;
-  isLiveData: boolean;
-  isLoading: boolean;
-  error: string | null;
-}
-
-interface CachedData {
-  keyRates: KeyRate[];
-  yieldCurve: YieldCurvePoint[];
-  historicalRates: HistoricalRate[];
-  timestamp: number;
-}
+  useKeyRatesWithMockFallback,
+  useYieldCurveWithMockFallback,
+  useHistoricalRatesWithMockFallback,
+  interestRateKeys,
+} from "@/hooks/api/useInterestRates";
 
 interface UseInterestRatesOptions {
   refreshInterval?: number; // in milliseconds, default 5 minutes
   autoRefresh?: boolean;
-  cacheTTL?: number; // cache time-to-live in milliseconds, default 5 minutes
+  cacheTTL?: number; // kept for API compat, no longer used (React Query manages caching)
 }
 
 const DEFAULT_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
-const DEFAULT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-const CACHE_KEY = "interestRatesCache";
-
-/**
- * Get cached data from localStorage
- * @returns Cached data if valid and not expired, null otherwise
- */
-function getCachedData(ttl: number): CachedData | null {
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (!cached) return null;
-
-    const data: CachedData = JSON.parse(cached);
-    const now = Date.now();
-
-    // Check if cache is still valid
-    if (now - data.timestamp < ttl) {
-      return data;
-    }
-
-    // Cache expired, remove it
-    localStorage.removeItem(CACHE_KEY);
-    return null;
-  } catch {
-    // Invalid cache data
-    localStorage.removeItem(CACHE_KEY);
-    return null;
-  }
-}
-
-/**
- * Save data to localStorage cache
- * @param data Rate data to cache
- */
-function setCachedData(data: Omit<CachedData, "timestamp">): void {
-  try {
-    const cacheData: CachedData = {
-      ...data,
-      timestamp: Date.now(),
-    };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-  } catch {
-    // Storage full or not available, silently fail
-    console.warn("Failed to cache interest rate data to localStorage");
-  }
-}
 
 /**
  * Hook for fetching and managing interest rate data
@@ -93,131 +33,58 @@ export function useInterestRates(options: UseInterestRatesOptions = {}) {
   const {
     refreshInterval = DEFAULT_REFRESH_INTERVAL,
     autoRefresh = true,
-    cacheTTL = DEFAULT_CACHE_TTL,
   } = options;
 
-  // Try to initialize from cache
-  const cachedData = getCachedData(cacheTTL);
+  const queryClient = useQueryClient();
 
-  const [data, setData] = useState<InterestRatesData>({
-    keyRates: cachedData?.keyRates || [],
-    yieldCurve: cachedData?.yieldCurve || [],
-    historicalRates: cachedData?.historicalRates || [],
-    lastUpdated: cachedData ? new Date(cachedData.timestamp) : null,
-    isLiveData: !!cachedData,
-    isLoading: !cachedData, // Don't show loading if we have cached data
-    error: null,
+  const keyRatesQuery = useKeyRatesWithMockFallback({
+    refetchInterval: autoRefresh ? refreshInterval : false,
   });
 
-  const fetchData = useCallback(
-    async (forceRefresh = false) => {
-      // Check if API is configured
-      if (!isApiConfigured()) {
-        setData((prev) => ({
-          ...prev,
-          isLoading: false,
-          isLiveData: false,
-          lastUpdated: new Date(),
-        }));
-        return;
-      }
+  const yieldCurveQuery = useYieldCurveWithMockFallback({
+    refetchInterval: autoRefresh ? refreshInterval : false,
+  });
 
-      // Check cache first (unless forcing refresh)
-      if (!forceRefresh) {
-        const cached = getCachedData(cacheTTL);
-        if (cached) {
-          setData((prev) => ({
-            ...prev,
-            keyRates: cached.keyRates,
-            yieldCurve: cached.yieldCurve,
-            historicalRates: cached.historicalRates,
-            lastUpdated: new Date(cached.timestamp),
-            isLiveData: true,
-            isLoading: false,
-          }));
-          return;
-        }
-      }
+  const historicalRatesQuery = useHistoricalRatesWithMockFallback(12, {
+    refetchInterval: autoRefresh ? refreshInterval : false,
+  });
 
-      setData((prev) => ({ ...prev, isLoading: true, error: null }));
+  const keyRates: KeyRate[] = keyRatesQuery.data?.keyRates ?? [];
+  const yieldCurve: YieldCurvePoint[] = yieldCurveQuery.data?.yieldCurve ?? [];
+  const historicalRates: HistoricalRate[] = historicalRatesQuery.data?.rates ?? [];
 
-      try {
-        // Fetch all data in parallel
-        // When forceRefresh is true, pass it to API calls so backend
-        // queries FRED API first instead of returning cached DB data
-        const [keyRatesResult, yieldCurveResult, historicalRatesResult] =
-          await Promise.all([
-            fetchKeyRates(forceRefresh),
-            fetchYieldCurve(forceRefresh),
-            fetchHistoricalRates(forceRefresh),
-          ]);
+  const isLoading =
+    keyRatesQuery.isLoading || yieldCurveQuery.isLoading || historicalRatesQuery.isLoading;
 
-        const newKeyRates = keyRatesResult || [];
-        const newYieldCurve = yieldCurveResult || [];
-        const newHistoricalRates = historicalRatesResult || [];
-        const isLive = !!(
-          keyRatesResult ||
-          yieldCurveResult ||
-          historicalRatesResult
-        );
+  const isLiveData = !!(keyRatesQuery.data || yieldCurveQuery.data || historicalRatesQuery.data);
 
-        // Cache the data if we got live results
-        if (isLive) {
-          setCachedData({
-            keyRates: newKeyRates,
-            yieldCurve: newYieldCurve,
-            historicalRates: newHistoricalRates,
-          });
-        }
+  const lastUpdated =
+    keyRatesQuery.data?.lastUpdated ??
+    yieldCurveQuery.data?.lastUpdated ??
+    historicalRatesQuery.data?.lastUpdated ??
+    null;
 
-        setData((prev) => ({
-          ...prev,
-          keyRates: newKeyRates,
-          yieldCurve: newYieldCurve,
-          historicalRates: newHistoricalRates,
-          lastUpdated: new Date(),
-          isLiveData: isLive,
-          isLoading: false,
-        }));
-      } catch (error) {
-        console.error("Error fetching interest rates:", error);
-        setData((prev) => ({
-          ...prev,
-          isLoading: false,
-          error:
-            error instanceof Error ? error.message : "Failed to fetch data",
-          // Keep existing data on error
-        }));
-      }
-    },
-    [cacheTTL]
-  );
+  const error =
+    keyRatesQuery.error?.message ??
+    yieldCurveQuery.error?.message ??
+    historicalRatesQuery.error?.message ??
+    null;
 
-  // Initial fetch - only if no valid cache
-  useEffect(() => {
-    const cached = getCachedData(cacheTTL);
-    if (!cached) {
-      fetchData();
-    }
-  }, [fetchData, cacheTTL]);
-
-  // Auto-refresh at interval (always forces fresh fetch)
-  useEffect(() => {
-    if (!autoRefresh || !isApiConfigured()) return;
-
-    const intervalId = setInterval(() => fetchData(true), refreshInterval);
-    return () => clearInterval(intervalId);
-  }, [autoRefresh, refreshInterval, fetchData]);
-
-  // Manual refresh function (always forces fresh fetch, bypassing cache)
+  // Manual refresh function - invalidates all interest rate queries
   const refresh = useCallback(() => {
-    return fetchData(true);
-  }, [fetchData]);
+    queryClient.invalidateQueries({ queryKey: interestRateKeys.all });
+  }, [queryClient]);
 
   return {
-    ...data,
+    keyRates,
+    yieldCurve,
+    historicalRates,
+    lastUpdated,
+    isLiveData,
+    isLoading,
+    error,
     refresh,
-    isApiConfigured: isApiConfigured(),
+    isApiConfigured: true, // Backend always handles fallback
   };
 }
 

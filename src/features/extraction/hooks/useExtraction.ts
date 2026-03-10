@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
 import type {
   ExtractionRun,
   ExtractionStatusResponse,
@@ -10,52 +12,54 @@ import type {
   ExtractionFilters,
 } from '@/types/extraction';
 
-import api, { get, post } from '@/lib/api';
+// ============================================================================
+// Query Key Factory
+// ============================================================================
+
+export const extractionLegacyKeys = {
+  all: ['extraction-legacy'] as const,
+  status: (runId?: string) => [...extractionLegacyKeys.all, 'status', runId ?? ''] as const,
+  history: (limit: number, page: number) =>
+    [...extractionLegacyKeys.all, 'history', limit, page] as const,
+  properties: (runId?: string, searchTerm?: string, hasErrors?: boolean) =>
+    [...extractionLegacyKeys.all, 'properties', runId ?? '', searchTerm ?? '', String(hasErrors ?? '')] as const,
+  propertyValues: (propertyName: string, runId?: string, category?: string, hasErrors?: boolean) =>
+    [...extractionLegacyKeys.all, 'propertyValues', propertyName, runId ?? '', category ?? '', String(hasErrors ?? '')] as const,
+};
+
+// ============================================================================
+// Query Hooks
+// ============================================================================
 
 /**
  * Hook to fetch and manage extraction status
  */
 export function useExtractionStatus(runId?: string) {
-  const [data, setData] = useState<ExtractionStatusResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchStatus = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const params: Record<string, unknown> = {};
+  const query = useQuery({
+    queryKey: extractionLegacyKeys.status(runId),
+    queryFn: () => {
+      const params: Record<string, string | number | boolean | undefined> = {};
       if (runId) params.run_id = runId;
-
-      const result = await get<ExtractionStatusResponse>('/extraction/status', params);
-      setData(result);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [runId]);
-
-  useEffect(() => {
-    fetchStatus();
-  }, [fetchStatus]);
-
-  // Auto-refresh when extraction is running
-  useEffect(() => {
-    if (data?.current_run?.status === 'running') {
-      const interval = setInterval(fetchStatus, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [data?.current_run?.status, fetchStatus]);
+      return apiClient.get<ExtractionStatusResponse>('/extraction/status', { params });
+    },
+    // Auto-refresh when extraction is running
+    refetchInterval: (q) => {
+      const data = q.state.data;
+      if (data?.current_run?.status === 'running') {
+        return 5000;
+      }
+      return false;
+    },
+  });
 
   return {
-    status: data,
-    currentRun: data?.current_run,
-    lastRun: data?.last_completed_run,
-    stats: data?.stats,
-    isLoading,
-    error,
-    refetch: fetchStatus,
+    status: query.data ?? null,
+    currentRun: query.data?.current_run ?? null,
+    lastRun: query.data?.last_completed_run ?? null,
+    stats: query.data?.stats ?? null,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
   };
 }
 
@@ -63,38 +67,22 @@ export function useExtractionStatus(runId?: string) {
  * Hook to fetch extraction history
  */
 export function useExtractionHistory(limit: number = 20, page: number = 1) {
-  const [data, setData] = useState<ExtractionHistoryResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchHistory = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const result = await get<ExtractionHistoryResponse>('/extraction/history', {
-        limit,
-        page,
-      });
-      setData(result);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [limit, page]);
-
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+  const query = useQuery({
+    queryKey: extractionLegacyKeys.history(limit, page),
+    queryFn: () =>
+      apiClient.get<ExtractionHistoryResponse>('/extraction/history', {
+        params: { limit, page },
+      }),
+  });
 
   return {
-    runs: data?.runs || [],
-    total: data?.total || 0,
-    page: data?.page || 1,
-    pageSize: data?.page_size || limit,
-    isLoading,
-    error,
-    refetch: fetchHistory,
+    runs: query.data?.runs ?? [],
+    total: query.data?.total ?? 0,
+    page: query.data?.page ?? 1,
+    pageSize: query.data?.page_size ?? limit,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
   };
 }
 
@@ -102,36 +90,21 @@ export function useExtractionHistory(limit: number = 20, page: number = 1) {
  * Hook to fetch list of properties with extracted data
  */
 export function useExtractedProperties(runId?: string, filters?: ExtractionFilters) {
-  const [data, setData] = useState<ExtractedPropertiesResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchProperties = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const params: Record<string, unknown> = {};
+  const query = useQuery({
+    queryKey: extractionLegacyKeys.properties(runId, filters?.searchTerm, filters?.hasErrors),
+    queryFn: () => {
+      const params: Record<string, string | number | boolean | undefined> = {};
       if (runId) params.run_id = runId;
       if (filters?.searchTerm) params.search = filters.searchTerm;
       if (filters?.hasErrors !== undefined) params.has_errors = filters.hasErrors;
-
-      const result = await get<ExtractedPropertiesResponse>('/extraction/properties', params);
-      setData(result);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [runId, filters?.searchTerm, filters?.hasErrors]);
-
-  useEffect(() => {
-    fetchProperties();
-  }, [fetchProperties]);
+      return apiClient.get<ExtractedPropertiesResponse>('/extraction/properties', { params });
+    },
+  });
 
   // Filter properties locally if needed
   const filteredProperties = useMemo(() => {
-    if (!data?.properties) return [];
-    let result = data.properties;
+    if (!query.data?.properties) return [];
+    let result = query.data.properties;
 
     if (filters?.searchTerm) {
       const search = filters.searchTerm.toLowerCase();
@@ -147,14 +120,14 @@ export function useExtractedProperties(runId?: string, filters?: ExtractionFilte
     }
 
     return result;
-  }, [data?.properties, filters]);
+  }, [query.data?.properties, filters]);
 
   return {
     properties: filteredProperties,
-    total: data?.total || 0,
-    isLoading,
-    error,
-    refetch: fetchProperties,
+    total: query.data?.total ?? 0,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
   };
 }
 
@@ -166,48 +139,31 @@ export function useExtractedPropertyValues(
   runId?: string,
   filters?: ExtractionFilters
 ) {
-  const [data, setData] = useState<ExtractedPropertyValuesResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchValues = useCallback(async () => {
-    if (!propertyName) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const params: Record<string, unknown> = {};
+  const query = useQuery({
+    queryKey: extractionLegacyKeys.propertyValues(propertyName, runId, filters?.category, filters?.hasErrors),
+    queryFn: () => {
+      const params: Record<string, string | number | boolean | undefined> = {};
       if (runId) params.run_id = runId;
       if (filters?.category) params.category = filters.category;
       if (filters?.hasErrors !== undefined) params.has_errors = filters.hasErrors;
-
       const encodedName = encodeURIComponent(propertyName);
-      const result = await get<ExtractedPropertyValuesResponse>(
+      return apiClient.get<ExtractedPropertyValuesResponse>(
         `/extraction/properties/${encodedName}`,
-        params
+        { params }
       );
-      setData(result);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [propertyName, runId, filters?.category, filters?.hasErrors]);
+    },
+    enabled: !!propertyName,
+  });
 
-  useEffect(() => {
-    fetchValues();
-  }, [fetchValues]);
+  const rawValues = query.data?.values;
 
   // Group values by category
   const groupedValues = useMemo((): GroupedExtractedValues[] => {
-    if (!data?.values) return [];
+    if (!rawValues) return [];
 
     const groups: Record<string, ExtractedValue[]> = {};
 
-    for (const value of data.values) {
+    for (const value of rawValues) {
       const category = value.field_category || 'Uncategorized';
       if (!groups[category]) {
         groups[category] = [];
@@ -222,12 +178,12 @@ export function useExtractedPropertyValues(
         errorCount: values.filter(v => v.is_error).length,
       }))
       .sort((a, b) => a.category.localeCompare(b.category));
-  }, [data?.values]);
+  }, [rawValues]);
 
   // Filter values locally
   const filteredValues = useMemo(() => {
-    if (!data?.values) return [];
-    let result = data.values;
+    if (!rawValues) return [];
+    let result = rawValues;
 
     if (filters?.searchTerm) {
       const search = filters.searchTerm.toLowerCase();
@@ -248,66 +204,72 @@ export function useExtractedPropertyValues(
     }
 
     return result;
-  }, [data?.values, filters]);
+  }, [rawValues, filters]);
 
   return {
-    propertyName: data?.property_name || propertyName,
+    propertyName: query.data?.property_name ?? propertyName,
     values: filteredValues,
     groupedValues,
-    categories: data?.categories || [],
-    total: data?.total || 0,
-    isLoading,
-    error,
-    refetch: fetchValues,
+    categories: query.data?.categories ?? [],
+    total: query.data?.total ?? 0,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
   };
 }
+
+// ============================================================================
+// Mutation Hooks
+// ============================================================================
 
 /**
  * Hook to trigger a manual extraction run
  */
 export function useStartExtraction() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const queryClient = useQueryClient();
 
-  const startExtraction = useCallback(async (): Promise<ExtractionRun | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const startMutation = useMutation({
+    mutationFn: () =>
+      apiClient.post<ExtractionRun>('/extraction/start', { source: 'local' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: extractionLegacyKeys.all });
+    },
+  });
 
-      const result = await post<ExtractionRun>('/extraction/start', { source: 'local' });
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
-      setError(error);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const cancelExtraction = useCallback(async (runId: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      await api.post('/extraction/cancel', null, { params: { run_id: runId } });
-      return true;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
-      setError(error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const cancelMutation = useMutation({
+    mutationFn: (runId: string) =>
+      apiClient.post<void>('/extraction/cancel', null, {
+        params: { run_id: runId },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: extractionLegacyKeys.all });
+    },
+  });
 
   return {
-    startExtraction,
-    cancelExtraction,
-    isLoading,
-    error,
+    startExtraction: async (): Promise<ExtractionRun | null> => {
+      try {
+        return await startMutation.mutateAsync();
+      } catch {
+        return null;
+      }
+    },
+    cancelExtraction: async (runId: string): Promise<boolean> => {
+      try {
+        await cancelMutation.mutateAsync(runId);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    isLoading: startMutation.isPending || cancelMutation.isPending,
+    error: startMutation.error ?? cancelMutation.error ?? null,
   };
 }
+
+// ============================================================================
+// Helper Functions (unchanged)
+// ============================================================================
 
 /**
  * Helper function to format extracted value for display
