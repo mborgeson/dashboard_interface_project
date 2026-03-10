@@ -1011,18 +1011,18 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 | F-053   | LOW      | Done   | Duplicate formatDate implementations                               | 4 local formatDate consolidated into dateUtils.ts          | 5164070     |
 | F-054   | LOW      | Done   | Report queue 30-second polling                                     | Conditional polling: 10s when pending, stopped when done   | e8e12ce     |
 | F-055   | LOW      | Done   | Comparison deals not persisted to storage                          | sessionStorage hydration + persist via useEffect           | 584fd2c     |
-| F-056   | LOW      | Accepted Risk | Optimistic locking only on Deal model                       | Single admin user; no concurrent edit scenarios currently   | —           |
+| F-056   | LOW      | Accepted Risk | Optimistic locking only on Deal model                       | Single admin user; no concurrent edit scenarios currently   | dfbe156     |
 | F-057   | LOW      | Done   | SoftDeleteMixin scope may need expansion                           | Added SoftDeleteMixin to ActivityLog; CRUD filters updated | e8e12ce     |
 | F-058   | LOW      | Done   | Multiple API hooks have zero test coverage                         | 68 tests: useDeals (41) + useProperties (27)               | 0d00b35     |
 | F-059   | LOW      | Done   | No tests for 12 underwriting models                                | 66 tests covering all 12 models, relationships, enums      | 0d00b35     |
 | F-060   | LOW      | Done   | No tests for GeocodingService                                      | 19 tests: geocoding, mocked HTTP, rate limiting            | 0d00b35     |
 | F-061   | LOW      | Done   | No tests for scheduler services                                    | Scheduler lifecycle tests                                  | 0d00b35     |
 | F-062   | LOW      | Done   | No tests for slow query logger                                     | Slow query detection + parameter sanitization tests        | 0d00b35     |
-| F-063   | LOW      | Accepted Risk | Feature components have extensive test gaps                 | High-value hooks tested (F-058/F-064); UI wrappers low ROI | —           |
+| F-063   | LOW      | Accepted Risk | Feature components have extensive test gaps                 | High-value hooks tested (F-058/F-064); UI wrappers low ROI | dfbe156     |
 | F-064   | LOW      | Done   | useUnderwriting hook has no tests                                  | 42 tests: IRR, sensitivity, edge cases                     | 0d00b35     |
 | F-065   | LOW      | Done   | crud_property.py enrichment not tested at unit level               | Enrichment service unit tests (pure functions)             | 0d00b35     |
 | F-066   | LOW      | Done   | No report template or generation endpoint tests                    | 34 tests: CRUD, generation, auth                           | 0d00b35     |
-| F-067   | LOW      | Done   | PUT /deals/{id} and PATCH /deals/{id} require require_manager      | Fixed backend-architecture.md: POST/PUT/PATCH auth analyst→manager | —           |
+| F-067   | LOW      | Done   | PUT /deals/{id} and PATCH /deals/{id} require require_manager      | Fixed backend-architecture.md: POST/PUT/PATCH auth analyst→manager | e8e12ce     |
 | F-068   | LOW      | Done   | PDF export may have incomplete financial data                      | enrich_financial_data before single + portfolio PDF export | 584fd2c     |
 | F-069   | LOW      | Done   | Four proposed ADRs not yet formalized                              | Created ADR-008, 009, 010, 011                             | e8e12ce     |
 
