@@ -288,7 +288,7 @@ def make_cache_key_from_params(prefix: str, **params: Any) -> str:
     if not filtered:
         return prefix
     raw = json.dumps(filtered, sort_keys=True, default=str)
-    digest = hashlib.md5(raw.encode()).hexdigest()[:8]  # noqa: S324
+    digest = hashlib.md5(raw.encode(), usedforsecurity=False).hexdigest()[:8]  # noqa: S324
     return f"{prefix}:{digest}"
 
 

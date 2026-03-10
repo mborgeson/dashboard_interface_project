@@ -3,10 +3,6 @@ import Fuse from 'fuse.js';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { useTransactionsWithMockFallback } from '@/hooks/api/useTransactions';
 
-import type { Property } from '@/types/property';
-import type { Transaction } from '@/types/transaction';
-import type { SearchResult } from '@/types/search';
-
 export type { SearchResult } from '@/types/search';
 
 export function useGlobalSearch(query: string) {
