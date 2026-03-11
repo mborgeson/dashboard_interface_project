@@ -1,35 +1,27 @@
 import { test, expect } from '@playwright/test';
+import { assertBackendHealthy, TEST_CREDENTIALS } from './fixtures/auth';
 
 /**
  * E2E Tests: Authentication Flow
  *
  * Tests the authentication API endpoints and protected routes.
- * Note: Frontend login page is not yet implemented, so these tests
- * focus on API-level auth that the frontend will consume.
+ * The backend MUST be running — tests fail (not skip) if it is down.
  */
 test.describe('Authentication', () => {
   const API_BASE = 'http://localhost:8000/api/v1';
 
+  test.beforeAll(async ({ request }) => {
+    await assertBackendHealthy(request);
+  });
+
   test.describe('Login API', () => {
-    test('should login with valid demo credentials', async ({ request }) => {
+    test('should login with valid admin credentials', async ({ request }) => {
       const response = await request.post(`${API_BASE}/auth/login`, {
         form: {
-          username: 'admin@bandrcapital.com',
-          password: 'admin123',
+          username: TEST_CREDENTIALS.admin.email,
+          password: TEST_CREDENTIALS.admin.password,
         },
       });
-
-      // Skip if auth endpoint not configured
-      if (response.status() === 404 || response.status() === 500) {
-        test.skip();
-        return;
-      }
-
-      // Skip if demo credentials not set up
-      if (response.status() === 401) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
 
@@ -41,16 +33,10 @@ test.describe('Authentication', () => {
     test('should login with analyst credentials', async ({ request }) => {
       const response = await request.post(`${API_BASE}/auth/login`, {
         form: {
-          username: 'analyst@bandrcapital.com',
-          password: 'analyst123',
+          username: TEST_CREDENTIALS.analyst.email,
+          password: TEST_CREDENTIALS.analyst.password,
         },
       });
-
-      // Skip if auth not configured
-      if (response.status() === 404 || response.status() === 500 || response.status() === 401) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
       const data = await response.json();
@@ -64,12 +50,6 @@ test.describe('Authentication', () => {
           password: 'wrongpassword',
         },
       });
-
-      // Skip if endpoint not available
-      if (response.status() === 404 || response.status() === 500) {
-        test.skip();
-        return;
-      }
 
       // Should return 401 Unauthorized
       expect(response.status()).toBe(401);
@@ -93,16 +73,12 @@ test.describe('Authentication', () => {
       // First login to get tokens
       const loginResponse = await request.post(`${API_BASE}/auth/login`, {
         form: {
-          username: 'admin@bandrcapital.com',
-          password: 'admin123',
+          username: TEST_CREDENTIALS.admin.email,
+          password: TEST_CREDENTIALS.admin.password,
         },
       });
 
-      // Skip if auth not configured
-      if (!loginResponse.ok()) {
-        test.skip();
-        return;
-      }
+      expect(loginResponse.ok()).toBeTruthy();
 
       const loginData = await loginResponse.json();
       const refreshToken = loginData.refresh_token;
@@ -133,16 +109,12 @@ test.describe('Authentication', () => {
       // Login first
       const loginResponse = await request.post(`${API_BASE}/auth/login`, {
         form: {
-          username: 'admin@bandrcapital.com',
-          password: 'admin123',
+          username: TEST_CREDENTIALS.admin.email,
+          password: TEST_CREDENTIALS.admin.password,
         },
       });
 
-      // Skip if auth not configured
-      if (!loginResponse.ok()) {
-        test.skip();
-        return;
-      }
+      expect(loginResponse.ok()).toBeTruthy();
 
       const loginData = await loginResponse.json();
       const accessToken = loginData.access_token;
@@ -180,16 +152,12 @@ test.describe('Authentication', () => {
       // Login first
       const loginResponse = await request.post(`${API_BASE}/auth/login`, {
         form: {
-          username: 'admin@bandrcapital.com',
-          password: 'admin123',
+          username: TEST_CREDENTIALS.admin.email,
+          password: TEST_CREDENTIALS.admin.password,
         },
       });
 
-      // Skip if auth not configured
-      if (!loginResponse.ok()) {
-        test.skip();
-        return;
-      }
+      expect(loginResponse.ok()).toBeTruthy();
 
       const loginData = await loginResponse.json();
 

@@ -1,9 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/auth';
+import { assertBackendHealthy } from './fixtures/auth';
 
 /**
  * E2E Tests: Property Details
  *
  * Tests for property details page and interactions.
+ * Backend must be running — tests fail (not skip) if unavailable.
  */
 test.describe('Property Details', () => {
   test.describe('Property List Interactions', () => {
@@ -53,13 +55,14 @@ test.describe('Property Details', () => {
   test.describe('Property API', () => {
     const API_BASE = 'http://localhost:8000/api/v1';
 
-    test('should list properties via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/properties/`);
+    test.beforeAll(async ({ request }) => {
+      await assertBackendHealthy(request);
+    });
 
-      if (response.status() === 401 || response.status() === 403) {
-        test.skip();
-        return;
-      }
+    test('should list properties via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/properties/`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       expect(response.ok()).toBeTruthy();
 
@@ -68,16 +71,13 @@ test.describe('Property Details', () => {
       expect(data).toHaveProperty('total');
     });
 
-    test('should get property by ID via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/properties/1`);
-
-      if (response.status() === 401 || response.status() === 403) {
-        test.skip();
-        return;
-      }
+    test('should get property by ID via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/properties/1`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       if (response.status() === 404) {
-        // Property not found - acceptable
+        // Property ID 1 may not exist — this is a data issue, not a test infrastructure issue
         return;
       }
 
@@ -89,13 +89,10 @@ test.describe('Property Details', () => {
       expect(data).toHaveProperty('property_type');
     });
 
-    test('should get property analytics via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/properties/1/analytics`);
-
-      if (response.status() === 401 || response.status() === 403) {
-        test.skip();
-        return;
-      }
+    test('should get property analytics via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/properties/1/analytics`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       if (response.status() === 404) {
         return;
@@ -108,15 +105,11 @@ test.describe('Property Details', () => {
       expect(data).toHaveProperty('metrics');
     });
 
-    test('should filter properties by type via API', async ({ request }) => {
+    test('should filter properties by type via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/properties/`, {
         params: { property_type: 'multifamily' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      if (response.status() === 401 || response.status() === 403) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
     });

@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/auth';
+import { assertBackendHealthy } from './fixtures/auth';
 
 /**
  * E2E Tests: Sales Analysis Page
@@ -584,15 +585,15 @@ test.describe('Sales Analysis Page', () => {
   });
 
   test.describe('Sales API Endpoints', () => {
-    test('should list sales data via API', async ({ request }) => {
+    test.beforeAll(async ({ request }) => {
+      await assertBackendHealthy(request);
+    });
+
+    test('should list sales data via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/sales`, {
         params: { page: 1, page_size: 10 },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
 
@@ -602,13 +603,10 @@ test.describe('Sales Analysis Page', () => {
       expect(data).toHaveProperty('page');
     });
 
-    test('should get filter options via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/sales/filter-options`);
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
+    test('should get filter options via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/sales/filter-options`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       expect(response.ok()).toBeTruthy();
 
@@ -616,13 +614,10 @@ test.describe('Sales Analysis Page', () => {
       expect(data).toHaveProperty('submarkets');
     });
 
-    test('should get time series analytics via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/sales/analytics/time-series`);
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
+    test('should get time series analytics via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/sales/analytics/time-series`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       expect(response.ok()).toBeTruthy();
 
@@ -630,13 +625,10 @@ test.describe('Sales Analysis Page', () => {
       expect(Array.isArray(data)).toBeTruthy();
     });
 
-    test('should get data quality report via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/sales/data-quality`);
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
+    test('should get data quality report via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/sales/data-quality`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       expect(response.ok()).toBeTruthy();
 
@@ -644,28 +636,20 @@ test.describe('Sales Analysis Page', () => {
       expect(data).toHaveProperty('totalRecords');
     });
 
-    test('should filter sales by submarket via API', async ({ request }) => {
+    test('should filter sales by submarket via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/sales`, {
         params: { submarkets: 'Central Phoenix' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
     });
 
-    test('should filter sales by price range via API', async ({ request }) => {
+    test('should filter sales by price range via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/sales`, {
         params: { min_price: 1000000, max_price: 10000000 },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
     });

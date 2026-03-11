@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/auth';
+import { assertBackendHealthy } from './fixtures/auth';
 
 /**
  * E2E Tests: Deal Pipeline - Kanban Board and Deal Detail Modal
@@ -211,7 +212,7 @@ test.describe('Deal Pipeline - Deal Card Interactions', () => {
     const cardCount = await dealCards.count();
 
     if (cardCount === 0) {
-      test.skip();
+      test.fixme(true, 'No clickable deal cards found in Kanban view — seed deal data');
       return;
     }
 
@@ -221,7 +222,7 @@ test.describe('Deal Pipeline - Deal Card Interactions', () => {
 
     const modal = page.getByRole('dialog');
     if (!await modal.isVisible().catch(() => false)) {
-      test.skip();
+      test.fixme(true, 'Deal detail modal did not open — check card click handler');
       return;
     }
 
@@ -242,7 +243,7 @@ test.describe('Deal Pipeline - Deal Card Interactions', () => {
     });
 
     if (await dealCards.count() === 0) {
-      test.skip();
+      test.fixme(true, 'No clickable deal cards found in Kanban view — seed deal data');
       return;
     }
 
@@ -251,7 +252,7 @@ test.describe('Deal Pipeline - Deal Card Interactions', () => {
 
     const modal = page.getByRole('dialog');
     if (!await modal.isVisible().catch(() => false)) {
-      test.skip();
+      test.fixme(true, 'Deal detail modal did not open — check card click handler');
       return;
     }
 
@@ -276,7 +277,7 @@ test.describe('Deal Pipeline - Deal Card Interactions', () => {
     });
 
     if (await dealCards.count() === 0) {
-      test.skip();
+      test.fixme(true, 'No clickable deal cards found in Kanban view — seed deal data');
       return;
     }
 
@@ -299,7 +300,7 @@ test.describe('Deal Pipeline - Deal Card Interactions', () => {
     });
 
     if (await dealCards.count() === 0) {
-      test.skip();
+      test.fixme(true, 'No clickable deal cards found in Kanban view — seed deal data');
       return;
     }
 
@@ -322,7 +323,7 @@ test.describe('Deal Pipeline - Deal Card Interactions', () => {
     });
 
     if (await dealCards.count() === 0) {
-      test.skip();
+      test.fixme(true, 'No clickable deal cards found in Kanban view — seed deal data');
       return;
     }
 
@@ -332,7 +333,7 @@ test.describe('Deal Pipeline - Deal Card Interactions', () => {
 
     const modal = page.getByRole('dialog');
     if (!await modal.isVisible().catch(() => false)) {
-      test.skip();
+      test.fixme(true, 'Deal detail modal did not open — check card click handler');
       return;
     }
 
@@ -358,7 +359,7 @@ test.describe('Deal Pipeline - Deal Card Interactions', () => {
     });
 
     if (await dealCards.count() === 0) {
-      test.skip();
+      test.fixme(true, 'No clickable deal cards found in Kanban view — seed deal data');
       return;
     }
 
@@ -368,7 +369,7 @@ test.describe('Deal Pipeline - Deal Card Interactions', () => {
 
     const modal = page.getByRole('dialog');
     if (!await modal.isVisible().catch(() => false)) {
-      test.skip();
+      test.fixme(true, 'Deal detail modal did not open — check card click handler');
       return;
     }
 
@@ -394,7 +395,7 @@ test.describe('Deal Pipeline - Activity Feed in Modal', () => {
     });
 
     if (await dealCards.count() === 0) {
-      test.skip();
+      test.fixme(true, 'No clickable deal cards found in Kanban view — seed deal data');
       return;
     }
 
@@ -403,14 +404,14 @@ test.describe('Deal Pipeline - Activity Feed in Modal', () => {
 
     const modal = page.getByRole('dialog');
     if (!await modal.isVisible().catch(() => false)) {
-      test.skip();
+      test.fixme(true, 'Deal detail modal did not open — check card click handler');
       return;
     }
 
     // Look for activity feed content
     const activityFeed = modal.getByText(/activity feed/i);
     if (!await activityFeed.isVisible().catch(() => false)) {
-      test.skip();
+      test.fixme(true, 'Activity feed section not visible in deal modal');
       return;
     }
 
@@ -433,7 +434,7 @@ test.describe('Deal Pipeline - Activity Feed in Modal', () => {
     });
 
     if (await dealCards.count() === 0) {
-      test.skip();
+      test.fixme(true, 'No clickable deal cards found in Kanban view — seed deal data');
       return;
     }
 
@@ -442,14 +443,14 @@ test.describe('Deal Pipeline - Activity Feed in Modal', () => {
 
     const modal = page.getByRole('dialog');
     if (!await modal.isVisible().catch(() => false)) {
-      test.skip();
+      test.fixme(true, 'Deal detail modal did not open — check card click handler');
       return;
     }
 
     // Find Add Activity button
     const addButton = modal.getByRole('button', { name: /add activity/i });
     if (!await addButton.isVisible().catch(() => false)) {
-      test.skip();
+      test.fixme(true, 'Add Activity button not visible in deal modal');
       return;
     }
 
@@ -473,15 +474,15 @@ test.describe('Deal Pipeline - Activity Feed in Modal', () => {
 });
 
 test.describe('Deal Pipeline - Stage Transitions API', () => {
-  test('should list deals via API with stage information', async ({ request }) => {
+  test.beforeAll(async ({ request }) => {
+    await assertBackendHealthy(request);
+  });
+
+  test('should list deals via API with stage information', async ({ request, authToken }) => {
     const response = await request.get(`${API_BASE}/deals/`, {
       params: { page: 1, page_size: 20 },
+      headers: { Authorization: `Bearer ${authToken}` },
     });
-
-    if ([401, 403, 404, 500, 502].includes(response.status())) {
-      test.skip();
-      return;
-    }
 
     expect(response.ok()).toBeTruthy();
 
@@ -496,11 +497,13 @@ test.describe('Deal Pipeline - Stage Transitions API', () => {
     }
   });
 
-  test('should get deal by ID with stage information', async ({ request }) => {
-    const response = await request.get(`${API_BASE}/deals/1/`);
+  test('should get deal by ID with stage information', async ({ request, authToken }) => {
+    const response = await request.get(`${API_BASE}/deals/1/`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
 
-    if ([401, 403, 404, 500, 502].includes(response.status())) {
-      test.skip();
+    if (response.status() === 404) {
+      // Deal ID 1 may not exist
       return;
     }
 
@@ -511,40 +514,40 @@ test.describe('Deal Pipeline - Stage Transitions API', () => {
     expect(data).toHaveProperty('stage');
   });
 
-  test('should update deal stage via PATCH endpoint', async ({ request }) => {
-    // First try to get a deal to verify the endpoint exists
-    const getResponse = await request.get(`${API_BASE}/deals/1/`);
+  test('should update deal stage via PATCH endpoint', async ({ request, authToken }) => {
+    // First try to get a deal to verify it exists
+    const getResponse = await request.get(`${API_BASE}/deals/1/`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
 
-    if ([401, 403, 404, 500, 502].includes(getResponse.status())) {
-      test.skip();
+    if (getResponse.status() === 404) {
       return;
     }
+
+    expect(getResponse.ok()).toBeTruthy();
 
     // Attempt to update stage
     const response = await request.patch(`${API_BASE}/deals/1/stage`, {
       data: { stage: 'underwriting' },
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
-    // Skip if endpoint not implemented or auth required
-    if ([401, 403, 404, 405, 422, 500, 502].includes(response.status())) {
-      test.skip();
+    if (response.status() === 405) {
+      test.fixme(true, 'PATCH /deals/{id}/stage endpoint not implemented yet');
       return;
     }
 
     expect(response.ok()).toBeTruthy();
   });
 
-  test('should filter deals by stage via API', async ({ request }) => {
+  test('should filter deals by stage via API', async ({ request, authToken }) => {
     const stages = ['lead', 'underwriting', 'due_diligence', 'closing'];
 
     for (const stage of stages) {
       const response = await request.get(`${API_BASE}/deals/`, {
         params: { stage },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        continue;
-      }
 
       expect(response.ok()).toBeTruthy();
 
@@ -553,11 +556,13 @@ test.describe('Deal Pipeline - Stage Transitions API', () => {
     }
   });
 
-  test('should get deal activities via API', async ({ request }) => {
-    const response = await request.get(`${API_BASE}/deals/1/activities/`);
+  test('should get deal activities via API', async ({ request, authToken }) => {
+    const response = await request.get(`${API_BASE}/deals/1/activities/`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
 
-    if ([401, 403, 404, 500, 502].includes(response.status())) {
-      test.skip();
+    if (response.status() === 404) {
+      // Deal 1 or activities endpoint may not exist
       return;
     }
 
@@ -574,7 +579,7 @@ test.describe('Deal Pipeline - Stage Transitions API', () => {
     }
   });
 
-  test('should create deal activity via API', async ({ request }) => {
+  test('should create deal activity via API', async ({ request, authToken }) => {
     const activityData = {
       type: 'note',
       content: 'E2E Test activity note',
@@ -582,11 +587,15 @@ test.describe('Deal Pipeline - Stage Transitions API', () => {
 
     const response = await request.post(`${API_BASE}/deals/1/activities/`, {
       data: activityData,
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
-    // Skip if endpoint not implemented or auth required
-    if ([401, 403, 404, 405, 422, 500, 502].includes(response.status())) {
-      test.skip();
+    if (response.status() === 404) {
+      return;
+    }
+
+    if (response.status() === 405) {
+      test.fixme(true, 'POST /deals/{id}/activities endpoint not implemented yet');
       return;
     }
 

@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/auth';
+import { assertBackendHealthy } from './fixtures/auth';
 
 /**
  * E2E Tests: Property Activity Feed
@@ -141,12 +142,17 @@ test.describe('Property Activity Feed', () => {
   });
 
   test.describe('Activity Feed API', () => {
-    test('should fetch property activities via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/properties/1/activities`);
+    test.beforeAll(async ({ request }) => {
+      await assertBackendHealthy(request);
+    });
 
-      // Skip if endpoint not implemented or auth required
-      if ([401, 403, 404, 501, 502].includes(response.status())) {
-        test.skip();
+    test('should fetch property activities via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/properties/1/activities`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+
+      if (response.status() === 404) {
+        // Property 1 or activities endpoint may not exist — data-dependent
         return;
       }
 
@@ -156,28 +162,26 @@ test.describe('Property Activity Feed', () => {
       expect(data).toBeDefined();
     });
 
-    test('should filter activities by type via API', async ({ request }) => {
+    test('should filter activities by type via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/properties/1/activities`, {
         params: { type: 'transaction' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      // Skip if endpoint not implemented
-      if ([401, 403, 404, 501, 502].includes(response.status())) {
-        test.skip();
+      if (response.status() === 404) {
         return;
       }
 
       expect(response.ok()).toBeTruthy();
     });
 
-    test('should paginate activities via API', async ({ request }) => {
+    test('should paginate activities via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/properties/1/activities`, {
         params: { page: 1, page_size: 10 },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      // Skip if endpoint not implemented
-      if ([401, 403, 404, 501, 502].includes(response.status())) {
-        test.skip();
+      if (response.status() === 404) {
         return;
       }
 

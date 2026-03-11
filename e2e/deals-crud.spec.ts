@@ -1,9 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/auth';
+import { assertBackendHealthy } from './fixtures/auth';
 
 /**
  * E2E Tests: Deals CRUD Operations
  *
  * Tests the Deals page and CRUD operations via API and UI.
+ * Backend must be running — tests fail (not skip) if unavailable.
  */
 test.describe('Deals Page', () => {
   test.describe('Deals List', () => {
@@ -52,16 +54,15 @@ test.describe('Deals Page', () => {
   test.describe('Deals API CRUD', () => {
     const API_BASE = 'http://localhost:8000/api/v1';
 
-    test('should list deals via API', async ({ request }) => {
+    test.beforeAll(async ({ request }) => {
+      await assertBackendHealthy(request);
+    });
+
+    test('should list deals via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/deals/`, {
         params: { page: 1, page_size: 10 },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      // Skip if auth required or backend error
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
 
@@ -69,12 +70,13 @@ test.describe('Deals Page', () => {
       expect(data).toBeDefined();
     });
 
-    test('should get deal by ID via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/deals/1/`);
+    test('should get deal by ID via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/deals/1/`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
-      // Skip if auth required or endpoint not ready
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
+      if (response.status() === 404) {
+        // Deal ID 1 may not exist — data-dependent, not infrastructure
         return;
       }
 
@@ -84,7 +86,7 @@ test.describe('Deals Page', () => {
       expect(data).toHaveProperty('id');
     });
 
-    test('should create deal via API', async ({ request }) => {
+    test('should create deal via API', async ({ request, authToken }) => {
       const newDeal = {
         name: 'E2E Test Deal',
         deal_type: 'acquisition',
@@ -95,28 +97,24 @@ test.describe('Deals Page', () => {
 
       const response = await request.post(`${API_BASE}/deals/`, {
         data: newDeal,
+        headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      // Skip if auth required, endpoint not ready, or validation errors
-      if ([401, 403, 404, 405, 422, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
+      if (response.status() === 422) {
+        // Validation error — likely schema mismatch, not infrastructure failure
+        const errorData = await response.json();
+        throw new Error(`Deal creation failed with validation error: ${JSON.stringify(errorData)}`);
       }
 
       // Accept 200 or 201 for successful creation
       expect([200, 201]).toContain(response.status());
     });
 
-    test('should filter deals by stage via API', async ({ request }) => {
+    test('should filter deals by stage via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/deals/`, {
         params: { stage: 'lead' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      // Skip if auth required or backend error
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
     });
@@ -125,14 +123,23 @@ test.describe('Deals Page', () => {
   test.describe('Deal Stage Transitions', () => {
     const API_BASE = 'http://localhost:8000/api/v1';
 
-    test('should update deal stage via API', async ({ request }) => {
+    test.beforeAll(async ({ request }) => {
+      await assertBackendHealthy(request);
+    });
+
+    test('should update deal stage via API', async ({ request, authToken }) => {
       const response = await request.patch(`${API_BASE}/deals/1/stage`, {
         data: { stage: 'underwriting' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      // Skip if auth required, endpoint not ready, or other issues
-      if ([401, 403, 404, 405, 422, 500, 502].includes(response.status())) {
-        test.skip();
+      if (response.status() === 404) {
+        // Deal ID 1 may not exist
+        return;
+      }
+
+      if (response.status() === 405) {
+        test.fixme(true, 'PATCH /deals/{id}/stage endpoint not implemented yet');
         return;
       }
 

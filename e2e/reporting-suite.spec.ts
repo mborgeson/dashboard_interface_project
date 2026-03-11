@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/auth';
+import { assertBackendHealthy } from './fixtures/auth';
 
 /**
  * E2E Tests: Reporting Suite
@@ -611,16 +612,15 @@ test.describe('Reporting Suite Page', () => {
   });
 
   test.describe('Reporting API Endpoints', () => {
-    test('should list report templates via API', async ({ request }) => {
+    test.beforeAll(async ({ request }) => {
+      await assertBackendHealthy(request);
+    });
+
+    test('should list report templates via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/reporting/templates`, {
         params: { page: 1, page_size: 10 },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      // Skip if auth required or backend unavailable
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
 
@@ -628,11 +628,13 @@ test.describe('Reporting Suite Page', () => {
       expect(data).toBeDefined();
     });
 
-    test('should get single template by ID via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/reporting/templates/1`);
+    test('should get single template by ID via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/reporting/templates/1`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
+      if (response.status() === 404) {
+        // Template ID 1 may not exist — data-dependent
         return;
       }
 
@@ -642,15 +644,11 @@ test.describe('Reporting Suite Page', () => {
       expect(data).toHaveProperty('id');
     });
 
-    test('should list queued reports via API', async ({ request }) => {
+    test('should list queued reports via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/reporting/queue`, {
         params: { page: 1, page_size: 10 },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
 
@@ -658,11 +656,13 @@ test.describe('Reporting Suite Page', () => {
       expect(data).toBeDefined();
     });
 
-    test('should get queued report status via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/reporting/queue/1`);
+    test('should get queued report status via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/reporting/queue/1`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
+      if (response.status() === 404) {
+        // Queued report ID 1 may not exist
         return;
       }
 
@@ -672,7 +672,7 @@ test.describe('Reporting Suite Page', () => {
       expect(data).toHaveProperty('status');
     });
 
-    test('should generate report via API', async ({ request }) => {
+    test('should generate report via API', async ({ request, authToken }) => {
       const reportRequest = {
         template_id: 1,
         name: 'E2E Test Report',
@@ -682,12 +682,12 @@ test.describe('Reporting Suite Page', () => {
 
       const response = await request.post(`${API_BASE}/reporting/generate`, {
         data: reportRequest,
+        headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      // Skip if auth required, endpoint not ready, or validation errors
-      if ([401, 403, 404, 405, 422, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
+      if (response.status() === 422) {
+        const errorData = await response.json();
+        throw new Error(`Report generation failed with validation error: ${JSON.stringify(errorData)}`);
       }
 
       // Accept 200 or 201 for successful creation
@@ -697,13 +697,10 @@ test.describe('Reporting Suite Page', () => {
       expect(data).toHaveProperty('queued_report_id');
     });
 
-    test('should list distribution schedules via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/reporting/schedules`);
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
+    test('should list distribution schedules via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/reporting/schedules`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       expect(response.ok()).toBeTruthy();
 
@@ -711,13 +708,10 @@ test.describe('Reporting Suite Page', () => {
       expect(data).toBeDefined();
     });
 
-    test('should list report widgets via API', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/reporting/widgets`);
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
+    test('should list report widgets via API', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/reporting/widgets`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       expect(response.ok()).toBeTruthy();
 
@@ -725,28 +719,20 @@ test.describe('Reporting Suite Page', () => {
       expect(data).toBeDefined();
     });
 
-    test('should filter templates by category via API', async ({ request }) => {
+    test('should filter templates by category via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/reporting/templates`, {
         params: { category: 'financial' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
     });
 
-    test('should filter queued reports by status via API', async ({ request }) => {
+    test('should filter queued reports by status via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/reporting/queue`, {
         params: { status: 'completed' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      if ([401, 403, 404, 500, 502].includes(response.status())) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
     });

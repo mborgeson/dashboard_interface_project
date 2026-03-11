@@ -1,9 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/auth';
+import { assertBackendHealthy } from './fixtures/auth';
 
 /**
  * E2E Tests: Export Functionality
  *
  * Tests for data export features (Excel, PDF).
+ * Backend must be running — tests fail (not skip) if unavailable.
  */
 test.describe('Export Functionality', () => {
   test.describe('Export UI', () => {
@@ -35,17 +37,18 @@ test.describe('Export Functionality', () => {
   test.describe('Export API', () => {
     const API_BASE = 'http://localhost:8000/api/v1';
 
-    test('should export properties to Excel', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/exports/properties/excel`);
+    test.beforeAll(async ({ request }) => {
+      await assertBackendHealthy(request);
+    });
 
-      if (response.status() === 404) {
-        test.skip();
-        return;
-      }
+    test('should export properties to Excel', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/exports/properties/excel`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
-      if (response.status() === 501) {
-        // Service not available - skip
-        test.skip();
+      // Export endpoints may not be implemented yet
+      if (response.status() === 404 || response.status() === 501) {
+        test.fixme(true, 'Export endpoint /exports/properties/excel not implemented yet');
         return;
       }
 
@@ -61,22 +64,26 @@ test.describe('Export Functionality', () => {
       }
     });
 
-    test('should export analytics to Excel', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/exports/analytics/excel`);
+    test('should export analytics to Excel', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/exports/analytics/excel`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       if (response.status() === 404 || response.status() === 501) {
-        test.skip();
+        test.fixme(true, 'Export endpoint /exports/analytics/excel not implemented yet');
         return;
       }
 
       expect([200, 500]).toContain(response.status());
     });
 
-    test('should export property to PDF', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/exports/properties/1/pdf`);
+    test('should export property to PDF', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/exports/properties/1/pdf`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       if (response.status() === 404 || response.status() === 501) {
-        test.skip();
+        test.fixme(true, 'Export endpoint /exports/properties/{id}/pdf not implemented yet');
         return;
       }
 
@@ -91,24 +98,27 @@ test.describe('Export Functionality', () => {
       }
     });
 
-    test('should export portfolio to PDF', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/exports/portfolio/pdf`);
+    test('should export portfolio to PDF', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/exports/portfolio/pdf`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       if (response.status() === 404 || response.status() === 501) {
-        test.skip();
+        test.fixme(true, 'Export endpoint /exports/portfolio/pdf not implemented yet');
         return;
       }
 
       expect([200, 500]).toContain(response.status());
     });
 
-    test('should handle export with filters', async ({ request }) => {
+    test('should handle export with filters', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/exports/properties/excel`, {
         params: { property_type: 'multifamily' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
 
       if (response.status() === 404 || response.status() === 501) {
-        test.skip();
+        test.fixme(true, 'Export endpoint /exports/properties/excel not implemented yet');
         return;
       }
 

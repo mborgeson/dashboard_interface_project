@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/auth';
+import { assertBackendHealthy } from './fixtures/auth';
 
 /**
  * E2E Tests: Deal Comparison
@@ -290,14 +291,18 @@ test.describe('Deal Comparison', () => {
   });
 
   test.describe('Comparison API', () => {
-    test('should fetch comparison data via API', async ({ request }) => {
+    test.beforeAll(async ({ request }) => {
+      await assertBackendHealthy(request);
+    });
+
+    test('should fetch comparison data via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/deals/compare`, {
         params: { ids: '1,2,3' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      // Skip if endpoint not implemented
-      if ([401, 403, 404, 405, 501, 502].includes(response.status())) {
-        test.skip();
+      if (response.status() === 404 || response.status() === 405) {
+        test.fixme(true, 'GET /deals/compare endpoint not implemented yet');
         return;
       }
 
@@ -307,14 +312,14 @@ test.describe('Deal Comparison', () => {
       expect(data).toBeDefined();
     });
 
-    test('should export comparison to PDF via API', async ({ request }) => {
+    test('should export comparison to PDF via API', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/deals/compare/export/pdf`, {
         params: { ids: '1,2' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      // Skip if endpoint not implemented
-      if ([401, 403, 404, 405, 501, 502].includes(response.status())) {
-        test.skip();
+      if (response.status() === 404 || response.status() === 405) {
+        test.fixme(true, 'GET /deals/compare/export/pdf endpoint not implemented yet');
         return;
       }
 
@@ -327,27 +332,31 @@ test.describe('Deal Comparison', () => {
       }
     });
 
-    test('should validate deal IDs in comparison request', async ({ request }) => {
+    test('should validate deal IDs in comparison request', async ({ request, authToken }) => {
       // Test with invalid IDs
       const response = await request.get(`${API_BASE}/deals/compare`, {
         params: { ids: 'invalid' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      // Should return 400 for invalid IDs or 404 if not found
-      if (![401, 403, 404, 501, 502].includes(response.status())) {
-        expect([200, 400, 422]).toContain(response.status());
+      if (response.status() === 404 || response.status() === 405) {
+        test.fixme(true, 'GET /deals/compare endpoint not implemented yet');
+        return;
       }
+
+      // Should return 400 for invalid IDs
+      expect([200, 400, 422]).toContain(response.status());
     });
 
-    test('should limit number of deals in comparison', async ({ request }) => {
+    test('should limit number of deals in comparison', async ({ request, authToken }) => {
       // Test with too many IDs (if limit exists)
       const response = await request.get(`${API_BASE}/deals/compare`, {
         params: { ids: '1,2,3,4,5,6,7,8,9,10' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      // Skip if endpoint not implemented
-      if ([401, 403, 404, 405, 501, 502].includes(response.status())) {
-        test.skip();
+      if (response.status() === 404 || response.status() === 405) {
+        test.fixme(true, 'GET /deals/compare endpoint not implemented yet');
         return;
       }
 

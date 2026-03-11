@@ -1,9 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/auth';
+import { assertBackendHealthy, getAuthToken } from './fixtures/auth';
 
 /**
  * E2E Tests: Analytics Page
  *
  * Tests for analytics page charts and data visualization.
+ * Backend must be running — tests fail (not skip) if unavailable.
  */
 test.describe('Analytics Page', () => {
   test.describe('Page Load', () => {
@@ -42,13 +44,14 @@ test.describe('Analytics Page', () => {
   test.describe('Analytics API', () => {
     const API_BASE = 'http://localhost:8000/api/v1';
 
-    test('should get dashboard metrics', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/analytics/dashboard`);
+    test.beforeAll(async ({ request }) => {
+      await assertBackendHealthy(request);
+    });
 
-      if (response.status() === 404) {
-        test.skip();
-        return;
-      }
+    test('should get dashboard metrics', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/analytics/dashboard`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       expect(response.ok()).toBeTruthy();
 
@@ -57,13 +60,10 @@ test.describe('Analytics Page', () => {
       expect(data).toHaveProperty('kpis');
     });
 
-    test('should get portfolio analytics', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/analytics/portfolio`);
-
-      if (response.status() === 404) {
-        test.skip();
-        return;
-      }
+    test('should get portfolio analytics', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/analytics/portfolio`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       expect(response.ok()).toBeTruthy();
 
@@ -72,13 +72,10 @@ test.describe('Analytics Page', () => {
       expect(data).toHaveProperty('composition');
     });
 
-    test('should get deal pipeline analytics', async ({ request }) => {
-      const response = await request.get(`${API_BASE}/analytics/deal-pipeline`);
-
-      if (response.status() === 404) {
-        test.skip();
-        return;
-      }
+    test('should get deal pipeline analytics', async ({ request, authToken }) => {
+      const response = await request.get(`${API_BASE}/analytics/deal-pipeline`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
       expect(response.ok()).toBeTruthy();
 
@@ -87,15 +84,11 @@ test.describe('Analytics Page', () => {
       expect(data).toHaveProperty('conversion_rates');
     });
 
-    test('should get market data', async ({ request }) => {
+    test('should get market data', async ({ request, authToken }) => {
       const response = await request.get(`${API_BASE}/analytics/market-data`, {
         params: { market: 'Phoenix Metro' },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
-      if (response.status() === 404) {
-        test.skip();
-        return;
-      }
 
       expect(response.ok()).toBeTruthy();
 
