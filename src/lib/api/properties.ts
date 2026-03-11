@@ -40,8 +40,10 @@ const propertiesEnvelopeSchema = z.object({
  * successfully-parsed subset).
  */
 export async function fetchProperties(filters?: PropertyFiltersParams): Promise<PropertiesResponse> {
+  // Default limit=200 to retrieve all properties (backend defaults to 50)
+  const params = { limit: 200, ...filters };
   const raw = await apiClient.get<unknown>('/properties/dashboard', {
-    params: filters as Record<string, string | number | boolean | undefined>,
+    params: params as Record<string, string | number | boolean | undefined>,
   });
 
   // Validate the outer envelope first — throw if the response shape is wrong

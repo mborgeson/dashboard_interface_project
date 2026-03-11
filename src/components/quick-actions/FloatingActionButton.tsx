@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
   X,
@@ -23,8 +24,9 @@ interface FABAction {
 export function FloatingActionButton() {
   const [isExpanded, setIsExpanded] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { openCommandPalette } = useQuickActions();
-  const { info } = useToast();
+  const { info, success, error: showError } = useToast();
   const fabRef = useRef<HTMLDivElement>(null);
 
   // Close when clicking outside
@@ -102,10 +104,15 @@ export function FloatingActionButton() {
       id: 'refresh-data',
       label: 'Refresh Data',
       icon: <RefreshCw className="w-5 h-5" />,
-      action: () => {
-        // Trigger data refresh - would integrate with react-query
-        window.location.reload();
-        info('Refreshing data...');
+      action: async () => {
+        info('Refreshing all data...');
+        try {
+          // Invalidate all React Query caches to re-fetch from backend
+          await queryClient.invalidateQueries();
+          success('Data refreshed successfully');
+        } catch {
+          showError('Failed to refresh data');
+        }
       },
       color: 'bg-orange-500 hover:bg-orange-600',
     },
