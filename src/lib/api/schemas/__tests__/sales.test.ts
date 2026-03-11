@@ -10,6 +10,7 @@ import {
   importStatusSchema,
   reminderStatusSchema,
   triggerImportResponseSchema,
+  filterOptionsSchema,
 } from '../sales';
 
 // ============================================================================
@@ -552,6 +553,46 @@ describe('triggerImportResponseSchema', () => {
   it('throws on missing message', () => {
     expect(() =>
       triggerImportResponseSchema.parse({ success: true }),
+    ).toThrow();
+  });
+});
+
+// ============================================================================
+// filterOptionsSchema
+// ============================================================================
+
+describe('filterOptionsSchema', () => {
+  it('parses valid filter options with populated submarkets', () => {
+    const result = filterOptionsSchema.parse({
+      submarkets: ['Central Phoenix', 'Tempe/ASU', 'Scottsdale'],
+    });
+    expect(result.submarkets).toEqual(['Central Phoenix', 'Tempe/ASU', 'Scottsdale']);
+  });
+
+  it('parses empty submarkets array', () => {
+    const result = filterOptionsSchema.parse({ submarkets: [] });
+    expect(result.submarkets).toEqual([]);
+  });
+
+  it('throws on missing submarkets field', () => {
+    expect(() => filterOptionsSchema.parse({})).toThrow();
+  });
+
+  it('throws when submarkets is not an array', () => {
+    expect(() =>
+      filterOptionsSchema.parse({ submarkets: 'Central Phoenix' }),
+    ).toThrow();
+  });
+
+  it('throws when submarkets contains non-string elements', () => {
+    expect(() =>
+      filterOptionsSchema.parse({ submarkets: [1, 2, 3] }),
+    ).toThrow();
+  });
+
+  it('throws on null submarkets', () => {
+    expect(() =>
+      filterOptionsSchema.parse({ submarkets: null }),
     ).toThrow();
   });
 });

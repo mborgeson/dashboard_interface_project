@@ -12,15 +12,6 @@ vi.mock('@/lib/api', () => ({
   del: vi.fn(),
 }));
 
-// Mock the deal schema — pass through raw data as-is for simpler mocking
-vi.mock('@/lib/api/schemas/deal', () => ({
-  backendDealSchema: {
-    parse: (d: unknown) => d,
-    safeParse: (d: unknown) => ({ success: true, data: d }),
-  },
-  mapBackendStage: (stage: string) => stage,
-}));
-
 import { get, post, put, patch, del } from '@/lib/api';
 import {
   dealKeys,
@@ -167,7 +158,7 @@ describe('useDealsWithMockFallback', () => {
     vi.clearAllMocks();
   });
 
-  it('fetches deals list and transforms response', async () => {
+  it('fetches deals list and transforms response via real Zod schema', async () => {
     const deal = mockBackendDeal();
     mockGet.mockResolvedValueOnce({ items: [deal], total: 1 });
 
@@ -184,6 +175,17 @@ describe('useDealsWithMockFallback', () => {
     expect(mockGet).toHaveBeenCalledWith('/deals', { page_size: 100 });
     expect(result.current.data?.deals).toHaveLength(1);
     expect(result.current.data?.total).toBe(1);
+
+    // Verify the real schema transform was applied (snake_case -> camelCase Deal)
+    const parsed = result.current.data!.deals[0];
+    expect(parsed.id).toBe('1');                      // number -> string
+    expect(parsed.propertyName).toBe('Test Property (Phoenix, AZ)');
+    expect(parsed.address.city).toBe('Phoenix');      // parsed from name
+    expect(parsed.address.state).toBe('AZ');
+    expect(parsed.stage).toBe('active_review');       // mapped via mapBackendStage
+    expect(parsed.value).toBe(5000000);               // asking_price -> value
+    expect(parsed.units).toBe(100);                   // total_units -> units
+    expect(parsed.createdAt).toBeInstanceOf(Date);
   });
 
   it('uses custom pageSize', async () => {
@@ -228,6 +230,29 @@ describe('useDealsWithMockFallback', () => {
     });
 
     expect(result.current.data?.deals).toEqual([]);
+  });
+
+  it('skips items that fail Zod validation and keeps valid ones', async () => {
+    const validDeal = mockBackendDeal({ id: 1 });
+    const invalidItem = { bad: 'data' }; // missing required fields
+    mockGet.mockResolvedValueOnce({ items: [validDeal, invalidItem], total: 2 });
+
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useDealsWithMockFallback(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Only the valid deal should appear; the invalid one is skipped
+    expect(result.current.data?.deals).toHaveLength(1);
+    expect(result.current.data?.deals[0].id).toBe('1');
+    expect(consoleSpy).toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
   });
 
   it('handles API errors', async () => {
@@ -286,7 +311,7 @@ describe('useDealWithMockFallback', () => {
     vi.clearAllMocks();
   });
 
-  it('fetches and parses deal when id is provided', async () => {
+  it('fetches and parses deal via real Zod schema when id is provided', async () => {
     const deal = mockBackendDeal({ id: 7 });
     mockGet.mockResolvedValueOnce(deal);
 
@@ -300,6 +325,15 @@ describe('useDealWithMockFallback', () => {
 
     expect(mockGet).toHaveBeenCalledWith('/deals/7');
     expect(result.current.data).toBeTruthy();
+
+    // Verify the real schema transform was applied
+    const parsed = result.current.data!;
+    expect(parsed.id).toBe('7');                      // number -> string
+    expect(parsed.propertyName).toBe('Test Property (Phoenix, AZ)');
+    expect(parsed.address.city).toBe('Phoenix');
+    expect(parsed.stage).toBe('active_review');
+    expect(parsed.value).toBe(5000000);
+    expect(parsed.createdAt).toBeInstanceOf(Date);
   });
 
   it('is disabled when id is null', async () => {
@@ -312,6 +346,27 @@ describe('useDealWithMockFallback', () => {
     });
 
     expect(mockGet).not.toHaveBeenCalled();
+  });
+
+  it('returns null when Zod validation fails on invalid data', async () => {
+    // Return data missing required fields — real schema should reject it
+    mockGet.mockResolvedValueOnce({ bad: 'data' });
+
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useDealWithMockFallback('99'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Hook returns null when safeParse fails
+    expect(result.current.data).toBeNull();
+    expect(consoleSpy).toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
   });
 
   it('handles API errors', async () => {
