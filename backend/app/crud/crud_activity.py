@@ -89,7 +89,7 @@ class CRUDPropertyActivity(
             user_agent=user_agent,
         )
         db.add(activity)
-        await db.commit()
+        await db.flush()
         await db.refresh(activity)
         return activity
 
@@ -114,7 +114,7 @@ class CRUDPropertyActivity(
             new_value=str(new_value) if new_value else None,
         )
         db.add(activity)
-        await db.commit()
+        await db.flush()
         await db.refresh(activity)
         return activity
 
@@ -233,7 +233,7 @@ class CRUDWatchlist(CRUDBase[UserWatchlist, WatchlistCreate, WatchlistCreate]):
             notes=notes,
         )
         db.add(watchlist_entry)
-        await db.commit()
+        await db.flush()
         await db.refresh(watchlist_entry)
         return watchlist_entry
 
@@ -250,7 +250,7 @@ class CRUDWatchlist(CRUDBase[UserWatchlist, WatchlistCreate, WatchlistCreate]):
             return False
 
         await db.delete(entry)
-        await db.commit()
+        await db.flush()
         return True
 
     async def toggle_watchlist(
@@ -272,7 +272,7 @@ class CRUDWatchlist(CRUDBase[UserWatchlist, WatchlistCreate, WatchlistCreate]):
         if existing:
             # Remove from watchlist
             await db.delete(existing)
-            await db.commit()
+            await db.flush()
             return (False, None)
         else:
             # Add to watchlist

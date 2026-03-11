@@ -204,7 +204,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         if doc:
             doc.soft_delete()
             db.add(doc)
-            await db.commit()
+            await db.flush()
             await db.refresh(doc)
         return doc
 

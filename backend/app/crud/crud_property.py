@@ -108,7 +108,7 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
 
         if changed:
             db.add(prop)
-            await db.commit()
+            await db.flush()
             await db.refresh(prop)
             logger.info(
                 "property_financial_data_enriched",

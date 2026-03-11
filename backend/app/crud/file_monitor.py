@@ -44,7 +44,7 @@ class MonitoredFileCRUD:
             deal_stage=deal_stage,
         )
         db.add(file)
-        await db.commit()
+        await db.flush()
         await db.refresh(file)
         return file
 
@@ -136,7 +136,7 @@ class MonitoredFileCRUD:
             if was_modified:
                 existing.extraction_pending = True
 
-            await db.commit()
+            await db.flush()
             await db.refresh(existing)
             return existing, False
         else:
@@ -153,7 +153,7 @@ class MonitoredFileCRUD:
                 deal_stage=deal_stage,
             )
             db.add(file)
-            await db.commit()
+            await db.flush()
             await db.refresh(file)
             return file, True
 
@@ -175,7 +175,7 @@ class MonitoredFileCRUD:
             .returning(MonitoredFile)
         )
         result = await db.execute(stmt)
-        await db.commit()
+        await db.flush()
         return result.scalar_one_or_none()
 
     @staticmethod
@@ -188,7 +188,7 @@ class MonitoredFileCRUD:
         if file:
             file.is_active = False
             file.last_checked = datetime.now(UTC)
-            await db.commit()
+            await db.flush()
             await db.refresh(file)
         return file
 
@@ -204,7 +204,7 @@ class MonitoredFileCRUD:
             .values(last_checked=datetime.now(UTC))
         )
         result = await db.execute(stmt)
-        await db.commit()
+        await db.flush()
         return result.rowcount  # type: ignore[attr-defined]
 
     @staticmethod
@@ -281,7 +281,7 @@ class FileChangeLogCRUD:
             monitored_file_id=monitored_file_id,
         )
         db.add(log)
-        await db.commit()
+        await db.flush()
         await db.refresh(log)
         return log
 
@@ -340,7 +340,7 @@ class FileChangeLogCRUD:
             )
         )
         result = await db.execute(stmt)
-        await db.commit()
+        await db.flush()
         return result.rowcount  # type: ignore[attr-defined]
 
     @staticmethod

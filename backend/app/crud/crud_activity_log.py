@@ -118,7 +118,7 @@ class CRUDActivityLog(CRUDBase[ActivityLog, ActivityLogCreate, ActivityLogCreate
             meta=meta,
         )
         db.add(activity)
-        await db.commit()
+        await db.flush()
         await db.refresh(activity)
         return activity
 

@@ -226,7 +226,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate
         if transaction:
             transaction.soft_delete()
             db.add(transaction)
-            await db.commit()
+            await db.flush()
             await db.refresh(transaction)
         return transaction
 

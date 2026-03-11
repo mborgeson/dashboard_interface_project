@@ -144,7 +144,7 @@ class CRUDQueuedReport(CRUDBase[QueuedReport, QueuedReportCreate, QueuedReportCr
             progress=0,
         )
         db.add(db_obj)
-        await db.commit()
+        await db.flush()
         await db.refresh(db_obj)
         return db_obj
 
@@ -211,7 +211,7 @@ class CRUDQueuedReport(CRUDBase[QueuedReport, QueuedReportCreate, QueuedReportCr
             report.progress = 100
 
         db.add(report)
-        await db.commit()
+        await db.flush()
         await db.refresh(report)
         return report
 
@@ -351,7 +351,7 @@ class CRUDDistributionSchedule(
         schedule.next_scheduled = next_scheduled
 
         db.add(schedule)
-        await db.commit()
+        await db.flush()
         await db.refresh(schedule)
         return schedule
 

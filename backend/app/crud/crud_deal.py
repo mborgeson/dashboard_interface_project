@@ -226,7 +226,7 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
             # No rows matched — version was stale or deal doesn't exist
             return None
 
-        await db.commit()
+        await db.flush()
 
         # Re-fetch the updated object
         return await self.get(db, deal_id)
@@ -249,7 +249,7 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
             deal.stage_order = stage_order
 
         db.add(deal)
-        await db.commit()
+        await db.flush()
         await db.refresh(deal)
         return deal
 

@@ -41,7 +41,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
         db_obj = User(**obj_in_data)
         db.add(db_obj)
-        await db.commit()
+        await db.flush()
         await db.refresh(db_obj)
         return db_obj
 
@@ -71,7 +71,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         try:
             user.update_last_login()
             db.add(user)
-            await db.commit()
+            await db.flush()
             await db.refresh(user)
             return user
         except Exception as e:
