@@ -1,0 +1,174 @@
+# E2E Test Workflow
+# Runs Playwright end-to-end tests against the full stack (backend + frontend).
+# Kept separate from unit-test CI because E2E requires PostgreSQL, running servers,
+# and browser binaries — making it slower and more resource-intensive.
+#
+# Trigger: manual dispatch or PRs targeting main (only when E2E-relevant files change).
+
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'e2e/**'
+      - 'src/**'
+      - 'backend/app/**'
+      - 'playwright.config.ts'
+      - '.github/workflows/e2e.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # PostgreSQL service container for the backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dashboard
+          POSTGRES_PASSWORD: dashboard_ci_password
+          POSTGRES_DB: dashboard_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U dashboard"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      # Backend environment variables
+      DATABASE_URL: postgresql+asyncpg://dashboard:dashboard_ci_password@localhost:5432/dashboard_ci
+      SECRET_KEY: e2e-test-secret-key-for-ci-at-least-32-characters-long
+      ENVIRONMENT: testing
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Node.js setup ────────────────────────────────────────────────
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # ── Python setup ─────────────────────────────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: backend/requirements-ci.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r requirements-ci.txt
+
+      # ── Playwright browser install ───────────────────────────────────
+      # Only install chromium to save time and disk — the CI project uses chromium only
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+
+      # ── Database setup ───────────────────────────────────────────────
+      - name: Wait for PostgreSQL
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -h localhost -p 5432 -U dashboard && break
+            echo "Waiting for PostgreSQL... ($i/30)"
+            sleep 1
+          done
+
+      - name: Run Alembic migrations
+        working-directory: backend
+        run: python -m alembic upgrade head
+
+      # ── Seed demo users ──────────────────────────────────────────────
+      # E2E auth fixtures expect demo users (matt@bandrcapital.com, demo@bandrcapital.com).
+      # Uses the existing seed module at app.database.seed which creates users, properties, and deals.
+      - name: Seed database with demo data
+        working-directory: backend
+        run: python -m app.database.seed || echo "::warning::Database seeding failed — auth E2E tests may fail"
+
+      # ── Start backend ────────────────────────────────────────────────
+      - name: Start backend server
+        working-directory: backend
+        run: |
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          echo "Backend PID: $!"
+
+      # ── Start frontend ───────────────────────────────────────────────
+      - name: Start frontend dev server
+        run: |
+          npx vite --host 0.0.0.0 --port 5173 &
+          echo "Frontend PID: $!"
+
+      # ── Wait for servers ─────────────────────────────────────────────
+      - name: Wait for backend to be healthy
+        run: |
+          echo "Waiting for backend at http://localhost:8000..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/api/v1/health > /dev/null 2>&1; then
+              echo "Backend is healthy!"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "::error::Backend failed to start within 60 seconds"
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Wait for frontend to be healthy
+        run: |
+          echo "Waiting for frontend at http://localhost:5173..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5173 > /dev/null 2>&1; then
+              echo "Frontend is healthy!"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "::error::Frontend failed to start within 60 seconds"
+              exit 1
+            fi
+            sleep 1
+          done
+
+      # ── Run E2E tests ────────────────────────────────────────────────
+      - name: Run Playwright E2E tests
+        run: npx playwright test --project=ci
+
+      # ── Upload artifacts ─────────────────────────────────────────────
+      # Always upload artifacts so we can debug failures
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload test screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-screenshots
+          path: test-results/
+          retention-days: 14

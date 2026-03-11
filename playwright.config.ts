@@ -1,16 +1,29 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const isCI = !!process.env.CI;
+
 /**
  * Playwright E2E Test Configuration
  * B&R Capital Real Estate Analytics Dashboard
+ *
+ * Projects:
+ *   - "chromium" (default): Local development — all browsers, no retries, HTML reporter
+ *   - "ci": CI pipeline — chromium only, 1 retry, 30s timeout, JSON + HTML reporters
+ *
+ * Usage:
+ *   Local:  npx playwright test
+ *   CI:     npx playwright test --project=ci
  */
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  forbidOnly: isCI,
+  /* Default retries/workers — overridden per-project */
+  retries: 0,
+  workers: isCI ? 1 : undefined,
+  reporter: isCI
+    ? [['json', { outputFile: 'playwright-report/results.json' }], ['html', { open: 'never' }]]
+    : 'html',
 
   use: {
     baseURL: 'http://localhost:5173',
@@ -19,17 +32,36 @@ export default defineConfig({
   },
 
   projects: [
+    /* Local development project — runs by default when no --project is specified */
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+
+    /* CI project — single browser, stricter timeouts, retries on failure */
+    {
+      name: 'ci',
+      use: {
+        ...devices['Desktop Chrome'],
+        /* CI-specific: capture video on first retry for debugging */
+        video: 'on-first-retry',
+      },
+      retries: 1,
+      timeout: 30_000,
+    },
   ],
 
-  /* Run local dev server before starting tests */
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  /* Run local dev server before starting tests (local only).
+   * In CI, the workflow starts backend + frontend separately before running tests,
+   * so we skip the webServer to avoid conflicts. */
+  ...(isCI
+    ? {}
+    : {
+        webServer: {
+          command: 'npm run dev',
+          url: 'http://localhost:5173',
+          reuseExistingServer: true,
+          timeout: 120_000,
+        },
+      }),
 });

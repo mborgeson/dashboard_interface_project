@@ -949,7 +949,7 @@ test.describe('Underwriting Deal Modal', () => {
       const underwriteButton = page.getByRole('button', { name: /underwrite deal/i });
 
       if (!(await underwriteButton.isVisible())) {
-        test.skip();
+        test.fixme(true, 'Underwrite Deal button not visible — feature may not be implemented');
         return;
       }
 
