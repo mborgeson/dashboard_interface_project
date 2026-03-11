@@ -15,7 +15,7 @@ from decimal import Decimal
 
 import pytest
 from sqlalchemy import select, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_pg import pg_available
@@ -328,7 +328,7 @@ class TestCheckConstraints:
     async def test_property_cap_rate_out_of_range_rejected(
         self, pg_session: AsyncSession
     ):
-        """CHECK constraint should reject cap_rate > 100."""
+        """CHECK constraint or column overflow should reject cap_rate > 100."""
         from app.models import Property
 
         prop = Property(
@@ -344,7 +344,8 @@ class TestCheckConstraints:
         )
         pg_session.add(prop)
 
-        with pytest.raises(IntegrityError):
+        # NUMERIC(5,3) overflows before CHECK runs — both are DBAPIError subclasses
+        with pytest.raises((IntegrityError, DBAPIError)):
             await pg_session.flush()
 
         await pg_session.rollback()
