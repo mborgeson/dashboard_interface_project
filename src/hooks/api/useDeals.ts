@@ -12,6 +12,7 @@ import type {
   DealStageApi,
 } from '@/types/api';
 import { backendDealSchema, mapBackendStage } from '@/lib/api/schemas/deal';
+import { STALE_TIMES } from '@/lib/constants/query';
 
 // ============================================================================
 // Query Key Factory
@@ -76,7 +77,7 @@ export function useDealsWithMockFallback(
       }
       return { deals, total: response.total ?? 0 };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -139,7 +140,7 @@ export function useKanbanBoardWithMockFallback(
         stageCounts,
       };
     },
-    staleTime: 1000 * 60 * 2,
+    staleTime: STALE_TIMES.BRIEF, // 2 min - kanban needs near-real-time feel
     ...options,
   });
 }
@@ -172,7 +173,7 @@ export function useDealActivitiesWithMockFallback(
       };
     },
     enabled: !!dealId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -232,7 +233,7 @@ export function useDealWithMockFallback(
       return result.data;
     },
     enabled: !!id,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -585,7 +586,7 @@ export function useDealProformaReturns(
     queryKey: dealKeys.proformaReturns(dealId ?? ''),
     queryFn: () => get<ProformaReturnsResponse>(`/deals/${dealId}/proforma-returns`),
     enabled: !!dealId,
-    staleTime: 1000 * 60 * 10, // 10 minutes — extracted data rarely changes
+    staleTime: STALE_TIMES.LONG, // extracted data rarely changes
     ...options,
   });
 }
@@ -604,7 +605,7 @@ export function usePrefetchDeal() {
     queryClient.prefetchQuery({
       queryKey: dealKeys.detail(id),
       queryFn: () => get<DealApiResponse>(`/deals/${id}`),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIMES.MEDIUM,
     });
   };
 }
@@ -619,7 +620,7 @@ export function usePrefetchDealStage() {
     queryClient.prefetchQuery({
       queryKey: dealKeys.pipelineByStage(stage),
       queryFn: () => get<DealApiResponse[]>(`/deals/pipeline/${stage}`),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIMES.MEDIUM,
     });
   };
 }
@@ -627,6 +628,11 @@ export function usePrefetchDealStage() {
 // ============================================================================
 // Convenience Aliases
 // ============================================================================
+
+/**
+ * Primary hook for deals list - uses mock fallback pattern
+ */
+export const useDeals = useDealsWithMockFallback;
 
 /**
  * Primary hook for Kanban board - uses mock fallback pattern

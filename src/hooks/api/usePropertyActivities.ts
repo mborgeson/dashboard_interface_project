@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get, post } from '@/lib/api';
+import { STALE_TIMES } from '@/lib/constants/query';
 import { propertyKeys } from './useProperties';
 
 // ============================================================================
@@ -131,7 +132,7 @@ export function usePropertyActivitiesWithMockFallback(
       };
     },
     enabled: !!propertyId,
-    staleTime: 1000 * 60 * 2, // 2 minutes - activities should be relatively fresh
+    staleTime: STALE_TIMES.BRIEF, // 2 min - activities should be relatively fresh
     ...queryOptions,
   });
 }

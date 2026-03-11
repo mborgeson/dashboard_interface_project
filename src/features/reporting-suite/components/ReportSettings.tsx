@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIMES } from '@/lib/constants/query';
 import {
   Save,
   Upload,
@@ -69,7 +70,7 @@ export function ReportSettings() {
   } = useQuery({
     queryKey: reportSettingsKey,
     queryFn: fetchReportSettings,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 
   // Save settings mutation

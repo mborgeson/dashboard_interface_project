@@ -12,6 +12,7 @@ import {
   dismissReminder,
   fetchFilterOptions,
 } from '@/lib/api/sales';
+import { STALE_TIMES } from '@/lib/constants/query';
 import type { SalesFilters } from '../types';
 
 // ============================================================================
@@ -51,7 +52,7 @@ export function useSalesData(
   return useQuery({
     queryKey: salesKeys.list(filters, page, pageSize),
     queryFn: () => fetchSalesData(filters, page, pageSize),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -60,7 +61,7 @@ export function useTimeSeriesAnalytics(filters: SalesFilters) {
   return useQuery({
     queryKey: salesKeys.timeSeries(filters),
     queryFn: () => fetchTimeSeriesAnalytics(filters),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -69,7 +70,7 @@ export function useSubmarketComparison(filters: SalesFilters) {
   return useQuery({
     queryKey: salesKeys.submarketComparison(filters),
     queryFn: () => fetchSubmarketComparison(filters),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -78,7 +79,7 @@ export function useBuyerActivity(filters: SalesFilters) {
   return useQuery({
     queryKey: salesKeys.buyerActivity(filters),
     queryFn: () => fetchBuyerActivity(filters),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -87,7 +88,7 @@ export function useDistributions(filters: SalesFilters) {
   return useQuery({
     queryKey: salesKeys.distributions(filters),
     queryFn: () => fetchAllDistributions(filters),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -96,7 +97,7 @@ export function useDataQuality() {
   return useQuery({
     queryKey: salesKeys.dataQuality(),
     queryFn: fetchDataQuality,
-    staleTime: 1000 * 60 * 10,
+    staleTime: STALE_TIMES.LONG,
   });
 }
 
@@ -129,7 +130,7 @@ export function useFilterOptions() {
   return useQuery({
     queryKey: salesKeys.filterOptions(),
     queryFn: fetchFilterOptions,
-    staleTime: 1000 * 60 * 30,
+    staleTime: STALE_TIMES.HALF_HOUR,
   });
 }
 
@@ -138,7 +139,7 @@ export function useReminderStatus() {
   return useQuery({
     queryKey: salesKeys.reminderStatus(),
     queryFn: fetchReminderStatus,
-    staleTime: 1000 * 60 * 60,
+    staleTime: STALE_TIMES.REFERENCE,
   });
 }
 

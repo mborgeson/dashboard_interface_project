@@ -13,6 +13,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get } from '@/lib/api';
+import { STALE_TIMES } from '@/lib/constants/query';
 import type {
   KeyRate,
   YieldCurvePoint,
@@ -330,7 +331,7 @@ export function useKeyRatesWithMockFallback(
       const response = await get<KeyRatesApiResponse>('/interest-rates/current');
       return transformKeyRatesFromApi(response);
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes - rates don't change frequently
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -347,7 +348,7 @@ export function useYieldCurveWithMockFallback(
       const response = await get<YieldCurveApiResponse>('/interest-rates/yield-curve');
       return transformYieldCurveFromApi(response);
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -367,7 +368,7 @@ export function useHistoricalRatesWithMockFallback(
       });
       return transformHistoricalRatesFromApi(response);
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -384,7 +385,7 @@ export function useDataSourcesWithMockFallback(
       const response = await get<DataSourcesApiResponse>('/interest-rates/data-sources');
       return transformDataSourcesFromApi(response);
     },
-    staleTime: 1000 * 60 * 60, // 1 hour - data sources rarely change
+    staleTime: STALE_TIMES.REFERENCE, // 1 hour - data sources rarely change
     ...options,
   });
 }
@@ -402,7 +403,7 @@ export function useRateSpreadsWithMockFallback(
       const response = await get<RateSpreadsApiResponse>('/interest-rates/spreads', { months });
       return transformRateSpreadsFromApi(response);
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -419,7 +420,7 @@ export function useLendingContextWithMockFallback(
       const response = await get<LendingContextApiResponse>('/interest-rates/lending-context');
       return transformLendingContextFromApi(response);
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -437,7 +438,7 @@ export function useKeyRatesApi(
   return useQuery({
     queryKey: interestRateKeys.current(),
     queryFn: () => get<KeyRatesApiResponse>('/interest-rates/current'),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -451,7 +452,7 @@ export function useYieldCurveApi(
   return useQuery({
     queryKey: interestRateKeys.yieldCurve(),
     queryFn: () => get<YieldCurveApiResponse>('/interest-rates/yield-curve'),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -466,7 +467,7 @@ export function useHistoricalRatesApi(
   return useQuery({
     queryKey: interestRateKeys.historical(months),
     queryFn: () => get<HistoricalRatesApiResponse>('/interest-rates/historical', { months }),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -480,7 +481,7 @@ export function useDataSourcesApi(
   return useQuery({
     queryKey: interestRateKeys.dataSources(),
     queryFn: () => get<DataSourcesApiResponse>('/interest-rates/data-sources'),
-    staleTime: 1000 * 60 * 60,
+    staleTime: STALE_TIMES.REFERENCE,
     ...options,
   });
 }
@@ -495,7 +496,7 @@ export function useRateSpreadsApi(
   return useQuery({
     queryKey: interestRateKeys.spreads(months),
     queryFn: () => get<RateSpreadsApiResponse>('/interest-rates/spreads', { months }),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -509,7 +510,7 @@ export function useLendingContextApi(
   return useQuery({
     queryKey: interestRateKeys.lendingContext(),
     queryFn: () => get<LendingContextApiResponse>('/interest-rates/lending-context'),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -532,7 +533,7 @@ export function usePrefetchKeyRates() {
         const response = await get<KeyRatesApiResponse>('/interest-rates/current');
         return transformKeyRatesFromApi(response);
       },
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: STALE_TIMES.MEDIUM,
     });
   };
 }
@@ -551,7 +552,7 @@ export function usePrefetchYieldCurve() {
         const response = await get<YieldCurveApiResponse>('/interest-rates/yield-curve');
         return transformYieldCurveFromApi(response);
       },
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: STALE_TIMES.MEDIUM,
     });
   };
 }

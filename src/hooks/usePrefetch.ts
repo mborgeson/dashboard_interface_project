@@ -20,6 +20,7 @@ import { interestRateKeys } from './api/useInterestRates';
 import { reportingKeys } from './api/useReporting';
 import { extractionKeys } from './api/useExtraction';
 import { get } from '@/lib/api';
+import { STALE_TIMES } from '@/lib/constants/query';
 
 // Route to prefetch config mapping
 interface RoutePrefetchConfig {
@@ -27,13 +28,6 @@ interface RoutePrefetchConfig {
   queryFn: () => Promise<unknown>;
   staleTime?: number;
 }
-
-// Default stale times for different data types
-const STALE_TIMES = {
-  short: 2 * 60 * 1000,    // 2 minutes - frequently changing data
-  medium: 5 * 60 * 1000,   // 5 minutes - moderately stable data
-  long: 15 * 60 * 1000,    // 15 minutes - stable data
-} as const;
 
 // Debounce delay in milliseconds
 const DEBOUNCE_DELAY = 150;
@@ -53,7 +47,7 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
       configs.push({
         queryKey: propertyKeys.lists(),
         queryFn: () => get('/properties'),
-        staleTime: STALE_TIMES.medium,
+        staleTime: STALE_TIMES.MEDIUM,
       });
       break;
 
@@ -61,7 +55,7 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
       configs.push({
         queryKey: transactionKeys.list({}),
         queryFn: () => get('/transactions'),
-        staleTime: STALE_TIMES.medium,
+        staleTime: STALE_TIMES.MEDIUM,
       });
       break;
 
@@ -69,7 +63,7 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
       configs.push({
         queryKey: dealKeys.lists(),
         queryFn: () => get('/deals'),
-        staleTime: STALE_TIMES.medium,
+        staleTime: STALE_TIMES.MEDIUM,
       });
       break;
 
@@ -77,7 +71,7 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
       configs.push({
         queryKey: documentKeys.list({}),
         queryFn: () => get('/documents'),
-        staleTime: STALE_TIMES.medium,
+        staleTime: STALE_TIMES.MEDIUM,
       });
       break;
 
@@ -85,7 +79,7 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
       configs.push({
         queryKey: propertyKeys.lists(),
         queryFn: () => get('/properties'),
-        staleTime: STALE_TIMES.medium,
+        staleTime: STALE_TIMES.MEDIUM,
       });
       break;
 
@@ -93,12 +87,12 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
       configs.push({
         queryKey: interestRateKeys.current(),
         queryFn: () => get('/interest-rates/current'),
-        staleTime: STALE_TIMES.short,
+        staleTime: STALE_TIMES.BRIEF,
       });
       configs.push({
         queryKey: interestRateKeys.yieldCurve(),
         queryFn: () => get('/interest-rates/yield-curve'),
-        staleTime: STALE_TIMES.short,
+        staleTime: STALE_TIMES.BRIEF,
       });
       break;
 
@@ -106,12 +100,12 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
       configs.push({
         queryKey: marketDataKeys.overview(),
         queryFn: () => get('/market/overview'),
-        staleTime: STALE_TIMES.long,
+        staleTime: STALE_TIMES.EXTENDED,
       });
       configs.push({
         queryKey: marketDataKeys.submarkets(),
         queryFn: () => get('/market/submarkets'),
-        staleTime: STALE_TIMES.long,
+        staleTime: STALE_TIMES.EXTENDED,
       });
       break;
 
@@ -119,12 +113,12 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
       configs.push({
         queryKey: reportingKeys.templateList({}),
         queryFn: () => get('/reporting/templates'),
-        staleTime: STALE_TIMES.long,
+        staleTime: STALE_TIMES.EXTENDED,
       });
       configs.push({
         queryKey: reportingKeys.queueList({}),
         queryFn: () => get('/reporting/queue'),
-        staleTime: STALE_TIMES.short,
+        staleTime: STALE_TIMES.BRIEF,
       });
       break;
 
@@ -132,7 +126,7 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
       configs.push({
         queryKey: extractionKeys.historyList({}),
         queryFn: () => get('/extraction/history'),
-        staleTime: STALE_TIMES.short,
+        staleTime: STALE_TIMES.BRIEF,
       });
       break;
 
@@ -140,7 +134,7 @@ function getRoutePrefetchConfigs(route: string): RoutePrefetchConfig[] {
       configs.push({
         queryKey: propertyKeys.lists(),
         queryFn: () => get('/properties'),
-        staleTime: STALE_TIMES.medium,
+        staleTime: STALE_TIMES.MEDIUM,
       });
       break;
   }

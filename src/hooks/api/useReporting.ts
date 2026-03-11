@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get, post, put, del } from '@/lib/api';
+import { STALE_TIMES } from '@/lib/constants/query';
 import {
   type ReportTemplate,
   type QueuedReport,
@@ -326,7 +327,7 @@ export function useReportTemplatesWithMockFallback(
         total: response.total,
       };
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -352,7 +353,7 @@ export function useQueuedReportsWithMockFallback(
         total: response.total,
       };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIMES.MEDIUM, // 5 minutes
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data) return false;
@@ -384,7 +385,7 @@ export function useDistributionSchedulesWithMockFallback(
         total: response.total,
       };
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -406,7 +407,7 @@ export function useReportWidgetsWithMockFallback(
         total: response.total,
       };
     },
-    staleTime: 1000 * 60 * 30,
+    staleTime: STALE_TIMES.HALF_HOUR,
     ...options,
   });
 }
@@ -731,7 +732,7 @@ export function usePrefetchReportTemplates() {
           total: response.total,
         };
       },
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: STALE_TIMES.MEDIUM,
     });
   };
 }
@@ -754,7 +755,7 @@ export function usePrefetchReportWidgets() {
           total: response.total,
         };
       },
-      staleTime: 30 * 60 * 1000, // 30 minutes - widgets rarely change
+      staleTime: STALE_TIMES.HALF_HOUR, // widgets rarely change
     });
   };
 }

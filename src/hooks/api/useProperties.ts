@@ -11,6 +11,7 @@ import {
   type PropertyFiltersParams,
 } from '@/lib/api/properties';
 import { get, post, put, del } from '@/lib/api';
+import { STALE_TIMES } from '@/lib/constants/query';
 import type { Property, PropertySummaryStats } from '@/types';
 import type {
   PropertyFilters,
@@ -47,7 +48,7 @@ export function useProperties(filters?: PropertyFiltersParams) {
     queryFn: async () => {
       return await fetchProperties(filters);
     },
-    staleTime: 1000 * 60 * 10, // 10 min - property data is relatively stable, rarely changes mid-session
+    staleTime: STALE_TIMES.LONG, // 10 min - property data is relatively stable
   });
 }
 
@@ -79,7 +80,7 @@ export function useProperty(id: string | undefined) {
       return await fetchPropertyById(id);
     },
     enabled: !!id,
-    staleTime: 1000 * 60 * 10, // 10 min - individual property details are stable within a session
+    staleTime: STALE_TIMES.LONG, // 10 min - individual property details are stable
   });
 }
 
@@ -107,7 +108,7 @@ export function usePortfolioSummary() {
     queryFn: async () => {
       return await fetchPortfolioSummary();
     },
-    staleTime: 1000 * 60 * 10, // 10 min - portfolio summary aggregates are stable, no need to refetch frequently
+    staleTime: STALE_TIMES.LONG, // 10 min - portfolio summary aggregates are stable
   });
 }
 
@@ -196,7 +197,7 @@ export function usePrefetchProperty() {
     queryClient.prefetchQuery({
       queryKey: propertyKeys.detail(id),
       queryFn: () => get<PropertyApiResponse>(`/properties/${id}`),
-      staleTime: 5 * 60 * 1000, // Consider fresh for 5 minutes
+      staleTime: STALE_TIMES.MEDIUM,
     });
   };
 }
@@ -214,7 +215,7 @@ export function usePrefetchNextPage() {
     queryClient.prefetchQuery({
       queryKey: propertyKeys.list(nextFilters),
       queryFn: () => get<PropertyListResponse>('/properties', nextFilters as Record<string, unknown>),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIMES.MEDIUM,
     });
   };
 }

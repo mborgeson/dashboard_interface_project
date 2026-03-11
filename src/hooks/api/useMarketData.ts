@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get } from '@/lib/api';
+import { STALE_TIMES } from '@/lib/constants/query';
 import type {
   SubmarketMetrics,
   MarketTrend,
@@ -220,7 +221,7 @@ export function useMarketOverviewWithMockFallback(
         economicIndicators: response.economic_indicators.map(transformEconomicIndicator),
       };
     },
-    staleTime: 1000 * 60 * 15, // 15 minutes - market data changes less frequently
+    staleTime: STALE_TIMES.EXTENDED, // 15 min - market data changes infrequently
     ...options,
   });
 }
@@ -243,7 +244,7 @@ export function useSubmarketsWithMockFallback(
         averageRentGrowth: response.average_rent_growth,
       };
     },
-    staleTime: 1000 * 60 * 15, // 15 minutes
+    staleTime: STALE_TIMES.EXTENDED,
     ...options,
   });
 }
@@ -267,7 +268,7 @@ export function useMarketTrendsWithMockFallback(
         period: response.period,
       };
     },
-    staleTime: 1000 * 60 * 15, // 15 minutes
+    staleTime: STALE_TIMES.EXTENDED,
     ...options,
   });
 }
@@ -292,7 +293,7 @@ export function useComparablesWithMockFallback(
         radiusMiles: response.radius_miles,
       };
     },
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: STALE_TIMES.LONG,
     ...options,
   });
 }
@@ -378,7 +379,7 @@ export function usePrefetchMarketOverview() {
           economicIndicators: response.economic_indicators.map(transformEconomicIndicator),
         };
       },
-      staleTime: 15 * 60 * 1000, // 15 minutes
+      staleTime: STALE_TIMES.EXTENDED,
     });
   };
 }
@@ -403,7 +404,7 @@ export function usePrefetchSubmarkets() {
           averageRentGrowth: response.average_rent_growth,
         };
       },
-      staleTime: 15 * 60 * 1000, // 15 minutes
+      staleTime: STALE_TIMES.EXTENDED,
     });
   };
 }

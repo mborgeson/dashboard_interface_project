@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get, post, put, del } from '@/lib/api';
+import { STALE_TIMES } from '@/lib/constants/query';
 import type { Document, DocumentType, DocumentStats, DocumentFilters } from '@/types/document';
 
 // ============================================================================
@@ -12,15 +13,11 @@ export interface DocumentApiResponse {
   name: string;
   type: string;
   property_id?: string | null;
-  propertyId?: string | null;
   property_name?: string | null;
-  propertyName?: string | null;
   size: number;
   mime_type?: string | null;
   uploaded_at: string;
-  uploadedAt?: string;
   uploaded_by?: string | null;
-  uploadedBy?: string | null;
   description?: string | null;
   tags?: string[] | null;
   url?: string | null;
@@ -93,11 +90,11 @@ function transformDocumentFromApi(apiDoc: DocumentApiResponse): Document {
     id: String(apiDoc.id),
     name: apiDoc.name,
     type: apiDoc.type as DocumentType,
-    propertyId: Number(apiDoc.property_id || apiDoc.propertyId) || null,
-    propertyName: apiDoc.property_name || apiDoc.propertyName || '',
+    propertyId: Number(apiDoc.property_id) || null,
+    propertyName: apiDoc.property_name || '',
     size: apiDoc.size,
-    uploadedAt: new Date(apiDoc.uploaded_at || apiDoc.uploadedAt || Date.now()),
-    uploadedBy: apiDoc.uploaded_by || apiDoc.uploadedBy || '',
+    uploadedAt: new Date(apiDoc.uploaded_at || Date.now()),
+    uploadedBy: apiDoc.uploaded_by || '',
     description: apiDoc.description || undefined,
     tags: apiDoc.tags || [],
     url: apiDoc.url || undefined,
@@ -153,7 +150,7 @@ export function useDocumentsWithMockFallback(
         total: response.total ?? 0,
       };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -170,7 +167,7 @@ export function useDocumentStatsWithMockFallback(
       const response = await get<DocumentStatsApiResponse>('/documents/stats');
       return transformStatsFromApi(response);
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }
@@ -315,7 +312,7 @@ export function usePrefetchDocument() {
     queryClient.prefetchQuery({
       queryKey: documentKeys.detail(id),
       queryFn: () => get<DocumentApiResponse>(`/documents/${id}`),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIMES.MEDIUM,
     });
   };
 }
@@ -330,7 +327,21 @@ export function usePrefetchPropertyDocuments() {
     queryClient.prefetchQuery({
       queryKey: documentKeys.byProperty(propertyId),
       queryFn: () => get<DocumentListApiResponse>(`/documents/property/${propertyId}`),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIMES.MEDIUM,
     });
   };
 }
+
+// ============================================================================
+// Convenience Aliases
+// ============================================================================
+
+/**
+ * Primary hook for documents list - uses mock fallback pattern
+ */
+export const useDocuments = useDocumentsWithMockFallback;
+
+/**
+ * Primary hook for document stats - uses mock fallback pattern
+ */
+export const useDocumentStatsWithFallback = useDocumentStatsWithMockFallback;

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { get } from '@/lib/api';
+import { STALE_TIMES } from '@/lib/constants/query';
 import type {
   MarketOverviewApiResponse,
   MarketTrendsApiResponse,
@@ -98,7 +99,7 @@ function useUSAMarketOverview() {
         economicIndicators: response.economic_indicators.map(transformEconomicIndicator),
       };
     },
-    staleTime: 1000 * 60 * 15, // 15 minutes
+    staleTime: STALE_TIMES.EXTENDED,
   });
 }
 
@@ -115,7 +116,7 @@ function useUSAMarketTrends(periodMonths: number = 12) {
         period: response.period,
       };
     },
-    staleTime: 1000 * 60 * 15, // 15 minutes
+    staleTime: STALE_TIMES.EXTENDED,
   });
 }
 

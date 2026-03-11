@@ -97,9 +97,11 @@ const router = createBrowserRouter(
             {
               path: 'properties/:id',
               element: (
-                <LazyRoute>
-                  <PropertyDetailPage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Property Detail">
+                  <LazyRoute>
+                    <PropertyDetailPage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
@@ -115,9 +117,11 @@ const router = createBrowserRouter(
             {
               path: 'deals/compare',
               element: (
-                <LazyRoute>
-                  <DealComparisonPage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Deal Comparison">
+                  <LazyRoute>
+                    <DealComparisonPage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
@@ -133,41 +137,51 @@ const router = createBrowserRouter(
             {
               path: 'mapping',
               element: (
-                <LazyRoute>
-                  <MappingPage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Mapping">
+                  <LazyRoute>
+                    <MappingPage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
               path: 'market',
               element: (
-                <LazyRoute>
-                  <MarketPage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Market">
+                  <LazyRoute>
+                    <MarketPage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
               path: 'market/usa',
               element: (
-                <LazyRoute>
-                  <USAMarketPage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="USA Market">
+                  <LazyRoute>
+                    <USAMarketPage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
               path: 'documents',
               element: (
-                <LazyRoute>
-                  <DocumentsPage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Documents">
+                  <LazyRoute>
+                    <DocumentsPage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
               path: 'interest-rates',
               element: (
-                <LazyRoute>
-                  <InterestRatesPage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Interest Rates">
+                  <LazyRoute>
+                    <InterestRatesPage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
@@ -183,33 +197,41 @@ const router = createBrowserRouter(
             {
               path: 'extraction',
               element: (
-                <LazyRoute>
-                  <ExtractionDashboard />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Extraction">
+                  <LazyRoute>
+                    <ExtractionDashboard />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
               path: 'extraction/:propertyName',
               element: (
-                <LazyRoute>
-                  <ExtractionDashboard />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Extraction">
+                  <LazyRoute>
+                    <ExtractionDashboard />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
               path: 'sales-analysis',
               element: (
-                <LazyRoute>
-                  <SalesAnalysisPage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Sales Analysis">
+                  <LazyRoute>
+                    <SalesAnalysisPage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
             {
               path: 'construction-pipeline',
               element: (
-                <LazyRoute>
-                  <ConstructionPipelinePage />
-                </LazyRoute>
+                <FeatureErrorBoundary featureName="Construction Pipeline">
+                  <LazyRoute>
+                    <ConstructionPipelinePage />
+                  </LazyRoute>
+                </FeatureErrorBoundary>
               ),
             },
           ],

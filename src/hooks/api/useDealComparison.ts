@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get } from '@/lib/api';
+import { STALE_TIMES } from '@/lib/constants/query';
 import type { Deal } from '@/types/deal';
 import { backendDealSchema } from '@/lib/api/schemas/deal';
 import { z } from 'zod';
@@ -85,7 +86,7 @@ export function useDealComparisonWithMockFallback(
       };
     },
     enabled: dealIds.length >= 2,
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
     ...options,
   });
 }

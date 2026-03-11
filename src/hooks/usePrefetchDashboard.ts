@@ -9,6 +9,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { get } from '@/lib/api';
+import { STALE_TIMES } from '@/lib/constants/query';
 import { marketDataKeys, type MarketOverviewApiResponse } from './api/useMarketData';
 import { interestRateKeys } from './api/useInterestRates';
 import { reportingKeys, type ReportTemplateListApiResponse } from './api/useReporting';
@@ -45,7 +46,7 @@ export function usePrefetchDashboard() {
           })),
         };
       },
-      staleTime: 15 * 60 * 1000, // 15 minutes
+      staleTime: STALE_TIMES.EXTENDED,
     });
 
     // Prefetch current interest rates - important for deal analysis
@@ -85,7 +86,7 @@ export function usePrefetchDashboard() {
           source: response.source,
         };
       },
-      staleTime: 10 * 60 * 1000, // 10 minutes
+      staleTime: STALE_TIMES.LONG,
     });
 
     // Prefetch report templates - needed for reporting suite
@@ -109,14 +110,14 @@ export function usePrefetchDashboard() {
           total: response.total,
         };
       },
-      staleTime: 10 * 60 * 1000, // 10 minutes
+      staleTime: STALE_TIMES.LONG,
     });
 
     // Prefetch properties list - core dashboard data
     queryClient.prefetchQuery({
       queryKey: propertyKeys.lists(),
       queryFn: () => get('/properties/dashboard'),
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: STALE_TIMES.MEDIUM,
     });
   }, [queryClient]);
 }

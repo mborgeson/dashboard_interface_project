@@ -14,6 +14,7 @@ import {
   fetchConstructionImportStatus,
   triggerConstructionImport,
 } from '@/lib/api/construction';
+import { STALE_TIMES } from '@/lib/constants/query';
 import type { ConstructionFilters } from '../types';
 
 // ============================================================================
@@ -58,7 +59,7 @@ export function useProjects(
   return useQuery({
     queryKey: constructionKeys.list(filters, page, pageSize),
     queryFn: () => fetchProjects(filters, page, pageSize),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -67,7 +68,7 @@ export function useAllProjects(filters: ConstructionFilters) {
   return useQuery({
     queryKey: [...constructionKeys.lists(), 'all', filters] as const,
     queryFn: () => fetchAllProjects(filters),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -76,7 +77,7 @@ export function useConstructionFilterOptions() {
   return useQuery({
     queryKey: constructionKeys.filterOptions(),
     queryFn: fetchConstructionFilterOptions,
-    staleTime: 1000 * 60 * 30,
+    staleTime: STALE_TIMES.HALF_HOUR,
   });
 }
 
@@ -85,7 +86,7 @@ export function usePipelineSummary(filters: ConstructionFilters) {
   return useQuery({
     queryKey: constructionKeys.pipelineSummary(filters),
     queryFn: () => fetchPipelineSummary(filters),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -94,7 +95,7 @@ export function usePipelineFunnel(filters: ConstructionFilters) {
   return useQuery({
     queryKey: constructionKeys.pipelineFunnel(filters),
     queryFn: () => fetchPipelineFunnel(filters),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -103,7 +104,7 @@ export function usePermitTrends(source?: string) {
   return useQuery({
     queryKey: constructionKeys.permitTrends(source),
     queryFn: () => fetchPermitTrends(source),
-    staleTime: 1000 * 60 * 10,
+    staleTime: STALE_TIMES.LONG,
   });
 }
 
@@ -112,7 +113,7 @@ export function useEmploymentOverlay() {
   return useQuery({
     queryKey: constructionKeys.employmentOverlay(),
     queryFn: () => fetchEmploymentOverlay(),
-    staleTime: 1000 * 60 * 10,
+    staleTime: STALE_TIMES.LONG,
   });
 }
 
@@ -121,7 +122,7 @@ export function useSubmarketPipeline(filters: ConstructionFilters) {
   return useQuery({
     queryKey: constructionKeys.submarketPipeline(filters),
     queryFn: () => fetchSubmarketPipeline(filters),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -130,7 +131,7 @@ export function useClassificationBreakdown(filters: ConstructionFilters) {
   return useQuery({
     queryKey: constructionKeys.classificationBreakdown(filters),
     queryFn: () => fetchClassificationBreakdown(filters),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -139,7 +140,7 @@ export function useDeliveryTimeline(filters: ConstructionFilters) {
   return useQuery({
     queryKey: constructionKeys.deliveryTimeline(filters),
     queryFn: () => fetchDeliveryTimeline(filters),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 
@@ -148,7 +149,7 @@ export function useConstructionDataQuality() {
   return useQuery({
     queryKey: constructionKeys.dataQuality(),
     queryFn: fetchConstructionDataQuality,
-    staleTime: 1000 * 60 * 10,
+    staleTime: STALE_TIMES.LONG,
   });
 }
 

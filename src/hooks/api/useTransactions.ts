@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import { get, post, put, patch, del } from '@/lib/api';
+import { STALE_TIMES } from '@/lib/constants/query';
 import type { Transaction, TransactionType } from '@/types';
 
 // ============================================================================
@@ -140,7 +141,7 @@ export function useTransactionsWithMockFallback(
         total: response.total ?? 0,
       };
     },
-    staleTime: 1000 * 60 * 7, // 7 min - transactions change more than properties but less than real-time data
+    staleTime: STALE_TIMES.MODERATE, // 7 min - transactions change moderately
     ...options,
   });
 }
@@ -328,7 +329,7 @@ export function usePrefetchTransaction() {
     queryClient.prefetchQuery({
       queryKey: transactionKeys.detail(id),
       queryFn: () => get<TransactionApiResponse>(`/transactions/${id}`),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIMES.MEDIUM,
     });
   };
 }
@@ -343,7 +344,16 @@ export function usePrefetchPropertyTransactions() {
     queryClient.prefetchQuery({
       queryKey: transactionKeys.byProperty(propertyId),
       queryFn: () => get<TransactionApiResponse[]>(`/transactions/by-property/${propertyId}`),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIMES.MEDIUM,
     });
   };
 }
+
+// ============================================================================
+// Convenience Aliases
+// ============================================================================
+
+/**
+ * Primary hook for transactions list - uses mock fallback pattern
+ */
+export const useTransactions = useTransactionsWithMockFallback;

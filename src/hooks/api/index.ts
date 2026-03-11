@@ -31,7 +31,7 @@ export {
   dealKeys,
   // Primary hooks with mock fallback
   useDealsWithMockFallback,
-  useDealsWithMockFallback as useDeals, // Alias for backwards compatibility
+  useDeals,
   useKanbanBoard,
   useKanbanBoardWithMockFallback,
   useDealActivities,
@@ -85,6 +85,7 @@ export {
 export {
   transactionKeys,
   useTransactionsWithMockFallback,
+  useTransactions,
   useTransactionsApi,
   useTransaction,
   useTransactionsByProperty,
@@ -131,7 +132,9 @@ export {
 export {
   documentKeys,
   useDocumentsWithMockFallback,
+  useDocuments,
   useDocumentStatsWithMockFallback,
+  useDocumentStatsWithFallback,
   useDocumentsApi,
   useDocument,
   useDocumentsByProperty,
