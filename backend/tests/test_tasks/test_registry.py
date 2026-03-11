@@ -8,7 +8,9 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from arq.jobs import JobStatus
+
+arq = pytest.importorskip("arq", reason="arq not installed (requires Redis)")
+from arq.jobs import JobStatus  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
