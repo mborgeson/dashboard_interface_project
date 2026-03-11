@@ -18,6 +18,12 @@ from sqlalchemy import String as SAString
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.utils.filters import (
+    apply_date_range_filter,
+    apply_numeric_range_filter,
+    apply_search_filter,
+    parse_csv_list,
+)
 from app.core.permissions import require_viewer
 from app.db.session import get_db, get_sync_db
 from app.models.reminder_dismissal import ReminderDismissal
@@ -165,41 +171,46 @@ def _apply_filters(
     date_from: date | None = None,
     date_to: date | None = None,
 ):
-    """Apply common filter criteria to a SQLAlchemy select statement."""
-    if search:
-        pattern = f"%{search}%"
-        stmt = stmt.where(
-            SalesData.property_name.ilike(pattern)
-            | SalesData.property_address.ilike(pattern)
-            | SalesData.property_city.ilike(pattern)
-            | SalesData.buyer_true_company.ilike(pattern)
-            | SalesData.seller_true_company.ilike(pattern)
-            | SalesData.submarket_cluster.ilike(pattern)
-        )
-    if submarkets:
-        sub_list = [s.strip() for s in submarkets.split(",") if s.strip()]
-        if sub_list:
-            stmt = stmt.where(SalesData.submarket_cluster.in_(sub_list))
-    if min_units is not None:
-        stmt = stmt.where(SalesData.number_of_units >= min_units)
-    if max_units is not None:
-        stmt = stmt.where(SalesData.number_of_units <= max_units)
-    if min_price is not None:
-        stmt = stmt.where(SalesData.sale_price >= min_price)
-    if max_price is not None:
-        stmt = stmt.where(SalesData.sale_price <= max_price)
-    if min_price_per_unit is not None:
-        stmt = stmt.where(SalesData.price_per_unit >= min_price_per_unit)
-    if max_price_per_unit is not None:
-        stmt = stmt.where(SalesData.price_per_unit <= max_price_per_unit)
-    if min_year_built is not None:
-        stmt = stmt.where(SalesData.year_built >= min_year_built)
-    if max_year_built is not None:
-        stmt = stmt.where(SalesData.year_built <= max_year_built)
-    if date_from is not None:
-        stmt = stmt.where(SalesData.sale_date >= date_from)
-    if date_to is not None:
-        stmt = stmt.where(SalesData.sale_date <= date_to)
+    """Apply common filter criteria to a SQLAlchemy select statement.
+
+    Uses shared filter utilities from ``app.api.v1.utils.filters`` for
+    search, numeric range, date range, and CSV-list parsing.
+    """
+    stmt = apply_search_filter(
+        stmt,
+        search,
+        [
+            SalesData.property_name,
+            SalesData.property_address,
+            SalesData.property_city,
+            SalesData.buyer_true_company,
+            SalesData.seller_true_company,
+            SalesData.submarket_cluster,
+        ],
+    )
+
+    sub_list = parse_csv_list(submarkets)
+    if sub_list:
+        stmt = stmt.where(SalesData.submarket_cluster.in_(sub_list))
+
+    stmt = apply_numeric_range_filter(
+        stmt, SalesData.number_of_units, min_val=min_units, max_val=max_units
+    )
+    stmt = apply_numeric_range_filter(
+        stmt, SalesData.sale_price, min_val=min_price, max_val=max_price
+    )
+    stmt = apply_numeric_range_filter(
+        stmt,
+        SalesData.price_per_unit,
+        min_val=min_price_per_unit,
+        max_val=max_price_per_unit,
+    )
+    stmt = apply_numeric_range_filter(
+        stmt, SalesData.year_built, min_val=min_year_built, max_val=max_year_built
+    )
+    stmt = apply_date_range_filter(
+        stmt, SalesData.sale_date, date_from=date_from, date_to=date_to
+    )
     return stmt
 
 

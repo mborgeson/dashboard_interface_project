@@ -11,6 +11,7 @@ from app.api.v1.endpoints._property_transforms import (
     _decimal_to_float,
     to_frontend_property,
 )
+from app.api.v1.utils.pagination import PaginationParams
 from app.core.cache import LONG_TTL, cache
 from app.core.permissions import (
     CurrentUser,
@@ -144,8 +145,9 @@ async def _build_projected_trends(
 @router.get(
     "/dashboard",
     summary="List properties (dashboard format)",
-    description="List all properties in the nested frontend format used by the dashboard. "
-    "Properties missing financial_data are lazily enriched from extracted values.",
+    description="List properties in the nested frontend format used by the dashboard. "
+    "Properties missing financial_data are lazily enriched from extracted values. "
+    "Supports pagination via skip/limit query parameters (default: skip=0, limit=50, max=200).",
     responses={
         200: {
             "description": "Properties list in frontend-compatible format with total count"
@@ -153,22 +155,26 @@ async def _build_projected_trends(
     },
 )
 async def list_properties_dashboard(
+    pagination: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_analyst),
 ):
     """
-    List all properties in the nested frontend format.
+    List properties in the nested frontend format.
     Returns { properties: [...], total: N } matching the frontend Property type.
+
+    **Breaking change**: Previously returned up to 1,000 records.  Now
+    defaults to 50 (max 200).  Pass ``?limit=200`` to retrieve more.
     """
-    cache_key = "property_dashboard_list"
+    cache_key = f"property_dashboard_list:{pagination.skip}:{pagination.limit}"
     cached = await cache.get(cache_key)
     if cached is not None:
         return cached
 
     items = await property_crud.get_multi_filtered(
         db,
-        skip=0,
-        limit=1000,
+        skip=pagination.skip,
+        limit=pagination.limit,
         order_by="name",
         order_desc=False,
     )
@@ -243,6 +249,9 @@ async def get_portfolio_summary(
     if cached is not None:
         return cached
 
+    # Summary needs all properties for accurate aggregates, so we use a
+    # generous limit.  This is bounded by the total property count (currently
+    # ~300) and is only used for aggregate math, not serialized as a list.
     items = await property_crud.get_multi_filtered(
         db,
         skip=0,

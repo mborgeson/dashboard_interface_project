@@ -17,6 +17,11 @@ from pydantic import BaseModel
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.utils.filters import (
+    apply_numeric_range_filter,
+    apply_search_filter,
+    parse_csv_list,
+)
 from app.core.permissions import require_viewer
 from app.db.session import get_db, get_sync_db
 from app.models.construction import (
@@ -193,41 +198,50 @@ def _apply_filters(
     max_year_built: int | None = None,
     rent_type: str | None = None,
 ):
-    """Apply common filter criteria to a SQLAlchemy select statement."""
-    if search:
-        pattern = f"%{search}%"
-        stmt = stmt.where(
-            ConstructionProject.project_name.ilike(pattern)
-            | ConstructionProject.project_address.ilike(pattern)
-            | ConstructionProject.city.ilike(pattern)
-            | ConstructionProject.developer_name.ilike(pattern)
-            | ConstructionProject.owner_name.ilike(pattern)
-            | ConstructionProject.submarket_cluster.ilike(pattern)
-        )
-    if statuses:
-        status_list = [s.strip() for s in statuses.split(",") if s.strip()]
-        if status_list:
-            stmt = stmt.where(ConstructionProject.pipeline_status.in_(status_list))
-    if classifications:
-        cls_list = [c.strip() for c in classifications.split(",") if c.strip()]
-        if cls_list:
-            stmt = stmt.where(ConstructionProject.primary_classification.in_(cls_list))
-    if submarkets:
-        sub_list = [s.strip() for s in submarkets.split(",") if s.strip()]
-        if sub_list:
-            stmt = stmt.where(ConstructionProject.submarket_cluster.in_(sub_list))
-    if cities:
-        city_list = [c.strip() for c in cities.split(",") if c.strip()]
-        if city_list:
-            stmt = stmt.where(ConstructionProject.city.in_(city_list))
-    if min_units is not None:
-        stmt = stmt.where(ConstructionProject.number_of_units >= min_units)
-    if max_units is not None:
-        stmt = stmt.where(ConstructionProject.number_of_units <= max_units)
-    if min_year_built is not None:
-        stmt = stmt.where(ConstructionProject.year_built >= min_year_built)
-    if max_year_built is not None:
-        stmt = stmt.where(ConstructionProject.year_built <= max_year_built)
+    """Apply common filter criteria to a SQLAlchemy select statement.
+
+    Uses shared filter utilities from ``app.api.v1.utils.filters`` for
+    search, numeric range, and CSV-list parsing.
+    """
+    stmt = apply_search_filter(
+        stmt,
+        search,
+        [
+            ConstructionProject.project_name,
+            ConstructionProject.project_address,
+            ConstructionProject.city,
+            ConstructionProject.developer_name,
+            ConstructionProject.owner_name,
+            ConstructionProject.submarket_cluster,
+        ],
+    )
+
+    status_list = parse_csv_list(statuses)
+    if status_list:
+        stmt = stmt.where(ConstructionProject.pipeline_status.in_(status_list))
+
+    cls_list = parse_csv_list(classifications)
+    if cls_list:
+        stmt = stmt.where(ConstructionProject.primary_classification.in_(cls_list))
+
+    sub_list = parse_csv_list(submarkets)
+    if sub_list:
+        stmt = stmt.where(ConstructionProject.submarket_cluster.in_(sub_list))
+
+    city_list = parse_csv_list(cities)
+    if city_list:
+        stmt = stmt.where(ConstructionProject.city.in_(city_list))
+
+    stmt = apply_numeric_range_filter(
+        stmt, ConstructionProject.number_of_units, min_val=min_units, max_val=max_units
+    )
+    stmt = apply_numeric_range_filter(
+        stmt,
+        ConstructionProject.year_built,
+        min_val=min_year_built,
+        max_val=max_year_built,
+    )
+
     if rent_type:
         stmt = stmt.where(ConstructionProject.rent_type == rent_type)
     return stmt
