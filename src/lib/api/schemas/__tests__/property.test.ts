@@ -205,6 +205,266 @@ describe('propertySchema', () => {
     // Schema uses .catch() to handle invalid enum values
     expect(['A', 'B', 'C']).toContain(result.propertyDetails.propertyClass);
   });
+
+  // ---- safeNum: coerces null/undefined/NaN to 0 ----
+
+  it('coerces null numeric fields to 0 via safeNum', () => {
+    const raw = makeProperty({
+      operations: {
+        ...makeProperty().operations,
+        occupancy: null,
+        noi: null,
+        averageRent: null,
+      },
+    });
+    const result = propertySchema.parse(raw);
+    expect(result.operations.occupancy).toBe(0);
+    expect(result.operations.noi).toBe(0);
+    expect(result.operations.averageRent).toBe(0);
+  });
+
+  it('coerces undefined numeric fields to 0 via safeNum', () => {
+    const raw = makeProperty({
+      valuation: {
+        currentValue: undefined,
+        capRate: undefined,
+      },
+    });
+    const result = propertySchema.parse(raw);
+    expect(result.valuation.currentValue).toBe(0);
+    expect(result.valuation.capRate).toBe(0);
+  });
+
+  it('coerces NaN string to 0 via safeNum', () => {
+    const raw = makeProperty({
+      operations: {
+        ...makeProperty().operations,
+        noi: 'not-a-number',
+      },
+    });
+    const result = propertySchema.parse(raw);
+    expect(result.operations.noi).toBe(0);
+  });
+
+  it('coerces numeric string to number via safeNum', () => {
+    const raw = makeProperty({
+      operations: {
+        ...makeProperty().operations,
+        noi: '2500000',
+      },
+    });
+    const result = propertySchema.parse(raw);
+    expect(result.operations.noi).toBe(2500000);
+  });
+
+  // ---- safeStr: coerces null/undefined to "" ----
+
+  it('coerces null name to empty string via safeStr', () => {
+    const raw = makeProperty({ name: null });
+    const result = propertySchema.parse(raw);
+    expect(result.name).toBe('');
+  });
+
+  it('coerces null address fields to empty string via safeStr', () => {
+    const raw = makeProperty({
+      address: {
+        street: null,
+        city: null,
+        state: null,
+        zip: null,
+        latitude: null,
+        longitude: null,
+        submarket: null,
+      },
+    });
+    const result = propertySchema.parse(raw);
+    expect(result.address.street).toBe('');
+    expect(result.address.city).toBe('');
+    expect(result.address.state).toBe('');
+    expect(result.address.zip).toBe('');
+    expect(result.address.submarket).toBe('');
+  });
+
+  // ---- safeDateString: bad/missing values fall back to epoch ----
+
+  it('falls back to epoch for invalid date strings', () => {
+    const raw = makeProperty({
+      acquisition: {
+        ...makeProperty().acquisition,
+        date: 'garbage-date',
+      },
+    });
+    const result = propertySchema.parse(raw);
+    expect(result.acquisition.date).toBeInstanceOf(Date);
+    expect(result.acquisition.date.getTime()).toBe(0);
+  });
+
+  it('falls back to epoch for empty date string', () => {
+    const raw = makeProperty({
+      acquisition: {
+        ...makeProperty().acquisition,
+        date: '',
+      },
+    });
+    const result = propertySchema.parse(raw);
+    expect(result.acquisition.date.getTime()).toBe(0);
+  });
+
+  it('falls back to epoch for null date', () => {
+    const raw = makeProperty({
+      acquisition: {
+        ...makeProperty().acquisition,
+        date: null,
+      },
+    });
+    const result = propertySchema.parse(raw);
+    expect(result.acquisition.date.getTime()).toBe(0);
+  });
+
+  // ---- Missing nested sub-objects use defaults ----
+
+  it('uses default address when address is missing', () => {
+    const raw = makeProperty();
+    delete (raw as Record<string, unknown>).address;
+    const result = propertySchema.parse(raw);
+    expect(result.address.street).toBe('');
+    expect(result.address.city).toBe('');
+    expect(result.address.latitude).toBeNull();
+  });
+
+  it('uses default propertyDetails when missing', () => {
+    const raw = makeProperty();
+    delete (raw as Record<string, unknown>).propertyDetails;
+    const result = propertySchema.parse(raw);
+    expect(result.propertyDetails.units).toBe(0);
+    expect(result.propertyDetails.propertyClass).toBe('C');
+    expect(result.propertyDetails.amenities).toEqual([]);
+  });
+
+  it('uses default operations when missing', () => {
+    const raw = makeProperty();
+    delete (raw as Record<string, unknown>).operations;
+    const result = propertySchema.parse(raw);
+    expect(result.operations.occupancy).toBe(0);
+    expect(result.operations.noi).toBe(0);
+    expect(result.operations.expenses.total).toBe(0);
+  });
+
+  it('uses default performance when missing', () => {
+    const raw = makeProperty();
+    delete (raw as Record<string, unknown>).performance;
+    const result = propertySchema.parse(raw);
+    expect(result.performance.leveredIrr).toBe(0);
+    expect(result.performance.unleveredIrr).toBeNull();
+    expect(result.performance.holdPeriodYears).toBe(0);
+  });
+
+  it('uses default images when missing', () => {
+    const raw = makeProperty();
+    delete (raw as Record<string, unknown>).images;
+    const result = propertySchema.parse(raw);
+    expect(result.images.main).toBe('');
+    expect(result.images.gallery).toEqual([]);
+  });
+
+  // ---- operationsByYear edge cases ----
+
+  it('catches invalid operationsByYear and defaults to empty array', () => {
+    const raw = makeProperty({ operationsByYear: 'not-an-array' });
+    const result = propertySchema.parse(raw);
+    expect(result.operationsByYear).toEqual([]);
+  });
+
+  it('handles multiple years in operationsByYear', () => {
+    const year1 = makeProperty().operationsByYear[0];
+    const year2 = { ...year1, year: 2024, noi: 2500000 };
+    const raw = makeProperty({ operationsByYear: [year1, year2] });
+    const result = propertySchema.parse(raw);
+    expect(result.operationsByYear).toHaveLength(2);
+    expect(result.operationsByYear[0].year).toBe(2023);
+    expect(result.operationsByYear[1].year).toBe(2024);
+    expect(result.operationsByYear[1].noi).toBe(2500000);
+  });
+
+  // ---- safeParse behavior ----
+
+  it('safeParse returns success for valid data', () => {
+    const result = propertySchema.safeParse(makeProperty());
+    expect(result.success).toBe(true);
+  });
+
+  it('safeParse returns success even for sparse data (due to defaults)', () => {
+    // propertySchema uses .default() and .catch() extensively,
+    // so even a very sparse object should parse successfully
+    const result = propertySchema.safeParse({ id: 99 });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.id).toBe('99');
+      expect(result.data.name).toBe('');
+    }
+  });
+
+  // ---- id coercion ----
+
+  it('coerces numeric id to string', () => {
+    const result = propertySchema.parse(makeProperty({ id: 42 }));
+    expect(result.id).toBe('42');
+    expect(typeof result.id).toBe('string');
+  });
+
+  it('coerces null id to empty string', () => {
+    const result = propertySchema.parse(makeProperty({ id: null }));
+    expect(result.id).toBe('');
+  });
+
+  // ---- lastAnalyzed transform ----
+
+  it('transforms lastAnalyzed string to string', () => {
+    const raw = makeProperty({ lastAnalyzed: '2025-01-15T00:00:00Z' });
+    const result = propertySchema.parse(raw);
+    expect(result.lastAnalyzed).toBe('2025-01-15T00:00:00Z');
+  });
+
+  it('transforms null lastAnalyzed to undefined', () => {
+    const raw = makeProperty({ lastAnalyzed: null });
+    const result = propertySchema.parse(raw);
+    expect(result.lastAnalyzed).toBeUndefined();
+  });
+
+  // ---- financial field ranges ----
+
+  it('preserves zero cap rate', () => {
+    const raw = makeProperty({
+      valuation: {
+        ...makeProperty().valuation,
+        capRate: 0,
+      },
+    });
+    const result = propertySchema.parse(raw);
+    expect(result.valuation.capRate).toBe(0);
+  });
+
+  it('preserves zero occupancy', () => {
+    const raw = makeProperty({
+      operations: {
+        ...makeProperty().operations,
+        occupancy: 0,
+      },
+    });
+    const result = propertySchema.parse(raw);
+    expect(result.operations.occupancy).toBe(0);
+  });
+
+  it('preserves null financing lender', () => {
+    const raw = makeProperty({
+      financing: {
+        ...makeProperty().financing,
+        lender: null,
+      },
+    });
+    const result = propertySchema.parse(raw);
+    expect(result.financing.lender).toBeNull();
+  });
 });
 
 describe('propertiesResponseSchema', () => {

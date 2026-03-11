@@ -229,6 +229,125 @@ describe('backendDealSchema', () => {
       backendDealSchema.parse(makeBackendDeal({ id: 'not-a-number' })),
     ).toThrow();
   });
+
+  // ---- safeParse behavior ----
+
+  it('safeParse returns success false for invalid data', () => {
+    const result = backendDealSchema.safeParse({ bad: 'data' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('safeParse returns success true for valid data', () => {
+    const result = backendDealSchema.safeParse(makeBackendDeal());
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.id).toBe('42');
+    }
+  });
+
+  // ---- Edge cases: zero values, negative numbers, empty strings ----
+
+  it('handles zero asking_price as a valid number', () => {
+    const result = backendDealSchema.parse(
+      makeBackendDeal({ asking_price: 0 }),
+    );
+    // 0 is falsy, so it falls through to final_price (also null) -> 0
+    expect(result.value).toBe(0);
+  });
+
+  it('handles negative numeric enrichment fields', () => {
+    const result = backendDealSchema.parse(
+      makeBackendDeal({
+        levered_irr: -0.049,
+        unlevered_irr: -0.004,
+      }),
+    );
+    expect(result.leveredIrr).toBe(-0.049);
+    expect(result.unleveredIrr).toBe(-0.004);
+  });
+
+  it('handles zero enrichment values without converting to undefined', () => {
+    const result = backendDealSchema.parse(
+      makeBackendDeal({
+        total_units: 0,
+        t12_return_on_cost: 0,
+        levered_irr: 0,
+      }),
+    );
+    // 0 ?? undefined -> 0 (not undefined) because ?? only catches null/undefined
+    expect(result.units).toBe(0);
+    expect(result.t12ReturnOnCost).toBe(0);
+    expect(result.leveredIrr).toBe(0);
+  });
+
+  it('handles asking_price as a numeric type (not just string)', () => {
+    const result = backendDealSchema.parse(
+      makeBackendDeal({ asking_price: 12000000 }),
+    );
+    expect(result.value).toBe(12000000);
+  });
+
+  it('handles final_price as a numeric type when asking_price is null', () => {
+    const result = backendDealSchema.parse(
+      makeBackendDeal({ asking_price: null, final_price: 9500000 }),
+    );
+    expect(result.value).toBe(9500000);
+  });
+
+  it('converts id to string regardless of magnitude', () => {
+    const result = backendDealSchema.parse(makeBackendDeal({ id: 999999 }));
+    expect(result.id).toBe('999999');
+    expect(typeof result.id).toBe('string');
+  });
+
+  it('handles empty string notes as present, not undefined', () => {
+    const result = backendDealSchema.parse(makeBackendDeal({ notes: '' }));
+    // Empty string is not null, so ?? undefined doesn't trigger
+    expect(result.notes).toBe('');
+  });
+
+  it('throws on wrong type for created_at', () => {
+    expect(() =>
+      backendDealSchema.parse(makeBackendDeal({ created_at: 12345 })),
+    ).toThrow();
+  });
+
+  it('throws on null required field stage', () => {
+    expect(() =>
+      backendDealSchema.parse(makeBackendDeal({ stage: null })),
+    ).toThrow();
+  });
+
+  // ---- Optional fields omitted entirely ----
+
+  it('accepts payload with optional enrichment fields entirely missing', () => {
+    const raw = makeBackendDeal();
+    // These are .optional() fields - they should not be required
+    delete (raw as Record<string, unknown>).submarket;
+    delete (raw as Record<string, unknown>).year_built;
+    delete (raw as Record<string, unknown>).latitude;
+    delete (raw as Record<string, unknown>).longitude;
+    delete (raw as Record<string, unknown>).recent_activities;
+    delete (raw as Record<string, unknown>).levered_irr;
+    delete (raw as Record<string, unknown>).levered_moic;
+
+    const result = backendDealSchema.parse(raw);
+    expect(result.submarket).toBeUndefined();
+    expect(result.yearBuilt).toBeUndefined();
+    expect(result.latitude).toBeUndefined();
+    expect(result.longitude).toBeUndefined();
+    expect(result.recentActivities).toBeUndefined();
+    expect(result.leveredIrr).toBeUndefined();
+    expect(result.leveredMoic).toBeUndefined();
+  });
+
+  it('propertyType defaults to "acquisition" when deal_type is empty string', () => {
+    const result = backendDealSchema.parse(makeBackendDeal({ deal_type: '' }));
+    expect(result.propertyType).toBe('acquisition');
+  });
 });
 
 describe('mapBackendStage', () => {
