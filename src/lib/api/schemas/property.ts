@@ -3,167 +3,237 @@
  *
  * Validates raw JSON from /properties/dashboard and transforms
  * ISO date strings into Date objects. Replaces transformPropertyDates().
+ *
+ * All numeric fields use safeNum (coerces null/undefined/NaN → 0) so that
+ * a single missing or malformed value does not reject the entire property.
+ * Nested sub-objects are nullable/optional with sensible defaults so that
+ * partially-populated DB rows (e.g. backfilled properties) still parse.
  */
 import { z } from 'zod';
-import { dateString, nullableDateString } from './common';
+import { nullableDateString } from './common';
+
+// ---------- Safe primitives ----------
+
+/** Coerce any falsy / non-finite numeric input to 0. */
+const safeNum = z.preprocess(
+  (v) => {
+    if (v === null || v === undefined) return 0;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  },
+  z.number(),
+);
+
+/** ISO date string → Date, with fallback to epoch for bad/missing values. */
+const safeDateString = z.preprocess(
+  (v) => {
+    if (typeof v === 'string' && v.length > 0) {
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? new Date(0) : d;
+    }
+    return new Date(0);
+  },
+  z.date(),
+);
+
+/** Safe string: null/undefined → "" */
+const safeStr = z.preprocess((v) => (typeof v === 'string' ? v : ''), z.string());
 
 // ---------- Nested sub-schemas ----------
 
 const addressSchema = z.object({
-  street: z.string(),
-  city: z.string(),
-  state: z.string(),
-  zip: z.string(),
-  latitude: z.number().nullable(),
-  longitude: z.number().nullable(),
-  submarket: z.string(),
+  street: safeStr,
+  city: safeStr,
+  state: safeStr,
+  zip: safeStr,
+  latitude: z.number().nullable().optional().default(null),
+  longitude: z.number().nullable().optional().default(null),
+  submarket: safeStr,
+}).default({
+  street: '', city: '', state: '', zip: '',
+  latitude: null, longitude: null, submarket: '',
 });
 
 const propertyDetailsSchema = z.object({
-  units: z.number(),
-  squareFeet: z.number(),
-  averageUnitSize: z.number(),
-  yearBuilt: z.number(),
-  propertyClass: z.enum(['A', 'B', 'C']),
-  assetType: z.string(),
-  amenities: z.array(z.string()),
+  units: safeNum,
+  squareFeet: safeNum,
+  averageUnitSize: safeNum,
+  yearBuilt: safeNum,
+  propertyClass: z.enum(['A', 'B', 'C']).catch('C'),
+  assetType: safeStr,
+  amenities: z.array(z.string()).catch([]),
+}).default({
+  units: 0, squareFeet: 0, averageUnitSize: 0, yearBuilt: 0,
+  propertyClass: 'C', assetType: '', amenities: [],
 });
 
 const acquisitionSchema = z.object({
-  date: dateString,
-  purchasePrice: z.number(),
-  pricePerUnit: z.number(),
-  closingCosts: z.number(),
-  acquisitionFee: z.number(),
-  totalInvested: z.number(),
-  landAndAcquisitionCosts: z.number(),
-  hardCosts: z.number(),
-  softCosts: z.number(),
-  lenderClosingCosts: z.number(),
-  equityClosingCosts: z.number(),
-  totalAcquisitionBudget: z.number(),
+  date: safeDateString,
+  purchasePrice: safeNum,
+  pricePerUnit: safeNum,
+  closingCosts: safeNum,
+  acquisitionFee: safeNum,
+  totalInvested: safeNum,
+  landAndAcquisitionCosts: safeNum,
+  hardCosts: safeNum,
+  softCosts: safeNum,
+  lenderClosingCosts: safeNum,
+  equityClosingCosts: safeNum,
+  totalAcquisitionBudget: safeNum,
+}).default({
+  date: new Date(0), purchasePrice: 0, pricePerUnit: 0, closingCosts: 0,
+  acquisitionFee: 0, totalInvested: 0, landAndAcquisitionCosts: 0,
+  hardCosts: 0, softCosts: 0, lenderClosingCosts: 0, equityClosingCosts: 0,
+  totalAcquisitionBudget: 0,
 });
 
 const financingSchema = z.object({
-  loanAmount: z.number(),
-  loanToValue: z.number(),
-  interestRate: z.number(),
-  loanTerm: z.number(),
-  amortization: z.number(),
-  monthlyPayment: z.number(),
-  lender: z.string().nullable(),
-  originationDate: dateString,
+  loanAmount: safeNum,
+  loanToValue: safeNum,
+  interestRate: safeNum,
+  loanTerm: safeNum,
+  amortization: safeNum,
+  monthlyPayment: safeNum,
+  lender: z.string().nullable().optional().default(null),
+  originationDate: safeDateString,
   maturityDate: nullableDateString,
+}).default({
+  loanAmount: 0, loanToValue: 0, interestRate: 0, loanTerm: 0,
+  amortization: 0, monthlyPayment: 0, lender: null,
+  originationDate: new Date(0), maturityDate: null,
 });
 
 const valuationSchema = z.object({
-  currentValue: z.number(),
-  lastAppraisalDate: dateString,
-  capRate: z.number(),
-  appreciationSinceAcquisition: z.number(),
+  currentValue: safeNum,
+  lastAppraisalDate: safeDateString,
+  capRate: safeNum,
+  appreciationSinceAcquisition: safeNum,
+}).default({
+  currentValue: 0, lastAppraisalDate: new Date(0), capRate: 0,
+  appreciationSinceAcquisition: 0,
 });
 
 const expensesSchema = z.object({
-  realEstateTaxes: z.number(),
-  otherExpenses: z.number(),
-  propertyInsurance: z.number(),
-  staffingPayroll: z.number(),
-  propertyManagementFee: z.number(),
-  repairsAndMaintenance: z.number(),
-  turnover: z.number(),
-  contractServices: z.number(),
-  reservesForReplacement: z.number(),
-  adminLegalSecurity: z.number(),
-  advertisingLeasingMarketing: z.number(),
-  total: z.number(),
+  realEstateTaxes: safeNum,
+  otherExpenses: safeNum,
+  propertyInsurance: safeNum,
+  staffingPayroll: safeNum,
+  propertyManagementFee: safeNum,
+  repairsAndMaintenance: safeNum,
+  turnover: safeNum,
+  contractServices: safeNum,
+  reservesForReplacement: safeNum,
+  adminLegalSecurity: safeNum,
+  advertisingLeasingMarketing: safeNum,
+  total: safeNum,
+}).default({
+  realEstateTaxes: 0, otherExpenses: 0, propertyInsurance: 0,
+  staffingPayroll: 0, propertyManagementFee: 0, repairsAndMaintenance: 0,
+  turnover: 0, contractServices: 0, reservesForReplacement: 0,
+  adminLegalSecurity: 0, advertisingLeasingMarketing: 0, total: 0,
 });
 
 const operationsSchema = z.object({
-  occupancy: z.number(),
-  averageRent: z.number(),
-  rentPerSqft: z.number(),
-  monthlyRevenue: z.number(),
-  otherIncome: z.number(),
+  occupancy: safeNum,
+  averageRent: safeNum,
+  rentPerSqft: safeNum,
+  monthlyRevenue: safeNum,
+  otherIncome: safeNum,
   expenses: expensesSchema,
-  noi: z.number(),
-  operatingExpenseRatio: z.number(),
-  grossPotentialRevenue: z.number(),
-  netRentalIncome: z.number(),
-  otherIncomeAnnual: z.number(),
-  vacancyLoss: z.number(),
-  concessions: z.number(),
+  noi: safeNum,
+  operatingExpenseRatio: safeNum,
+  grossPotentialRevenue: safeNum,
+  netRentalIncome: safeNum,
+  otherIncomeAnnual: safeNum,
+  vacancyLoss: safeNum,
+  concessions: safeNum,
+}).default({
+  occupancy: 0, averageRent: 0, rentPerSqft: 0, monthlyRevenue: 0,
+  otherIncome: 0, expenses: {
+    realEstateTaxes: 0, otherExpenses: 0, propertyInsurance: 0,
+    staffingPayroll: 0, propertyManagementFee: 0, repairsAndMaintenance: 0,
+    turnover: 0, contractServices: 0, reservesForReplacement: 0,
+    adminLegalSecurity: 0, advertisingLeasingMarketing: 0, total: 0,
+  }, noi: 0, operatingExpenseRatio: 0, grossPotentialRevenue: 0,
+  netRentalIncome: 0, otherIncomeAnnual: 0, vacancyLoss: 0, concessions: 0,
 });
 
 const operatingYearExpensesSchema = z.object({
-  realEstateTaxes: z.number(),
-  propertyInsurance: z.number(),
-  staffingPayroll: z.number(),
-  propertyManagementFee: z.number(),
-  repairsAndMaintenance: z.number(),
-  turnover: z.number(),
-  contractServices: z.number(),
-  reservesForReplacement: z.number(),
-  adminLegalSecurity: z.number(),
-  advertisingLeasingMarketing: z.number(),
-  otherExpenses: z.number(),
-  utilities: z.number(),
+  realEstateTaxes: safeNum,
+  propertyInsurance: safeNum,
+  staffingPayroll: safeNum,
+  propertyManagementFee: safeNum,
+  repairsAndMaintenance: safeNum,
+  turnover: safeNum,
+  contractServices: safeNum,
+  reservesForReplacement: safeNum,
+  adminLegalSecurity: safeNum,
+  advertisingLeasingMarketing: safeNum,
+  otherExpenses: safeNum,
+  utilities: safeNum,
 });
 
 const operatingYearSchema = z.object({
-  year: z.number(),
-  grossPotentialRevenue: z.number(),
-  lossToLease: z.number(),
-  vacancyLoss: z.number(),
-  badDebts: z.number(),
-  concessions: z.number(),
-  otherLoss: z.number(),
-  netRentalIncome: z.number(),
-  otherIncome: z.number(),
-  laundryIncome: z.number(),
-  parkingIncome: z.number(),
-  petIncome: z.number(),
-  storageIncome: z.number(),
-  utilityIncome: z.number(),
-  otherMiscIncome: z.number(),
-  effectiveGrossIncome: z.number(),
-  noi: z.number(),
-  totalOperatingExpenses: z.number(),
+  year: safeNum,
+  grossPotentialRevenue: safeNum,
+  lossToLease: safeNum,
+  vacancyLoss: safeNum,
+  badDebts: safeNum,
+  concessions: safeNum,
+  otherLoss: safeNum,
+  netRentalIncome: safeNum,
+  otherIncome: safeNum,
+  laundryIncome: safeNum,
+  parkingIncome: safeNum,
+  petIncome: safeNum,
+  storageIncome: safeNum,
+  utilityIncome: safeNum,
+  otherMiscIncome: safeNum,
+  effectiveGrossIncome: safeNum,
+  noi: safeNum,
+  totalOperatingExpenses: safeNum,
   expenses: operatingYearExpensesSchema,
 });
 
 const performanceSchema = z.object({
-  leveredIrr: z.number(),
-  leveredMoic: z.number(),
-  unleveredIrr: z.number().nullable(),
-  unleveredMoic: z.number().nullable(),
-  totalEquityCommitment: z.number(),
-  totalCashFlowsToEquity: z.number(),
-  netCashFlowsToEquity: z.number(),
-  holdPeriodYears: z.number(),
-  exitCapRate: z.number(),
-  totalBasisPerUnitClose: z.number(),
-  seniorLoanBasisPerUnitClose: z.number(),
-  totalBasisPerUnitExit: z.number().nullable(),
-  seniorLoanBasisPerUnitExit: z.number().nullable(),
+  leveredIrr: safeNum,
+  leveredMoic: safeNum,
+  unleveredIrr: z.number().nullable().optional().default(null),
+  unleveredMoic: z.number().nullable().optional().default(null),
+  totalEquityCommitment: safeNum,
+  totalCashFlowsToEquity: safeNum,
+  netCashFlowsToEquity: safeNum,
+  holdPeriodYears: safeNum,
+  exitCapRate: safeNum,
+  totalBasisPerUnitClose: safeNum,
+  seniorLoanBasisPerUnitClose: safeNum,
+  totalBasisPerUnitExit: z.number().nullable().optional().default(null),
+  seniorLoanBasisPerUnitExit: z.number().nullable().optional().default(null),
+}).default({
+  leveredIrr: 0, leveredMoic: 0, unleveredIrr: null, unleveredMoic: null,
+  totalEquityCommitment: 0, totalCashFlowsToEquity: 0, netCashFlowsToEquity: 0,
+  holdPeriodYears: 0, exitCapRate: 0, totalBasisPerUnitClose: 0,
+  seniorLoanBasisPerUnitClose: 0, totalBasisPerUnitExit: null,
+  seniorLoanBasisPerUnitExit: null,
 });
 
 const imagesSchema = z.object({
-  main: z.string(),
-  gallery: z.array(z.string()),
-});
+  main: safeStr,
+  gallery: z.array(z.string()).catch([]),
+}).default({ main: '', gallery: [] });
 
 // ---------- Main property schema ----------
 
 export const propertySchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  id: z.preprocess((v) => String(v ?? ''), z.string()),
+  name: safeStr,
   address: addressSchema,
   propertyDetails: propertyDetailsSchema,
   acquisition: acquisitionSchema,
   financing: financingSchema,
   valuation: valuationSchema,
   operations: operationsSchema,
-  operationsByYear: z.array(operatingYearSchema),
+  operationsByYear: z.array(operatingYearSchema).catch([]),
   performance: performanceSchema,
   images: imagesSchema,
   lastAnalyzed: z.string().nullable().optional().transform((v) => v ?? undefined),
@@ -177,13 +247,13 @@ export const propertiesResponseSchema = z.object({
 });
 
 export const propertySummaryStatsSchema = z.object({
-  totalProperties: z.number(),
-  totalUnits: z.number(),
-  totalValue: z.number(),
-  totalInvested: z.number(),
-  totalNOI: z.number(),
-  averageOccupancy: z.number(),
-  averageCapRate: z.number(),
-  portfolioCashOnCash: z.number(),
-  portfolioIRR: z.number(),
+  totalProperties: safeNum,
+  totalUnits: safeNum,
+  totalValue: safeNum,
+  totalInvested: safeNum,
+  totalNOI: safeNum,
+  averageOccupancy: safeNum,
+  averageCapRate: safeNum,
+  portfolioCashOnCash: safeNum,
+  portfolioIRR: safeNum,
 });

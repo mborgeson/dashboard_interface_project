@@ -17,6 +17,33 @@ from app.models import User
 # =============================================================================
 
 
+@pytest_asyncio.fixture(autouse=True)
+async def _clear_token_blacklist():
+    """Reset token blacklist state between tests to prevent cross-test pollution.
+
+    Redis persists between test runs, so we must clear blacklist/revocation keys
+    both before and after each test.
+    """
+    token_blacklist._redis = None
+
+    async def _flush_blacklist_keys():
+        await token_blacklist._ensure_redis()
+        if token_blacklist._redis is not None:
+            try:
+                keys = await token_blacklist._redis.keys("blacklist:*")
+                keys += await token_blacklist._redis.keys("user_revoked:*")
+                keys += await token_blacklist._redis.keys("rl:*")
+                if keys:
+                    await token_blacklist._redis.delete(*keys)
+            except Exception:
+                pass
+
+    await _flush_blacklist_keys()
+    yield
+    await _flush_blacklist_keys()
+    token_blacklist._redis = None
+
+
 @pytest_asyncio.fixture
 async def inactive_user(db_session) -> User:
     """Create an inactive test user."""

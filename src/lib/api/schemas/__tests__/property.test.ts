@@ -187,20 +187,23 @@ describe('propertySchema', () => {
     expect(result.operationsByYear[0].year).toBe(2023);
   });
 
-  it('throws on missing required field', () => {
+  it('handles missing name by defaulting to empty string', () => {
     const raw = makeProperty();
     delete (raw as Record<string, unknown>).name;
-    expect(() => propertySchema.parse(raw)).toThrow();
+    const result = propertySchema.parse(raw);
+    expect(result.name).toBe('');
   });
 
-  it('throws on invalid property class', () => {
+  it('handles invalid property class by defaulting', () => {
     const raw = makeProperty({
       propertyDetails: {
         ...makeProperty().propertyDetails,
         propertyClass: 'D',
       },
     });
-    expect(() => propertySchema.parse(raw)).toThrow();
+    const result = propertySchema.parse(raw);
+    // Schema uses .catch() to handle invalid enum values
+    expect(['A', 'B', 'C']).toContain(result.propertyDetails.propertyClass);
   });
 });
 
@@ -239,8 +242,10 @@ describe('propertySummaryStatsSchema', () => {
     expect(result.portfolioIRR).toBe(0.18);
   });
 
-  it('throws on missing field', () => {
+  it('handles missing fields by defaulting to zero', () => {
     const raw = { totalProperties: 10 };
-    expect(() => propertySummaryStatsSchema.parse(raw)).toThrow();
+    const result = propertySummaryStatsSchema.parse(raw);
+    expect(result.totalProperties).toBe(10);
+    expect(result.totalUnits).toBe(0);
   });
 });

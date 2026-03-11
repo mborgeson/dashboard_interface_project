@@ -57,7 +57,7 @@ export interface DealsWithFallbackResponse {
  * Errors propagate to React Query error state
  */
 export function useDealsWithMockFallback(
-  { pageSize = 500 }: { pageSize?: number } = {},
+  { pageSize = 100 }: { pageSize?: number } = {},
   options?: Omit<UseQueryOptions<DealsWithFallbackResponse>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery({
@@ -65,10 +65,16 @@ export function useDealsWithMockFallback(
     queryFn: async (): Promise<DealsWithFallbackResponse> => {
       // Backend returns { items: [...], total, page, page_size }
       const response = await get<{ items: unknown[]; total: number }>('/deals', { page_size: pageSize });
-      return {
-        deals: response.items?.map((item) => backendDealSchema.parse(item)) ?? [],
-        total: response.total ?? 0,
-      };
+      const deals: Deal[] = [];
+      for (const item of response.items ?? []) {
+        const result = backendDealSchema.safeParse(item);
+        if (result.success) {
+          deals.push(result.data);
+        } else {
+          console.warn('[useDeals] Skipping deal — Zod validation failed:', result.error.issues[0]);
+        }
+      }
+      return { deals, total: response.total ?? 0 };
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...options,
@@ -106,7 +112,15 @@ export function useKanbanBoardWithMockFallback(
       // Backend returns stages as flat arrays: stages[stage] = DealResponse[]
       for (const [backendStage, dealArray] of Object.entries(response.stages)) {
         const frontendStage = mapBackendStage(backendStage);
-        const deals = (dealArray as unknown[]).map((d) => backendDealSchema.parse(d));
+        const deals: Deal[] = [];
+        for (const d of dealArray as unknown[]) {
+          const result = backendDealSchema.safeParse(d);
+          if (result.success) {
+            deals.push(result.data);
+          } else {
+            console.warn('[useKanban] Skipping deal — Zod validation failed:', result.error.issues[0]);
+          }
+        }
         stages[frontendStage].deals.push(...deals);
         stages[frontendStage].count += deals.length;
         for (const deal of deals) {
@@ -210,7 +224,12 @@ export function useDealWithMockFallback(
       if (!id) return null;
 
       const response = await get<unknown>(`/deals/${id}`);
-      return backendDealSchema.parse(response);
+      const result = backendDealSchema.safeParse(response);
+      if (!result.success) {
+        console.warn('[useDeal] Zod validation failed:', result.error.issues);
+        return null;
+      }
+      return result.data;
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5, // 5 minutes

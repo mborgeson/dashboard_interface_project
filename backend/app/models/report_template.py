@@ -57,7 +57,11 @@ class ReportTemplate(Base, TimestampMixin, SoftDeleteMixin):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     category: Mapped[str] = mapped_column(
-        Enum(ReportCategory, values_callable=lambda e: [m.value for m in e]),
+        Enum(
+            ReportCategory,
+            values_callable=lambda e: [m.value for m in e],
+            native_enum=False,
+        ),
         default=ReportCategory.CUSTOM,
         nullable=False,
     )
@@ -108,13 +112,21 @@ class QueuedReport(Base, TimestampMixin):
         nullable=False,
     )
     status: Mapped[str] = mapped_column(
-        Enum(ReportStatus, values_callable=lambda e: [m.value for m in e]),
+        Enum(
+            ReportStatus,
+            values_callable=lambda e: [m.value for m in e],
+            native_enum=False,
+        ),
         default=ReportStatus.PENDING,
         nullable=False,
     )
     progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     format: Mapped[str] = mapped_column(
-        Enum(ReportFormat, values_callable=lambda e: [m.value for m in e]),
+        Enum(
+            ReportFormat,
+            values_callable=lambda e: [m.value for m in e],
+            native_enum=False,
+        ),
         default=ReportFormat.PDF,
         nullable=False,
     )
@@ -159,7 +171,11 @@ class DistributionSchedule(Base, TimestampMixin, SoftDeleteMixin):
         nullable=False,
     )
     frequency: Mapped[str] = mapped_column(
-        Enum(ScheduleFrequency, values_callable=lambda e: [m.value for m in e]),
+        Enum(
+            ScheduleFrequency,
+            values_callable=lambda e: [m.value for m in e],
+            native_enum=False,
+        ),
         nullable=False,
     )
     day_of_week: Mapped[int | None] = mapped_column(
@@ -170,7 +186,11 @@ class DistributionSchedule(Base, TimestampMixin, SoftDeleteMixin):
     )  # 1-31 for monthly
     time: Mapped[str] = mapped_column(String(5), nullable=False)  # HH:MM format
     format: Mapped[str] = mapped_column(
-        Enum(ReportFormat, values_callable=lambda e: [m.value for m in e]),
+        Enum(
+            ReportFormat,
+            values_callable=lambda e: [m.value for m in e],
+            native_enum=False,
+        ),
         default=ReportFormat.PDF,
         nullable=False,
     )

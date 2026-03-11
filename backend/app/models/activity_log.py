@@ -73,8 +73,16 @@ class ActivityLog(Base, SoftDeleteMixin):
     )
 
     # Action type (enum)
+    # native_enum=False: the column was created as a native PostgreSQL ENUM type
+    # (name="activityaction") by the original migration, but asyncpg returns values
+    # as plain strings.  native_enum=False tells SQLAlchemy to treat the column as
+    # VARCHAR-backed so it coerces correctly without hitting type-lookup errors.
     action: Mapped[ActivityAction] = mapped_column(
-        Enum(ActivityAction, values_callable=lambda e: [m.value for m in e]),
+        Enum(
+            ActivityAction,
+            values_callable=lambda e: [m.value for m in e],
+            native_enum=False,
+        ),
         nullable=False,
         index=True,
     )

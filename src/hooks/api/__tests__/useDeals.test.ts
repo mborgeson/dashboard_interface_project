@@ -16,6 +16,7 @@ vi.mock('@/lib/api', () => ({
 vi.mock('@/lib/api/schemas/deal', () => ({
   backendDealSchema: {
     parse: (d: unknown) => d,
+    safeParse: (d: unknown) => ({ success: true, data: d }),
   },
   mapBackendStage: (stage: string) => stage,
 }));
@@ -69,18 +70,38 @@ function createWrapper() {
 
 function mockBackendDeal(overrides: Record<string, unknown> = {}) {
   return {
-    id: '1',
-    propertyName: 'Test Property',
-    address: { street: 'Test', city: 'Phoenix', state: 'AZ' },
-    value: 5000000,
-    capRate: 0.055,
+    id: 1,
+    name: 'Test Property (Phoenix, AZ)',
+    deal_type: 'acquisition',
+    property_id: null,
+    assigned_user_id: null,
     stage: 'active_review',
-    daysInStage: 5,
-    totalDaysInPipeline: 30,
-    assignee: '',
-    propertyType: 'acquisition',
-    createdAt: new Date('2024-01-01'),
-    timeline: [],
+    stage_order: 2,
+    asking_price: 5000000,
+    offer_price: null,
+    final_price: null,
+    projected_irr: null,
+    projected_coc: null,
+    projected_equity_multiple: null,
+    hold_period_years: null,
+    initial_contact_date: null,
+    actual_close_date: null,
+    source: null,
+    broker_name: null,
+    notes: null,
+    investment_thesis: null,
+    deal_score: null,
+    priority: null,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+    stage_updated_at: null,
+    total_units: 100,
+    avg_unit_sf: null,
+    current_owner: null,
+    last_sale_price_per_unit: null,
+    last_sale_date: null,
+    t12_return_on_cost: null,
+    total_equity_commitment: null,
     ...overrides,
   };
 }
@@ -160,7 +181,7 @@ describe('useDealsWithMockFallback', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(mockGet).toHaveBeenCalledWith('/deals', { page_size: 500 });
+    expect(mockGet).toHaveBeenCalledWith('/deals', { page_size: 100 });
     expect(result.current.data?.deals).toHaveLength(1);
     expect(result.current.data?.total).toBe(1);
   });
@@ -266,7 +287,7 @@ describe('useDealWithMockFallback', () => {
   });
 
   it('fetches and parses deal when id is provided', async () => {
-    const deal = mockBackendDeal({ id: '7' });
+    const deal = mockBackendDeal({ id: 7 });
     mockGet.mockResolvedValueOnce(deal);
 
     const { result } = renderHook(() => useDealWithMockFallback('7'), {

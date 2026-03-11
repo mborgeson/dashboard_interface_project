@@ -1,10 +1,10 @@
 /**
  * Properties API client functions
  */
+import { z } from 'zod';
 import { apiClient } from './client';
 import type { Property, PropertySummaryStats } from '@/types';
 import {
-  propertiesResponseSchema,
   propertySchema,
   propertySummaryStatsSchema,
 } from './schemas/property';
@@ -25,14 +25,54 @@ export interface PropertyFiltersParams {
   limit?: number;
 }
 
+/** Loose wrapper schema: only validates the outer shape, not individual properties */
+const propertiesEnvelopeSchema = z.object({
+  properties: z.array(z.unknown()),
+  total: z.number(),
+});
+
 /**
- * Fetch all properties from the API
+ * Fetch all properties from the API.
+ *
+ * Parses each property individually so that a single malformed row does not
+ * silently discard the entire portfolio. Failed rows are logged and skipped;
+ * the returned `total` reflects the raw count from the server (not just the
+ * successfully-parsed subset).
  */
 export async function fetchProperties(filters?: PropertyFiltersParams): Promise<PropertiesResponse> {
   const raw = await apiClient.get<unknown>('/properties/dashboard', {
     params: filters as Record<string, string | number | boolean | undefined>,
   });
-  return propertiesResponseSchema.parse(raw);
+
+  // Validate the outer envelope first — throw if the response shape is wrong
+  const envelope = propertiesEnvelopeSchema.parse(raw);
+
+  // Parse each property individually, collecting only valid ones
+  const properties: Property[] = [];
+  let failCount = 0;
+  for (const item of envelope.properties) {
+    const result = propertySchema.safeParse(item);
+    if (result.success) {
+      properties.push(result.data as Property);
+    } else {
+      failCount++;
+      if (import.meta.env.DEV) {
+        const id = (item as Record<string, unknown>)?.id ?? '?';
+        console.warn(
+          `[fetchProperties] Property id=${id} failed Zod validation — skipped.`,
+          result.error.flatten(),
+        );
+      }
+    }
+  }
+
+  if (failCount > 0) {
+    console.warn(
+      `[fetchProperties] ${failCount}/${envelope.properties.length} properties failed schema validation and were excluded.`,
+    );
+  }
+
+  return { properties, total: envelope.total };
 }
 
 /**

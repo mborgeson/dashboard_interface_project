@@ -47,12 +47,12 @@ export const backendDealSchema = z
     assigned_user_id: z.number().nullable(),
     stage: z.string(),
     stage_order: z.number(),
-    asking_price: z.string().nullable(),
-    offer_price: z.string().nullable(),
-    final_price: z.string().nullable(),
-    projected_irr: z.string().nullable(),
-    projected_coc: z.string().nullable(),
-    projected_equity_multiple: z.string().nullable(),
+    asking_price: z.union([z.string(), z.number()]).nullable(),
+    offer_price: z.union([z.string(), z.number()]).nullable(),
+    final_price: z.union([z.string(), z.number()]).nullable(),
+    projected_irr: z.union([z.string(), z.number()]).nullable(),
+    projected_coc: z.union([z.string(), z.number()]).nullable(),
+    projected_equity_multiple: z.union([z.string(), z.number()]).nullable(),
     hold_period_years: z.number().nullable(),
     initial_contact_date: z.string().nullable(),
     actual_close_date: z.string().nullable(),
@@ -111,9 +111,9 @@ export const backendDealSchema = z
   .transform((d): Deal => {
     const { propertyName, city, state } = parseCityState(d.name);
     const value = d.asking_price
-      ? parseFloat(d.asking_price)
+      ? (typeof d.asking_price === 'number' ? d.asking_price : parseFloat(d.asking_price))
       : d.final_price
-        ? parseFloat(d.final_price)
+        ? (typeof d.final_price === 'number' ? d.final_price : parseFloat(d.final_price))
         : 0;
     const now = new Date();
     const created = new Date(d.created_at);

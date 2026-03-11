@@ -157,6 +157,10 @@ class DealResponse(DealBase, TimestampSchema):
 
     id: int
     version: int = 1
+    # Override inherited pattern constraints — response schemas must not re-validate
+    # data already stored in the database.  Any value present in the DB is valid here.
+    deal_type: str
+    name: str
     stage: str
     stage_order: int
 

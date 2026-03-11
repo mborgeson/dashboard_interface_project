@@ -168,7 +168,7 @@ async def list_properties_dashboard(
     items = await property_crud.get_multi_filtered(
         db,
         skip=0,
-        limit=200,
+        limit=1000,
         order_by="name",
         order_desc=False,
     )

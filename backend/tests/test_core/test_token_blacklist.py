@@ -24,10 +24,12 @@ def clean_memory_blacklist():
 
 
 @pytest.fixture
-def blacklist():
+def blacklist(monkeypatch):
     """Create a fresh TokenBlacklist instance (no Redis)."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "REDIS_URL", "")
     bl = TokenBlacklist()
-    # Ensure no Redis connection
     bl._redis = None
     return bl
 
