@@ -25,6 +25,7 @@ from app.schemas.activity_log import (
     ActivityLogListResponse,
     ActivityLogResponse,
 )
+from app.schemas.deal import WatchlistStatusResponse
 
 router = APIRouter()
 slog = structlog.get_logger("app.api.deals")
@@ -202,6 +203,7 @@ async def toggle_watchlist(
 
 @router.get(
     "/{deal_id}/watchlist/status",
+    response_model=WatchlistStatusResponse,
     summary="Get watchlist status",
     description="Check whether a deal is on the current user's watchlist.",
     responses={

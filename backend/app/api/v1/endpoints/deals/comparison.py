@@ -1,5 +1,14 @@
 """
 Deal comparison endpoints — side-by-side deal analysis.
+
+TODO (C-TD-018): The comparison logic (scoring, metric comparisons,
+recommendation generation) in ``compare_deals`` is a candidate for
+extraction into a dedicated service layer (e.g.
+``app/services/deal_comparison_service.py``). This would:
+  - Improve testability (unit-test scoring logic without HTTP)
+  - Enable reuse (e.g. batch comparison in reports)
+  - Reduce endpoint function length (~150 lines -> ~30)
+Deferred to a future sprint as it requires careful integration testing.
 """
 
 from datetime import UTC, datetime

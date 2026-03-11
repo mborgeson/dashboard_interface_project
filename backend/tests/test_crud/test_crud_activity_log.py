@@ -18,7 +18,6 @@ import pytest
 from app.crud.crud_activity_log import activity_log
 from app.models.activity_log import ActivityAction, ActivityLog
 
-
 # =============================================================================
 # Helpers
 # =============================================================================

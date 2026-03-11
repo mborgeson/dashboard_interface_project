@@ -7,7 +7,6 @@ from sqlalchemy import text
 
 from app.models.report_template import ReportTemplate
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

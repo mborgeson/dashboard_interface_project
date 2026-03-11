@@ -17,7 +17,6 @@ import pytest
 from app.models import Deal, DealStage, Property, User
 from app.models.document import Document
 
-
 # =============================================================================
 # Helpers
 # =============================================================================

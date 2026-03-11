@@ -19,7 +19,6 @@ from app.models.report_template import (
 )
 from app.services.report_worker import ReportWorker, _format_file_size
 
-
 # ============================================================================
 # Helpers
 # ============================================================================

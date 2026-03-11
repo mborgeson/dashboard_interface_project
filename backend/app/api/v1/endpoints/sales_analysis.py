@@ -12,7 +12,6 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 from loguru import logger
-from pydantic import BaseModel
 from sqlalchemy import Integer as SAInteger
 from sqlalchemy import String as SAString
 from sqlalchemy import case, func, select
@@ -28,6 +27,27 @@ from app.core.permissions import require_viewer
 from app.db.session import get_db, get_sync_db
 from app.models.reminder_dismissal import ReminderDismissal
 from app.models.sales_data import SalesData
+from app.schemas.sales_analysis import (
+    BuyerActivity,
+    DistributionBucket,
+    PaginatedSalesResponse,
+    ReminderStatusResponse,
+    SalesRecord,
+    SubmarketComparison,
+    TimeSeriesPoint,
+)
+from app.schemas.sales_analysis import (
+    SalesDataQualityReport as DataQualityReport,
+)
+from app.schemas.sales_analysis import (
+    SalesFilterOptionsResponse as FilterOptionsResponse,
+)
+from app.schemas.sales_analysis import (
+    SalesImportResponse as ImportResponse,
+)
+from app.schemas.sales_analysis import (
+    SalesImportStatusResponse as ImportStatusResponse,
+)
 
 router = APIRouter(dependencies=[Depends(require_viewer)])
 
@@ -37,98 +57,6 @@ SALES_DATA_DIR = os.path.join(
     os.path.dirname(__file__), "..", "..", "..", "..", "data", "sales", "Phoenix"
 )
 SALES_DATA_DIR = os.path.normpath(SALES_DATA_DIR)
-
-
-# ── Pydantic Response Schemas ─────────────────────────────────────────────────
-
-
-class SalesRecord(BaseModel):
-    id: int
-    property_name: str | None = None
-    property_address: str | None = None
-    property_city: str | None = None
-    submarket_cluster: str | None = None
-    star_rating: str | None = None
-    year_built: int | None = None
-    number_of_units: int | None = None
-    avg_unit_sf: float | None = None
-    sale_date: date | None = None
-    sale_price: float | None = None
-    price_per_unit: float | None = None
-    buyer_true_company: str | None = None
-    seller_true_company: str | None = None
-    latitude: float | None = None
-    longitude: float | None = None
-    nrsf: float | None = None
-    price_per_nrsf: float | None = None
-
-
-class PaginatedSalesResponse(BaseModel):
-    data: list[SalesRecord]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
-
-
-class TimeSeriesPoint(BaseModel):
-    period: str
-    count: int
-    total_volume: float
-    avg_price_per_unit: float | None = None
-
-
-class SubmarketComparison(BaseModel):
-    submarket: str
-    year: int
-    avg_price_per_unit: float | None = None
-    sales_count: int
-    total_volume: float
-
-
-class BuyerActivity(BaseModel):
-    buyer: str
-    transaction_count: int
-    total_volume: float
-    submarkets: list[str]
-    first_purchase: date | None = None
-    last_purchase: date | None = None
-
-
-class DistributionBucket(BaseModel):
-    label: str
-    count: int
-    avg_price_per_unit: float | None = None
-
-
-class DataQualityReport(BaseModel):
-    total_records: int
-    records_by_file: dict[str, int]
-    null_rates: dict[str, float]
-    flagged_outliers: dict[str, int]
-
-
-class ImportResponse(BaseModel):
-    success: bool
-    message: str
-    rows_imported: int = 0
-    rows_updated: int = 0
-
-
-class ImportStatusResponse(BaseModel):
-    unimported_files: list[str]
-    last_imported_file: str | None = None
-    last_import_date: str | None = None
-
-
-class ReminderStatusResponse(BaseModel):
-    show_reminder: bool
-    last_imported_file_name: str | None = None
-    last_imported_file_date: str | None = None
-
-
-class FilterOptionsResponse(BaseModel):
-    submarkets: list[str]
 
 
 # ── 0. GET /filter-options — Distinct values for filter dropdowns ────────────

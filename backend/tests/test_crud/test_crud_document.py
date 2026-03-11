@@ -17,7 +17,6 @@ import pytest
 from app.crud.crud_document import document as document_crud
 from app.models.document import Document, DocumentType
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

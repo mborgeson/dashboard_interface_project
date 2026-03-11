@@ -273,3 +273,40 @@ class KanbanBoardResponse(BaseSchema):
     stages: dict[str, list[DealResponse]]
     total_deals: int
     stage_counts: dict[str, int]
+
+
+# ── Proforma Returns Response ────────────────────────────────────────────────
+
+
+class ProformaFieldValue(BaseSchema):
+    """A single proforma field with its extracted value."""
+
+    field_name: str
+    value_numeric: float | None = None
+    value_text: str | None = None
+
+
+class ProformaFieldGroup(BaseSchema):
+    """A group of proforma fields under a category."""
+
+    category: str
+    fields: list[ProformaFieldValue]
+
+
+class ProformaReturnsResponse(BaseSchema):
+    """Proforma returns extracted from UW models for a deal."""
+
+    deal_id: int
+    deal_name: str
+    groups: list[ProformaFieldGroup]
+    total: int
+
+
+# ── Watchlist Status Response ────────────────────────────────────────────────
+
+
+class WatchlistStatusResponse(BaseSchema):
+    """Watchlist status for a deal and the current user."""
+
+    deal_id: int
+    is_watched: bool

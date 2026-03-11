@@ -14,7 +14,6 @@ import pytest
 from app.crud.crud_activity import deal_activity, property_activity, watchlist
 from app.models.activity import ActivityType, DealActivity, PropertyActivity
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

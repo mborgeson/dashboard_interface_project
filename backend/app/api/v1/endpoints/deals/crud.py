@@ -238,94 +238,14 @@ async def create_deal(
     return new_deal
 
 
-@router.put(
-    "/{deal_id}",
-    response_model=DealResponse,
-    summary="Update a deal (partial update)",
-    description="Partial update of a deal using optimistic locking (same behavior as PATCH "
-    "for backwards compatibility — only fields present in the request body are updated). "
-    "The client must include the `version` field from its last read. Returns 409 Conflict "
-    "if the deal has been modified by another user since then. Requires manager role.",
-    responses={
-        200: {"description": "Deal updated successfully"},
-        404: {"description": "Deal not found"},
-        409: {
-            "description": "Optimistic locking conflict — deal was modified by another user"
-        },
-    },
-)
-async def update_deal(
-    deal_id: int,
-    deal_data: DealUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: CurrentUser = Depends(require_manager),
-):
-    """
-    Update an existing deal (with optimistic locking).
-
-    NOTE: Despite being a PUT endpoint, this performs a partial update
-    (only fields present in the request body are modified) for backwards
-    compatibility with existing clients. Behaves identically to PATCH.
-
-    The client must include the `version` field from its last read.
-    If another user has updated the deal since then, a 409 Conflict is returned.
-    """
-    existing = await deal_crud.get(db, deal_id)
-
-    if not existing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Deal {deal_id} not found",
-        )
-
-    # Use optimistic locking via version column
-    update_data = deal_data.model_dump(exclude_unset=True)
-    expected_version = update_data.pop("version")
-
-    updated_deal = await deal_crud.update_optimistic(
-        db,
-        deal_id=deal_id,
-        expected_version=expected_version,
-        update_data=update_data,
-    )
-
-    if updated_deal is None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                f"Deal {deal_id} has been modified by another user. "
-                f"Expected version {expected_version}, but the deal has been updated. "
-                "Please refresh and try again."
-            ),
-        )
-
-    # Notify via WebSocket
-    ws_manager = get_websocket_manager()
-    await ws_manager.notify_deal_update(
-        deal_id=deal_id,
-        action="updated",
-        data={"id": updated_deal.id, "name": updated_deal.name},
-    )
-
-    slog.info(
-        "deal_updated",
-        deal_id=deal_id,
-        user_id=current_user.id,
-        user_email=current_user.email,
-        fields_changed=list(update_data.keys()),
-    )
-
-    await cache.invalidate_deals()
-    return updated_deal
-
-
 @router.patch(
     "/{deal_id}",
     response_model=DealResponse,
-    summary="Partially update a deal",
+    summary="Update a deal (partial)",
     description="Partial update of a deal using optimistic locking. Only fields included "
     "in the request body are updated. The `version` field is required for conflict "
-    "detection. Requires manager role.",
+    "detection. Returns 409 Conflict if the deal has been modified by another user "
+    "since then. Requires manager role.",
     responses={
         200: {"description": "Deal updated successfully"},
         404: {"description": "Deal not found"},
@@ -384,7 +304,7 @@ async def patch_deal(
     )
 
     slog.info(
-        "deal_patched",
+        "deal_updated",
         deal_id=deal_id,
         user_id=current_user.id,
         user_email=current_user.email,
@@ -393,6 +313,33 @@ async def patch_deal(
 
     await cache.invalidate_deals()
     return updated_deal
+
+
+# PUT kept for backwards compatibility — delegates to PATCH logic
+@router.put(
+    "/{deal_id}",
+    response_model=DealResponse,
+    summary="Update a deal (partial, PUT alias)",
+    description="Alias for PATCH /{deal_id} — kept for backwards compatibility. "
+    "Only fields present in the request body are updated. "
+    "The `version` field is required for optimistic locking.",
+    responses={
+        200: {"description": "Deal updated successfully"},
+        404: {"description": "Deal not found"},
+        409: {
+            "description": "Optimistic locking conflict — deal was modified by another user"
+        },
+    },
+    deprecated=True,
+)
+async def update_deal(
+    deal_id: int,
+    deal_data: DealUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
+):
+    """Update a deal via PUT (delegates to PATCH for backwards compatibility)."""
+    return await patch_deal(deal_id, deal_data, db, current_user)
 
 
 @router.delete(

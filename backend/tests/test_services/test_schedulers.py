@@ -10,7 +10,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helper: _parse_cron_parts (shared by interest_rate and data_extraction)
 # ---------------------------------------------------------------------------

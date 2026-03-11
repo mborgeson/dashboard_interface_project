@@ -46,7 +46,13 @@ router = APIRouter(dependencies=[Depends(require_viewer)])
 # ==================== Report Template Endpoints ====================
 
 
-@router.get("/templates", response_model=ReportTemplateListResponse)
+@router.get(
+    "/templates",
+    response_model=ReportTemplateListResponse,
+    summary="List report templates",
+    description="List all report templates with optional filtering by category, "
+    "default status, and search term. Supports pagination.",
+)
 async def list_templates(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -89,7 +95,13 @@ async def list_templates(
     )
 
 
-@router.get("/templates/{template_id}", response_model=ReportTemplateResponse)
+@router.get(
+    "/templates/{template_id}",
+    response_model=ReportTemplateResponse,
+    summary="Get report template",
+    description="Retrieve a single report template by ID.",
+    responses={404: {"description": "Template not found or deleted"}},
+)
 async def get_template(
     template_id: int,
     db: AsyncSession = Depends(get_db),
@@ -110,6 +122,8 @@ async def get_template(
     "/templates",
     response_model=ReportTemplateResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create report template",
+    description="Create a new report template definition.",
 )
 async def create_template(
     template_data: ReportTemplateCreate,
@@ -123,7 +137,13 @@ async def create_template(
     return new_template
 
 
-@router.put("/templates/{template_id}", response_model=ReportTemplateResponse)
+@router.put(
+    "/templates/{template_id}",
+    response_model=ReportTemplateResponse,
+    summary="Update report template",
+    description="Update an existing report template.",
+    responses={404: {"description": "Template not found or deleted"}},
+)
 async def update_template(
     template_id: int,
     template_data: ReportTemplateUpdate,
@@ -147,7 +167,13 @@ async def update_template(
     return updated_template
 
 
-@router.delete("/templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/templates/{template_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete report template",
+    description="Soft-delete a report template.",
+    responses={404: {"description": "Template not found or deleted"}},
+)
 async def delete_template(
     template_id: int,
     db: AsyncSession = Depends(get_db),
@@ -172,7 +198,14 @@ async def delete_template(
 # ==================== Report Generation Endpoints ====================
 
 
-@router.post("/generate", response_model=GenerateReportResponse)
+@router.post(
+    "/generate",
+    response_model=GenerateReportResponse,
+    summary="Generate a report",
+    description="Queue a report for generation from a template. Returns immediately "
+    "with a queued report ID to check status.",
+    responses={404: {"description": "Template not found or deleted"}},
+)
 async def generate_report(
     request: GenerateReportRequest,
     db: AsyncSession = Depends(get_db),
@@ -212,7 +245,12 @@ async def generate_report(
     )
 
 
-@router.get("/queue", response_model=QueuedReportListResponse)
+@router.get(
+    "/queue",
+    response_model=QueuedReportListResponse,
+    summary="List queued reports",
+    description="List queued reports with optional filtering by status and template.",
+)
 async def list_queued_reports(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -288,7 +326,13 @@ async def list_queued_reports(
     )
 
 
-@router.get("/queue/{report_id}", response_model=QueuedReportResponse)
+@router.get(
+    "/queue/{report_id}",
+    response_model=QueuedReportResponse,
+    summary="Get queued report status",
+    description="Get the status and details of a specific queued report.",
+    responses={404: {"description": "Queued report not found"}},
+)
 async def get_queued_report(
     report_id: int,
     db: AsyncSession = Depends(get_db),
@@ -326,7 +370,13 @@ async def get_queued_report(
 # ==================== Distribution Schedule Endpoints ====================
 
 
-@router.get("/schedules", response_model=DistributionScheduleListResponse)
+@router.get(
+    "/schedules",
+    response_model=DistributionScheduleListResponse,
+    summary="List distribution schedules",
+    description="List report distribution schedules with optional filtering "
+    "by active status and template.",
+)
 async def list_schedules(
     active_only: bool = Query(False, description="Show only active schedules"),
     template_id: int | None = None,
@@ -399,6 +449,9 @@ async def list_schedules(
     "/schedules",
     response_model=DistributionScheduleResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create distribution schedule",
+    description="Create a new report distribution schedule linked to a template.",
+    responses={404: {"description": "Template not found or deleted"}},
 )
 async def create_schedule(
     schedule_data: DistributionScheduleCreate,
@@ -438,7 +491,13 @@ async def create_schedule(
     )
 
 
-@router.put("/schedules/{schedule_id}", response_model=DistributionScheduleResponse)
+@router.put(
+    "/schedules/{schedule_id}",
+    response_model=DistributionScheduleResponse,
+    summary="Update distribution schedule",
+    description="Update an existing distribution schedule.",
+    responses={404: {"description": "Schedule not found or deleted"}},
+)
 async def update_schedule(
     schedule_id: int,
     schedule_data: DistributionScheduleUpdate,
@@ -479,7 +538,13 @@ async def update_schedule(
     )
 
 
-@router.delete("/schedules/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/schedules/{schedule_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete distribution schedule",
+    description="Soft-delete a distribution schedule.",
+    responses={404: {"description": "Schedule not found or deleted"}},
+)
 async def delete_schedule(
     schedule_id: int,
     db: AsyncSession = Depends(get_db),
@@ -504,7 +569,13 @@ async def delete_schedule(
 # ==================== Report Settings Endpoints ====================
 
 
-@router.get("/settings", response_model=ReportSettingsSchema)
+@router.get(
+    "/settings",
+    response_model=ReportSettingsSchema,
+    summary="Get report settings",
+    description="Get the current report settings (singleton). Auto-initializes "
+    "with defaults if the settings row does not yet exist.",
+)
 async def get_report_settings(
     db: AsyncSession = Depends(get_db),
 ):
@@ -523,7 +594,13 @@ async def get_report_settings(
     return settings
 
 
-@router.put("/settings", response_model=ReportSettingsSchema)
+@router.put(
+    "/settings",
+    response_model=ReportSettingsSchema,
+    summary="Update report settings",
+    description="Update report settings (partial update). Auto-initializes "
+    "with defaults if the settings row does not yet exist.",
+)
 async def update_report_settings(
     settings_data: ReportSettingsUpdate,
     db: AsyncSession = Depends(get_db),
@@ -555,7 +632,13 @@ async def update_report_settings(
 # ==================== Widget Endpoints ====================
 
 
-@router.get("/widgets", response_model=ReportWidgetListResponse)
+@router.get(
+    "/widgets",
+    response_model=ReportWidgetListResponse,
+    summary="List report widgets",
+    description="List available report widgets for custom report building. "
+    "Supports filtering by widget type.",
+)
 async def list_widgets(
     widget_type: str | None = Query(
         None, description="Filter by type: chart, table, metric, etc."

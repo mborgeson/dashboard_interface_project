@@ -15,7 +15,6 @@ import pytest
 from app.crud.crud_property import property as property_crud
 from app.models import Property
 
-
 # =============================================================================
 # Helpers
 # =============================================================================

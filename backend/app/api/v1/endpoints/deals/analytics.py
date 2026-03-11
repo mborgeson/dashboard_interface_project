@@ -13,6 +13,7 @@ from app.core.permissions import CurrentUser, require_analyst
 from app.crud import deal as deal_crud
 from app.db.session import get_db
 from app.models.extraction import ExtractedValue
+from app.schemas.deal import ProformaReturnsResponse
 
 from .enrichment import PROFORMA_FIELDS
 
@@ -22,6 +23,7 @@ slog = structlog.get_logger("app.api.deals")
 
 @router.get(
     "/{deal_id}/proforma-returns",
+    response_model=ProformaReturnsResponse,
     summary="Get proforma returns",
     description="Retrieve proforma-specific extracted values for a deal including year-specific "
     "IRR, MOIC, NOI per unit, cap rates, DSCR, and debt yield. Values are grouped by category "

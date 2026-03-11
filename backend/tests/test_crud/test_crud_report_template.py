@@ -13,7 +13,11 @@ import pytest
 
 from app.crud.crud_report_template import (
     distribution_schedule as schedule_crud,
+)
+from app.crud.crud_report_template import (
     queued_report as queued_crud,
+)
+from app.crud.crud_report_template import (
     report_template as template_crud,
 )
 from app.models.report_template import (
@@ -25,7 +29,6 @@ from app.models.report_template import (
     ReportTemplate,
     ScheduleFrequency,
 )
-
 
 # =============================================================================
 # Helpers

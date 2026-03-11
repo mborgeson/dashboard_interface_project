@@ -7,7 +7,6 @@ import pytest
 
 from app.services.geocoding import geocode_address, geocode_with_fallback
 
-
 # ---------------------------------------------------------------------------
 # geocode_address — successful lookup
 # ---------------------------------------------------------------------------

@@ -8,11 +8,17 @@ try/except blocks in individual endpoint handlers.
 Exception handling priority:
 1. HTTPException — passed through to FastAPI's built-in handler
 2. SQLAlchemyError — logged, returns 500 with generic message
-3. pydantic ValidationError — returns 422 with details
+3. pydantic ValidationError — returns 422 with sanitized details
 4. PermissionError — returns 403
-5. ValueError — returns 400
+5. ValueError — returns 400 with sanitized message
 6. Generic Exception — logged, returns 500 with request_id for correlation
+
+Security: Error messages are sanitized before being returned to clients.
+Internal details (file paths, SQL queries, tracebacks) are logged server-side
+but never exposed in API responses.
 """
+
+import re
 
 import structlog
 from fastapi import HTTPException, Request
@@ -25,6 +31,40 @@ from starlette.responses import Response
 from app.middleware.request_id import get_request_id
 
 slog = structlog.get_logger("app.middleware.error_handler")
+
+# Patterns that indicate internal details that should not be exposed to clients
+_INTERNAL_DETAIL_PATTERNS = [
+    re.compile(r"(File|Traceback|at 0x[0-9a-fA-F]+)", re.IGNORECASE),
+    re.compile(r"(/[a-z_]+/[a-z_]+\.[a-z]+)", re.IGNORECASE),  # file paths
+    re.compile(r"(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE)\s", re.IGNORECASE),  # SQL
+    re.compile(r"(psycopg|asyncpg|sqlalchemy\.|sqlite3\.)", re.IGNORECASE),  # DB libs
+    re.compile(r"(\.py:\d+|line \d+)", re.IGNORECASE),  # stack frames
+]
+
+_FALLBACK_MESSAGES = {
+    "value_error": "Invalid request. Please check your input and try again.",
+    "validation_error": "Request validation failed. Please check your input.",
+    "permission_error": "Permission denied",
+}
+
+
+def _sanitize_error_message(message: str, error_type: str) -> str:
+    """Sanitize an error message for client consumption.
+
+    Returns the original message if it appears safe, or a generic fallback
+    if the message contains internal details (file paths, SQL, tracebacks).
+    """
+    if not message:
+        return _FALLBACK_MESSAGES.get(error_type, "An error occurred")
+    for pattern in _INTERNAL_DETAIL_PATTERNS:
+        if pattern.search(message):
+            slog.debug(
+                "error_message_sanitized",
+                error_type=error_type,
+                reason="internal details detected",
+            )
+            return _FALLBACK_MESSAGES.get(error_type, "An error occurred")
+    return message
 
 
 def _build_error_response(
@@ -80,6 +120,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             )
         except ValidationError as exc:
             rid = get_request_id() or "unknown"
+            raw_message = str(exc)
             slog.warning(
                 "validation_error",
                 request_id=rid,
@@ -87,41 +128,48 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
                 method=request.method,
                 error_type="validation_error",
                 error_count=exc.error_count(),
+                # Full details logged server-side only
+                error_detail=raw_message,
             )
             return _build_error_response(
                 status_code=422,
-                detail=str(exc),
+                detail=_sanitize_error_message(raw_message, "validation_error"),
                 error_type="validation_error",
                 request_id=rid,
             )
         except PermissionError as exc:
             rid = get_request_id() or "unknown"
+            raw_message = str(exc)
             slog.warning(
                 "permission_denied",
                 request_id=rid,
                 path=request.url.path,
                 method=request.method,
                 error_type="permission_error",
+                # Full details logged server-side only
+                error_detail=raw_message,
             )
             return _build_error_response(
                 status_code=403,
-                detail=str(exc) or "Permission denied",
+                detail=_sanitize_error_message(raw_message, "permission_error"),
                 error_type="permission_error",
                 request_id=rid,
             )
         except ValueError as exc:
             rid = get_request_id() or "unknown"
+            raw_message = str(exc)
             slog.warning(
                 "value_error",
                 request_id=rid,
                 path=request.url.path,
                 method=request.method,
                 error_type="value_error",
-                error=str(exc),
+                # Full details logged server-side only
+                error_detail=raw_message,
             )
             return _build_error_response(
                 status_code=400,
-                detail=str(exc),
+                detail=_sanitize_error_message(raw_message, "value_error"),
                 error_type="value_error",
                 request_id=rid,
             )

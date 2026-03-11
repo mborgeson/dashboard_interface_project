@@ -23,7 +23,6 @@ from app.services.enrichment import (
     update_property_columns,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers — lightweight property stand-in
 # ---------------------------------------------------------------------------
@@ -572,7 +571,7 @@ class TestBuildBaseExpenses:
         assert "realEstateTaxes" not in result
 
     def test_all_expense_fields(self):
-        fv = {k: 100.0 for k in BASE_EXPENSE_FIELD_MAP}
+        fv = dict.fromkeys(BASE_EXPENSE_FIELD_MAP, 100.0)
         result = build_base_expenses(fv, total_units=10)
         assert len(result) == len(BASE_EXPENSE_FIELD_MAP)
         for json_key in BASE_EXPENSE_FIELD_MAP.values():

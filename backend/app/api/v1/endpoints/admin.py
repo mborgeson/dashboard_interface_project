@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.permissions import CurrentUser, get_current_user, require_admin
 from app.db.session import get_db
 from app.models.audit_log import AuditLog
+from app.schemas.admin import AuditLogEntry, AuditLogListResponse
 from app.services import audit_service
 from app.services.data_extraction.scheduler import (
     get_data_freshness,
@@ -22,7 +23,12 @@ from app.services.data_extraction.scheduler import (
 router = APIRouter(dependencies=[Depends(require_admin)])
 
 
-@router.post("/extract/fred")
+@router.post(
+    "/extract/fred",
+    summary="Trigger FRED extraction",
+    description="Queue a background FRED data extraction job. "
+    "Supports incremental (default) or full extraction.",
+)
 async def extract_fred(
     background_tasks: BackgroundTasks,
     request: Request,
@@ -44,7 +50,11 @@ async def extract_fred(
     return {"status": "started", "source": "fred", "incremental": incremental}
 
 
-@router.post("/extract/costar")
+@router.post(
+    "/extract/costar",
+    summary="Trigger CoStar extraction",
+    description="Queue a background CoStar market data extraction job.",
+)
 async def extract_costar(
     background_tasks: BackgroundTasks,
     request: Request,
@@ -65,7 +75,11 @@ async def extract_costar(
     return {"status": "started", "source": "costar"}
 
 
-@router.post("/extract/census")
+@router.post(
+    "/extract/census",
+    summary="Trigger Census extraction",
+    description="Queue a background U.S. Census data extraction job.",
+)
 async def extract_census(
     background_tasks: BackgroundTasks,
     request: Request,
@@ -86,13 +100,27 @@ async def extract_census(
     return {"status": "started", "source": "census"}
 
 
-@router.get("/market-data-status")
+@router.get(
+    "/market-data-status",
+    summary="Market data freshness status",
+    description="Get data freshness and last-extraction timestamps for all "
+    "configured market data sources (FRED, CoStar, Census).",
+)
 async def market_data_status():
     """Get data freshness and extraction status for all market data sources."""
     return get_data_freshness()
 
 
-@router.get("/audit-log")
+@router.get(
+    "/audit-log",
+    response_model=AuditLogListResponse,
+    summary="List audit log entries",
+    description="Retrieve paginated admin action audit trail with optional filters "
+    "by action, user, resource type, and date range. Ordered newest first.",
+    responses={
+        200: {"description": "Paginated audit log entries"},
+    },
+)
 async def list_audit_log(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1, description="Page number"),
@@ -142,24 +170,24 @@ async def list_audit_log(
     result = await db.execute(query)
     entries = result.scalars().all()
 
-    return {
-        "items": [
-            {
-                "id": entry.id,
-                "timestamp": entry.timestamp.isoformat() if entry.timestamp else None,
-                "user_id": entry.user_id,
-                "user_email": entry.user_email,
-                "action": entry.action,
-                "resource_type": entry.resource_type,
-                "resource_id": entry.resource_id,
-                "details": entry.details,
-                "ip_address": entry.ip_address,
-                "user_agent": entry.user_agent,
-            }
+    return AuditLogListResponse(
+        items=[
+            AuditLogEntry(
+                id=entry.id,
+                timestamp=entry.timestamp.isoformat() if entry.timestamp else None,
+                user_id=entry.user_id,
+                user_email=entry.user_email,
+                action=entry.action,
+                resource_type=entry.resource_type,
+                resource_id=entry.resource_id,
+                details=entry.details,
+                ip_address=entry.ip_address,
+                user_agent=entry.user_agent,
+            )
             for entry in entries
         ],
-        "total": total,
-        "page": page,
-        "per_page": per_page,
-        "pages": (total + per_page - 1) // per_page if total > 0 else 0,
-    }
+        total=total,
+        page=page,
+        per_page=per_page,
+        pages=(total + per_page - 1) // per_page if total > 0 else 0,
+    )

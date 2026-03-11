@@ -13,7 +13,6 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 from loguru import logger
-from pydantic import BaseModel
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +28,32 @@ from app.models.construction import (
     ConstructionPermitData,
     ConstructionProject,
     ConstructionSourceLog,
+)
+from app.schemas.construction import (
+    BackfillResponse,
+    ClassificationBreakdownItem,
+    DeliveryTimelineItem,
+    EmploymentPoint,
+    FetchAllResponse,
+    PaginatedProjectsResponse,
+    PermitTrendPoint,
+    PermitVelocityPoint,
+    PipelineFunnelItem,
+    PipelineSummaryItem,
+    ProjectRecord,
+    SubmarketPipelineItem,
+)
+from app.schemas.construction import (
+    ConstructionDataQualityReport as DataQualityReport,
+)
+from app.schemas.construction import (
+    ConstructionFilterOptionsResponse as FilterOptionsResponse,
+)
+from app.schemas.construction import (
+    ConstructionImportResponse as ImportResponse,
+)
+from app.schemas.construction import (
+    ConstructionImportStatusResponse as ImportStatusResponse,
 )
 
 router = APIRouter(dependencies=[Depends(require_viewer)])
@@ -46,140 +71,6 @@ CONSTRUCTION_DATA_DIR = os.path.join(
     "Phoenix",
 )
 CONSTRUCTION_DATA_DIR = os.path.normpath(CONSTRUCTION_DATA_DIR)
-
-
-# ── Pydantic Response Schemas ─────────────────────────────────────────────────
-
-
-class ProjectRecord(BaseModel):
-    id: int
-    project_name: str | None = None
-    project_address: str | None = None
-    city: str | None = None
-    submarket_cluster: str | None = None
-    pipeline_status: str | None = None
-    primary_classification: str | None = None
-    number_of_units: int | None = None
-    number_of_stories: int | None = None
-    year_built: int | None = None
-    developer_name: str | None = None
-    owner_name: str | None = None
-    latitude: float | None = None
-    longitude: float | None = None
-    building_sf: float | None = None
-    avg_unit_sf: float | None = None
-    star_rating: str | None = None
-    rent_type: str | None = None
-    vacancy_pct: float | None = None
-    estimated_delivery_date: date | None = None
-    construction_begin: str | None = None
-    for_sale_price: float | None = None
-    source_type: str | None = None
-
-
-class PaginatedProjectsResponse(BaseModel):
-    data: list[ProjectRecord]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
-
-
-class FilterOptionsResponse(BaseModel):
-    submarkets: list[str]
-    cities: list[str]
-    statuses: list[str]
-    classifications: list[str]
-    rent_types: list[str]
-
-
-class PipelineSummaryItem(BaseModel):
-    status: str
-    project_count: int
-    total_units: int
-
-
-class PipelineFunnelItem(BaseModel):
-    status: str
-    project_count: int
-    total_units: int
-    cumulative_units: int
-
-
-class PermitTrendPoint(BaseModel):
-    period: str
-    source: str
-    series_id: str
-    value: float
-
-
-class EmploymentPoint(BaseModel):
-    period: str
-    series_id: str
-    value: float
-
-
-class PermitVelocityPoint(BaseModel):
-    source: str
-    period: str
-    count: int
-    total_value: float
-
-
-class SubmarketPipelineItem(BaseModel):
-    submarket: str
-    total_projects: int
-    total_units: int
-    proposed: int
-    under_construction: int
-    delivered: int
-
-
-class ClassificationBreakdownItem(BaseModel):
-    classification: str
-    project_count: int
-    total_units: int
-
-
-class DeliveryTimelineItem(BaseModel):
-    quarter: str  # e.g. "Q1 2026"
-    total_units: int
-    project_count: int
-
-
-class DataQualityReport(BaseModel):
-    total_projects: int
-    projects_by_source: dict[str, int]
-    source_logs: list[dict[str, Any]]
-    null_rates: dict[str, float]
-    permit_data_count: int
-    employment_data_count: int
-
-
-class ImportResponse(BaseModel):
-    success: bool
-    message: str
-    rows_imported: int = 0
-    rows_updated: int = 0
-
-
-class ImportStatusResponse(BaseModel):
-    unimported_files: list[str]
-    last_imported_file: str | None = None
-    last_import_date: str | None = None
-    total_projects: int = 0
-
-
-class FetchAllResponse(BaseModel):
-    success: bool
-    message: str
-    results: dict[str, Any] = {}
-
-
-class BackfillResponse(BaseModel):
-    success: bool
-    message: str
-    rows_updated: int = 0
 
 
 # ── Shared filter helper ──────────────────────────────────────────────────────

@@ -32,7 +32,16 @@ from app.schemas.user import (
 router = APIRouter()
 
 
-@router.get("/", response_model=UserListResponse)
+@router.get(
+    "/",
+    response_model=UserListResponse,
+    summary="List users",
+    description="List all users with optional filtering by role, department, and "
+    "active status. Requires admin role. Supports pagination.",
+    responses={
+        200: {"description": "Paginated list of users"},
+    },
+)
 async def list_users(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -77,7 +86,18 @@ async def list_users(
     )
 
 
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+    summary="Get user by ID",
+    description="Retrieve a single user by their ID. Users can view their own "
+    "profile; admins can view any user.",
+    responses={
+        200: {"description": "User details"},
+        403: {"description": "Not authorized to view this user"},
+        404: {"description": "User not found"},
+    },
+)
 async def get_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
@@ -106,7 +126,18 @@ async def get_user(
     return user
 
 
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a user",
+    description="Create a new user account. Requires admin role. "
+    "Returns 400 if the email is already registered.",
+    responses={
+        201: {"description": "User created successfully"},
+        400: {"description": "Email already registered"},
+    },
+)
 async def create_user(
     user_data: UserCreate,
     db: AsyncSession = Depends(get_db),
@@ -133,7 +164,19 @@ async def create_user(
     return new_user
 
 
-@router.put("/{user_id}", response_model=UserResponse)
+@router.put(
+    "/{user_id}",
+    response_model=UserResponse,
+    summary="Update a user",
+    description="Update an existing user's profile. Users can update their own "
+    "profile (limited fields). Admins can update any user with all fields.",
+    responses={
+        200: {"description": "User updated successfully"},
+        400: {"description": "Email already in use"},
+        403: {"description": "Not authorized or restricted fields attempted"},
+        404: {"description": "User not found"},
+    },
+)
 async def update_user(
     user_id: int,
     user_data: UserUpdate,
@@ -190,7 +233,18 @@ async def update_user(
     return updated_user
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Deactivate a user",
+    description="Soft-delete a user by setting is_active to False. "
+    "Requires admin role. Admins cannot deactivate themselves.",
+    responses={
+        204: {"description": "User deactivated successfully"},
+        400: {"description": "Cannot deactivate your own account"},
+        404: {"description": "User not found"},
+    },
+)
 async def delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
@@ -223,7 +277,15 @@ async def delete_user(
     return None
 
 
-@router.post("/{user_id}/verify")
+@router.post(
+    "/{user_id}/verify",
+    summary="Verify a user",
+    description="Mark a user's email as verified. Requires admin role.",
+    responses={
+        200: {"description": "User verified successfully"},
+        404: {"description": "User not found"},
+    },
+)
 async def verify_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
