@@ -121,6 +121,29 @@ def reset_rate_limiter():
         limiter.reset()
 
 
+@pytest.fixture(autouse=True)
+def _clear_token_blacklist_state():
+    """
+    Clear token blacklist shared state between tests (T-DEBT-013).
+
+    The in-memory blacklist is a module-level dict that persists across tests.
+    Without cleanup, a token blacklisted in one test would affect subsequent
+    tests, causing flaky failures or false passes.
+
+    This fixture clears both the memory store and resets the Redis reference
+    to ensure each test starts with a clean blacklist.
+    """
+    from app.core.token_blacklist import _memory_blacklist, token_blacklist
+
+    _memory_blacklist.clear()
+    token_blacklist._redis = None
+
+    yield
+
+    _memory_blacklist.clear()
+    token_blacklist._redis = None
+
+
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """
@@ -298,8 +321,10 @@ async def multiple_deals(db_session: AsyncSession, test_user: User) -> list[Deal
 @pytest_asyncio.fixture
 async def auth_headers(test_user: User) -> dict:
     """
-    Generate authentication headers for API requests.
-    NOTE: Adjust this based on your actual auth implementation.
+    Generate analyst authentication headers for API requests.
+
+    Use for: GET endpoints, analyst-level POST/PUT (e.g., deal activity).
+    For admin-level mutations (create/update/delete resources), use admin_auth_headers.
     """
     from app.core.security import create_access_token
 
@@ -309,8 +334,45 @@ async def auth_headers(test_user: User) -> dict:
 
 @pytest_asyncio.fixture
 async def admin_auth_headers(admin_user: User) -> dict:
-    """Generate admin authentication headers."""
+    """
+    Generate admin authentication headers for API requests.
+
+    Use for: POST/PUT/DELETE on admin-only endpoints (user management,
+    resource creation/deletion that requires require_manager).
+    """
     from app.core.security import create_access_token
 
     token = create_access_token(subject=str(admin_user.id))
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture
+async def viewer_user(db_session: AsyncSession) -> User:
+    """Create a viewer (read-only) test user."""
+    user = User(
+        email="viewer@example.com",
+        hashed_password=get_password_hash("viewerpassword123"),
+        full_name="Viewer User",
+        role="viewer",
+        is_active=True,
+        is_verified=True,
+        department="Reporting",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest_asyncio.fixture
+async def viewer_auth_headers(viewer_user: User) -> dict:
+    """
+    Generate viewer (read-only) authentication headers for API requests.
+
+    Use for: Testing that viewer-level users are denied access to
+    analyst/manager/admin endpoints (expect 403).
+    """
+    from app.core.security import create_access_token
+
+    token = create_access_token(subject=str(viewer_user.id))
     return {"Authorization": f"Bearer {token}"}

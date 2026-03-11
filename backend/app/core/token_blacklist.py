@@ -3,6 +3,10 @@ Token blacklist implementation for JWT invalidation.
 
 Uses async Redis for non-blocking O(1) lookups with automatic expiration.
 Falls back to in-memory store if Redis unavailable.
+
+The in-memory fallback uses lazy TTL eviction: expired entries are removed
+on access, and a periodic sweep runs automatically when the store exceeds
+a configurable high-water mark (default 1000 entries).
 """
 
 import time
@@ -13,6 +17,11 @@ from app.core.config import settings
 
 # In-memory fallback store
 _memory_blacklist: dict[str, float] = {}
+
+# Eviction thresholds for the in-memory store.
+# When the store exceeds _EVICTION_HIGH_WATER entries, a cleanup sweep runs
+# automatically on the next add/check call.
+_EVICTION_HIGH_WATER: int = 1000
 
 
 class TokenBlacklist:
@@ -146,6 +155,15 @@ class TokenBlacklist:
             if key in _memory_blacklist:
                 del _memory_blacklist[key]
 
+    def _maybe_evict(self) -> None:
+        """Run cleanup sweep if the memory store exceeds the high-water mark.
+
+        This prevents unbounded memory growth from accumulated expired tokens
+        by lazily sweeping on access rather than requiring a background task.
+        """
+        if len(_memory_blacklist) > _EVICTION_HIGH_WATER:
+            self.cleanup_memory()
+
     async def add(self, token_jti: str, expires_in: int = 1800) -> None:
         """
         Add token to blacklist with expiration.
@@ -168,6 +186,7 @@ class TokenBlacklist:
                 # Fallback to memory
                 _memory_blacklist[token_jti] = time.time() + expires_in
         else:
+            self._maybe_evict()
             _memory_blacklist[token_jti] = time.time() + expires_in
             logger.debug(f"Token blacklisted in memory: {token_jti[:8]}...")
 
@@ -197,7 +216,12 @@ class TokenBlacklist:
             return self._check_memory_blacklist(token_jti)
 
     def _check_memory_blacklist(self, token_jti: str) -> bool:
-        """Check in-memory blacklist with expiration handling."""
+        """Check in-memory blacklist with expiration handling.
+
+        Performs lazy eviction: removes the checked entry if expired,
+        and triggers a full sweep when the store exceeds the high-water mark.
+        """
+        self._maybe_evict()
         exp = _memory_blacklist.get(token_jti, 0)
         if exp > time.time():
             return True

@@ -1,11 +1,56 @@
-"""Tests for geocoding service (F-060)."""
+"""Tests for geocoding service (F-060).
 
+T-DEBT-009: Refactored to use a reusable mock_http_client fixture instead of
+repeating the 5-line AsyncClient mock setup in every test.
+"""
+
+from contextlib import contextmanager
 from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
 
 from app.services.geocoding import geocode_address, geocode_with_fallback
+
+# =============================================================================
+# Shared test double — eliminates repetitive mock setup (T-DEBT-009)
+# =============================================================================
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+
+
+def _make_mock_response(status_code: int = 200, json_data=None) -> httpx.Response:
+    """Create a mock httpx.Response with the given status code and JSON."""
+    kwargs = {"request": httpx.Request("GET", NOMINATIM_URL)}
+    if json_data is not None:
+        kwargs["json"] = json_data
+    return httpx.Response(status_code, **kwargs)
+
+
+@contextmanager
+def mock_http_client(response=None, side_effect=None):
+    """Context manager providing a mock httpx.AsyncClient.
+
+    Usage:
+        with mock_http_client(response=_make_mock_response(200, [...])) as client:
+            result = await geocode_address(...)
+            # client.get was called with the expected params
+    """
+    with patch("app.services.geocoding.httpx.AsyncClient") as mock_cls:
+        mock_client = AsyncMock()
+        if side_effect is not None:
+            mock_client.get.side_effect = side_effect
+        elif response is not None:
+            mock_client.get.return_value = response
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_cls.return_value = mock_client
+        yield mock_client
+
+
+# Standard successful response for reuse
+_SUCCESS_RESPONSE = _make_mock_response(200, [{"lat": "33.4484", "lon": "-112.0740"}])
+
 
 # ---------------------------------------------------------------------------
 # geocode_address — successful lookup
@@ -15,19 +60,7 @@ from app.services.geocoding import geocode_address, geocode_with_fallback
 @pytest.mark.asyncio
 async def test_geocode_address_success():
     """Successful geocoding returns (lat, lon) tuple."""
-    mock_response = httpx.Response(
-        200,
-        json=[{"lat": "33.4484", "lon": "-112.0740"}],
-        request=httpx.Request("GET", "https://nominatim.openstreetmap.org/search"),
-    )
-
-    with patch("app.services.geocoding.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    with mock_http_client(response=_SUCCESS_RESPONSE) as client:
         result = await geocode_address("123 Main St", "Phoenix", "AZ", "85001")
 
     assert result is not None
@@ -36,7 +69,7 @@ async def test_geocode_address_success():
     assert lon == pytest.approx(-112.0740)
 
     # Verify the request was made with correct params
-    call_kwargs = mock_client.get.call_args
+    call_kwargs = client.get.call_args
     assert call_kwargs[1]["params"]["q"] == "123 Main St, Phoenix, AZ, 85001"
     assert call_kwargs[1]["params"]["format"] == "json"
     assert call_kwargs[1]["params"]["countrycodes"] == "us"
@@ -46,23 +79,11 @@ async def test_geocode_address_success():
 @pytest.mark.asyncio
 async def test_geocode_address_success_without_zip():
     """Geocoding works without zip code."""
-    mock_response = httpx.Response(
-        200,
-        json=[{"lat": "33.4484", "lon": "-112.0740"}],
-        request=httpx.Request("GET", "https://nominatim.openstreetmap.org/search"),
-    )
-
-    with patch("app.services.geocoding.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    with mock_http_client(response=_SUCCESS_RESPONSE) as client:
         result = await geocode_address("123 Main St", "Phoenix", "AZ")
 
     assert result is not None
-    call_kwargs = mock_client.get.call_args
+    call_kwargs = client.get.call_args
     assert call_kwargs[1]["params"]["q"] == "123 Main St, Phoenix, AZ"
 
 
@@ -74,19 +95,8 @@ async def test_geocode_address_success_without_zip():
 @pytest.mark.asyncio
 async def test_geocode_address_no_results():
     """Empty results array returns None."""
-    mock_response = httpx.Response(
-        200,
-        json=[],
-        request=httpx.Request("GET", "https://nominatim.openstreetmap.org/search"),
-    )
-
-    with patch("app.services.geocoding.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    response = _make_mock_response(200, [])
+    with mock_http_client(response=response):
         result = await geocode_address("Nonexistent St", "Nowhere", "XX")
 
     assert result is None
@@ -100,13 +110,7 @@ async def test_geocode_address_no_results():
 @pytest.mark.asyncio
 async def test_geocode_address_network_error():
     """Network errors return None instead of raising."""
-    with patch("app.services.geocoding.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get.side_effect = httpx.ConnectError("Connection refused")
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    with mock_http_client(side_effect=httpx.ConnectError("Connection refused")):
         result = await geocode_address("123 Main St", "Phoenix", "AZ")
 
     assert result is None
@@ -115,13 +119,7 @@ async def test_geocode_address_network_error():
 @pytest.mark.asyncio
 async def test_geocode_address_timeout_error():
     """Timeout errors return None."""
-    with patch("app.services.geocoding.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get.side_effect = httpx.TimeoutException("Request timed out")
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    with mock_http_client(side_effect=httpx.TimeoutException("Request timed out")):
         result = await geocode_address("123 Main St", "Phoenix", "AZ")
 
     assert result is None
@@ -130,18 +128,8 @@ async def test_geocode_address_timeout_error():
 @pytest.mark.asyncio
 async def test_geocode_address_http_error():
     """HTTP 500 error returns None."""
-    mock_response = httpx.Response(
-        500,
-        request=httpx.Request("GET", "https://nominatim.openstreetmap.org/search"),
-    )
-
-    with patch("app.services.geocoding.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    response = _make_mock_response(500)
+    with mock_http_client(response=response):
         result = await geocode_address("123 Main St", "Phoenix", "AZ")
 
     assert result is None
@@ -150,19 +138,8 @@ async def test_geocode_address_http_error():
 @pytest.mark.asyncio
 async def test_geocode_address_invalid_json_response():
     """Malformed JSON in lat/lon fields returns None."""
-    mock_response = httpx.Response(
-        200,
-        json=[{"lat": "not_a_number", "lon": "-112.0740"}],
-        request=httpx.Request("GET", "https://nominatim.openstreetmap.org/search"),
-    )
-
-    with patch("app.services.geocoding.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    response = _make_mock_response(200, [{"lat": "not_a_number", "lon": "-112.0740"}])
+    with mock_http_client(response=response):
         result = await geocode_address("123 Main St", "Phoenix", "AZ")
 
     # float("not_a_number") raises ValueError, caught by except block
@@ -172,19 +149,8 @@ async def test_geocode_address_invalid_json_response():
 @pytest.mark.asyncio
 async def test_geocode_address_missing_keys():
     """Response missing lat/lon keys returns None."""
-    mock_response = httpx.Response(
-        200,
-        json=[{"display_name": "Phoenix, AZ"}],
-        request=httpx.Request("GET", "https://nominatim.openstreetmap.org/search"),
-    )
-
-    with patch("app.services.geocoding.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    response = _make_mock_response(200, [{"display_name": "Phoenix, AZ"}])
+    with mock_http_client(response=response):
         result = await geocode_address("123 Main St", "Phoenix", "AZ")
 
     assert result is None
@@ -219,45 +185,21 @@ async def test_geocode_address_whitespace_only():
 @pytest.mark.asyncio
 async def test_geocode_address_strips_blank_parts():
     """Blank parts are excluded from the query string."""
-    mock_response = httpx.Response(
-        200,
-        json=[{"lat": "33.4484", "lon": "-112.0740"}],
-        request=httpx.Request("GET", "https://nominatim.openstreetmap.org/search"),
-    )
-
-    with patch("app.services.geocoding.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    with mock_http_client(response=_SUCCESS_RESPONSE) as client:
         # Empty street, should only use city + state
         result = await geocode_address("", "Phoenix", "AZ")
 
-    call_kwargs = mock_client.get.call_args
+    call_kwargs = client.get.call_args
     assert call_kwargs[1]["params"]["q"] == "Phoenix, AZ"
 
 
 @pytest.mark.asyncio
 async def test_geocode_address_none_zip():
     """None zip_code is filtered out of query."""
-    mock_response = httpx.Response(
-        200,
-        json=[{"lat": "33.4484", "lon": "-112.0740"}],
-        request=httpx.Request("GET", "https://nominatim.openstreetmap.org/search"),
-    )
-
-    with patch("app.services.geocoding.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    with mock_http_client(response=_SUCCESS_RESPONSE) as client:
         result = await geocode_address("123 Main St", "Phoenix", "AZ", None)
 
-    call_kwargs = mock_client.get.call_args
+    call_kwargs = client.get.call_args
     assert call_kwargs[1]["params"]["q"] == "123 Main St, Phoenix, AZ"
 
 
@@ -269,22 +211,11 @@ async def test_geocode_address_none_zip():
 @pytest.mark.asyncio
 async def test_geocode_address_sends_user_agent():
     """Nominatim requires a User-Agent header; verify it is sent."""
-    mock_response = httpx.Response(
-        200,
-        json=[{"lat": "33.0", "lon": "-112.0"}],
-        request=httpx.Request("GET", "https://nominatim.openstreetmap.org/search"),
-    )
-
-    with patch("app.services.geocoding.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    response = _make_mock_response(200, [{"lat": "33.0", "lon": "-112.0"}])
+    with mock_http_client(response=response) as client:
         await geocode_address("123 Main St", "Phoenix", "AZ")
 
-    call_kwargs = mock_client.get.call_args
+    call_kwargs = client.get.call_args
     assert "User-Agent" in call_kwargs[1]["headers"]
     assert "BRCapital" in call_kwargs[1]["headers"]["User-Agent"]
 

@@ -3,8 +3,11 @@ Tests for ErrorHandlerMiddleware.
 
 Verifies that the middleware catches common exception types and returns
 structured JSON error responses with request_id correlation.
+
+T-DEBT-006: Edge cases for sanitization, empty messages, and concurrent errors.
 """
 
+import pytest
 from unittest.mock import patch
 
 from fastapi import FastAPI, HTTPException
@@ -12,7 +15,10 @@ from httpx import ASGITransport, AsyncClient
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.middleware.error_handler import ErrorHandlerMiddleware
+from app.middleware.error_handler import (
+    ErrorHandlerMiddleware,
+    _sanitize_error_message,
+)
 from app.middleware.request_id import RequestIDMiddleware
 
 REQUEST_ID_HEADER = "X-Request-ID"
@@ -57,6 +63,26 @@ def _create_test_app() -> FastAPI:
     @test_app.get("/generic-error")
     async def generic_error_endpoint():
         raise RuntimeError("Something broke unexpectedly")
+
+    @test_app.get("/value-error-with-path")
+    async def value_error_with_path_endpoint():
+        raise ValueError("Error in /app/models/deal.py:42")
+
+    @test_app.get("/value-error-with-sql")
+    async def value_error_with_sql_endpoint():
+        raise ValueError("SELECT * FROM users WHERE id = 1")
+
+    @test_app.get("/value-error-empty")
+    async def value_error_empty_endpoint():
+        raise ValueError("")
+
+    @test_app.get("/permission-error-with-traceback")
+    async def permission_error_with_traceback_endpoint():
+        raise PermissionError("Traceback (most recent call last): File app.py line 10")
+
+    @test_app.post("/post-error")
+    async def post_error_endpoint():
+        raise ValueError("POST also handled")
 
     return test_app
 
@@ -224,3 +250,145 @@ async def test_error_response_json_structure():
             assert "request_id" in body, f"Missing 'request_id' for {path}"
             assert "type" in body, f"Missing 'type' for {path}"
             assert body["type"] == expected_type, f"Wrong type for {path}"
+
+
+# =============================================================================
+# T-DEBT-006: Edge case tests — sanitization, empty messages, POST errors
+# =============================================================================
+
+
+async def test_value_error_with_file_path_sanitized():
+    """ValueError containing file paths should be sanitized."""
+    app = _create_test_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.get("/value-error-with-path")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["type"] == "value_error"
+    # Internal file path should NOT appear in the response
+    assert "/app/models/deal.py" not in body["detail"]
+    assert "line" not in body["detail"].lower() or "check your input" in body["detail"].lower()
+
+
+async def test_value_error_with_sql_sanitized():
+    """ValueError containing SQL fragments should be sanitized."""
+    app = _create_test_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.get("/value-error-with-sql")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    # SQL should NOT be exposed to the client
+    assert "SELECT" not in body["detail"]
+    assert "check your input" in body["detail"].lower()
+
+
+async def test_value_error_empty_message():
+    """ValueError with empty string should use fallback message."""
+    app = _create_test_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.get("/value-error-empty")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["type"] == "value_error"
+    # Empty message should be replaced with fallback
+    assert len(body["detail"]) > 0
+    assert "check your input" in body["detail"].lower()
+
+
+async def test_permission_error_with_traceback_sanitized():
+    """PermissionError containing traceback info should be sanitized."""
+    app = _create_test_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.get("/permission-error-with-traceback")
+
+    assert resp.status_code == 403
+    body = resp.json()
+    # Traceback should NOT be exposed
+    assert "Traceback" not in body["detail"]
+    assert "most recent call" not in body["detail"].lower()
+
+
+async def test_post_request_error_handled():
+    """Errors on POST requests should also be caught by middleware."""
+    app = _create_test_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post("/post-error")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["type"] == "value_error"
+    assert "request_id" in body
+
+
+# =============================================================================
+# T-DEBT-006: Unit tests for _sanitize_error_message
+# =============================================================================
+
+
+def test_sanitize_safe_message():
+    """Safe messages should pass through unchanged."""
+    assert _sanitize_error_message("Invalid email format", "value_error") == "Invalid email format"
+
+
+def test_sanitize_empty_message():
+    """Empty message should return fallback."""
+    result = _sanitize_error_message("", "value_error")
+    assert "check your input" in result.lower()
+
+
+def test_sanitize_file_path_message():
+    """Messages with file paths should be replaced with fallback."""
+    result = _sanitize_error_message(
+        "Error in /app/models/deal.py at line 42", "value_error"
+    )
+    assert "/app/" not in result
+    assert "check your input" in result.lower()
+
+
+def test_sanitize_sql_message():
+    """Messages with SQL fragments should be replaced with fallback."""
+    result = _sanitize_error_message(
+        "SELECT id FROM properties WHERE name = 'test'", "value_error"
+    )
+    assert "SELECT" not in result
+
+
+def test_sanitize_traceback_message():
+    """Messages with traceback indicators should be replaced with fallback."""
+    result = _sanitize_error_message(
+        "Traceback (most recent call last):\n  File app.py", "value_error"
+    )
+    assert "Traceback" not in result
+
+
+def test_sanitize_unknown_error_type():
+    """Unknown error type should use generic fallback."""
+    result = _sanitize_error_message("", "unknown_type")
+    assert result == "An error occurred"
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "psycopg2.OperationalError: connection refused",
+        "sqlalchemy.exc.IntegrityError: duplicate key",
+        "asyncpg.exceptions.ConnectionDoesNotExistError",
+        "sqlite3.OperationalError: table not found",
+    ],
+)
+def test_sanitize_db_library_messages(message):
+    """Messages mentioning database libraries should be sanitized."""
+    result = _sanitize_error_message(message, "value_error")
+    # None of the db library names should appear in the sanitized output
+    assert "psycopg" not in result
+    assert "sqlalchemy" not in result.lower()
+    assert "asyncpg" not in result
+    assert "sqlite3" not in result

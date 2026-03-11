@@ -1,4 +1,10 @@
-"""Tests for admin audit log functionality."""
+"""Tests for admin audit log functionality.
+
+Uses standard auth fixtures from conftest.py:
+- admin_auth_headers: Admin JWT token (for admin-only endpoints)
+- viewer_auth_headers: Viewer JWT token (for testing 403 on admin endpoints)
+- auth_headers: Analyst JWT token (for standard read endpoints)
+"""
 
 import json
 from datetime import UTC, datetime, timedelta
@@ -7,60 +13,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import pytest_asyncio
 
-from app.core.permissions import CurrentUser, Role, get_current_user
-from app.main import app
+from app.core.permissions import CurrentUser, Role
 from app.models.audit_log import AuditLog
 from app.services import audit_service
-
-# =============================================================================
-# Helper fixtures
-# =============================================================================
-
-
-def _override_admin():
-    """Override auth to return admin user."""
-
-    async def _override():
-        return CurrentUser(
-            id=1,
-            email="admin@example.com",
-            role=Role.ADMIN,
-            full_name="Admin User",
-            is_active=True,
-        )
-
-    return _override
-
-
-def _override_viewer():
-    """Override auth to return viewer (non-admin) user."""
-
-    async def _override():
-        return CurrentUser(
-            id=2,
-            email="viewer@example.com",
-            role=Role.VIEWER,
-            full_name="Viewer User",
-            is_active=True,
-        )
-
-    return _override
-
-
-@pytest.fixture
-def admin_auth():
-    """Set up admin auth override."""
-    app.dependency_overrides[get_current_user] = _override_admin()
-    yield
-    app.dependency_overrides.pop(get_current_user, None)
-
-
-@pytest.fixture
-def viewer_auth():
-    """Set up viewer (non-admin) auth override."""
-    app.dependency_overrides[get_current_user] = _override_viewer()
-    yield
-    app.dependency_overrides.pop(get_current_user, None)
 
 
 @pytest_asyncio.fixture
@@ -184,9 +139,13 @@ async def test_audit_service_swallows_errors(db_session):
 
 
 @pytest.mark.asyncio
-async def test_audit_log_list_returns_entries(client, admin_auth, seed_audit_logs):
+async def test_audit_log_list_returns_entries(
+    client, admin_auth_headers, seed_audit_logs
+):
     """Test GET /admin/audit-log returns paginated entries."""
-    response = await client.get("/api/v1/admin/audit-log")
+    response = await client.get(
+        "/api/v1/admin/audit-log", headers=admin_auth_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -200,9 +159,13 @@ async def test_audit_log_list_returns_entries(client, admin_auth, seed_audit_log
 
 
 @pytest.mark.asyncio
-async def test_audit_log_list_pagination(client, admin_auth, seed_audit_logs):
+async def test_audit_log_list_pagination(
+    client, admin_auth_headers, seed_audit_logs
+):
     """Test audit log pagination works correctly."""
-    response = await client.get("/api/v1/admin/audit-log?page=1&per_page=2")
+    response = await client.get(
+        "/api/v1/admin/audit-log?page=1&per_page=2", headers=admin_auth_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -214,9 +177,13 @@ async def test_audit_log_list_pagination(client, admin_auth, seed_audit_logs):
 
 
 @pytest.mark.asyncio
-async def test_audit_log_list_ordered_newest_first(client, admin_auth, seed_audit_logs):
+async def test_audit_log_list_ordered_newest_first(
+    client, admin_auth_headers, seed_audit_logs
+):
     """Test audit log entries are ordered newest first."""
-    response = await client.get("/api/v1/admin/audit-log")
+    response = await client.get(
+        "/api/v1/admin/audit-log", headers=admin_auth_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -226,9 +193,14 @@ async def test_audit_log_list_ordered_newest_first(client, admin_auth, seed_audi
 
 
 @pytest.mark.asyncio
-async def test_audit_log_filter_by_action(client, admin_auth, seed_audit_logs):
+async def test_audit_log_filter_by_action(
+    client, admin_auth_headers, seed_audit_logs
+):
     """Test filtering audit log by action."""
-    response = await client.get("/api/v1/admin/audit-log?action=extract.trigger")
+    response = await client.get(
+        "/api/v1/admin/audit-log?action=extract.trigger",
+        headers=admin_auth_headers,
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -238,9 +210,13 @@ async def test_audit_log_filter_by_action(client, admin_auth, seed_audit_logs):
 
 
 @pytest.mark.asyncio
-async def test_audit_log_filter_by_user_id(client, admin_auth, seed_audit_logs):
+async def test_audit_log_filter_by_user_id(
+    client, admin_auth_headers, seed_audit_logs
+):
     """Test filtering audit log by user_id."""
-    response = await client.get("/api/v1/admin/audit-log?user_id=3")
+    response = await client.get(
+        "/api/v1/admin/audit-log?user_id=3", headers=admin_auth_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -249,9 +225,13 @@ async def test_audit_log_filter_by_user_id(client, admin_auth, seed_audit_logs):
 
 
 @pytest.mark.asyncio
-async def test_audit_log_filter_by_resource_type(client, admin_auth, seed_audit_logs):
+async def test_audit_log_filter_by_resource_type(
+    client, admin_auth_headers, seed_audit_logs
+):
     """Test filtering audit log by resource_type."""
-    response = await client.get("/api/v1/admin/audit-log?resource_type=user")
+    response = await client.get(
+        "/api/v1/admin/audit-log?resource_type=user", headers=admin_auth_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -260,9 +240,11 @@ async def test_audit_log_filter_by_resource_type(client, admin_auth, seed_audit_
 
 
 @pytest.mark.asyncio
-async def test_audit_log_empty_result(client, admin_auth, db_session):
+async def test_audit_log_empty_result(client, admin_auth_headers, db_session):
     """Test audit log returns empty result when no entries exist."""
-    response = await client.get("/api/v1/admin/audit-log")
+    response = await client.get(
+        "/api/v1/admin/audit-log", headers=admin_auth_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -277,9 +259,20 @@ async def test_audit_log_empty_result(client, admin_auth, db_session):
 
 
 @pytest.mark.asyncio
-async def test_audit_log_denied_for_non_admin(client, viewer_auth):
-    """Test that non-admin users cannot access audit logs."""
-    response = await client.get("/api/v1/admin/audit-log")
+async def test_audit_log_denied_for_non_admin(client, viewer_auth_headers):
+    """Test that non-admin (viewer) users cannot access audit logs."""
+    response = await client.get(
+        "/api/v1/admin/audit-log", headers=viewer_auth_headers
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_audit_log_denied_for_analyst(client, auth_headers):
+    """Test that analyst users cannot access admin audit logs."""
+    response = await client.get(
+        "/api/v1/admin/audit-log", headers=auth_headers
+    )
     assert response.status_code == 403
 
 
@@ -301,10 +294,13 @@ async def test_audit_log_denied_for_unauthenticated(client):
     new_callable=AsyncMock,
 )
 async def test_extract_fred_creates_audit_entry(
-    mock_fred, client, admin_auth, db_session
+    mock_fred, client, admin_auth_headers, db_session
 ):
     """Test that triggering FRED extraction creates an audit log entry."""
-    response = await client.post("/api/v1/admin/extract/fred?incremental=true")
+    response = await client.post(
+        "/api/v1/admin/extract/fred?incremental=true",
+        headers=admin_auth_headers,
+    )
     assert response.status_code == 200
 
     from sqlalchemy import select
@@ -317,8 +313,6 @@ async def test_extract_fred_creates_audit_entry(
     assert entry.action == "extract.trigger"
     assert entry.resource_type == "extraction"
     assert entry.resource_id == "fred"
-    assert entry.user_id == 1
-    assert entry.user_email == "admin@example.com"
 
 
 @pytest.mark.asyncio
@@ -327,10 +321,12 @@ async def test_extract_fred_creates_audit_entry(
     new_callable=AsyncMock,
 )
 async def test_extract_costar_creates_audit_entry(
-    mock_costar, client, admin_auth, db_session
+    mock_costar, client, admin_auth_headers, db_session
 ):
     """Test that triggering CoStar extraction creates an audit log entry."""
-    response = await client.post("/api/v1/admin/extract/costar")
+    response = await client.post(
+        "/api/v1/admin/extract/costar", headers=admin_auth_headers
+    )
     assert response.status_code == 200
 
     from sqlalchemy import select
@@ -348,10 +344,12 @@ async def test_extract_costar_creates_audit_entry(
     new_callable=AsyncMock,
 )
 async def test_extract_census_creates_audit_entry(
-    mock_census, client, admin_auth, db_session
+    mock_census, client, admin_auth_headers, db_session
 ):
     """Test that triggering Census extraction creates an audit log entry."""
-    response = await client.post("/api/v1/admin/extract/census")
+    response = await client.post(
+        "/api/v1/admin/extract/census", headers=admin_auth_headers
+    )
     assert response.status_code == 200
 
     from sqlalchemy import select

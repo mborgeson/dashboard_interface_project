@@ -130,19 +130,25 @@ async def test_set_complex_value():
 
 @pytest.mark.asyncio
 async def test_ttl_expiration():
-    """Entries should expire after TTL seconds."""
+    """Entries should expire after TTL seconds.
+
+    T-DEBT-014: Uses direct timestamp manipulation instead of time.sleep()
+    to avoid slow, non-deterministic synchronization.
+    """
     svc = _make_service()
-    # Set with 1-second TTL
-    await svc.set("expiring", "value", ttl=1)
+    # Set with 60-second TTL
+    await svc.set("expiring", "value", ttl=60)
 
     # Should exist immediately
     result = await svc.get("expiring")
     assert result == "value"
 
-    # Wait for expiry
-    time.sleep(1.1)
+    # Directly set the expiry timestamp to the past instead of sleeping
+    full_key = f"dashboard:expiring"
+    stored_value, _old_expiry = _memory_cache[full_key]
+    _memory_cache[full_key] = (stored_value, time.time() - 1)
 
-    # Should be gone now
+    # Should be gone now (expired)
     result = await svc.get("expiring")
     assert result is None
 

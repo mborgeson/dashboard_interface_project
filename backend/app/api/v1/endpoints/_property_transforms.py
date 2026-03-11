@@ -95,6 +95,13 @@ def _clean_str(val: str | None, default: str = "") -> str:
 # CoStar Submarket mappings
 # ---------------------------------------------------------------------------
 
+# TODO(C-TD-011): These three submarket mapping dicts (_PROPERTY_COSTAR_CLUSTER,
+# _SUBMARKET_CLUSTER_MAP, _CITY_CLUSTER_MAP) are hardcoded here. They should be
+# moved to a config file or database table so they can be updated without code
+# changes. Consider a `submarket_mappings` table or a YAML/JSON config loaded at
+# startup. The lookup function _get_costar_submarket() would then query that
+# source instead of module-level dicts.
+
 # Authoritative CoStar Submarket Cluster mapping by property name
 # Source: docs/Dashboard Project - Basic Deal Info.xlsx
 _PROPERTY_COSTAR_CLUSTER: dict[str, str] = {

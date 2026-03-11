@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends
 from loguru import logger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import Response
 
 from app.core.config import settings
 from app.db.session import get_db
@@ -137,6 +138,48 @@ def _determine_overall_status(checks: dict[str, Any]) -> str:
             return "degraded"
 
     return "healthy"
+
+
+@router.get(
+    "/ready",
+    summary="Readiness probe (deep health check)",
+    response_description="Core dependency readiness for load balancers and orchestrators",
+)
+async def readiness_check(db: AsyncSession = Depends(get_db)) -> Response:
+    """
+    Deep health / readiness check endpoint.
+
+    Verifies that core dependencies (database and Redis) are reachable and
+    responsive.  Returns HTTP 503 if the database is down, since the
+    application cannot serve requests without it.
+
+    Designed for Kubernetes readiness probes and load balancer health checks
+    that need to verify the instance can actually handle traffic, not just
+    that the process is alive.
+
+    No authentication required.
+    """
+    from starlette.responses import JSONResponse
+
+    db_check, redis_check = await asyncio.gather(
+        _check_database(db),
+        _check_redis(),
+    )
+
+    db_ready = db_check.get("status") == "up"
+    overall_ready = db_ready  # Database is the hard requirement
+
+    result = {
+        "ready": overall_ready,
+        "checks": {
+            "database": db_check,
+            "redis": redis_check,
+        },
+        "timestamp": datetime.now(UTC).isoformat(),
+    }
+
+    status_code = 200 if overall_ready else 503
+    return JSONResponse(content=result, status_code=status_code)
 
 
 @router.get(

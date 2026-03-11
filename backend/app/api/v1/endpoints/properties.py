@@ -71,6 +71,12 @@ async def _build_projected_trends(
     into arrays the frontend can render as trend lines.
 
     Returns a dict with keys: noi, periods, data_points, trend_type, note.
+
+    .. todo:: A-TD-003 — Extract to ``app.services.property_analytics.build_projected_trends()``.
+       This function contains domain logic (NOI series selection, proforma/per-unit
+       fallback, trend assembly) that belongs in a service layer, not in an endpoint
+       module.  Moving it would improve testability and reuse (e.g. by the reporting
+       module or future export endpoints).
     """
     # Query extracted projections for this property
     stmt = select(
@@ -243,6 +249,13 @@ async def get_portfolio_summary(
     """
     Get portfolio-level summary statistics.
     Returns PropertySummaryStats matching the frontend type.
+
+    .. todo:: A-TD-003 — Extract financial aggregation logic to
+       ``app.services.portfolio_summary.compute_summary()``.  The NOI-per-unit
+       multiplication, equity-weighted IRR/CoC computation, and cap-rate averaging
+       are non-trivial business rules that should live in a dedicated service.
+       This would allow unit testing of the math independently from HTTP concerns
+       and enable reuse by the reporting and export modules.
     """
     cache_key = "portfolio_summary"
     cached = await cache.get(cache_key)
@@ -628,6 +641,12 @@ async def get_property_analytics(
     - Rent growth trends
     - Occupancy trends
     - Comparable market data
+
+    .. todo:: A-TD-003 — Extract market-comparable and analytics assembly logic to
+       ``app.services.property_analytics.compute_analytics()``.  The market
+       comparables query, rent-vs-market ratio calculation, and mock-data
+       fallback are business rules that would benefit from service-layer
+       isolation for testability and reuse.
     """
     # Verify property exists
     property_obj = await property_crud.get(db, property_id)

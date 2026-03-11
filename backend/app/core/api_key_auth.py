@@ -19,20 +19,18 @@ Usage:
 from __future__ import annotations
 
 import hmac
-import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
+from loguru import logger
 
 from app.core.config import settings
 from app.core.security import decode_token
 
 if TYPE_CHECKING:
     from app.core.permissions import CurrentUser
-
-logger = logging.getLogger(__name__)
 
 # Reuse the same scheme as permissions.py — auto_error=False so we can
 # fall back to API key auth without raising immediately on missing Bearer token.
@@ -86,8 +84,7 @@ async def verify_api_key(request: Request) -> ServiceIdentity:
 
     if not _validate_api_key(api_key):
         logger.warning(
-            "Invalid API key attempt from %s",
-            request.client.host if request.client else "unknown",
+            f"Invalid API key attempt from {request.client.host if request.client else 'unknown'}"
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

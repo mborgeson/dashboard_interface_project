@@ -18,6 +18,7 @@ Request ID integration:
 
 import logging
 import sys
+from types import FrameType
 
 import structlog
 from loguru import logger
@@ -79,8 +80,43 @@ def setup_structlog() -> None:
     )
 
 
+class _InterceptHandler(logging.Handler):
+    """Redirect stdlib logging records into loguru.
+
+    Installed on the root logger so that any library or module using
+    ``logging.getLogger(__name__)`` has its output captured by loguru
+    with correct level mapping and caller information.
+    """
+
+    def emit(self, record: logging.LogRecord) -> None:
+        # Map stdlib log level to loguru level name
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno  # type: ignore[assignment]
+
+        # Find the caller frame outside of the logging/loguru machinery
+        frame: FrameType | None = logging.currentframe()
+        depth = 0
+        while frame is not None:
+            filename = frame.f_code.co_filename
+            if "logging" not in filename and "loguru" not in filename:
+                break
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
+
+
 def setup_logging() -> None:
-    """Configure application logging (both loguru and structlog)."""
+    """Configure application logging (both loguru and structlog).
+
+    Intercepts stdlib ``logging`` so that any remaining ``logging.getLogger()``
+    callers (third-party libraries, legacy code) are routed through loguru
+    with consistent formatting and request-ID injection.
+    """
     # ── Loguru setup ──────────────────────────────────────────────
     # Remove default handler
     logger.remove()
@@ -122,6 +158,12 @@ def setup_logging() -> None:
             "{name}:{function}:{line} | {extra[request_id]} | {message}",
             level="ERROR",
         )
+
+    # ── Intercept stdlib logging into loguru ──────────────────────
+    # Replace the root logger's handlers with our intercept handler so that
+    # any code using ``import logging; logging.getLogger(...)`` is routed
+    # through loguru with consistent formatting and request-ID injection.
+    logging.basicConfig(handlers=[_InterceptHandler()], level=0, force=True)
 
     # ── structlog setup ───────────────────────────────────────────
     setup_structlog()

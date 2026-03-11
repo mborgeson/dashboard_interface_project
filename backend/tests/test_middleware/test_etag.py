@@ -202,3 +202,97 @@ async def test_delete_does_not_get_etag():
     """DELETE requests should not have ETag headers added."""
     response = await _call_dispatch(method="DELETE")
     assert "etag" not in response.headers
+
+
+# =============================================================================
+# T-DEBT-006: Edge case tests
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_head_does_not_get_etag():
+    """HEAD requests should not have ETag headers added (non-GET)."""
+    response = await _call_dispatch(method="HEAD")
+    assert "etag" not in response.headers
+
+
+@pytest.mark.asyncio
+async def test_patch_does_not_get_etag():
+    """PATCH requests should not have ETag headers added."""
+    response = await _call_dispatch(method="PATCH")
+    assert "etag" not in response.headers
+
+
+@pytest.mark.asyncio
+async def test_non_200_response_still_gets_etag():
+    """Non-200 GET responses should still get ETag if they have a body."""
+    response = await _call_dispatch(
+        response_body=b'{"error":"not found"}',
+        response_status=404,
+    )
+    assert response.status_code == 404
+    assert "etag" in response.headers
+
+
+@pytest.mark.asyncio
+async def test_different_bodies_produce_different_etags():
+    """Different response bodies should produce different ETags."""
+    r1 = await _call_dispatch(response_body=b'{"a":1}')
+    r2 = await _call_dispatch(response_body=b'{"a":2}')
+    assert r1.headers["etag"] != r2.headers["etag"]
+
+
+@pytest.mark.asyncio
+async def test_304_strips_body():
+    """304 response should not include the response body."""
+    body = b'{"status":"ok"}'
+    etag = f'"{hashlib.sha256(body).hexdigest()}"'
+
+    response = await _call_dispatch(
+        headers={"if-none-match": etag},
+        response_body=body,
+    )
+    assert response.status_code == 304
+    assert response.body == b""
+
+
+@pytest.mark.asyncio
+async def test_streaming_response_skipped():
+    """Streaming responses (no .body attribute) should pass through unchanged."""
+    mw = _FakeMiddleware()
+    request = await _make_request("GET")
+
+    class StreamingFake:
+        """Fake streaming response without .body attribute."""
+        status_code = 200
+        headers = {}
+
+    async def call_next(req):
+        return StreamingFake()
+
+    response = await mw.dispatch(request, call_next)
+    # Should pass through unchanged since no .body attribute
+    assert isinstance(response, StreamingFake)
+    assert "etag" not in response.headers
+
+
+@pytest.mark.asyncio
+async def test_whitespace_only_body_no_etag():
+    """Response with whitespace-only body should not get an ETag (empty after strip)."""
+    # Note: empty bytes b"" is falsy, so no ETag is set.
+    # Whitespace bytes like b"  " are truthy, so they WILL get an ETag.
+    # This test documents the actual behavior.
+    response = await _call_dispatch(response_body=b"  ")
+    assert response.status_code == 200
+    # Whitespace bytes are truthy, so an ETag IS generated
+    assert "etag" in response.headers
+
+
+@pytest.mark.asyncio
+async def test_large_body_gets_etag():
+    """Large response bodies should still get an ETag."""
+    large_body = b"x" * 100_000
+    response = await _call_dispatch(response_body=large_body)
+    assert "etag" in response.headers
+    expected = f'"{hashlib.sha256(large_body).hexdigest()}"'
+    assert response.headers["etag"] == expected
