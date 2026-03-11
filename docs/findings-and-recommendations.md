@@ -16,7 +16,7 @@
 | HIGH                           | 15                                  |
 | MEDIUM                         | 22                                  |
 | LOW                            | 25                                  |
-| **Total open**           | **69**                        |
+| **Total open**                 | **69**                              |
 | Resolved during review         | 1 (F-007a: structlog startup crash) |
 | Previously resolved (v1 to v2) | 38                                  |
 
@@ -846,14 +846,14 @@
 
 The following gaps were identified during cross-referencing of the 9 v2 documents.
 
-| #   | Gap Description                                                                                                                                                                                                                                                                             | Affected Documents                                              |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| G-1 | **backend-architecture.md lists `POST /deals/compare`; actual implementation is `GET`**. backend-api-reference.md correctly documents it as GET. Architecture doc needs update.                                                                                                   | backend-architecture.md, backend-api-reference.md               |
-| G-2 | **backend-architecture.md lists `analyst` auth for deal PUT/PATCH**; actual code and api-reference both show `manager`. Architecture doc needs update.                                                                                                                            | backend-architecture.md, backend-api-reference.md               |
+| #   | Gap Description                                                                                                                                                                                                                                                                       | Affected Documents                                              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| G-1 | **backend-architecture.md lists `POST /deals/compare`; actual implementation is `GET`**. backend-api-reference.md correctly documents it as GET. Architecture doc needs update.                                                                                                       | backend-architecture.md, backend-api-reference.md               |
+| G-2 | **backend-architecture.md lists `analyst` auth for deal PUT/PATCH**; actual code and api-reference both show `manager`. Architecture doc needs update.                                                                                                                                | backend-architecture.md, backend-api-reference.md               |
 | G-3 | **test-coverage.md reports 3,140 total tests (2,155 backend + 985 frontend)**; MEMORY.md checkpoint reports 2,577 total (1,700 + 877). The v2 audit picked up additional test files added after the MEMORY.md checkpoint. Both numbers are valid for their respective points in time. | test-coverage.md, MEMORY.md                                     |
-| G-4 | **database-schema.md documents 15 migrations through `7c415cc1b77a`** but notes model features that post-date this migration. No doc covers how these were applied.                                                                                                                 | database-schema.md                                              |
+| G-4 | **database-schema.md documents 15 migrations through `7c415cc1b77a`** but notes model features that post-date this migration. No doc covers how these were applied.                                                                                                                   | database-schema.md                                              |
 | G-5 | **frontend-architecture.md and frontend-components.md both document the ETag cache**. frontend-components.md provides more detail (including the 304-without-cache-hit bug). No conflict, but readers may miss the bug report if they only read the architecture doc.                 | frontend-architecture.md, frontend-components.md                |
-| G-6 | **data-flow-reference.md documents the fetch client as the single API client**; this is consistent with architecture-decisions.md noting axios removal. ADR-004 in `docs/adr/` has not been updated to reflect this.                                                                | data-flow-reference.md, architecture-decisions.md, docs/adr/004 |
+| G-6 | **data-flow-reference.md documents the fetch client as the single API client**; this is consistent with architecture-decisions.md noting axios removal. ADR-004 in `docs/adr/` has not been updated to reflect this.                                                                  | data-flow-reference.md, architecture-decisions.md, docs/adr/004 |
 
 ---
 
@@ -952,80 +952,80 @@ Test count grew from ~2,577 (v1 baseline) to 3,140 (v2 audit): 2,155 backend + 9
 
 ## Findings Tracking Table
 
-| #       | Severity | Status | Finding                                                            | Fix                                                        | Git Commit # |
-| ------- | -------- | ------ | ------------------------------------------------------------------ | ---------------------------------------------------------- | ------------ |
-| F-001   | CRITICAL | Done   | Users endpoints backed by in-memory demo data, not database        | Replaced with real DB CRUD operations (CRUDUser)           | 8599ec2      |
-| F-002   | CRITICAL | Done   | Monitoring liveness/readiness probes guarded by require_admin      | Per-route auth; probes unauthenticated                     | 8599ec2      |
-| F-003   | CRITICAL | Done   | Report generation has no background worker                         | Asyncio report_worker with PDF/Excel gen + lifespan hook   | e8e12ce     |
-| F-004   | CRITICAL | Done   | WebSocket token validation does not check blacklist                | Added is_blacklisted() check, fail-closed                  | 8599ec2      |
-| F-005   | CRITICAL | Done   | Token refresh not wired on frontend                                | Retry-after-refresh in fetch client + authStore method     | 8599ec2      |
-| F-006   | CRITICAL | Done   | Financial calculation libraries have no tests                      | 98 tests across IRR, cashflow, sensitivity                 | 8599ec2      |
-| F-007a  | CRITICAL | Done   | Structlog startup crash — get_level_from_name does not exist      | logging.getLevelName() (stdlib)                            | 8599ec2      |
-| F-007a+ | CRITICAL | Done   | Structlog add_logger_name crash with PrintLoggerFactory            | Removed incompatible processor                             | 8599ec2      |
-| F-007   | CRITICAL | Done   | Transaction DELETE/restore has no auth upgrade over require_viewer | Write ops elevated to require_manager                      | 8599ec2      |
-| F-008   | HIGH     | Done   | Document route shadowing (/property/{id} vs /{document_id})        | Moved /property/{id} before /{document_id} in router       | a6b0685      |
-| F-009   | HIGH     | Done   | Document upload does not require elevated role                     | Added require_analyst dependency to upload endpoint        | a6b0685      |
-| F-010   | HIGH     | Done   | Proforma returns matches by property_name string, not property_id  | Prefer property_id FK join, fallback to name matching      | a6b0685      |
-| F-011   | HIGH     | Done   | PUT and PATCH on deals have identical behavior                     | Documented PUT as partial update for backwards compat      | a6b0685      |
-| F-012   | HIGH     | Done   | 304 response without cache hit falls through silently              | Retry without If-None-Match on cache miss                  | a6b0685      |
-| F-013   | HIGH     | Done   | user_name always None in PropertyActivityResponse                  | Batch user lookup via IN query, populate user_name         | a6b0685      |
-| F-014   | HIGH     | Done   | Analytics export uses static mock data                             | Live DB queries for portfolio, KPIs, deal pipeline         | f65dc05     |
-| F-015   | HIGH     | Done   | Growth rate fields always return 0.0 or null                       | 0.0→None + real cycle_times from activity_logs             | f65dc05     |
-| F-016   | HIGH     | Done   | Redis services commented out in lifespan startup                   | Wired with graceful fallback to in-memory                  | 8599ec2      |
-| F-017   | HIGH     | Done   | Backend coverage below 30% threshold                               | Already at 63.21% — threshold met                         | bedb94a     |
-| F-018   | HIGH     | Done   | Alembic migrations lag behind model changes                        | Catch-up migration: version col, audit_logs_admin, soft-delete, 21 CHECK constraints, 16 indexes | dfbe156     |
-| F-019   | HIGH     | Done   | N+1 query in queued report list                                    | Batch template lookup via IN query for reports + schedules | a6b0685      |
-| F-020   | HIGH     | Done   | useDeals hardcoded page_size: 100 truncates results                | Configurable pageSize param (default 500)                  | a6b0685      |
-| F-021   | HIGH     | Done   | POST /properties/{id}/activities returns 200, not 201              | Added status_code=201 to endpoint decorator                | a6b0685      |
-| F-022   | HIGH     | Done   | Architecture doc says POST /deals/compare; implementation is GET   | Corrected doc to GET /deals/compare                        | a6b0685      |
-| F-023   | MEDIUM   | Done   | ETag cache unbounded (frontend)                                    | LRU eviction at 100 entries via etagCacheSet()             | f65dc05     |
-| F-024   | MEDIUM   | Done   | WebSocket auth token not updated on refresh                        | Subscribe to authStore, reconnect on token change          | f65dc05     |
-| F-025   | MEDIUM   | Done   | Filter persistence potential infinite loop                         | isSyncingToUrlRef guard + params diff comparison           | f65dc05     |
-| F-026   | MEDIUM   | Done   | In-memory cache fallback has no automatic cleanup                  | Background asyncio task, cleanup every 5 min               | f65dc05     |
-| F-027   | MEDIUM   | Done   | WebSocket ConnectionManager not integrated into lifespan           | Init on startup, graceful disconnect on shutdown           | f65dc05     |
-| F-028   | MEDIUM   | Done   | Rate limiter Redis backend uses fixed-bucket approximation         | Sorted set sliding window matching memory backend          | 5164070     |
-| F-029   | MEDIUM   | Done   | Fetch client missing token refresh logic                           | Implemented in Batch 2a (same as F-005)                    | 8599ec2      |
-| F-030   | MEDIUM   | Done   | Enrichment logic mixed into CRUD layer                             | Extracted 420 lines to services/enrichment.py              | 5164070     |
-| F-031   | MEDIUM   | Done   | Property analytics trends returns single-point data                | Multi-point projected trends with trend_type + data_points | 5164070     |
-| F-032   | MEDIUM   | Done   | N+1 in distribution schedule list                                  | Fixed alongside F-019 (batch template lookup in schedules) | a6b0685     |
-| F-033   | MEDIUM   | Done   | CacheService has no tests                                          | 19 tests in test_cache.py                                  | f65dc05     |
-| F-034   | MEDIUM   | Done   | No API-level tests for transaction endpoints                       | 27 tests added (Batch 2b users agent also covers)          | 8599ec2      |
-| F-035   | MEDIUM   | Done   | No API-level tests for document endpoints                          | 17 tests in test_documents.py                              | f65dc05     |
-| F-036   | MEDIUM   | Done   | No API-level tests for interest rate endpoints                     | 10 tests in test_interest_rates.py                         | f65dc05     |
-| F-037   | MEDIUM   | Done   | No API-level tests for market data endpoints                       | 9 tests in test_market.py                                  | f65dc05     |
-| F-038   | MEDIUM   | Done   | authStore has no tests                                             | 9 tests added (authStore.test.ts)                          | 8599ec2      |
-| F-039   | MEDIUM   | Done   | ETag middleware has no tests                                       | 12 tests in test_etag.py                                   | f65dc05     |
-| F-040   | MEDIUM   | Done   | Origin validation middleware has no tests                          | Already existed (13 tests in test_origin_validation.py)    | f65dc05     |
-| F-041   | MEDIUM   | Done   | documents.property_id is VARCHAR(50), not FK to properties.id      | Model + schema + CRUD updated; Alembic migration created   | e8e12ce     |
-| F-042   | MEDIUM   | Done   | Construction pipeline uses VARCHAR without DB-level constraints    | 4 CHECK constraints: pipeline_status, classification, txn type, doc type | dfbe156     |
-| F-043   | MEDIUM   | Done   | Zod common.ts and construction.ts schemas have no tests            | 58 tests across common.test.ts + construction.test.ts      | f65dc05     |
-| F-044   | MEDIUM   | Done   | Deal kanban enrichment runs on every cache miss                    | 30-min cache TTL with invalidation on extraction runs      | 5164070     |
-| F-045   | LOW      | Done   | ADR-004 is stale (dual client pattern)                             | ADR-004 marked Superseded by ADR-008                       | e8e12ce     |
-| F-046   | LOW      | Done   | Dual logging imports require discipline                            | Reviewed — dual use is intentional per ADR-006             | e8e12ce     |
-| F-047   | LOW      | Done   | Non-JSON responses return {} as T                                  | Returns null; return type updated to T | null               | 5164070     |
-| F-048   | LOW      | Done   | WebSocket callbacksRef updated every render                        | eslint-disable with explanatory comment                    | 5164070     |
-| F-049   | LOW      | Done   | VirtualizedTable spacer missing colSpan                            | columnCount prop sets colSpan on spacer td elements        | 5164070     |
-| F-050   | LOW      | Done   | Error tracking rate limit uses fixed window                        | Sliding window via timestamp array with pruning            | 5164070     |
-| F-051   | LOW      | Done   | Toast auto-removal timer not cleared on manual dismiss             | timerMap tracks IDs; clearTimeout on dismiss/clearAll      | 5164070     |
-| F-052   | LOW      | Done   | authStore event listener registered at module load                 | typeof window !== 'undefined' guard                        | 5164070     |
-| F-053   | LOW      | Done   | Duplicate formatDate implementations                               | 4 local formatDate consolidated into dateUtils.ts          | 5164070     |
-| F-054   | LOW      | Done   | Report queue 30-second polling                                     | Conditional polling: 10s when pending, stopped when done   | e8e12ce     |
-| F-055   | LOW      | Done   | Comparison deals not persisted to storage                          | sessionStorage hydration + persist via useEffect           | 584fd2c     |
-| F-056   | LOW      | Accepted Risk | Optimistic locking only on Deal model                       | Single admin user; no concurrent edit scenarios currently   | dfbe156     |
-| F-057   | LOW      | Done   | SoftDeleteMixin scope may need expansion                           | Added SoftDeleteMixin to ActivityLog; CRUD filters updated | e8e12ce     |
-| F-058   | LOW      | Done   | Multiple API hooks have zero test coverage                         | 68 tests: useDeals (41) + useProperties (27)               | 0d00b35     |
-| F-059   | LOW      | Done   | No tests for 12 underwriting models                                | 66 tests covering all 12 models, relationships, enums      | 0d00b35     |
-| F-060   | LOW      | Done   | No tests for GeocodingService                                      | 19 tests: geocoding, mocked HTTP, rate limiting            | 0d00b35     |
-| F-061   | LOW      | Done   | No tests for scheduler services                                    | Scheduler lifecycle tests                                  | 0d00b35     |
-| F-062   | LOW      | Done   | No tests for slow query logger                                     | Slow query detection + parameter sanitization tests        | 0d00b35     |
-| F-063   | LOW      | Accepted Risk | Feature components have extensive test gaps                 | High-value hooks tested (F-058/F-064); UI wrappers low ROI | dfbe156     |
-| F-064   | LOW      | Done   | useUnderwriting hook has no tests                                  | 42 tests: IRR, sensitivity, edge cases                     | 0d00b35     |
-| F-065   | LOW      | Done   | crud_property.py enrichment not tested at unit level               | Enrichment service unit tests (pure functions)             | 0d00b35     |
-| F-066   | LOW      | Done   | No report template or generation endpoint tests                    | 34 tests: CRUD, generation, auth                           | 0d00b35     |
-| F-067   | LOW      | Done   | PUT /deals/{id} and PATCH /deals/{id} require require_manager      | Fixed backend-architecture.md: POST/PUT/PATCH auth analyst→manager | e8e12ce     |
-| F-068   | LOW      | Done   | PDF export may have incomplete financial data                      | enrich_financial_data before single + portfolio PDF export | 584fd2c     |
-| F-069   | LOW      | Done   | Four proposed ADRs not yet formalized                              | Created ADR-008, 009, 010, 011                             | e8e12ce     |
+| #       | Severity | Status        | Finding                                                            | Fix                                                                                              | Git Commit # |
+| ------- | -------- | ------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ------------ |
+| F-001   | CRITICAL | Done          | Users endpoints backed by in-memory demo data, not database        | Replaced with real DB CRUD operations (CRUDUser)                                                 | 8599ec2      |
+| F-002   | CRITICAL | Done          | Monitoring liveness/readiness probes guarded by require_admin      | Per-route auth; probes unauthenticated                                                           | 8599ec2      |
+| F-003   | CRITICAL | Done          | Report generation has no background worker                         | Asyncio report_worker with PDF/Excel gen + lifespan hook                                         | e8e12ce      |
+| F-004   | CRITICAL | Done          | WebSocket token validation does not check blacklist                | Added is_blacklisted() check, fail-closed                                                        | 8599ec2      |
+| F-005   | CRITICAL | Done          | Token refresh not wired on frontend                                | Retry-after-refresh in fetch client + authStore method                                           | 8599ec2      |
+| F-006   | CRITICAL | Done          | Financial calculation libraries have no tests                      | 98 tests across IRR, cashflow, sensitivity                                                       | 8599ec2      |
+| F-007a  | CRITICAL | Done          | Structlog startup crash — get_level_from_name does not exist       | logging.getLevelName() (stdlib)                                                                  | 8599ec2      |
+| F-007a+ | CRITICAL | Done          | Structlog add_logger_name crash with PrintLoggerFactory            | Removed incompatible processor                                                                   | 8599ec2      |
+| F-007   | CRITICAL | Done          | Transaction DELETE/restore has no auth upgrade over require_viewer | Write ops elevated to require_manager                                                            | 8599ec2      |
+| F-008   | HIGH     | Done          | Document route shadowing (/property/{id} vs /{document_id})        | Moved /property/{id} before /{document_id} in router                                             | a6b0685      |
+| F-009   | HIGH     | Done          | Document upload does not require elevated role                     | Added require_analyst dependency to upload endpoint                                              | a6b0685      |
+| F-010   | HIGH     | Done          | Proforma returns matches by property_name string, not property_id  | Prefer property_id FK join, fallback to name matching                                            | a6b0685      |
+| F-011   | HIGH     | Done          | PUT and PATCH on deals have identical behavior                     | Documented PUT as partial update for backwards compat                                            | a6b0685      |
+| F-012   | HIGH     | Done          | 304 response without cache hit falls through silently              | Retry without If-None-Match on cache miss                                                        | a6b0685      |
+| F-013   | HIGH     | Done          | user_name always None in PropertyActivityResponse                  | Batch user lookup via IN query, populate user_name                                               | a6b0685      |
+| F-014   | HIGH     | Done          | Analytics export uses static mock data                             | Live DB queries for portfolio, KPIs, deal pipeline                                               | f65dc05      |
+| F-015   | HIGH     | Done          | Growth rate fields always return 0.0 or null                       | 0.0→None + real cycle_times from activity_logs                                                   | f65dc05      |
+| F-016   | HIGH     | Done          | Redis services commented out in lifespan startup                   | Wired with graceful fallback to in-memory                                                        | 8599ec2      |
+| F-017   | HIGH     | Done          | Backend coverage below 30% threshold                               | Already at 63.21% — threshold met                                                                | bedb94a      |
+| F-018   | HIGH     | Done          | Alembic migrations lag behind model changes                        | Catch-up migration: version col, audit_logs_admin, soft-delete, 21 CHECK constraints, 16 indexes | dfbe156      |
+| F-019   | HIGH     | Done          | N+1 query in queued report list                                    | Batch template lookup via IN query for reports + schedules                                       | a6b0685      |
+| F-020   | HIGH     | Done          | useDeals hardcoded page_size: 100 truncates results                | Configurable pageSize param (default 500)                                                        | a6b0685      |
+| F-021   | HIGH     | Done          | POST /properties/{id}/activities returns 200, not 201              | Added status_code=201 to endpoint decorator                                                      | a6b0685      |
+| F-022   | HIGH     | Done          | Architecture doc says POST /deals/compare; implementation is GET   | Corrected doc to GET /deals/compare                                                              | a6b0685      |
+| F-023   | MEDIUM   | Done          | ETag cache unbounded (frontend)                                    | LRU eviction at 100 entries via etagCacheSet()                                                   | f65dc05      |
+| F-024   | MEDIUM   | Done          | WebSocket auth token not updated on refresh                        | Subscribe to authStore, reconnect on token change                                                | f65dc05      |
+| F-025   | MEDIUM   | Done          | Filter persistence potential infinite loop                         | isSyncingToUrlRef guard + params diff comparison                                                 | f65dc05      |
+| F-026   | MEDIUM   | Done          | In-memory cache fallback has no automatic cleanup                  | Background asyncio task, cleanup every 5 min                                                     | f65dc05      |
+| F-027   | MEDIUM   | Done          | WebSocket ConnectionManager not integrated into lifespan           | Init on startup, graceful disconnect on shutdown                                                 | f65dc05      |
+| F-028   | MEDIUM   | Done          | Rate limiter Redis backend uses fixed-bucket approximation         | Sorted set sliding window matching memory backend                                                | 5164070      |
+| F-029   | MEDIUM   | Done          | Fetch client missing token refresh logic                           | Implemented in Batch 2a (same as F-005)                                                          | 8599ec2      |
+| F-030   | MEDIUM   | Done          | Enrichment logic mixed into CRUD layer                             | Extracted 420 lines to services/enrichment.py                                                    | 5164070      |
+| F-031   | MEDIUM   | Done          | Property analytics trends returns single-point data                | Multi-point projected trends with trend_type + data_points                                       | 5164070      |
+| F-032   | MEDIUM   | Done          | N+1 in distribution schedule list                                  | Fixed alongside F-019 (batch template lookup in schedules)                                       | a6b0685      |
+| F-033   | MEDIUM   | Done          | CacheService has no tests                                          | 19 tests in test_cache.py                                                                        | f65dc05      |
+| F-034   | MEDIUM   | Done          | No API-level tests for transaction endpoints                       | 27 tests added (Batch 2b users agent also covers)                                                | 8599ec2      |
+| F-035   | MEDIUM   | Done          | No API-level tests for document endpoints                          | 17 tests in test_documents.py                                                                    | f65dc05      |
+| F-036   | MEDIUM   | Done          | No API-level tests for interest rate endpoints                     | 10 tests in test_interest_rates.py                                                               | f65dc05      |
+| F-037   | MEDIUM   | Done          | No API-level tests for market data endpoints                       | 9 tests in test_market.py                                                                        | f65dc05      |
+| F-038   | MEDIUM   | Done          | authStore has no tests                                             | 9 tests added (authStore.test.ts)                                                                | 8599ec2      |
+| F-039   | MEDIUM   | Done          | ETag middleware has no tests                                       | 12 tests in test_etag.py                                                                         | f65dc05      |
+| F-040   | MEDIUM   | Done          | Origin validation middleware has no tests                          | Already existed (13 tests in test_origin_validation.py)                                          | f65dc05      |
+| F-041   | MEDIUM   | Done          | documents.property_id is VARCHAR(50), not FK to properties.id      | Model + schema + CRUD updated; Alembic migration created                                         | e8e12ce      |
+| F-042   | MEDIUM   | Done          | Construction pipeline uses VARCHAR without DB-level constraints    | 4 CHECK constraints: pipeline_status, classification, txn type, doc type                         | dfbe156      |
+| F-043   | MEDIUM   | Done          | Zod common.ts and construction.ts schemas have no tests            | 58 tests across common.test.ts + construction.test.ts                                            | f65dc05      |
+| F-044   | MEDIUM   | Done          | Deal kanban enrichment runs on every cache miss                    | 30-min cache TTL with invalidation on extraction runs                                            | 5164070      |
+| F-045   | LOW      | Done          | ADR-004 is stale (dual client pattern)                             | ADR-004 marked Superseded by ADR-008                                                             | e8e12ce      |
+| F-046   | LOW      | Done          | Dual logging imports require discipline                            | Reviewed — dual use is intentional per ADR-006                                                   | e8e12ce      |
+| F-047   | LOW      | Done          | Non-JSON responses return {} as T                                  | Returns null; return type updated to T                                                           | 5164070      |
+| F-048   | LOW      | Done          | WebSocket callbacksRef updated every render                        | eslint-disable with explanatory comment                                                          | 5164070      |
+| F-049   | LOW      | Done          | VirtualizedTable spacer missing colSpan                            | columnCount prop sets colSpan on spacer td elements                                              | 5164070      |
+| F-050   | LOW      | Done          | Error tracking rate limit uses fixed window                        | Sliding window via timestamp array with pruning                                                  | 5164070      |
+| F-051   | LOW      | Done          | Toast auto-removal timer not cleared on manual dismiss             | timerMap tracks IDs; clearTimeout on dismiss/clearAll                                            | 5164070      |
+| F-052   | LOW      | Done          | authStore event listener registered at module load                 | typeof window !== 'undefined' guard                                                              | 5164070      |
+| F-053   | LOW      | Done          | Duplicate formatDate implementations                               | 4 local formatDate consolidated into dateUtils.ts                                                | 5164070      |
+| F-054   | LOW      | Done          | Report queue 30-second polling                                     | Conditional polling: 10s when pending, stopped when done                                         | e8e12ce      |
+| F-055   | LOW      | Done          | Comparison deals not persisted to storage                          | sessionStorage hydration + persist via useEffect                                                 | 584fd2c      |
+| F-056   | LOW      | Accepted Risk | Optimistic locking only on Deal model                              | Single admin user; no concurrent edit scenarios currently                                        | dfbe156      |
+| F-057   | LOW      | Done          | SoftDeleteMixin scope may need expansion                           | Added SoftDeleteMixin to ActivityLog; CRUD filters updated                                       | e8e12ce      |
+| F-058   | LOW      | Done          | Multiple API hooks have zero test coverage                         | 68 tests: useDeals (41) + useProperties (27)                                                     | 0d00b35      |
+| F-059   | LOW      | Done          | No tests for 12 underwriting models                                | 66 tests covering all 12 models, relationships, enums                                            | 0d00b35      |
+| F-060   | LOW      | Done          | No tests for GeocodingService                                      | 19 tests: geocoding, mocked HTTP, rate limiting                                                  | 0d00b35      |
+| F-061   | LOW      | Done          | No tests for scheduler services                                    | Scheduler lifecycle tests                                                                        | 0d00b35      |
+| F-062   | LOW      | Done          | No tests for slow query logger                                     | Slow query detection + parameter sanitization tests                                              | 0d00b35      |
+| F-063   | LOW      | Accepted Risk | Feature components have extensive test gaps                        | High-value hooks tested (F-058/F-064); UI wrappers low ROI                                       | dfbe156      |
+| F-064   | LOW      | Done          | useUnderwriting hook has no tests                                  | 42 tests: IRR, sensitivity, edge cases                                                           | 0d00b35      |
+| F-065   | LOW      | Done          | crud_property.py enrichment not tested at unit level               | Enrichment service unit tests (pure functions)                                                   | 0d00b35      |
+| F-066   | LOW      | Done          | No report template or generation endpoint tests                    | 34 tests: CRUD, generation, auth                                                                 | 0d00b35      |
+| F-067   | LOW      | Done          | PUT /deals/{id} and PATCH /deals/{id} require require_manager      | Fixed backend-architecture.md: POST/PUT/PATCH auth analyst→manager                               | e8e12ce      |
+| F-068   | LOW      | Done          | PDF export may have incomplete financial data                      | enrich_financial_data before single + portfolio PDF export                                       | 584fd2c      |
+| F-069   | LOW      | Done          | Four proposed ADRs not yet formalized                              | Created ADR-008, 009, 010, 011                                                                   | e8e12ce      |
 
 **Summary:** 69 Done, 2 Accepted Risk, 0 Open (of 71 total including F-007a and F-007a+)
 
-*End of findings report. Generated 2026-03-10 by Team 66 (Regeneration). Tracking table updated 2026-03-10.*
+_End of findings report. Generated 2026-03-10 by Team 66 (Regeneration). Tracking table updated 2026-03-10._
