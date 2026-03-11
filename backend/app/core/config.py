@@ -18,7 +18,7 @@ Configuration is organized into logical groups for clarity:
 
 import secrets as secrets_module
 from functools import lru_cache
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -46,7 +46,9 @@ class AppSettings(BaseSettings):
     APP_NAME: str = "B&R Capital Dashboard API"
     APP_VERSION: str = "2.0.0"
     DEBUG: bool = False
-    ENVIRONMENT: str = "development"
+    ENVIRONMENT: Literal["development", "staging", "production", "testing"] = (
+        "development"
+    )
 
     # Server
     HOST: str = "0.0.0.0"  # nosec B104 — required for container/dev server binding
@@ -54,7 +56,7 @@ class AppSettings(BaseSettings):
     WORKERS: int = 4
 
     # Logging
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     LOG_RETENTION_DAYS: int = 30
     LOG_ERROR_RETENTION_DAYS: int = 90

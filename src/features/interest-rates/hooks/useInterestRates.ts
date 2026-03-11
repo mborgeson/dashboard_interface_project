@@ -15,6 +15,7 @@ import {
   useHistoricalRatesWithMockFallback,
   interestRateKeys,
 } from "@/hooks/api/useInterestRates";
+import { STALE_TIMES } from "@/lib/constants/query";
 
 interface UseInterestRatesOptions {
   refreshInterval?: number; // in milliseconds, default 5 minutes
@@ -22,7 +23,7 @@ interface UseInterestRatesOptions {
   cacheTTL?: number; // kept for API compat, no longer used (React Query manages caching)
 }
 
-const DEFAULT_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const DEFAULT_REFRESH_INTERVAL = STALE_TIMES.MEDIUM; // 5 minutes
 
 /**
  * Hook for fetching and managing interest rate data

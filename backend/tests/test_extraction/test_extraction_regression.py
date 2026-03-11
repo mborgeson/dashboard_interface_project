@@ -444,10 +444,11 @@ class TestExtractedValueOperations:
     def test_bulk_insert_upsert_updates_not_duplicates(self, sync_db: Session) -> None:
         """Same run_id + property_name + field_name updates existing row via upsert.
 
-        Note: SQLite does not support PostgreSQL-style ON CONFLICT DO UPDATE with
-        named constraints. This test verifies the insert-twice path. In production
-        (PostgreSQL), the uq_extracted_value constraint triggers an update.
-        For SQLite we verify no crash occurs and the data is present.
+        SQLite limitation (T-DEBT-023): SQLite does not support PostgreSQL-style
+        ON CONFLICT DO UPDATE with named constraints. This test verifies the
+        insert-twice path does not crash. In production (PostgreSQL), the
+        uq_extracted_value constraint triggers a proper upsert.
+        See test_integration/test_pg_transactions.py for PG constraint tests.
         """
         run = ExtractionRunCRUD.create(sync_db, trigger_type="manual")
 
@@ -464,8 +465,8 @@ class TestExtractedValueOperations:
         assert count1 == 1
 
         # Second insert with updated value — in PostgreSQL this triggers upsert.
-        # In SQLite the ON CONFLICT clause referencing a PG constraint may
-        # fall back to plain insert. We just verify it does not raise.
+        # SQLite limitation (T-DEBT-023): ON CONFLICT with PG constraint name
+        # falls back to plain insert. We just verify it does not raise.
         try:
             count2 = ExtractedValueCRUD.bulk_insert(
                 sync_db,
@@ -476,7 +477,7 @@ class TestExtractedValueOperations:
             )
             assert count2 == 1
         except Exception:
-            # SQLite may not support the PG upsert syntax — that is expected.
+            # SQLite limitation (T-DEBT-023): PG upsert syntax unsupported — expected.
             sync_db.rollback()
 
         # At minimum, the property has values

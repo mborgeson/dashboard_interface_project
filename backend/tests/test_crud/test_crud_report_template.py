@@ -642,7 +642,8 @@ class TestCRUDDistributionSchedule:
 
         assert updated is not None
         assert updated.last_sent is not None
-        # Compare without timezone to avoid naive/aware mismatch in SQLite
+        # SQLite limitation (T-DEBT-023): strips timezone on round-trip.
+        # See test_integration/test_pg_server_defaults.py for PG equivalent.
         assert updated.next_scheduled.replace(tzinfo=None) == next_time.replace(tzinfo=None)
 
     @pytest.mark.asyncio

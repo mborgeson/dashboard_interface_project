@@ -272,7 +272,8 @@ async def test_created_at_updated_at_set(db_session):
 
     assert record.created_at is not None
     assert record.updated_at is not None
-    # Both should be close to 'now'
+    # SQLite limitation (T-DEBT-023): strips timezone on round-trip, so we
+    # compare naive timestamps. See test_integration/test_pg_server_defaults.py.
     assert (
         abs(
             (

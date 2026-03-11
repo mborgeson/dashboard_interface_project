@@ -4,7 +4,7 @@ File filter endpoints.
 Endpoints for managing and testing file filter configuration.
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter
 
@@ -65,7 +65,7 @@ async def test_file_filter(filename: str, size_mb: float = 1.0, days_old: int = 
     file_filter = get_file_filter()
 
     # Calculate modification date
-    modified_date = datetime.now() - timedelta(days=days_old)
+    modified_date = datetime.now(UTC) - timedelta(days=days_old)
     size_bytes = int(size_mb * 1024 * 1024)
 
     result = file_filter.should_process(

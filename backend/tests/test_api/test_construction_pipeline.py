@@ -15,6 +15,8 @@ Covers the 12 REST endpoints mounted at /api/v1/construction-pipeline:
 11. GET /import/status                -- Unimported files
 
 All queries use SQLite-compatible functions (no percentile_cont, array_agg).
+SQLite limitation (T-DEBT-023): PG-only aggregation features are tested in
+test_integration/test_pg_queries.py.
 """
 
 from collections.abc import Generator

@@ -2,20 +2,20 @@
   "memories": [
     {
       "type": "completed_features",
-      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt, Extraction Hardening (2026-02-12→03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Overhaul + v5 (2026-03-04). Group Pipeline Frontend, Vite opt (2026-03-05). Cap Rate TC T3 re-run + 49 regression tests (2026-03-05). UW Grouping Expansion: 9 groups, 66 files (2026-03-06). Proforma Returns UI Option C (2026-03-06). Phase 2-3 Dashboard Integrity (2026-03-06). Phase 4 Final Gate (2026-03-09). Architecture review v2: 71/71 findings resolved (100%) — 69 Done + 2 Accepted Risk. Key batches: 8599ec2, a6b0685, f65dc05, 5164070, 0d00b35, 584fd2c, e8e12ce. Final batch: F-018 catch-up migration, F-042 VARCHAR CHECK constraints, F-056/F-063 accepted risk.",
-      "added_at": "2026-03-10T18:35:00.000000",
+      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt, Extraction Hardening (2026-02-12→03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Overhaul + v5 (2026-03-04). Group Pipeline Frontend, Vite opt (2026-03-05). Cap Rate TC T3 re-run + 49 regression tests (2026-03-05). UW Grouping Expansion: 9 groups, 66 files (2026-03-06). Proforma Returns UI Option C (2026-03-06). Phase 2-3 Dashboard Integrity (2026-03-06). Architecture review v2: 71/71 findings resolved (2026-03-09). Tech Debt Remediation ALL 7 WAVES COMPLETE (2026-03-11): 69/76 items resolved (was 62/76), 19 commits, 18 teams. Wave 6: PG integration tests (T-DEBT-015), 339 dynamic security tests (T-DEBT-018), 46 Zod schema validation tests + shared frontend test utils (T-DEBT-002, T-DEBT-020). Wave 7: ARQ task queue + domain event bus (A-TD-025, A-TD-027), performance/load tests with locust (T-DEBT-017). Bug fixes: Dashboard limit=200, FAB Refresh uses queryClient.invalidateQueries().",
+      "added_at": "2026-03-11T12:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "user_preferences",
-      "content": "conda env: dashboard-backend. Dev: npm run dev:all (auto-opens Edge). Git: stash apply over pop, don't push unless asked. NO mock/fake data. User: matt@bandrcapital.com / Wildcats777!! / admin. User expects Agent Team approach from docs/agent-team-reference.md. Don't tunnel-vision on grep results — execute full agent team plan with 6 parallel agents. Data observations (items 8-12) are NOT issues. Cordoba != Cordova. Option C for old UW model attributes. Auth login uses form data (not JSON). Kill servers: kill $(lsof -ti :5173) $(lsof -ti :8000). docs/multifamily_data_guide.docx should NOT be deleted.",
-      "added_at": "2026-03-10T16:15:00.000000",
+      "content": "conda env: dashboard-backend. Dev: npm run dev:all (auto-opens Edge). Git: stash apply over pop, don't push unless asked. NO mock/fake data. User: matt@bandrcapital.com / Wildcats777!! / admin. User expects Agent Team approach — don't tunnel-vision, execute full parallel agent plans. Data observations (items 8-12) are NOT issues. Cordoba != Cordova. Option C for old UW model attributes. Auth login uses form data (not JSON). docs/multifamily_data_guide.docx should NOT be deleted. User expects all tracking table rows to have commit hashes filled in. Settings.local.json: avoid ':*' mid-string in Bash rules. User wants auto-chaining: proceed to next wave immediately, don't wait for confirmation.",
+      "added_at": "2026-03-11T00:10:00.000000",
       "source": "consolidated"
     },
     {
       "type": "tech_decisions",
-      "content": "Zod: .nullable().optional() + ?? undefined (NOT ?? 0). TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch). shadcn needs CSS vars in :root + tailwind mappings. KPICard: treatZeroAsNA prop (default true). Property detail: lazy enrichment via CRUDProperty.enrich_financial_data() — delegates to services/enrichment.py. Zod property schema expects full nested structure — backend must return 0s not null objects. SQLite tests: no server_default, datetime.now(UTC), StaticPool. _dec()/to_decimal() converts float->Decimal. _property_transforms.py: _is_placeholder_city() catches Unknown/submarkets-as-cities. F-047: client.ts returns null as unknown as T for non-JSON, keep Promise<T> signature to avoid cascade. documents.property_id is now Integer FK (was VARCHAR). Type cascade lesson: changing model property types (e.g. string→number) cascades through schemas, CRUD, API, frontend types, hooks, filters, tests — UI filter types (strings from select components) must stay as strings even when data model changes. deploy.yml with workflow_run trigger caused spam — deleted, .disabled version remains.",
-      "added_at": "2026-03-10T18:35:00.000000",
+      "content": "Zod: .nullable().optional() + ?? undefined (NOT ?? 0). TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch). shadcn needs CSS vars in :root + tailwind mappings. Zod property schema: safeNum/safeStr/safeDateString with defaults (resilient parsing). SQLite tests: no server_default, datetime.now(UTC), StaticPool. CRUD uses flush() not commit() — get_db() auto-commits at request boundary. Extraction endpoint run_in_executor wrapping is thread-unsafe with sync Session — don't do it. deals.py now a package: deals/__init__.py assembles sub-routers, fixed-path routes before parameterized. market_data/ uses _service.py for mock targeting. Filter utils use Any not Column for mypy compat with InstrumentedAttribute. Settings class split into 7 groups via multiple inheritance (backward-compatible). staleTime constants centralized in src/lib/constants/query.ts (STALE_TIMES object). Reporting types extracted from mock files to src/types/reporting.ts. fetchProperties defaults limit=200 to show all properties on Dashboard/Investments.",
+      "added_at": "2026-03-11T10:45:00.000000",
       "source": "consolidated"
     },
     {
@@ -26,26 +26,80 @@
     },
     {
       "type": "remaining_tasks",
-      "content": "Architecture review v2: 71/71 COMPLETE (69 Done + 2 Accepted Risk). CI: backend timeout=600s, -p no:randomly. Tracking: docs/findings-and-recommendations.md. Total tests: 3,804 (2,538 backend + 1,266 frontend). Alembic head: c5d6e7f8a9b0 (chain: 7c415cc1b77a → a3b8f1c2d4e5 F-041 → b4c5d6e7f8a9 F-018 → c5d6e7f8a9b0 F-042). NEXT: Extract 28 ungrouped files, production hosting (Oracle Cloud Free Tier or Hetzner CX22), mobile/iOS, security audit.",
-      "added_at": "2026-03-10T18:35:00.000000",
+      "content": "Tech Debt ALL 7 WAVES COMPLETE — 69/76 items resolved, 7 remaining (T-DEBT-023 SQLite workarounds + 6 LOW items for regular feature work). Branch: tech-debt/remediation-phase1 (19 commits, not yet merged). Tests: ~4,600+ total. Alembic head: c5d6e7f8a9b0. Pending: merge tech-debt PR to main, extract 28 ungrouped files, production hosting (Oracle Cloud Free Tier or Hetzner CX22), mobile/iOS, security audit.",
+      "added_at": "2026-03-11T12:00:00.000000",
       "source": "consolidated"
     }
   ],
   "manual_memories": [],
   "realtime_memories": [
     {
+      "type": "session_progress",
+      "content": "2026-03-11 session: PR #1 created (tech-debt/remediation-phase1 to main, 22 commits). Committed uncommitted Wave 7 work as 3b75672. All findings-and-recommendations.md tasks COMPLETE. Deferred items: T-DEBT-023 done (Team 10, comment-only SQLite docs), 3 frontend LOW items fixed by Team 8 (A-TD-009 loading states, C-TD-013 deprecated hooks, C-TD-006 last magic numbers). Team 9 backend LOW audit still pending. User preference: ALWAYS use Agent Teams from docs/tech-debt-remediation-plan.md.",
+      "added_at": "2026-03-11T10:47:02.000000",
+      "source": "consolidated"
+    },
+    {
       "type": "claude_response",
-      "content": "All findings resolved. Ready to commit and push when you say go.",
-      "added_at": "2026-03-10T10:33:35.416325",
+      "content": "Memory cleaned: 19 entries consolidated to 6 (5 core + 1 session progress).\n\n---\n\nNot fully done yet. **Team 9 (Backend-Code-Quality)** was cancelled when you interrupted earlier. That's the last team",
+      "added_at": "2026-03-11T10:51:24.643673",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "Let's commmit and push",
-      "added_at": "2026-03-10T10:33:35.416360",
+      "content": "How many items are left?",
+      "added_at": "2026-03-11T10:51:24.643709",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "**~2-3 backend LOW items** — that's it.\n\nHere's the math:\n- 8 named deferred items: all **DONE**\n- \"6 more LOW items\":\n  - 3 fixed by Team 8 (A-TD-009, C-TD-013, C-TD-006 remnant)\n  - 1 assessed not a",
+      "added_at": "2026-03-11T10:52:57.914112",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Please continue but utilize Agent Teams with multiple backend-code-quality agents that are non-overalpping and each work through one of the three items remainiing.",
+      "added_at": "2026-03-11T10:52:57.914144",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Please continue, but first how much longer do you have?",
+      "added_at": "2026-03-11T11:23:11.156032",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "\n\nBased on the work done so far, here's where we stand:\n\n**Completed this session:**\n- Committed uncommitted Wave 7 work (`3b75672`)\n- Pushed 6 commits + created PR #1\n- Team 10 resolved T-DEBT-023 (S",
+      "added_at": "2026-03-11T11:23:55.932799",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Continue",
+      "added_at": "2026-03-11T11:23:55.932829",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "list_notebooks",
+      "added_at": "2026-03-11T11:50:20.406429",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "No notebooks found — the library is currently empty.",
+      "added_at": "2026-03-11T11:51:40.730296",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "setup_auth",
+      "added_at": "2026-03-11T11:51:40.730324",
       "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-03-10T10:33:35.416362"
+  "updated_at": "2026-03-11T11:51:40.730327"
 }

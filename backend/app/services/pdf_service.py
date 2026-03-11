@@ -10,7 +10,7 @@ Provides functionality to generate professional PDF reports including:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from io import BytesIO
 from typing import Any
 
@@ -170,7 +170,7 @@ class PDFReportService:
 
         canvas.setFont("Helvetica", 10)
         canvas.drawRightString(
-            letter[0] - 30, letter[1] - 32, datetime.now().strftime("%Y-%m-%d")
+            letter[0] - 30, letter[1] - 32, datetime.now(UTC).strftime("%Y-%m-%d")
         )
 
         # Footer
@@ -593,7 +593,7 @@ class PDFReportService:
         )
         elements.append(
             Paragraph(
-                f"Generated: {datetime.now().strftime('%B %d, %Y')}",
+                f"Generated: {datetime.now(UTC).strftime('%B %d, %Y')}",
                 ParagraphStyle(
                     "DateStyle",
                     parent=self._styles["Normal"],

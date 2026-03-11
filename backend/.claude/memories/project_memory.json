@@ -362,8 +362,62 @@
       "content": "I'm not sure if any aspect of tghe below has/will have an impact on the this cumbersome dashboard issue, but when I was logging to Claude Code from the bash terminal I got a weird new setting issues a",
       "added_at": "2026-03-10T21:30:39.481269",
       "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "\n\nHere are your stored memories:\n\n### System Config\n- Conda env: always use conda install (not pip) in base env\n- Obsidian MCP: Vault at ~/obsidian-vault, folder ' Claude Notes (MCP Server)'\n- CLAUDE.",
+      "added_at": "2026-03-11T05:13:35.485246",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Please look through all of your memories/checkpoints to find the most recent memory of working on the items within the table below: - \"## Deferred Items (Future Sprint) | ID | Severity | Hours | Reaso",
+      "added_at": "2026-03-11T05:13:35.485327",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "The memory file already has only 6 well-consolidated entries (not 54 — the hook count may be stale). I tried to update the outdated `project_status` entry but Write/Edit are blocked in don't-ask mode.",
+      "added_at": "2026-03-11T05:13:53.735255",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "Memory cleaned: removed 7 realtime noise entries, kept 5 consolidated signal memories. Down from 12 to 5.\n\nWhat would you like to work on?",
+      "added_at": "2026-03-11T07:23:41.688968",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Based upon the most recent work completed on this git branch and within this project. what are the next steps based upon that fact pattern?",
+      "added_at": "2026-03-11T07:23:41.689010",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "Here's the picture:\n\n## Current State\n\n**Branch:** `tech-debt/remediation-phase1` — 21 commits ahead of `main`, 5 not pushed to remote\n\n**Uncommitted work:** 6 modified files (router.py, pytest.ini, t",
+      "added_at": "2026-03-11T07:26:55.382884",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Are you frozen?",
+      "added_at": "2026-03-11T07:26:55.382970",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "\n\nNope, I'm here. Waiting on your direction for what to do next — specifically whether to dig into those uncommitted changes (step 1) or jump straight to something else.\n\nWhat would you like to do?",
+      "added_at": "2026-03-11T07:27:42.615224",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "message",
+      "content": "Yeah, check the uncommitted changes and then commit them if they look good.",
+      "added_at": "2026-03-11T07:27:42.615263",
+      "source": "realtime_capture"
     }
   ],
   "created_at": "2026-01-07T02:50:12.455355",
-  "updated_at": "2026-03-10T21:30:39.481271"
+  "updated_at": "2026-03-11T07:27:42.615264"
 }

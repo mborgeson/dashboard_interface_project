@@ -2,7 +2,7 @@
 CRUD operations for Report Template and related models.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -139,7 +139,7 @@ class CRUDQueuedReport(CRUDBase[QueuedReport, QueuedReportCreate, QueuedReportCr
         """Create a queued report with current timestamp."""
         db_obj = QueuedReport(
             **obj_in.model_dump(),
-            requested_at=datetime.now(),
+            requested_at=datetime.now(UTC),
             status=ReportStatus.PENDING,
             progress=0,
         )
@@ -207,7 +207,7 @@ class CRUDQueuedReport(CRUDBase[QueuedReport, QueuedReportCreate, QueuedReportCr
             report.file_size = file_size
 
         if status == ReportStatus.COMPLETED.value:
-            report.completed_at = datetime.now()
+            report.completed_at = datetime.now(UTC)
             report.progress = 100
 
         db.add(report)
@@ -310,7 +310,7 @@ class CRUDDistributionSchedule(
     ) -> list[DistributionSchedule]:
         """Get schedules that are due to run."""
         if as_of is None:
-            as_of = datetime.now()
+            as_of = datetime.now(UTC)
 
         result = await db.execute(
             select(DistributionSchedule)
@@ -347,7 +347,7 @@ class CRUDDistributionSchedule(
         if not schedule:
             return None
 
-        schedule.last_sent = datetime.now()
+        schedule.last_sent = datetime.now(UTC)
         schedule.next_scheduled = next_scheduled
 
         db.add(schedule)

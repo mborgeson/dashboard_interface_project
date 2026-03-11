@@ -242,8 +242,8 @@ def process_files(
     run_id: UUID,
     files_to_process: list[dict],
     mappings: dict,
-    ExtractionRunCRUD,
-    ExtractedValueCRUD,
+    extraction_run_crud,
+    extracted_value_crud,
     max_workers: int = 4,
     resume_run_id: UUID | None = None,
 ):
@@ -259,8 +259,8 @@ def process_files(
         run_id: Extraction run ID.
         files_to_process: List of file info dicts with file_path and deal_name.
         mappings: Cell mappings for extraction.
-        ExtractionRunCRUD: CRUD class for extraction runs.
-        ExtractedValueCRUD: CRUD class for extracted values.
+        extraction_run_crud: CRUD class for extraction runs.
+        extracted_value_crud: CRUD class for extracted values.
         max_workers: Maximum parallel extraction threads (default 4).
         resume_run_id: If provided, skip files already completed in that run.
     """
@@ -268,7 +268,7 @@ def process_files(
     from app.services.extraction.change_detector import should_extract_deal
 
     # Update run with file count
-    ExtractionRunCRUD.update_progress(db, run_id, files_processed=0, files_failed=0)
+    extraction_run_crud.update_progress(db, run_id, files_processed=0, files_failed=0)
 
     # Create extractor
     extractor = ExcelDataExtractor(mappings)
@@ -283,7 +283,7 @@ def process_files(
     # Resume support: skip files already completed in a previous run
     completed_files: set[str] = set()
     if resume_run_id:
-        prev_run = ExtractionRunCRUD.get(db, resume_run_id)
+        prev_run = extraction_run_crud.get(db, resume_run_id)
         if prev_run and prev_run.per_file_status:
             completed_files = {
                 fp
@@ -407,7 +407,7 @@ def process_files(
                     # Data changed or new deal — insert ALL values
                     source_file = file_info.get("sharepoint_path", file_path)
 
-                    ExtractedValueCRUD.bulk_insert(
+                    extracted_value_crud.bulk_insert(
                         db,
                         extraction_run_id=run_id,
                         extracted_data=result,
@@ -455,7 +455,7 @@ def process_files(
 
         # Update progress after each file
         try:
-            ExtractionRunCRUD.update_progress(
+            extraction_run_crud.update_progress(
                 db, run_id, files_processed=processed, files_failed=failed
             )
         except Exception as progress_error:
@@ -514,7 +514,7 @@ def process_files(
         )
 
     # Mark complete with error summary including skip stats
-    ExtractionRunCRUD.complete(
+    extraction_run_crud.complete(
         db,
         run_id,
         files_processed=processed,

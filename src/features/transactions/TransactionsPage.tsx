@@ -11,6 +11,7 @@ import { List, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TableSkeleton } from '@/components/skeletons';
 import { EmptyTransactions } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 
 type ViewMode = 'table' | 'timeline';
 
@@ -18,7 +19,7 @@ export function TransactionsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
 
   // Fetch transactions from API (with mock fallback)
-  const { data: txnData, isLoading } = useTransactionsWithMockFallback();
+  const { data: txnData, isLoading, error } = useTransactionsWithMockFallback();
   const allTransactions = txnData?.transactions ?? [];
 
   // Fetch properties from API for property filter dropdown
@@ -38,6 +39,27 @@ export function TransactionsPage() {
   const properties = useMemo(() => {
     return apiProperties.map((p) => ({ id: p.id, name: p.name }));
   }, [apiProperties]);
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900">Transactions</h1>
+            <p className="text-neutral-600 mt-1">
+              Complete transaction history across all properties
+            </p>
+          </div>
+        </div>
+        <ErrorState
+          title="Failed to load transactions"
+          description={error instanceof Error ? error.message : 'An unexpected error occurred while loading transactions.'}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
   // Show loading state
   if (isLoading) {

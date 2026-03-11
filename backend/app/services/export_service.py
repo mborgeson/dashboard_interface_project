@@ -8,7 +8,7 @@ Provides functionality to export data to formatted Excel files including:
 - Multi-sheet workbooks
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from io import BytesIO
 from typing import Any
 
@@ -508,7 +508,7 @@ class ExcelExportService:
         ws.cell(
             row=2,
             column=1,
-            value=f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            value=f"Generated: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M')} UTC",
         )
 
         # Portfolio Summary Section

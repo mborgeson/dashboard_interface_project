@@ -12,9 +12,10 @@ Covers the 10 REST endpoints mounted at /api/v1/sales-analysis:
 9. PUT /reminder/dismiss         -- Dismiss reminder
 10. GET /reminder/status         -- Reminder status
 
-SQLite does NOT support percentile_cont, array_agg, or to_char, so analytics
-endpoints that use those PostgreSQL functions are tested by mocking the
-db.execute call at the endpoint level.
+SQLite limitation (T-DEBT-023): SQLite does NOT support percentile_cont,
+array_agg, or to_char, so analytics endpoints that use those PostgreSQL
+functions are tested by mocking the db.execute call at the endpoint level.
+See test_integration/test_pg_queries.py for real PG aggregation tests.
 """
 
 from collections.abc import Generator

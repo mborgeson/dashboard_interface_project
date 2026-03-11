@@ -14,10 +14,21 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 # =============================================================================
-# Test Database Configuration
+# Test Database Configuration (T-DEBT-023)
 # =============================================================================
-# Use SQLite for fast in-memory testing
-# StaticPool ensures all connections share the same in-memory database
+# SQLite in-memory for fast unit/API tests (~3000 tests, < 60s).
+# Known limitations vs PostgreSQL:
+#   1. No server_default=func.now() — fixtures must set created_at/updated_at
+#      explicitly via datetime.now(UTC). See test_integration/test_pg_server_defaults.py.
+#   2. No reliable begin_nested() (savepoints) with StaticPool — transaction
+#      rollback tests live in test_integration/test_pg_transactions.py.
+#   3. Timezone info stripped on round-trip — comparisons use
+#      .replace(tzinfo=None). PG preserves timezone natively.
+#   4. No ILIKE, percentile_cont, array_agg — PG-only query tests live in
+#      test_integration/test_pg_queries.py.
+#   5. ON CONFLICT (upsert) with named constraints unsupported — PG upsert
+#      validated in test_integration/test_pg_transactions.py.
+# StaticPool ensures all connections share the same in-memory database.
 from sqlalchemy.pool import StaticPool
 
 from app.core.config import settings

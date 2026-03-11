@@ -476,7 +476,7 @@ async def main() -> None:
         db_url=settings.MARKET_ANALYSIS_DB_URL,  # type: ignore[arg-type]
     )
     result = await extractor.extract_all(incremental=incremental)
-    print(f"FRED extraction complete: {result}")
+    logger.info("fred_extraction_result", **result)
 
     sys.exit(0 if result["status"] == "success" else 1)
 

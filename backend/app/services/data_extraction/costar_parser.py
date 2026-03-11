@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import re
 import sys
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -179,7 +179,7 @@ class CoStarParser:
     @staticmethod
     def _compute_current_quarter_start() -> date:
         """Return the first day of the current calendar quarter."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         quarter_month = ((now.month - 1) // 3) * 3 + 1
         return date(now.year, quarter_month, 1)
 
@@ -429,7 +429,7 @@ async def main() -> None:
     parser = CoStarParser(db_url=db_url, data_dir=data_dir)
     result = await parser.parse_all()
 
-    print(result)
+    logger.info("costar_extraction_result", **result)
     sys.exit(0 if result["status"] == "success" else 1)
 
 

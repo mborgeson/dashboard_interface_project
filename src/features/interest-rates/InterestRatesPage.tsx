@@ -7,6 +7,7 @@ import { RateComparisons } from './components/RateComparisons';
 import { DataSources } from './components/DataSources';
 import { useInterestRates, getAsOfDate } from './hooks/useInterestRates';
 import { InterestRatesSkeleton } from './components/InterestRatesSkeleton';
+import { STALE_TIMES } from '@/lib/constants/query';
 import type { RateDataSource } from './types';
 
 const dataSources: RateDataSource[] = [
@@ -94,7 +95,7 @@ export function InterestRatesPage() {
     refresh,
     isApiConfigured,
   } = useInterestRates({
-    refreshInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+    refreshInterval: STALE_TIMES.MEDIUM, // 5 minutes
     autoRefresh: true,
   });
 

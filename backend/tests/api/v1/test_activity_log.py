@@ -70,9 +70,10 @@ async def deal_with_activity_logs(
     ]
 
     for data in logs_data:
-        # For SQLite, explicitly convert UUID to string
+        # SQLite limitation (T-DEBT-023): no native UUID type; must pass as string.
+        # PG uses server-side uuid_generate_v4(). See conftest_pg.py for PG fixtures.
         log = ActivityLog(
-            id=str(uuid.uuid4()),  # SQLite needs string ID
+            id=str(uuid.uuid4()),
             deal_id=test_deal.id,
             user_id=str(test_user.id),
             **data,
@@ -89,8 +90,9 @@ async def many_activity_logs(
 ) -> Deal:
     """Create a deal with many activity logs for pagination testing."""
     for i in range(25):
+        # SQLite limitation (T-DEBT-023): UUID as string (see above).
         log = ActivityLog(
-            id=str(uuid.uuid4()),  # SQLite needs string ID
+            id=str(uuid.uuid4()),
             deal_id=test_deal.id,
             user_id=str(test_user.id),
             action=ActivityAction.VIEWED,

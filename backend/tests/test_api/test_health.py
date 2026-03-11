@@ -78,7 +78,7 @@ async def test_health_status_database_check(client):
 
     db_check = data["checks"]["database"]
     assert "status" in db_check
-    # With the test SQLite DB, database should be up
+    # SQLite in-memory DB is always up (T-DEBT-023); PG health tested via conftest_pg
     assert db_check["status"] == "up"
     assert "latency_ms" in db_check
     assert isinstance(db_check["latency_ms"], (int, float))
@@ -89,8 +89,7 @@ async def test_health_status_healthy_when_db_up(client):
     response = await client.get("/api/v1/health/status")
     data = response.json()
 
-    # Database should be up (SQLite in-memory for tests), so status should be healthy
-    # (or degraded if redis is explicitly down, but not unhealthy)
+    # SQLite in-memory always healthy (T-DEBT-023); may show "degraded" if Redis down
     assert data["status"] in ["healthy", "degraded"]
     assert data["checks"]["database"]["status"] == "up"
 

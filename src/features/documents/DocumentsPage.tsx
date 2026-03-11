@@ -9,6 +9,7 @@ import { useDocuments } from './hooks/useDocuments';
 import { useToast } from '@/hooks/useToast';
 import type { Document, DocumentType } from '@/types/document';
 import { EmptyDocuments } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 
 // Lazy load DocumentUploadModal for code splitting
 const DocumentUploadModal = lazy(() =>
@@ -30,7 +31,7 @@ export function DocumentsPage() {
   const [dateRange, setDateRange] = useState<'all' | '7days' | '30days' | '90days' | '1year'>('all');
 
   // Get filtered documents and stats from API
-  const { documents, stats, isLoading } = useDocuments({
+  const { documents, stats, isLoading, error } = useDocuments({
     searchTerm,
     type: documentType,
     propertyId,
@@ -63,6 +64,27 @@ export function DocumentsPage() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Documents</h1>
+            <p className="text-muted-foreground">
+              Manage property documents, leases, and financial records
+            </p>
+          </div>
+        </div>
+        <ErrorState
+          title="Failed to load documents"
+          description={error instanceof Error ? error.message : 'An unexpected error occurred while loading documents.'}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
   // Show loading state
   if (isLoading) {

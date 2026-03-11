@@ -4,6 +4,10 @@ Verifies that SQLAlchemy models enforce CHECK constraints for financial
 fields like prices, rates, units, and year ranges. SQLite enforces CHECK
 constraints at INSERT/UPDATE time, so these tests validate the constraint
 definitions end-to-end.
+
+SQLite limitation (T-DEBT-023): Fixtures must set created_at/updated_at
+explicitly because SQLite ignores server_default=func.now(). PG equivalent
+tests in test_integration/test_pg_server_defaults.py verify auto-population.
 """
 
 from datetime import UTC, date, datetime

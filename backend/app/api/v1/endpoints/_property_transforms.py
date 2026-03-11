@@ -13,41 +13,26 @@ from app.models import Property
 # Scalar helpers
 # ---------------------------------------------------------------------------
 
-
-def _decimal_to_float(value: Decimal | None) -> float | None:
-    """Convert Decimal to float, returning None if input is None."""
-    return float(value) if value is not None else None
-
-
-def _is_placeholder(val: str | None) -> bool:
-    """Check if a string is a bracket placeholder or generic label."""
-    if not val:
-        return True
-    val = val.strip()
-    if val.startswith("[") and val.endswith("]"):
-        return True
-    val_lower = val.lower()
-    _BAD_VALUES = {
-        "zip code",
-        "00000",
-        "unknown",
-        "n/a",
-        "na",
-        "none",
-        "tbd",
-        "[county]",
-        "[market (msa)]",
-        "[submarket]",
-        "[city]",
-        "[state]",
-        "[zip]",
-        "[address]",
-        "city",
-        "state",
-        "county",
-    }
-    return val_lower in _BAD_VALUES
-
+# Module-level constants for placeholder detection
+_BAD_VALUES = {
+    "zip code",
+    "00000",
+    "unknown",
+    "n/a",
+    "na",
+    "none",
+    "tbd",
+    "[county]",
+    "[market (msa)]",
+    "[submarket]",
+    "[city]",
+    "[state]",
+    "[zip]",
+    "[address]",
+    "city",
+    "state",
+    "county",
+}
 
 # Values that are valid submarkets but should not be used as city names
 _SUBMARKET_NOT_CITY = {
@@ -64,6 +49,32 @@ _SUBMARKET_NOT_CITY = {
 # Remove actual AZ cities from the set (they ARE valid as both)
 _SUBMARKET_NOT_CITY -= {"chandler", "gilbert", "tempe", "mesa", "scottsdale", "peoria"}
 
+# City-specific bad values includes submarket names that are not city names
+_CITY_BAD_VALUES = (
+    _BAD_VALUES
+    | {
+        "acquisition",
+        "disposition",
+        "refinance",
+    }
+    | (_SUBMARKET_NOT_CITY - {"chandler", "gilbert"})
+)
+
+
+def _decimal_to_float(value: Decimal | None) -> float | None:
+    """Convert Decimal to float, returning None if input is None."""
+    return float(value) if value is not None else None
+
+
+def _is_placeholder(val: str | None) -> bool:
+    """Check if a string is a bracket placeholder or generic label."""
+    if not val:
+        return True
+    val = val.strip()
+    if val.startswith("[") and val.endswith("]"):
+        return True
+    return val.lower() in _BAD_VALUES
+
 
 def _is_placeholder_city(val: str | None) -> bool:
     """Check if a value is a placeholder OR a submarket being misused as a city."""
@@ -71,18 +82,6 @@ def _is_placeholder_city(val: str | None) -> bool:
         return True
     val_lower = val.strip().lower() if val else ""
     # Also catch submarkets and other non-city values used as city
-    _CITY_BAD_VALUES = {
-        "acquisition",
-        "disposition",
-        "refinance",
-        "deer valley",
-        "east valley",
-        "north phoenix",
-        "south west valley",
-        "north west valley",
-        "downtown phoenix",
-        "old town scottsdale",
-    }
     return val_lower in _CITY_BAD_VALUES
 
 

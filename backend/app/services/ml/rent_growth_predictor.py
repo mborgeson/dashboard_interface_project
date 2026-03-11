@@ -208,7 +208,7 @@ class RentGrowthPredictor:
 
         # Adjust based on property age
         year_built = property_data.get("year_built", 2000)
-        age = datetime.now().year - year_built
+        age = datetime.now(UTC).year - year_built
         if age < 10:
             base_growth += 0.3
         elif age > 30:

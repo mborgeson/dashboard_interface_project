@@ -17,7 +17,7 @@ Architecture:
   Static methods are prefixed with _static_ and kept intact as fallbacks.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from loguru import logger
 
@@ -59,7 +59,7 @@ class MarketDataService:
 
     def __init__(self) -> None:
         """Initialize market data service and market DB engine."""
-        self._last_updated = datetime.now()
+        self._last_updated = datetime.now(UTC)
         self._market_db_engine = None
         self._market_db_available = False
         self._market_data_freshness: str | None = None
@@ -67,7 +67,7 @@ class MarketDataService:
 
     def update_last_refreshed(self) -> str:
         """Update the last refreshed timestamp. Called after successful data refresh."""
-        self._last_updated = datetime.now()
+        self._last_updated = datetime.now(UTC)
         # Also update market_data_freshness so MSA overview shows current date
         self._market_data_freshness = self._last_updated.strftime("%Y-%m-%d")
         logger.info(f"Market data last_updated set to {self._last_updated}")
@@ -315,7 +315,7 @@ class MarketDataService:
                 employment_growth=job_growth / 100 if emp_rows else 0.032,
                 gdp_growth=0.041,
                 last_updated=self._market_data_freshness
-                or datetime.now().strftime("%Y-%m-%d"),
+                or datetime.now(UTC).strftime("%Y-%m-%d"),
             )
 
             return MarketOverviewResponse(
@@ -334,7 +334,7 @@ class MarketDataService:
             population_growth=0.023,
             employment_growth=0.032,
             gdp_growth=0.041,
-            last_updated=datetime.now().strftime("%Y-%m-%d"),
+            last_updated=datetime.now(UTC).strftime("%Y-%m-%d"),
         )
 
         economic_indicators = [
@@ -1461,7 +1461,7 @@ class MarketDataService:
                 employment_growth=job_growth / 100 if emp_rows else 0.017,
                 gdp_growth=gdp_growth,
                 last_updated=self._market_data_freshness
-                or datetime.now().strftime("%Y-%m-%d"),
+                or datetime.now(UTC).strftime("%Y-%m-%d"),
             )
 
             return MarketOverviewResponse(
@@ -1480,7 +1480,7 @@ class MarketDataService:
             population_growth=0.006,
             employment_growth=0.017,
             gdp_growth=0.025,
-            last_updated=datetime.now().strftime("%Y-%m-%d"),
+            last_updated=datetime.now(UTC).strftime("%Y-%m-%d"),
         )
 
         economic_indicators = [

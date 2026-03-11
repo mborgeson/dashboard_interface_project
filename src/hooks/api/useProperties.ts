@@ -54,6 +54,10 @@ export function useProperties(filters?: PropertyFiltersParams) {
 
 /**
  * Fetch paginated list of properties with filters (API-first, no mock fallback)
+ *
+ * @deprecated Prefer `useProperties` which includes Zod validation and consistent
+ * staleTime configuration. This hook exists for backward compatibility and will be
+ * removed in a future cleanup. [C-TD-013]
  */
 export function usePropertiesApi(
   filters: PropertyFilters = {},
@@ -62,6 +66,7 @@ export function usePropertiesApi(
   return useQuery({
     queryKey: propertyKeys.list(filters),
     queryFn: () => get<PropertyListResponse>('/properties', filters as Record<string, unknown>),
+    staleTime: STALE_TIMES.LONG,
     ...options,
   });
 }
@@ -86,6 +91,10 @@ export function useProperty(id: string | undefined) {
 
 /**
  * Fetch a single property by ID (API-first, no mock fallback)
+ *
+ * @deprecated Prefer `useProperty` which includes Zod validation and consistent
+ * staleTime configuration. This hook exists for backward compatibility and will be
+ * removed in a future cleanup. [C-TD-013]
  */
 export function usePropertyApi(
   id: string,
@@ -95,6 +104,7 @@ export function usePropertyApi(
     queryKey: propertyKeys.detail(id),
     queryFn: () => get<PropertyApiResponse>(`/properties/${id}`),
     enabled: !!id,
+    staleTime: STALE_TIMES.LONG,
     ...options,
   });
 }
@@ -114,6 +124,10 @@ export function usePortfolioSummary() {
 
 /**
  * Fetch portfolio summary statistics (API-first)
+ *
+ * @deprecated Prefer `usePortfolioSummary` which includes Zod validation and consistent
+ * staleTime configuration. This hook exists for backward compatibility and will be
+ * removed in a future cleanup. [C-TD-013]
  */
 export function usePropertySummary(
   options?: Omit<UseQueryOptions<PropertySummaryStats>, 'queryKey' | 'queryFn'>
@@ -121,6 +135,7 @@ export function usePropertySummary(
   return useQuery({
     queryKey: propertyKeys.summary(),
     queryFn: () => get<PropertySummaryStats>('/properties/summary'),
+    staleTime: STALE_TIMES.LONG,
     ...options,
   });
 }

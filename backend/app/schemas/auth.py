@@ -2,14 +2,14 @@
 Authentication schemas for login, tokens, and session management.
 """
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
     """Login request with email and password."""
 
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=1, max_length=128)
 
 
 class Token(BaseModel):
@@ -32,7 +32,7 @@ class TokenPayload(BaseModel):
 class RefreshTokenRequest(BaseModel):
     """Request to refresh access token."""
 
-    refresh_token: str
+    refresh_token: str = Field(..., min_length=1)
 
 
 class PasswordResetRequest(BaseModel):
@@ -44,12 +44,12 @@ class PasswordResetRequest(BaseModel):
 class PasswordResetConfirm(BaseModel):
     """Confirm password reset with token."""
 
-    token: str
-    new_password: str
+    token: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, max_length=128)
 
 
 class PasswordChange(BaseModel):
     """Change password for authenticated user."""
 
-    current_password: str
-    new_password: str
+    current_password: str = Field(..., min_length=1, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=128)

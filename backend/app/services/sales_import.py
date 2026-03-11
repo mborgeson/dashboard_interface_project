@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
@@ -443,7 +444,7 @@ def import_all_files(
 
     for filepath in files:
         filename = os.path.basename(filepath)
-        print(f"  Importing: {filename}...")
+        logger.info("Importing sales file: {}", filename)
         file_result = import_sales_file(db, filepath, market)
         result.file_results.append(file_result)
         result.files_processed += 1
@@ -455,10 +456,11 @@ def import_all_files(
             result.errors.extend(file_result.errors)
             result.files_skipped += 1
 
-        print(
-            f"    -> {file_result.rows_imported} new, "
-            f"{file_result.rows_updated} updated, "
-            f"{file_result.rows_with_null_comp_id} null comp IDs"
+        logger.info(
+            "Sales file result: {} new, {} updated, {} null comp IDs",
+            file_result.rows_imported,
+            file_result.rows_updated,
+            file_result.rows_with_null_comp_id,
         )
 
     return result

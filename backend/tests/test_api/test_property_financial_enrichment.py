@@ -24,6 +24,8 @@ from app.models.extraction import ExtractedValue, ExtractionRun
 # ---------------------------------------------------------------------------
 # Helpers — create extracted_values rows via sync session (extraction models
 # use PG_UUID which works transparently on SQLite).
+# SQLite limitation (T-DEBT-023): StaticPool required for in-memory DB.
+# See test_integration/test_pg_queries.py for PG-native query tests.
 # ---------------------------------------------------------------------------
 
 SYNC_TEST_URL = "sqlite:///:memory:"

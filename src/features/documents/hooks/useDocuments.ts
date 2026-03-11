@@ -7,7 +7,7 @@ import {
 
 export function useDocuments(filters: DocumentFilters) {
   // Fetch documents from API (with mock fallback)
-  const { data: docData, isLoading } = useDocumentsWithMockFallback(filters);
+  const { data: docData, isLoading, error } = useDocumentsWithMockFallback(filters);
   const allDocuments = useMemo(() => docData?.documents ?? [], [docData]);
 
   // Filter documents client-side (API may not support all filter combos)
@@ -104,5 +104,6 @@ export function useDocuments(filters: DocumentFilters) {
     documents: filteredDocuments,
     stats,
     isLoading,
+    error,
   };
 }

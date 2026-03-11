@@ -277,15 +277,15 @@ async def main() -> None:
     db_url = settings.MARKET_ANALYSIS_DB_URL
 
     if not api_key:
-        print("ERROR: CENSUS_API_KEY not set")
+        log.error("CENSUS_API_KEY not set")
         sys.exit(1)
     if not db_url:
-        print("ERROR: MARKET_ANALYSIS_DB_URL not set")
+        log.error("MARKET_ANALYSIS_DB_URL not set")
         sys.exit(1)
 
     extractor = CensusExtractor(api_key=api_key, db_url=db_url)
     result = await extractor.extract_all()
-    print(f"Census extraction complete: {result}")
+    log.info("census_extraction_result", **result)
     sys.exit(0 if result["status"] == "success" else 1)
 
 

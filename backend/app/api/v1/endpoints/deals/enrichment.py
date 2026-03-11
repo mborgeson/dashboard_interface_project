@@ -15,6 +15,12 @@ from app.schemas.deal import DealResponse
 
 slog = structlog.get_logger("app.api.deals")
 
+# Extraction enrichment cache TTL: 30 minutes. Extraction data changes infrequently
+# (only on new extraction runs), so a longer TTL is safe. The key is based on the
+# sorted set of property IDs so different page/filter combos that share the same
+# properties can reuse the cache.
+_ENRICHMENT_TTL = 1800
+
 # Fields fetched from extracted_values for deal enrichment
 _ENRICHMENT_FIELDS = [
     "TOTAL_UNITS",
@@ -124,13 +130,6 @@ async def enrich_deals_with_extraction(
     if not prop_ids:
         return deal_responses
 
-    # ── Extraction enrichment cache ──────────────────────────────────
-    # Cache TTL: 30 minutes.  Extraction data changes infrequently (only on
-    # new extraction runs), so a longer TTL is safe.  The key is based on the
-    # sorted set of property IDs so different page/filter combos that share
-    # the same properties can reuse the cache.
-    ENRICHMENT_TTL = 1800  # 30 minutes
-
     sorted_ids = sorted(set(prop_ids))
     cache_key = make_cache_key(
         "deal_extraction_enrichment",
@@ -153,7 +152,7 @@ async def enrich_deals_with_extraction(
         )
         lookup = await _fetch_extraction_lookup(db, prop_ids)
         # Store serializable version in cache
-        await cache.set(cache_key, lookup, ttl=ENRICHMENT_TTL)
+        await cache.set(cache_key, lookup, ttl=_ENRICHMENT_TTL)
 
     _apply_extraction_fields(deal_responses, lookup)
     return deal_responses

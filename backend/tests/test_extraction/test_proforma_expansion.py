@@ -30,6 +30,8 @@ from app.db.base import Base
 
 # ============================================================================
 # DB fixtures (SQLite in-memory, StaticPool — matches project convention)
+# SQLite limitation (T-DEBT-023): No server_default, no begin_nested().
+# See tests/test_integration/ for PG equivalents.
 # ============================================================================
 
 SYNC_TEST_DATABASE_URL = "sqlite:///:memory:"

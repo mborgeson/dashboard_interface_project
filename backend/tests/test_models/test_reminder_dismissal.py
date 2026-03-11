@@ -27,7 +27,8 @@ async def test_create_reminder_dismissal(db_session: AsyncSession):
     assert dismissal.id is not None
     assert dismissal.user_identifier == "test-user"
     assert dismissal.dismissed_month == "2026-02"
-    # Compare timestamps (SQLite may strip timezone info)
+    # SQLite limitation (T-DEBT-023): strips timezone on round-trip.
+    # See test_integration/test_pg_server_defaults.py for PG equivalent.
     assert dismissal.dismissed_at.replace(tzinfo=None) == now.replace(tzinfo=None)
     assert dismissal.created_at is not None
     assert dismissal.updated_at is not None

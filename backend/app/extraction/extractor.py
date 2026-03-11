@@ -17,7 +17,7 @@ import re
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -149,14 +149,14 @@ class ExcelDataExtractor:
             FileNotFoundError: If file doesn't exist and no content provided
             ValueError: If file fails validation (when validate=True)
         """
-        start_time = datetime.now()
+        start_time = datetime.now(UTC)
 
         # Reset error handler for this extraction
         self.error_handler.reset()
 
         extracted_data: dict[str, Any] = {
             "_file_path": file_path,
-            "_extraction_timestamp": datetime.now().isoformat(),
+            "_extraction_timestamp": datetime.now(UTC).isoformat(),
             "_extraction_errors": [],
         }
 
@@ -258,7 +258,7 @@ class ExcelDataExtractor:
             workbook.close()
 
         # Add extraction metadata
-        duration = (datetime.now() - start_time).total_seconds()
+        duration = (datetime.now(UTC) - start_time).total_seconds()
         error_summary = self.error_handler.get_error_summary()
 
         extracted_data["_extraction_metadata"] = {
@@ -539,7 +539,7 @@ class BatchProcessor:
             max_workers=self.max_workers,
         )
 
-        start_time = datetime.now()
+        start_time = datetime.now(UTC)
 
         # Process in batches
         for batch_start in range(0, total_files, self.batch_size):
@@ -575,7 +575,7 @@ class BatchProcessor:
                         failed_files.append({"file_info": file_info, "error": str(e)})
 
         # Generate summary
-        duration = (datetime.now() - start_time).total_seconds()
+        duration = (datetime.now(UTC) - start_time).total_seconds()
 
         summary = {
             "total_files": total_files,

@@ -4,7 +4,9 @@ Workflow Step Handlers
 Built-in handlers for common workflow step types.
 """
 
+import ast
 import asyncio
+import operator
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Coroutine
 from typing import Any
@@ -18,6 +20,28 @@ from .workflow_models import (
     StepType,
     WorkflowInstance,
 )
+
+# Safe operators whitelist for condition expression evaluation.
+# AST-based parsing prevents code injection — only these operators are permitted.
+_SAFE_OPERATORS: dict[type, Callable[..., Any]] = {
+    ast.Eq: operator.eq,
+    ast.NotEq: operator.ne,
+    ast.Lt: operator.lt,
+    ast.LtE: operator.le,
+    ast.Gt: operator.gt,
+    ast.GtE: operator.ge,
+    ast.In: lambda a, b: a in b,
+    ast.NotIn: lambda a, b: a not in b,
+    ast.Is: operator.is_,
+    ast.IsNot: operator.is_not,
+    ast.And: lambda a, b: a and b,
+    ast.Or: lambda a, b: a or b,
+    ast.Not: operator.not_,
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+}
 
 
 class StepHandler(ABC):
@@ -190,32 +214,8 @@ class ConditionHandler(StepHandler):
         Uses AST-based parsing to prevent code injection attacks.
         Only allows safe comparison and logical operators.
         """
-        import ast
-        import operator
-
         if not expression:
             return True
-
-        # Safe operators whitelist
-        SAFE_OPERATORS: dict[type, Callable[..., Any]] = {
-            ast.Eq: operator.eq,
-            ast.NotEq: operator.ne,
-            ast.Lt: operator.lt,
-            ast.LtE: operator.le,
-            ast.Gt: operator.gt,
-            ast.GtE: operator.ge,
-            ast.In: lambda a, b: a in b,
-            ast.NotIn: lambda a, b: a not in b,
-            ast.Is: operator.is_,
-            ast.IsNot: operator.is_not,
-            ast.And: lambda a, b: a and b,
-            ast.Or: lambda a, b: a or b,
-            ast.Not: operator.not_,
-            ast.Add: operator.add,
-            ast.Sub: operator.sub,
-            ast.Mult: operator.mul,
-            ast.Div: operator.truediv,
-        }
 
         def safe_eval_node(node: ast.AST) -> Any:
             """Recursively evaluate AST nodes safely."""
@@ -237,7 +237,7 @@ class ConditionHandler(StepHandler):
             elif isinstance(node, ast.Compare):
                 left = safe_eval_node(node.left)
                 for op, comparator in zip(node.ops, node.comparators, strict=False):
-                    op_func = SAFE_OPERATORS.get(type(op))
+                    op_func = _SAFE_OPERATORS.get(type(op))
                     if op_func is None:
                         raise ValueError(f"Unsupported operator: {type(op).__name__}")
                     right = safe_eval_node(comparator)
@@ -246,7 +246,7 @@ class ConditionHandler(StepHandler):
                     left = right
                 return True
             elif isinstance(node, ast.BoolOp):
-                op_func = SAFE_OPERATORS.get(type(node.op))
+                op_func = _SAFE_OPERATORS.get(type(node.op))
                 if op_func is None:
                     raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
                 result = safe_eval_node(node.values[0])
@@ -260,7 +260,7 @@ class ConditionHandler(StepHandler):
                     f"Unsupported unary operator: {type(node.op).__name__}"
                 )
             elif isinstance(node, ast.BinOp):
-                op_func = SAFE_OPERATORS.get(type(node.op))
+                op_func = _SAFE_OPERATORS.get(type(node.op))
                 if op_func is None:
                     raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
                 return op_func(safe_eval_node(node.left), safe_eval_node(node.right))

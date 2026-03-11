@@ -6,7 +6,7 @@ ErrorHandlerMiddleware. Endpoint-specific try/except is only needed for
 exceptions that require non-default status codes (e.g. ImportError -> 501).
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -89,7 +89,7 @@ async def export_properties_excel(
     )
 
     # Return as downloadable file
-    filename = f"properties_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    filename = f"properties_export_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.xlsx"
 
     return StreamingResponse(
         buffer,
@@ -161,7 +161,7 @@ async def export_deals_excel(
     buffer = excel_service.export_deals(filtered, include_pipeline=include_pipeline)
 
     # Return as downloadable file
-    filename = f"deals_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    filename = f"deals_export_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.xlsx"
 
     return StreamingResponse(
         buffer,
@@ -292,7 +292,7 @@ async def export_analytics_excel(
     )
 
     # Return as downloadable file
-    filename = f"analytics_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    filename = f"analytics_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.xlsx"
 
     return StreamingResponse(
         buffer,
@@ -366,7 +366,7 @@ async def export_property_pdf(
 
         # Return as downloadable file
         filename = (
-            f"property_report_{property_id}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            f"property_report_{property_id}_{datetime.now(UTC).strftime('%Y%m%d')}.pdf"
         )
 
         return StreamingResponse(
@@ -452,7 +452,7 @@ async def export_deal_pdf(
         buffer = pdf_service.generate_deal_report(deal_data, property_data)
 
         # Return as downloadable file
-        filename = f"deal_report_{deal_id}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = f"deal_report_{deal_id}_{datetime.now(UTC).strftime('%Y%m%d')}.pdf"
 
         return StreamingResponse(
             buffer,
@@ -606,7 +606,7 @@ async def export_portfolio_pdf(
         )
 
         # Return as downloadable file
-        filename = f"portfolio_report_{datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = f"portfolio_report_{datetime.now(UTC).strftime('%Y%m%d')}.pdf"
 
         return StreamingResponse(
             buffer,
