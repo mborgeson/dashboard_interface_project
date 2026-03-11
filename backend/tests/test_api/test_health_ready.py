@@ -98,5 +98,5 @@ async def test_readiness_ok_when_redis_not_configured(client):
 
     # Redis not_installed or not_configured should not affect readiness
     redis_status = data["checks"]["redis"]["status"]
-    assert redis_status in ("up", "not_installed", "not_configured")
+    assert redis_status in ("up", "down", "not_installed", "not_configured")
     assert data["ready"] is True

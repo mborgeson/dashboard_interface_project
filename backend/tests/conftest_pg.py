@@ -3,7 +3,7 @@ PostgreSQL-specific test fixtures (T-DEBT-015 / T-DEBT-023).
 
 Provides an async engine and session factory that connect to a real PostgreSQL
 instance.  All fixtures here are scoped to ``function`` so each test gets a
-clean schema.
+clean schema and a fresh engine (avoiding event-loop mismatch).
 
 Configuration
 -------------
@@ -54,55 +54,27 @@ pg_available = pytest.mark.skipif(
     reason="TEST_DATABASE_URL not set — PostgreSQL not available",
 )
 
-# ---------------------------------------------------------------------------
-# Engine & session factory (module-level singletons, created lazily)
-# ---------------------------------------------------------------------------
-
-_pg_engine = None
-_PGSessionLocal = None
-
-
-def _get_pg_engine():
-    """Return (and cache) the async PG engine."""
-    global _pg_engine  # noqa: PLW0603
-    if _pg_engine is None and _ASYNC_URL is not None:
-        _pg_engine = create_async_engine(
-            _ASYNC_URL,
-            echo=False,
-            pool_pre_ping=True,
-            pool_size=2,
-            max_overflow=2,
-        )
-    return _pg_engine
-
-
-def _get_pg_session_factory():
-    """Return (and cache) the async session factory for PG."""
-    global _PGSessionLocal  # noqa: PLW0603
-    if _PGSessionLocal is None:
-        engine = _get_pg_engine()
-        if engine is not None:
-            _PGSessionLocal = async_sessionmaker(
-                bind=engine,
-                class_=AsyncSession,
-                expire_on_commit=False,
-                autoflush=False,
-            )
-    return _PGSessionLocal
-
 
 # ---------------------------------------------------------------------------
-# Fixtures
+# Fixtures — fresh engine per test to avoid event-loop mismatch
 # ---------------------------------------------------------------------------
 
 
 @pytest_asyncio.fixture(scope="function")
 async def pg_engine():
-    """Yield the async PG engine (skip when unavailable)."""
-    engine = _get_pg_engine()
-    if engine is None:
+    """Create a fresh async PG engine per test (skip when unavailable)."""
+    if _ASYNC_URL is None:
         pytest.skip("TEST_DATABASE_URL not set")
+
+    engine = create_async_engine(
+        _ASYNC_URL,
+        echo=False,
+        pool_pre_ping=True,
+        pool_size=2,
+        max_overflow=2,
+    )
     yield engine
+    await engine.dispose()
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -117,7 +89,12 @@ async def pg_session(pg_engine) -> AsyncGenerator[AsyncSession, None]:
         await conn.run_sync(Base.metadata.create_all)
 
     # Yield session
-    factory = _get_pg_session_factory()
+    factory = async_sessionmaker(
+        bind=pg_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
+    )
     async with factory() as session:
         yield session
 
@@ -200,32 +177,3 @@ async def pg_deal(pg_session: AsyncSession, pg_user):
     await pg_session.commit()
     await pg_session.refresh(deal)
     return deal
-
-
-# ---------------------------------------------------------------------------
-# Session-scoped cleanup
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture(scope="session", autouse=True)
-def cleanup_pg_engine():
-    """Dispose the PG engine after the entire test session."""
-    yield
-    import asyncio
-
-    engine = _get_pg_engine()
-    if engine is not None:
-        loop = asyncio.new_event_loop()
-        try:
-            loop.run_until_complete(asyncio.wait_for(engine.dispose(), timeout=10.0))
-        except (TimeoutError, Exception):
-            pass
-        finally:
-            pending = asyncio.all_tasks(loop)
-            for task in pending:
-                task.cancel()
-            if pending:
-                loop.run_until_complete(
-                    asyncio.gather(*pending, return_exceptions=True)
-                )
-            loop.close()

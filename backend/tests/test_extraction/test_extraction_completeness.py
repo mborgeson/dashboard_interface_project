@@ -7,7 +7,7 @@ statistics are calculated correctly, and error summaries are complete.
 Run with: pytest tests/test_extraction/test_extraction_completeness.py -v
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -490,14 +490,14 @@ class TestExtractionDuration:
         mock_cell.value = "test"
         mock_sheet.__getitem__ = MagicMock(return_value=mock_cell)
 
-        before = datetime.now()
+        before = datetime.now(UTC)
 
         with patch.object(extractor, "_load_xlsx", return_value=mock_workbook):
             result = extractor.extract_from_file(
                 "test.xlsx", file_content=b"dummy", validate=False
             )
 
-        after = datetime.now()
+        after = datetime.now(UTC)
 
         # Verify timestamp is in expected range
         timestamp = datetime.fromisoformat(result["_extraction_timestamp"])

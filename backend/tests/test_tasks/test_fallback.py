@@ -9,6 +9,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+pytest.importorskip("arq", reason="arq not installed (requires Redis)")
+
 
 async def _sample_task(ctx: dict[str, Any], value: int = 10) -> dict[str, Any]:
     """A simple async task for testing."""

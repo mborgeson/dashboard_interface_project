@@ -12,6 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytest.importorskip("arq", reason="arq not installed (requires Redis)")
+
 
 class TestMarketDataTasks:
     """Tests for market data task wrappers."""
