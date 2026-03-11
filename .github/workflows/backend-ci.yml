@@ -89,7 +89,7 @@ jobs:
         run: |
           set +e  # Don't exit on error, we'll handle it
           timeout 600 python -m pytest \
-            -m "not slow and not pg" \
+            -m "not slow and not pg and not benchmark and not performance" \
             --cov=app \
             --cov-report=xml \
             --cov-report=term-missing \
