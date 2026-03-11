@@ -46,3 +46,11 @@ export type {
   ConstructionDataQuality,
   ConstructionImportStatus,
 } from './construction-pipeline';
+export type {
+  ReportTemplateParameter,
+  ReportTemplate,
+  QueuedReport,
+  DistributionSchedule,
+  ReportWidget,
+  ReportSettings,
+} from './reporting';

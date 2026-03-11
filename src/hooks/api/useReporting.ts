@@ -7,16 +7,16 @@ import {
   type QueuedReport,
   type DistributionSchedule,
   type ReportWidget,
-} from '@/data/mockReportingData';
+} from '@/types/reporting';
 
-// Re-export mock types for component usage
+// Re-export types for component usage
 export type {
   ReportTemplate,
   QueuedReport,
   DistributionSchedule,
   ReportWidget,
   ReportTemplateParameter,
-} from '@/data/mockReportingData';
+} from '@/types/reporting';
 
 // ============================================================================
 // API Types

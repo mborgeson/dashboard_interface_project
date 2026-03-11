@@ -17,7 +17,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ReportSettings as ReportSettingsType } from '@/data/mockReportingData';
+import type { ReportSettings as ReportSettingsType } from '@/types/reporting';
 import { fetchReportSettings, updateReportSettings } from '@/lib/api/reporting';
 
 // ============================================================================

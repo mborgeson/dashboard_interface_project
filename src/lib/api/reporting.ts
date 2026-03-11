@@ -2,7 +2,7 @@
  * Reporting API — report settings CRUD
  */
 import { apiClient } from './client';
-import type { ReportSettings } from '@/data/mockReportingData';
+import type { ReportSettings } from '@/types/reporting';
 import { reportSettingsResponseSchema } from './schemas/reporting';
 
 /* ------------------------------------------------------------------ */
