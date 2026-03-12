@@ -166,7 +166,7 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
   }, [stageTotals]);
 
   return (
-    <div className="bg-white rounded-lg border border-neutral-200 shadow-card">
+    <div className="bg-white rounded-lg border border-neutral-200 shadow-card overflow-x-auto">
       {/* Pipeline Summary Header */}
       <div className="p-4 border-b border-neutral-200 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="flex items-center justify-between">
@@ -194,7 +194,7 @@ export function KanbanBoard({ dealsByStage, onDealStageChange }: KanbanBoardProp
         onDragCancel={handleDragCancel}
       >
         {/* Pipeline Columns */}
-        <div className="grid grid-cols-6 min-h-[500px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 min-h-[500px]">
           {PIPELINE_STAGES.map((stage) => (
             <KanbanColumn
               key={stage}

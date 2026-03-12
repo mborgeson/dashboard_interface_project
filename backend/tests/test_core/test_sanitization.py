@@ -79,7 +79,7 @@ class TestScriptTagRemoval:
         assert "evil.com" not in result
 
     def test_strips_event_handlers(self) -> None:
-        result = strip_html_tags('<img src=x onerror=alert(1)>')
+        result = strip_html_tags("<img src=x onerror=alert(1)>")
         assert "onerror" not in result
 
     def test_strips_onclick(self) -> None:
@@ -199,7 +199,7 @@ class TestDealSchemaSanitization:
         deal = DealCreate(
             name="Test Deal",
             deal_type="acquisition",
-            broker_name='John <img src=x onerror=alert(1)> Doe',
+            broker_name="John <img src=x onerror=alert(1)> Doe",
         )
         assert deal.broker_name is not None
         assert "<img" not in deal.broker_name
@@ -306,7 +306,7 @@ class TestUserSchemaSanitization:
         user = UserCreate(
             email="test@example.com",
             full_name="<script>alert('xss')</script>John Doe",
-            password="securepassword123",
+            password="Secure@pass1",
         )
         assert "<script>" not in user.full_name
         assert "John Doe" in user.full_name

@@ -175,7 +175,7 @@ def extracted_values(
             field_name=field,
             field_category="General",
             sheet_name="Summary",
-            cell_address=f"A{i+1}",
+            cell_address=f"A{i + 1}",
             value_text=f"value_{i}",
             value_numeric=float(i * 1000) if i > 0 else None,
             is_error=False,

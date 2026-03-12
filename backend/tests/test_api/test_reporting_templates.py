@@ -22,7 +22,7 @@ async def seed_template(db_session) -> int:
             "(id, name, description, category, sections, export_formats, "
             "is_default, created_by, config, is_deleted, created_at, updated_at) "
             "VALUES (1, 'Monthly Portfolio Report', 'Monthly overview', 'executive', "
-            "'[\"summary\",\"financials\"]', '[\"pdf\",\"excel\"]', "
+            '\'["summary","financials"]\', \'["pdf","excel"]\', '
             f"0, 'System', NULL, 0, '{now}', '{now}')"
         )
     )

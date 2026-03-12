@@ -8,7 +8,7 @@ import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from jose import jwt
+import jwt
 
 from app.api.v1.endpoints.ws import _authenticate_token
 from app.core.config import settings

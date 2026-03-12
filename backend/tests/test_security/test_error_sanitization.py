@@ -72,7 +72,7 @@ class TestSanitizeErrorMessage:
         """Message containing traceback info should be sanitized."""
         messages = [
             "Traceback (most recent call last):",
-            "File \"/app/main.py\", line 42, in handle_request",
+            'File "/app/main.py", line 42, in handle_request',
             "Error at 0x7f1234567890",
         ]
         for msg in messages:
@@ -132,7 +132,7 @@ class TestInternalDetailPatterns:
     @pytest.mark.parametrize(
         "text,should_match",
         [
-            ("File \"/app/main.py\", line 42", True),
+            ('File "/app/main.py", line 42', True),
             ("Traceback (most recent call last)", True),
             ("at 0x7f4a3b2c1d0e", True),
             ("/app/models/deal.py", True),
@@ -294,7 +294,9 @@ class TestNoInternalInfoLeaks:
             f"Server hostname '{hostname}' found in error response"
         )
 
-    async def test_error_response_no_db_connection_string(self, client, analyst_headers):
+    async def test_error_response_no_db_connection_string(
+        self, client, analyst_headers
+    ):
         """Error responses should not contain database connection strings."""
         response = await client.get(
             "/api/v1/properties/99999",
@@ -306,7 +308,9 @@ class TestNoInternalInfoLeaks:
         assert "mysql://" not in body
         assert "redis://" not in body
 
-    async def test_error_response_no_environment_variables(self, client, analyst_headers):
+    async def test_error_response_no_environment_variables(
+        self, client, analyst_headers
+    ):
         """Error responses should not contain environment variable values."""
         response = await client.get(
             "/api/v1/properties/99999",
@@ -341,6 +345,4 @@ class TestErrorCodeCoverage:
             assert response.status_code == expected, (
                 f"Case '{desc}': expected {expected}, got {response.status_code}"
             )
-            await assert_safe_response(
-                response, allow_statuses={expected}
-            )
+            await assert_safe_response(response, allow_statuses={expected})

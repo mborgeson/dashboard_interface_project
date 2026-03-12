@@ -140,7 +140,9 @@ async def test_cursor_navigate_forward(db_session, cursor_deals):
 
     # Second page
     assert result.next_cursor is not None
-    params = CursorPaginationParams(cursor=result.next_cursor, limit=3, direction="next")
+    params = CursorPaginationParams(
+        cursor=result.next_cursor, limit=3, direction="next"
+    )
     result = await deal_crud.get_cursor_paginated(
         db_session, params=params, order_by="id", order_desc=True
     )
@@ -149,7 +151,9 @@ async def test_cursor_navigate_forward(db_session, cursor_deals):
 
     # Third page (last)
     assert result.next_cursor is not None
-    params = CursorPaginationParams(cursor=result.next_cursor, limit=3, direction="next")
+    params = CursorPaginationParams(
+        cursor=result.next_cursor, limit=3, direction="next"
+    )
     result = await deal_crud.get_cursor_paginated(
         db_session, params=params, order_by="id", order_desc=True
     )
@@ -284,7 +288,9 @@ async def test_cursor_sort_by_name_asc(db_session, cursor_deals):
     all_names.extend(item.name for item in result.items)
 
     while result.next_cursor:
-        params = CursorPaginationParams(cursor=result.next_cursor, limit=3, direction="next")
+        params = CursorPaginationParams(
+            cursor=result.next_cursor, limit=3, direction="next"
+        )
         result = await deal_crud.get_cursor_paginated(
             db_session, params=params, order_by="name", order_desc=False
         )

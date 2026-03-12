@@ -39,7 +39,7 @@ class TestExtractionCompleteness:
                 category="Test",
                 description=f"Field {i}",
                 sheet_name="Summary",
-                cell_address=f"A{i+1}",
+                cell_address=f"A{i + 1}",
                 field_name=field_name,
             )
         return mappings
@@ -152,9 +152,9 @@ class TestExtractionCompleteness:
             total = successful + failed
             if total > 0:
                 calculated_rate = round(successful / total * 100, 1)
-                assert (
-                    calculated_rate == expected_rate
-                ), f"Success rate should be {expected_rate}, got {calculated_rate}"
+                assert calculated_rate == expected_rate, (
+                    f"Success rate should be {expected_rate}, got {calculated_rate}"
+                )
 
     def test_error_summary_complete(self) -> None:
         """Verify error_summary contains all error categories."""

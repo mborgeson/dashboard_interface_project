@@ -46,7 +46,13 @@ def sync_db() -> Generator[Session, None, None]:
 
 
 MOCK_CENSUS_RESPONSE = [
-    ["BLDG5O_UNITS", "BLDG_UNITS", "BLDG5O_BLDGS", "time", "metropolitan statistical area/micropolitan statistical area"],
+    [
+        "BLDG5O_UNITS",
+        "BLDG_UNITS",
+        "BLDG5O_BLDGS",
+        "time",
+        "metropolitan statistical area/micropolitan statistical area",
+    ],
     ["1250", "1500", "8", "2025-01", "38060"],
     ["1100", "1400", "7", "2025-02", "38060"],
     ["", "1300", "6", "2025-03", "38060"],  # BLDG5O_UNITS is empty
@@ -62,7 +68,9 @@ async def test_fetch_census_bps_success():
         request=httpx.Request("GET", "https://api.census.gov"),
     )
 
-    with patch("app.services.construction_api.census_bps.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.census_bps.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -92,7 +100,9 @@ async def test_fetch_census_bps_empty_response():
         request=httpx.Request("GET", "https://api.census.gov"),
     )
 
-    with patch("app.services.construction_api.census_bps.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.census_bps.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -113,7 +123,9 @@ async def test_fetch_census_bps_http_error():
         request=httpx.Request("GET", "https://api.census.gov"),
     )
 
-    with patch("app.services.construction_api.census_bps.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.census_bps.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)

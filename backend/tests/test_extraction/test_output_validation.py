@@ -28,6 +28,7 @@ from app.extraction.output_validation import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _result_for(summary: ValidationSummary, field: str) -> ValidationResult:
     """Return the first result matching a field name."""
     for r in summary.results:
@@ -39,6 +40,7 @@ def _result_for(summary: ValidationSummary, field: str) -> ValidationResult:
 # ---------------------------------------------------------------------------
 # Happy path: all values within normal range
 # ---------------------------------------------------------------------------
+
 
 class TestValidValues:
     """Values comfortably inside expected ranges should be VALID."""
@@ -85,6 +87,7 @@ class TestValidValues:
 # Error range: values outside hard bounds
 # ---------------------------------------------------------------------------
 
+
 class TestErrorValues:
     """Values outside hard bounds should be flagged as ERROR."""
 
@@ -123,28 +126,29 @@ class TestErrorValues:
 # Warning range: unusual but technically valid
 # ---------------------------------------------------------------------------
 
+
 class TestWarningValues:
     """Values inside hard bounds but outside typical range -> WARNING."""
 
     @pytest.mark.parametrize(
         "field_name, value",
         [
-            ("cap_rate", 1.0),       # below warning_min 2.0
-            ("cap_rate", 18.0),      # above warning_max 15.0
+            ("cap_rate", 1.0),  # below warning_min 2.0
+            ("cap_rate", 18.0),  # above warning_max 15.0
             ("purchase_price", 200_000),  # below warning_min 1M
             ("purchase_price", 300_000_000),  # above warning_max 200M
-            ("unit_count", 5),       # below warning_min 10
-            ("unit_count", 3000),    # above warning_max 2000
-            ("year_built", 1910),    # below warning_min 1950
-            ("noi", -500_000),       # below warning_min 0
-            ("noi", 60_000_000),     # above warning_max 50M
+            ("unit_count", 5),  # below warning_min 10
+            ("unit_count", 3000),  # above warning_max 2000
+            ("year_built", 1910),  # below warning_min 1950
+            ("noi", -500_000),  # below warning_min 0
+            ("noi", 60_000_000),  # above warning_max 50M
             ("rent_per_unit", 200),  # below warning_min 400
             ("rent_per_unit", 7_000),  # above warning_max 5000
             ("price_per_unit", 15_000),  # below warning_min 30K
             ("price_per_unit", 700_000),  # above warning_max 500K
-            ("occupancy", 30),       # below warning_min 50
-            ("sqft", 500),           # below warning_min 5000
-            ("sqft", 8_000_000),     # above warning_max 5M
+            ("occupancy", 30),  # below warning_min 50
+            ("sqft", 500),  # below warning_min 5000
+            ("sqft", 8_000_000),  # above warning_max 5M
         ],
     )
     def test_unusual_value_is_warning(self, field_name: str, value: float):
@@ -158,6 +162,7 @@ class TestWarningValues:
 # ---------------------------------------------------------------------------
 # Boundary values: exactly at the edges
 # ---------------------------------------------------------------------------
+
 
 class TestBoundaryValues:
     """Values exactly at boundaries should be correct status."""
@@ -212,6 +217,7 @@ class TestBoundaryValues:
 # None / missing / NaN handling
 # ---------------------------------------------------------------------------
 
+
 class TestMissingValues:
     """None, NaN, and empty string values should be SKIPPED, not error."""
 
@@ -250,16 +256,17 @@ class TestMissingValues:
 # Multiple errors collected (not fail-fast)
 # ---------------------------------------------------------------------------
 
+
 class TestMultipleErrors:
     """All fields should be validated even if some have errors."""
 
     def test_collects_all_errors(self):
         extracted = {
-            "cap_rate": -5.0,         # ERROR
-            "purchase_price": 10,     # ERROR
-            "unit_count": 0,          # ERROR
-            "year_built": 1800,       # ERROR
-            "noi": 200_000_000,       # ERROR
+            "cap_rate": -5.0,  # ERROR
+            "purchase_price": 10,  # ERROR
+            "unit_count": 0,  # ERROR
+            "year_built": 1800,  # ERROR
+            "noi": 200_000_000,  # ERROR
         }
         summary = validate_extraction_output(extracted)
         assert summary.errors == 5
@@ -267,10 +274,10 @@ class TestMultipleErrors:
 
     def test_mixed_statuses(self):
         extracted = {
-            "cap_rate": 6.0,          # VALID
-            "purchase_price": 200,    # ERROR
-            "unit_count": 5,          # WARNING
-            "year_built": None,       # SKIPPED
+            "cap_rate": 6.0,  # VALID
+            "purchase_price": 200,  # ERROR
+            "unit_count": 5,  # WARNING
+            "year_built": None,  # SKIPPED
         }
         summary = validate_extraction_output(extracted)
         assert summary.valid == 1
@@ -294,6 +301,7 @@ class TestMultipleErrors:
 # Metadata fields ignored
 # ---------------------------------------------------------------------------
 
+
 class TestMetadataSkipped:
     """Fields starting with '_' should be ignored entirely."""
 
@@ -313,6 +321,7 @@ class TestMetadataSkipped:
 # ---------------------------------------------------------------------------
 # Unmatched fields ignored
 # ---------------------------------------------------------------------------
+
 
 class TestUnmatchedFields:
     """Fields that don't match any rule pattern are silently skipped."""
@@ -338,6 +347,7 @@ class TestUnmatchedFields:
 # Custom rules
 # ---------------------------------------------------------------------------
 
+
 class TestCustomRules:
     """Callers can pass custom rules instead of defaults."""
 
@@ -361,6 +371,7 @@ class TestCustomRules:
 # String numeric conversion
 # ---------------------------------------------------------------------------
 
+
 class TestStringConversion:
     """Numeric strings (with $, commas, %) should be parsed."""
 
@@ -383,6 +394,7 @@ class TestStringConversion:
 # ---------------------------------------------------------------------------
 # ValidationRule.matches_field
 # ---------------------------------------------------------------------------
+
 
 class TestRuleMatching:
     """Verify field name pattern matching handles variations."""

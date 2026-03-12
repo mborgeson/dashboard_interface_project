@@ -161,20 +161,23 @@ class TestRejectionIncludeCriteria:
 class TestRejectionExcludeCriteria:
     """Files rejected because they contain excluded substrings."""
 
-    @pytest.mark.parametrize("substring,filename", [
-        ("speedboat", "Speedboat UW Model vCurrent.xlsb"),
-        ("tax", "Tax UW Model vCurrent.xlsb"),
-        ("cashflows", "Cashflows UW Model vCurrent.xlsb"),
-        ("development", "Development UW Model vCurrent.xlsb"),
-        ("portfolio", "Portfolio UW Model vCurrent.xlsb"),
-        ("template", "Template UW Model vCurrent.xlsb"),
-        ("autorecovered", "AutoRecovered UW Model vCurrent.xlsb"),
-        ("[deal name]", "[Deal Name] UW Model vCurrent.xlsb"),
-        ("settlement statement", "Settlement Statement UW Model vCurrent.xlsb"),
-        ("due diligence tracker", "Due Diligence Tracker UW Model vCurrent.xlsb"),
-        ("~$", "~$UW Model vCurrent.xlsb"),
-        ("vold", "Deal vOld UW Model vCurrent.xlsb"),
-    ])
+    @pytest.mark.parametrize(
+        "substring,filename",
+        [
+            ("speedboat", "Speedboat UW Model vCurrent.xlsb"),
+            ("tax", "Tax UW Model vCurrent.xlsb"),
+            ("cashflows", "Cashflows UW Model vCurrent.xlsb"),
+            ("development", "Development UW Model vCurrent.xlsb"),
+            ("portfolio", "Portfolio UW Model vCurrent.xlsb"),
+            ("template", "Template UW Model vCurrent.xlsb"),
+            ("autorecovered", "AutoRecovered UW Model vCurrent.xlsb"),
+            ("[deal name]", "[Deal Name] UW Model vCurrent.xlsb"),
+            ("settlement statement", "Settlement Statement UW Model vCurrent.xlsb"),
+            ("due diligence tracker", "Due Diligence Tracker UW Model vCurrent.xlsb"),
+            ("~$", "~$UW Model vCurrent.xlsb"),
+            ("vold", "Deal vOld UW Model vCurrent.xlsb"),
+        ],
+    )
     def test_excluded_substring(self, cf, substring, filename):
         """Each excluded substring triggers rejection."""
         result = cf.should_process(
@@ -208,6 +211,7 @@ class TestEdgeCases:
     def test_constructor_backward_compat(self):
         """Constructor still accepts production_filter for backward compat."""
         from unittest.mock import MagicMock
+
         cf = CandidateFileFilter(production_filter=MagicMock())
         assert cf is not None
 

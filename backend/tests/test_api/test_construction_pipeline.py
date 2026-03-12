@@ -73,9 +73,7 @@ def sync_db_session() -> Generator[Session, None, None]:
 
 
 @pytest_asyncio.fixture(scope="function")
-async def cp_client(
-    db_session: AsyncSession, sync_db_session: Session
-) -> AsyncClient:
+async def cp_client(db_session: AsyncSession, sync_db_session: Session) -> AsyncClient:
     """Client that overrides both async (get_db) and sync (get_sync_db) deps."""
 
     async def override_get_db():
@@ -86,8 +84,11 @@ async def cp_client(
 
     async def override_get_current_user():
         return CurrentUser(
-            id=1, email="test@example.com", role=Role.ADMIN,
-            full_name="Test Admin", is_active=True,
+            id=1,
+            email="test@example.com",
+            role=Role.ADMIN,
+            full_name="Test Admin",
+            is_active=True,
         )
 
     app.dependency_overrides[get_db] = override_get_db
@@ -344,9 +345,7 @@ class TestListProjects:
         assert len(data["data"]) == 5
 
     @pytest.mark.asyncio
-    async def test_pagination(
-        self, cp_client: AsyncClient, db_session: AsyncSession
-    ):
+    async def test_pagination(self, cp_client: AsyncClient, db_session: AsyncSession):
         await _seed_projects(db_session)
         resp = await cp_client.get(f"{BASE_URL}/?page=1&page_size=2")
         assert resp.status_code == 200
@@ -360,9 +359,7 @@ class TestListProjects:
         self, cp_client: AsyncClient, db_session: AsyncSession
     ):
         await _seed_projects(db_session)
-        resp = await cp_client.get(
-            f"{BASE_URL}/?statuses=under_construction"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/?statuses=under_construction")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 1
@@ -401,9 +398,7 @@ class TestListProjects:
         assert data["total"] == 2  # 300 + 250
 
     @pytest.mark.asyncio
-    async def test_search(
-        self, cp_client: AsyncClient, db_session: AsyncSession
-    ):
+    async def test_search(self, cp_client: AsyncClient, db_session: AsyncSession):
         await _seed_projects(db_session)
         resp = await cp_client.get(f"{BASE_URL}/?search=Downtown")
         assert resp.status_code == 200
@@ -412,13 +407,9 @@ class TestListProjects:
         assert data["data"][0]["project_name"] == "Downtown Tower"
 
     @pytest.mark.asyncio
-    async def test_sort_asc(
-        self, cp_client: AsyncClient, db_session: AsyncSession
-    ):
+    async def test_sort_asc(self, cp_client: AsyncClient, db_session: AsyncSession):
         await _seed_projects(db_session)
-        resp = await cp_client.get(
-            f"{BASE_URL}/?sort_by=number_of_units&sort_dir=asc"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/?sort_by=number_of_units&sort_dir=asc")
         assert resp.status_code == 200
         data = resp.json()
         units = [r["number_of_units"] for r in data["data"]]
@@ -519,9 +510,7 @@ class TestPermitTrends:
         self, cp_client: AsyncClient, db_session: AsyncSession
     ):
         await _seed_permit_data(db_session)
-        resp = await cp_client.get(
-            f"{BASE_URL}/analytics/permit-trends?source=fred"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/analytics/permit-trends?source=fred")
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
@@ -545,18 +534,14 @@ class TestEmploymentOverlay:
         self, cp_client: AsyncClient, db_session: AsyncSession
     ):
         await _seed_employment_data(db_session)
-        resp = await cp_client.get(
-            f"{BASE_URL}/analytics/employment-overlay"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/analytics/employment-overlay")
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 2
 
     @pytest.mark.asyncio
     async def test_empty(self, cp_client: AsyncClient):
-        resp = await cp_client.get(
-            f"{BASE_URL}/analytics/employment-overlay"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/analytics/employment-overlay")
         assert resp.status_code == 200
         assert resp.json() == []
 
@@ -573,9 +558,7 @@ class TestPermitVelocity:
     ):
         """No municipal data → empty result (census_bps/fred are excluded)."""
         await _seed_permit_data(db_session)
-        resp = await cp_client.get(
-            f"{BASE_URL}/analytics/permit-velocity"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/analytics/permit-velocity")
         assert resp.status_code == 200
         assert resp.json() == []
 
@@ -597,9 +580,7 @@ class TestPermitVelocity:
         db_session.add(permit)
         await db_session.commit()
 
-        resp = await cp_client.get(
-            f"{BASE_URL}/analytics/permit-velocity"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/analytics/permit-velocity")
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
@@ -617,9 +598,7 @@ class TestSubmarketPipeline:
         self, cp_client: AsyncClient, db_session: AsyncSession
     ):
         await _seed_projects(db_session)
-        resp = await cp_client.get(
-            f"{BASE_URL}/analytics/submarket-pipeline"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/analytics/submarket-pipeline")
         assert resp.status_code == 200
         data = resp.json()
         submarket_map = {r["submarket"]: r for r in data}
@@ -632,9 +611,7 @@ class TestSubmarketPipeline:
         self, cp_client: AsyncClient, db_session: AsyncSession
     ):
         await _seed_projects(db_session)
-        resp = await cp_client.get(
-            f"{BASE_URL}/analytics/submarket-pipeline"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/analytics/submarket-pipeline")
         data = resp.json()
         submarket_map = {r["submarket"]: r for r in data}
         assert submarket_map["East Valley"]["proposed"] == 1
@@ -651,9 +628,7 @@ class TestClassificationBreakdown:
         self, cp_client: AsyncClient, db_session: AsyncSession
     ):
         await _seed_projects(db_session)
-        resp = await cp_client.get(
-            f"{BASE_URL}/analytics/classification-breakdown"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/analytics/classification-breakdown")
         assert resp.status_code == 200
         data = resp.json()
         cls_map = {r["classification"]: r for r in data}
@@ -813,9 +788,7 @@ class TestCombinedFilters:
         self, cp_client: AsyncClient, db_session: AsyncSession
     ):
         await _seed_projects(db_session)
-        resp = await cp_client.get(
-            f"{BASE_URL}/?statuses=proposed,delivered"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/?statuses=proposed,delivered")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 2
@@ -836,9 +809,7 @@ class TestCombinedFilters:
         self, cp_client: AsyncClient, db_session: AsyncSession
     ):
         await _seed_projects(db_session)
-        resp = await cp_client.get(
-            f"{BASE_URL}/?min_units=100&max_units=200"
-        )
+        resp = await cp_client.get(f"{BASE_URL}/?min_units=100&max_units=200")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 2  # 150 + 120

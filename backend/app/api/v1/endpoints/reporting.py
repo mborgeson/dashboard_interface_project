@@ -7,7 +7,13 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.permissions import require_viewer
+from app.core.permissions import (
+    CurrentUser,
+    get_current_user,
+    require_analyst,
+    require_manager,
+    require_viewer,
+)
 from app.crud.crud_report_template import (
     distribution_schedule as schedule_crud,
 )
@@ -122,6 +128,7 @@ async def get_template(
     "/templates",
     response_model=ReportTemplateResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_analyst)],
     summary="Create report template",
     description="Create a new report template definition.",
 )
@@ -140,6 +147,7 @@ async def create_template(
 @router.put(
     "/templates/{template_id}",
     response_model=ReportTemplateResponse,
+    dependencies=[Depends(require_analyst)],
     summary="Update report template",
     description="Update an existing report template.",
     responses={404: {"description": "Template not found or deleted"}},
@@ -170,6 +178,7 @@ async def update_template(
 @router.delete(
     "/templates/{template_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_manager)],
     summary="Delete report template",
     description="Soft-delete a report template.",
     responses={404: {"description": "Template not found or deleted"}},
@@ -208,6 +217,7 @@ async def delete_template(
 )
 async def generate_report(
     request: GenerateReportRequest,
+    current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -231,7 +241,7 @@ async def generate_report(
         name=request.name,
         template_id=request.template_id,
         format=request.format,
-        requested_by="current_user",  # Would come from auth in production
+        requested_by=current_user.email,
     )
 
     queued = await queued_crud.create_with_timestamp(db, obj_in=queued_data)
@@ -449,6 +459,7 @@ async def list_schedules(
     "/schedules",
     response_model=DistributionScheduleResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_analyst)],
     summary="Create distribution schedule",
     description="Create a new report distribution schedule linked to a template.",
     responses={404: {"description": "Template not found or deleted"}},
@@ -494,6 +505,7 @@ async def create_schedule(
 @router.put(
     "/schedules/{schedule_id}",
     response_model=DistributionScheduleResponse,
+    dependencies=[Depends(require_analyst)],
     summary="Update distribution schedule",
     description="Update an existing distribution schedule.",
     responses={404: {"description": "Schedule not found or deleted"}},
@@ -541,6 +553,7 @@ async def update_schedule(
 @router.delete(
     "/schedules/{schedule_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_manager)],
     summary="Delete distribution schedule",
     description="Soft-delete a distribution schedule.",
     responses={404: {"description": "Schedule not found or deleted"}},

@@ -181,9 +181,7 @@ class TestGetLatestCompleted:
 
     def test_skips_failed_run(self, sync_db_session: Session):
         """Should not return a failed run even if it's the most recent."""
-        completed_run = ExtractionRunCRUD.create(
-            sync_db_session, trigger_type="manual"
-        )
+        completed_run = ExtractionRunCRUD.create(sync_db_session, trigger_type="manual")
         ExtractionRunCRUD.complete(sync_db_session, completed_run.id, 5, 0)
 
         failed_run = ExtractionRunCRUD.create(sync_db_session, trigger_type="manual")
@@ -201,9 +199,7 @@ class TestGetLatestCompleted:
         result = ExtractionRunCRUD.get_latest_completed(sync_db_session)
         assert result is None
 
-    def test_returns_most_recent_of_multiple_completed(
-        self, sync_db_session: Session
-    ):
+    def test_returns_most_recent_of_multiple_completed(self, sync_db_session: Session):
         """With multiple completed runs, should return the most recent."""
         run1 = ExtractionRunCRUD.create(sync_db_session, trigger_type="manual")
         ExtractionRunCRUD.complete(sync_db_session, run1.id, 3, 0)

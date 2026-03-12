@@ -6,6 +6,7 @@ import { DocumentFilters } from './components/DocumentFilters';
 import { DocumentGrid } from './components/DocumentGrid';
 import { DocumentList } from './components/DocumentList';
 import { useDocuments } from './hooks/useDocuments';
+import { useDeleteDocument } from '@/hooks/api/useDocuments';
 import { useToast } from '@/hooks/useToast';
 import type { Document, DocumentType } from '@/types/document';
 import { EmptyDocuments } from '@/components/ui/empty-state';
@@ -22,7 +23,8 @@ export function DocumentsPage() {
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const { info, success: showSuccess } = useToast();
+  const { info, success: showSuccess, error: showError } = useToast();
+  const deleteDocumentMutation = useDeleteDocument();
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,22 +40,34 @@ export function DocumentsPage() {
     dateRange,
   });
 
-  // Mock handlers
+  // Document action handlers
   const handleView = (document: Document) => {
-    console.log('View document:', document);
-    info(`Viewing: ${document.name}`);
+    if (document.url) {
+      window.open(document.url, '_blank');
+    } else {
+      info('Document preview not available');
+    }
   };
 
   const handleDownload = (document: Document) => {
-    console.log('Download document:', document);
-    info(`Downloading: ${document.name}`);
+    info(`Download not yet implemented`);
   };
 
   const handleDelete = (document: Document) => {
-    console.log('Delete document:', document);
-    if (confirm(`Are you sure you want to delete "${document.name}"?`)) {
-      showSuccess('Document deleted (mock)');
+    if (!confirm(`Are you sure you want to delete "${document.name}"?`)) {
+      return;
     }
+    deleteDocumentMutation.mutate(document.id, {
+      onSuccess: () => {
+        showSuccess(`Deleted "${document.name}"`);
+      },
+      onError: (err) => {
+        showError(
+          `Failed to delete "${document.name}"`,
+          { description: err instanceof Error ? err.message : 'An unexpected error occurred' }
+        );
+      },
+    });
   };
 
   // Format file size

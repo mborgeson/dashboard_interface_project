@@ -474,7 +474,9 @@ async def test_create_document_upload_activity(client, test_deal, auth_headers):
 
     assert data["activity_type"] == "document_upload"
     assert data["document_name"] == "due_diligence_report.pdf"
-    assert data["document_url"] == "https://storage.example.com/due_diligence_report.pdf"
+    assert (
+        data["document_url"] == "https://storage.example.com/due_diligence_report.pdf"
+    )
 
 
 @pytest.mark.asyncio
@@ -557,7 +559,9 @@ async def test_create_activity_persists(client, test_deal, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_create_activity_user_attribution(client, test_deal, auth_headers, test_user):
+async def test_create_activity_user_attribution(
+    client, test_deal, auth_headers, test_user
+):
     """Test that activity is attributed to the authenticated user."""
     activity_data = {
         "deal_id": test_deal.id,
@@ -586,8 +590,16 @@ async def test_create_multiple_activities_different_types(
     """Test creating multiple activities of different types for the same deal."""
     activities = [
         {"activity_type": "view", "description": "First view"},
-        {"activity_type": "edit", "description": "Price update", "field_changed": "asking_price"},
-        {"activity_type": "comment", "description": "Comment added", "comment_text": "Looking good"},
+        {
+            "activity_type": "edit",
+            "description": "Price update",
+            "field_changed": "asking_price",
+        },
+        {
+            "activity_type": "comment",
+            "description": "Comment added",
+            "comment_text": "Looking good",
+        },
     ]
 
     created_ids = []

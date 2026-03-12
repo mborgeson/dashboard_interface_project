@@ -30,7 +30,7 @@ async def test_create_user(db_session):
 @pytest.mark.asyncio
 async def test_user_password_hashing(db_session):
     """Test that passwords are properly hashed."""
-    password = "securepassword123"
+    password = "Secure@pass1"
     user = User(
         email="hashtest@example.com",
         hashed_password=get_password_hash(password),

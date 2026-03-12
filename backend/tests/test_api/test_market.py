@@ -141,9 +141,7 @@ async def test_submarkets_requires_auth(client, db_session):
 @pytest.mark.asyncio
 async def test_get_market_overview(client, db_session, auth_headers):
     """GET /market/overview returns market overview data."""
-    with patch(
-        "app.api.v1.endpoints.market_data.market_data_service"
-    ) as mock_svc:
+    with patch("app.api.v1.endpoints.market_data.market_data_service") as mock_svc:
         mock_svc.get_market_overview = AsyncMock(return_value=_mock_overview())
 
         response = await client.get(
@@ -165,9 +163,7 @@ async def test_get_market_overview(client, db_session, auth_headers):
 @pytest.mark.asyncio
 async def test_get_usa_overview(client, db_session, auth_headers):
     """GET /market/usa/overview returns national overview data."""
-    with patch(
-        "app.api.v1.endpoints.market_data.market_data_service"
-    ) as mock_svc:
+    with patch("app.api.v1.endpoints.market_data.market_data_service") as mock_svc:
         mock_svc.get_usa_market_overview = AsyncMock(return_value=_mock_overview())
 
         response = await client.get(
@@ -188,9 +184,7 @@ async def test_get_usa_overview(client, db_session, auth_headers):
 @pytest.mark.asyncio
 async def test_get_submarkets(client, db_session, auth_headers):
     """GET /market/submarkets returns submarket list."""
-    with patch(
-        "app.api.v1.endpoints.market_data.market_data_service"
-    ) as mock_svc:
+    with patch("app.api.v1.endpoints.market_data.market_data_service") as mock_svc:
         mock_svc.get_submarkets = AsyncMock(return_value=_mock_submarkets())
 
         response = await client.get(
@@ -213,9 +207,7 @@ async def test_get_submarkets(client, db_session, auth_headers):
 @pytest.mark.asyncio
 async def test_get_market_trends(client, db_session, auth_headers):
     """GET /market/trends returns trend data."""
-    with patch(
-        "app.api.v1.endpoints.market_data.market_data_service"
-    ) as mock_svc:
+    with patch("app.api.v1.endpoints.market_data.market_data_service") as mock_svc:
         mock_svc.get_market_trends = AsyncMock(return_value=_mock_trends())
 
         response = await client.get(
@@ -233,9 +225,7 @@ async def test_get_market_trends(client, db_session, auth_headers):
 @pytest.mark.asyncio
 async def test_get_market_trends_custom_period(client, db_session, auth_headers):
     """GET /market/trends?period_months=6 respects the period parameter."""
-    with patch(
-        "app.api.v1.endpoints.market_data.market_data_service"
-    ) as mock_svc:
+    with patch("app.api.v1.endpoints.market_data.market_data_service") as mock_svc:
         mock_svc.get_market_trends = AsyncMock(return_value=_mock_trends())
 
         response = await client.get(
@@ -256,9 +246,7 @@ async def test_get_market_trends_custom_period(client, db_session, auth_headers)
 @pytest.mark.asyncio
 async def test_get_usa_trends(client, db_session, auth_headers):
     """GET /market/usa/trends returns national trend data."""
-    with patch(
-        "app.api.v1.endpoints.market_data.market_data_service"
-    ) as mock_svc:
+    with patch("app.api.v1.endpoints.market_data.market_data_service") as mock_svc:
         mock_svc.get_usa_market_trends = AsyncMock(return_value=_mock_trends())
 
         response = await client.get(
@@ -279,9 +267,7 @@ async def test_get_usa_trends(client, db_session, auth_headers):
 @pytest.mark.asyncio
 async def test_get_comparables(client, db_session, auth_headers):
     """GET /market/comparables returns comparable properties."""
-    with patch(
-        "app.api.v1.endpoints.market_data.market_data_service"
-    ) as mock_svc:
+    with patch("app.api.v1.endpoints.market_data.market_data_service") as mock_svc:
         mock_svc.get_comparables = AsyncMock(return_value=_mock_comparables())
 
         response = await client.get(

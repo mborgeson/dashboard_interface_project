@@ -84,8 +84,11 @@ async def sales_client(
 
     async def override_get_current_user():
         return CurrentUser(
-            id=1, email="test@example.com", role=Role.ADMIN,
-            full_name="Test Admin", is_active=True,
+            id=1,
+            email="test@example.com",
+            role=Role.ADMIN,
+            full_name="Test Admin",
+            is_active=True,
         )
 
     app.dependency_overrides[get_db] = override_get_db
@@ -615,9 +618,7 @@ async def test_reminder_dismissal_persists_to_database(sales_client, db_session)
 
     # Verify the dismissal was persisted to the database
     result = await db_session.execute(
-        select(ReminderDismissal).where(
-            ReminderDismissal.dismissed_month == month_key
-        )
+        select(ReminderDismissal).where(ReminderDismissal.dismissed_month == month_key)
     )
     dismissal = result.scalar_one_or_none()
     assert dismissal is not None
@@ -768,7 +769,9 @@ async def test_distributions_mocked(sales_client, db_session):
     mock_row = MagicMock()
     mock_row.label = "2005-2020"
     mock_row.count = 20
-    mock_row.avg_price_per_unit = 135000.0  # Changed from median to avg (removed median_price_per_unit)
+    mock_row.avg_price_per_unit = (
+        135000.0  # Changed from median to avg (removed median_price_per_unit)
+    )
 
     mock_result = MagicMock()
     mock_result.all.return_value = [mock_row]

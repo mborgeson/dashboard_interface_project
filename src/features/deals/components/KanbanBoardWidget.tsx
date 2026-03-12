@@ -204,7 +204,7 @@ export function KanbanBoardWidget({
   }
 
   return (
-    <div className={cn('bg-white rounded-lg border border-neutral-200 shadow-card', className)}>
+    <div className={cn('bg-white rounded-lg border border-neutral-200 shadow-card overflow-x-auto', className)}>
       {/* Header */}
       {showHeader && (
         <KanbanHeader
@@ -234,7 +234,7 @@ export function KanbanBoardWidget({
         onDragCancel={handleDragCancel}
       >
         {/* Pipeline Columns */}
-        <div className="grid grid-cols-6 min-h-[500px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 min-h-[500px]">
           {PIPELINE_STAGES.map((stage) => (
             <KanbanColumn
               key={stage}

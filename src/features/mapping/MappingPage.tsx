@@ -150,6 +150,25 @@ export function MappingPage() {
     };
   }, []);
 
+  // Swap tile layer when tileLayer state changes
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    // Remove existing tile layers (but not markers/clusters)
+    mapInstanceRef.current.eachLayer((layer) => {
+      if (layer instanceof L.TileLayer) {
+        mapInstanceRef.current!.removeLayer(layer);
+      }
+    });
+    // Add the selected tile layer
+    const tileUrl = tileLayer === 'street'
+      ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+      : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+    const attribution = tileLayer === 'street'
+      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      : '&copy; Esri';
+    L.tileLayer(tileUrl, { attribution }).addTo(mapInstanceRef.current);
+  }, [tileLayer]);
+
   // Update markers when filtered properties or clustering changes
   useEffect(() => {
     if (!mapInstanceRef.current) return;

@@ -45,8 +45,8 @@ async def _check_database(db: AsyncSession) -> dict[str, Any]:
         logger.warning("Health check: database ping timed out")
         return {"status": "down", "error": "timeout"}
     except Exception as e:
-        logger.warning(f"Health check: database ping failed: {e}")
-        return {"status": "down", "error": str(e)[:200]}
+        logger.warning(f"health_check_db_error: {e}")
+        return {"status": "down", "error": "connection_failed"}
 
 
 async def _check_redis() -> dict[str, Any]:
@@ -78,7 +78,8 @@ async def _check_redis() -> dict[str, Any]:
     except TimeoutError:
         return {"status": "down", "error": "timeout"}
     except Exception as e:
-        return {"status": "down", "error": str(e)[:200]}
+        logger.warning(f"health_check_redis_error: {e}")
+        return {"status": "down", "error": "unavailable"}
 
 
 def _check_sharepoint() -> dict[str, Any]:
@@ -115,7 +116,8 @@ def _check_disk_space() -> dict[str, Any]:
             "percent_free": pct_free,
         }
     except Exception as e:
-        return {"status": "error", "error": str(e)[:200]}
+        logger.warning(f"health_check_disk_error: {e}")
+        return {"status": "error", "error": "unavailable"}
 
 
 def _determine_overall_status(checks: dict[str, Any]) -> str:

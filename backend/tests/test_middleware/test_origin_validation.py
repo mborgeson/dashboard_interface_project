@@ -59,9 +59,7 @@ async def test_post_with_allowed_origin_passes():
     app = _create_test_app()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.post(
-            "/create", headers={"Origin": "http://localhost:5173"}
-        )
+        resp = await ac.post("/create", headers={"Origin": "http://localhost:5173"})
     assert resp.status_code == 200
     assert resp.json()["created"] is True
 
@@ -84,9 +82,7 @@ async def test_patch_with_allowed_origin_passes():
     app = _create_test_app()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.patch(
-            "/patch", headers={"Origin": "http://localhost:3000"}
-        )
+        resp = await ac.patch("/patch", headers={"Origin": "http://localhost:3000"})
     assert resp.status_code == 200
 
 
@@ -96,9 +92,7 @@ async def test_delete_with_allowed_origin_passes():
     app = _create_test_app()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.delete(
-            "/remove", headers={"Origin": "http://localhost:5173"}
-        )
+        resp = await ac.delete("/remove", headers={"Origin": "http://localhost:5173"})
     assert resp.status_code == 200
 
 
@@ -113,9 +107,7 @@ async def test_post_with_disallowed_origin_rejected():
     app = _create_test_app()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.post(
-            "/create", headers={"Origin": "https://evil.example.com"}
-        )
+        resp = await ac.post("/create", headers={"Origin": "https://evil.example.com"})
     assert resp.status_code == 403
     assert "Origin not allowed" in resp.json()["detail"]
 
@@ -126,9 +118,7 @@ async def test_put_with_disallowed_origin_rejected():
     app = _create_test_app()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.put(
-            "/update", headers={"Origin": "https://evil.example.com"}
-        )
+        resp = await ac.put("/update", headers={"Origin": "https://evil.example.com"})
     assert resp.status_code == 403
 
 
@@ -180,9 +170,7 @@ async def test_get_with_disallowed_origin_passes():
     app = _create_test_app()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.get(
-            "/data", headers={"Origin": "https://evil.example.com"}
-        )
+        resp = await ac.get("/data", headers={"Origin": "https://evil.example.com"})
     assert resp.status_code == 200
     assert resp.json()["ok"] is True
 

@@ -106,7 +106,9 @@ class TestPathTraversal:
     """Verify path traversal attempts in file-related operations."""
 
     @pytest.mark.parametrize("payload", PATH_TRAVERSAL_PAYLOADS)
-    async def test_path_traversal_in_document_name(self, client, analyst_headers, payload):
+    async def test_path_traversal_in_document_name(
+        self, client, analyst_headers, payload
+    ):
         """Path traversal in document name should not allow file access."""
         from datetime import UTC, datetime
 
@@ -130,13 +132,17 @@ class TestPathTraversal:
             assert "/bin/bash" not in str(body)
 
     @pytest.mark.parametrize("payload", PATH_TRAVERSAL_PAYLOADS[:4])
-    async def test_path_traversal_in_upload_filename(self, client, analyst_headers, payload):
+    async def test_path_traversal_in_upload_filename(
+        self, client, analyst_headers, payload
+    ):
         """Path traversal in upload filename should be blocked."""
         # Create a minimal file upload
         import io
 
         file_content = b"test content"
-        files = {"file": (payload, io.BytesIO(file_content), "application/octet-stream")}
+        files = {
+            "file": (payload, io.BytesIO(file_content), "application/octet-stream")
+        }
         response = await client.post(
             "/api/v1/documents/upload",
             files=files,
@@ -337,7 +343,9 @@ class TestInvalidDates:
             "null",
         ],
     )
-    async def test_invalid_initial_contact_date(self, client, admin_headers, date_value):
+    async def test_invalid_initial_contact_date(
+        self, client, admin_headers, date_value
+    ):
         """Invalid date in deal creation should be rejected safely."""
         response = await client.post(
             "/api/v1/deals/",
@@ -359,7 +367,9 @@ class TestInvalidDates:
             "'; DROP TABLE audit_log--",
         ],
     )
-    async def test_invalid_audit_log_date_filter(self, client, admin_headers, date_value):
+    async def test_invalid_audit_log_date_filter(
+        self, client, admin_headers, date_value
+    ):
         """Invalid date in audit log filter should be rejected safely."""
         response = await client.get(
             "/api/v1/admin/audit-log",

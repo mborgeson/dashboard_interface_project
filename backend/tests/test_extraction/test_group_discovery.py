@@ -82,27 +82,31 @@ class TestDiscovery:
 
     def test_discovery_accepts_old_uw_model(self, pipeline):
         """Old UW model (before cutoff) should be accepted."""
-        files = [{
-            "name": "Deal UW Model vCurrent.xlsb",
-            "path": "/deals/Deal UW Model vCurrent.xlsb",
-            "size": 5_000_000,
-            "modified_date": datetime(2023, 1, 15),
-            "deal_name": "Deal",
-            "deal_stage": "Active",
-        }]
+        files = [
+            {
+                "name": "Deal UW Model vCurrent.xlsb",
+                "path": "/deals/Deal UW Model vCurrent.xlsb",
+                "size": 5_000_000,
+                "modified_date": datetime(2023, 1, 15),
+                "deal_name": "Deal",
+                "deal_stage": "Active",
+            }
+        ]
         manifest = pipeline.run_discovery(files)
         assert manifest["candidates_accepted"] == 1
 
     def test_discovery_rejects_non_uw(self, pipeline):
         """Non-UW model files should be skipped."""
-        files = [{
-            "name": "Random Report.xlsb",
-            "path": "/random.xlsb",
-            "size": 1000,
-            "modified_date": datetime(2023, 1, 15),
-            "deal_name": "Report",
-            "deal_stage": "Active",
-        }]
+        files = [
+            {
+                "name": "Random Report.xlsb",
+                "path": "/random.xlsb",
+                "size": 1000,
+                "modified_date": datetime(2023, 1, 15),
+                "deal_name": "Report",
+                "deal_stage": "Active",
+            }
+        ]
         manifest = pipeline.run_discovery(files)
         assert manifest["candidates_accepted"] == 0
         assert manifest["candidates_skipped"] == 1
@@ -156,13 +160,15 @@ class TestDiscovery:
 
     def test_discovery_manifest_persisted(self, pipeline):
         """Manifest should be written to disk."""
-        files = [{
-            "name": "Deal UW Model vCurrent.xlsb",
-            "path": "/deals/model.xlsb",
-            "size": 5_000_000,
-            "modified_date": datetime(2023, 1, 15),
-            "deal_name": "Deal",
-        }]
+        files = [
+            {
+                "name": "Deal UW Model vCurrent.xlsb",
+                "path": "/deals/model.xlsb",
+                "size": 5_000_000,
+                "modified_date": datetime(2023, 1, 15),
+                "deal_name": "Deal",
+            }
+        ]
         pipeline.run_discovery(files)
 
         manifest_path = pipeline.data_dir / "discovery_manifest.json"
@@ -172,13 +178,15 @@ class TestDiscovery:
 
     def test_discovery_updates_config(self, pipeline):
         """Config should be updated after discovery."""
-        files = [{
-            "name": "Deal UW Model vCurrent.xlsb",
-            "path": "/deals/model.xlsb",
-            "size": 5_000_000,
-            "modified_date": datetime(2023, 1, 15),
-            "deal_name": "Deal",
-        }]
+        files = [
+            {
+                "name": "Deal UW Model vCurrent.xlsb",
+                "path": "/deals/model.xlsb",
+                "size": 5_000_000,
+                "modified_date": datetime(2023, 1, 15),
+                "deal_name": "Deal",
+            }
+        ]
         pipeline.run_discovery(files)
 
         cfg = pipeline.load_config()
@@ -205,13 +213,15 @@ class TestDiscovery:
 
     def test_discovery_multiple_runs_overwrite(self, pipeline):
         """Running discovery again should overwrite manifest."""
-        files1 = [{
-            "name": "Deal A UW Model vCurrent.xlsb",
-            "path": "/a.xlsb",
-            "size": 5_000_000,
-            "modified_date": datetime(2023, 1, 15),
-            "deal_name": "Deal A",
-        }]
+        files1 = [
+            {
+                "name": "Deal A UW Model vCurrent.xlsb",
+                "path": "/a.xlsb",
+                "size": 5_000_000,
+                "modified_date": datetime(2023, 1, 15),
+                "deal_name": "Deal A",
+            }
+        ]
         pipeline.run_discovery(files1)
 
         files2 = [
@@ -229,13 +239,15 @@ class TestDiscovery:
 
     def test_discovery_production_file_rejected(self, pipeline):
         """Current vCurrent file with recent date should be rejected (handled by production)."""
-        files = [{
-            "name": "Deal UW Model vCurrent.xlsb",
-            "path": "/deals/vCurrent.xlsb",
-            "size": 5_000_000,
-            "modified_date": datetime(2025, 1, 15),
-            "deal_name": "Deal",
-        }]
+        files = [
+            {
+                "name": "Deal UW Model vCurrent.xlsb",
+                "path": "/deals/vCurrent.xlsb",
+                "size": 5_000_000,
+                "modified_date": datetime(2025, 1, 15),
+                "deal_name": "Deal",
+            }
+        ]
         manifest = pipeline.run_discovery(files)
         assert manifest["candidates_accepted"] == 0
 
@@ -256,8 +268,18 @@ class TestDeduplication:
     def test_exact_duplicates(self, pipeline):
         """Files with same size+date+hash should be deduplicated."""
         files = [
-            {"name": "a.xlsb", "size": 100, "modified_date": "2023-01-01", "content_hash": "h1"},
-            {"name": "b.xlsb", "size": 100, "modified_date": "2023-01-01", "content_hash": "h1"},
+            {
+                "name": "a.xlsb",
+                "size": 100,
+                "modified_date": "2023-01-01",
+                "content_hash": "h1",
+            },
+            {
+                "name": "b.xlsb",
+                "size": 100,
+                "modified_date": "2023-01-01",
+                "content_hash": "h1",
+            },
         ]
         unique, dupes = pipeline._deduplicate(files)
         assert len(unique) == 1
@@ -266,8 +288,18 @@ class TestDeduplication:
     def test_same_size_date_different_hash(self, pipeline):
         """Same size+date but different hash should both be kept."""
         files = [
-            {"name": "a.xlsb", "size": 100, "modified_date": "2023-01-01", "content_hash": "h1"},
-            {"name": "b.xlsb", "size": 100, "modified_date": "2023-01-01", "content_hash": "h2"},
+            {
+                "name": "a.xlsb",
+                "size": 100,
+                "modified_date": "2023-01-01",
+                "content_hash": "h1",
+            },
+            {
+                "name": "b.xlsb",
+                "size": 100,
+                "modified_date": "2023-01-01",
+                "content_hash": "h2",
+            },
         ]
         unique, dupes = pipeline._deduplicate(files)
         assert len(unique) == 2

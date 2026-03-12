@@ -7,6 +7,7 @@ Endpoints for managing SharePoint file monitoring and change detection.
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
+from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,8 +16,6 @@ from app.core.permissions import CurrentUser, require_analyst, require_manager
 from app.db.session import get_db
 from app.extraction.sharepoint import SharePointAuthError
 from app.models.file_monitor import MonitoredFile
-
-from .common import logger
 
 router = APIRouter()
 
@@ -158,14 +157,16 @@ async def trigger_monitor_check(
         )
 
     except SharePointAuthError as e:
+        logger.error(f"sharepoint_auth_failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=401,
-            detail=f"SharePoint authentication failed: {e}",
+            detail="SharePoint authentication failed. Check server logs for details.",
         ) from None
     except ValueError as e:
+        logger.error(f"monitor_check_validation_failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=400,
-            detail=str(e),
+            detail="Monitor check failed. Check server logs for details.",
         ) from None
 
 
@@ -257,9 +258,10 @@ async def enable_monitor(
     try:
         status = await scheduler.enable()
     except RuntimeError as e:
+        logger.error(f"monitor_enable_failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to enable monitoring: {e}",
+            detail="Failed to enable monitoring. Check server logs for details.",
         ) from None
 
     logger.info(
@@ -291,9 +293,10 @@ async def disable_monitor(
     try:
         status = await scheduler.disable()
     except RuntimeError as e:
+        logger.error(f"monitor_disable_failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to disable monitoring: {e}",
+            detail="Failed to disable monitoring. Check server logs for details.",
         ) from None
 
     logger.info("file_monitor_disabled")
@@ -332,14 +335,16 @@ async def update_monitor_config(
             auto_extract=auto_extract,
         )
     except ValueError as e:
+        logger.error(f"monitor_config_validation_failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=400,
-            detail=str(e),
+            detail="Invalid monitor configuration. Check server logs for details.",
         ) from None
     except RuntimeError as e:
+        logger.error(f"monitor_config_update_failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to update configuration: {e}",
+            detail="Failed to update configuration. Check server logs for details.",
         ) from None
 
     logger.info(

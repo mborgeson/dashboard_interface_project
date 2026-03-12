@@ -45,8 +45,12 @@ class TestPaginationParams:
         params = PaginationParams()
         # FastAPI resolves Query descriptors during dependency injection.
         # Outside a request the raw Query objects have a .default attribute.
-        skip_val = params.skip.default if hasattr(params.skip, "default") else params.skip
-        limit_val = params.limit.default if hasattr(params.limit, "default") else params.limit
+        skip_val = (
+            params.skip.default if hasattr(params.skip, "default") else params.skip
+        )
+        limit_val = (
+            params.limit.default if hasattr(params.limit, "default") else params.limit
+        )
         assert skip_val == 0
         assert limit_val == 50
 
@@ -54,7 +58,9 @@ class TestPaginationParams:
         """Custom skip and limit values are accepted."""
         params = PaginationParams(skip=10, limit=100)
         skip_val = params.skip if isinstance(params.skip, int) else params.skip.default
-        limit_val = params.limit if isinstance(params.limit, int) else params.limit.default
+        limit_val = (
+            params.limit if isinstance(params.limit, int) else params.limit.default
+        )
         assert skip_val == 10
         assert limit_val == 100
 
@@ -214,9 +220,9 @@ async def multiple_properties(db_session: AsyncSession) -> list[Property]:
     props = []
     for i in range(5):
         prop = Property(
-            name=f"Property {i+1:03d}",
+            name=f"Property {i + 1:03d}",
             property_type="multifamily",
-            address=f"{100+i} Test St",
+            address=f"{100 + i} Test St",
             city="Phoenix",
             state="AZ",
             zip_code="85001",

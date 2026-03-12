@@ -143,9 +143,7 @@ async def test_audit_log_list_returns_entries(
     client, admin_auth_headers, seed_audit_logs
 ):
     """Test GET /admin/audit-log returns paginated entries."""
-    response = await client.get(
-        "/api/v1/admin/audit-log", headers=admin_auth_headers
-    )
+    response = await client.get("/api/v1/admin/audit-log", headers=admin_auth_headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -159,9 +157,7 @@ async def test_audit_log_list_returns_entries(
 
 
 @pytest.mark.asyncio
-async def test_audit_log_list_pagination(
-    client, admin_auth_headers, seed_audit_logs
-):
+async def test_audit_log_list_pagination(client, admin_auth_headers, seed_audit_logs):
     """Test audit log pagination works correctly."""
     response = await client.get(
         "/api/v1/admin/audit-log?page=1&per_page=2", headers=admin_auth_headers
@@ -181,9 +177,7 @@ async def test_audit_log_list_ordered_newest_first(
     client, admin_auth_headers, seed_audit_logs
 ):
     """Test audit log entries are ordered newest first."""
-    response = await client.get(
-        "/api/v1/admin/audit-log", headers=admin_auth_headers
-    )
+    response = await client.get("/api/v1/admin/audit-log", headers=admin_auth_headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -193,9 +187,7 @@ async def test_audit_log_list_ordered_newest_first(
 
 
 @pytest.mark.asyncio
-async def test_audit_log_filter_by_action(
-    client, admin_auth_headers, seed_audit_logs
-):
+async def test_audit_log_filter_by_action(client, admin_auth_headers, seed_audit_logs):
     """Test filtering audit log by action."""
     response = await client.get(
         "/api/v1/admin/audit-log?action=extract.trigger",
@@ -210,9 +202,7 @@ async def test_audit_log_filter_by_action(
 
 
 @pytest.mark.asyncio
-async def test_audit_log_filter_by_user_id(
-    client, admin_auth_headers, seed_audit_logs
-):
+async def test_audit_log_filter_by_user_id(client, admin_auth_headers, seed_audit_logs):
     """Test filtering audit log by user_id."""
     response = await client.get(
         "/api/v1/admin/audit-log?user_id=3", headers=admin_auth_headers
@@ -242,9 +232,7 @@ async def test_audit_log_filter_by_resource_type(
 @pytest.mark.asyncio
 async def test_audit_log_empty_result(client, admin_auth_headers, db_session):
     """Test audit log returns empty result when no entries exist."""
-    response = await client.get(
-        "/api/v1/admin/audit-log", headers=admin_auth_headers
-    )
+    response = await client.get("/api/v1/admin/audit-log", headers=admin_auth_headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -261,18 +249,14 @@ async def test_audit_log_empty_result(client, admin_auth_headers, db_session):
 @pytest.mark.asyncio
 async def test_audit_log_denied_for_non_admin(client, viewer_auth_headers):
     """Test that non-admin (viewer) users cannot access audit logs."""
-    response = await client.get(
-        "/api/v1/admin/audit-log", headers=viewer_auth_headers
-    )
+    response = await client.get("/api/v1/admin/audit-log", headers=viewer_auth_headers)
     assert response.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_audit_log_denied_for_analyst(client, auth_headers):
     """Test that analyst users cannot access admin audit logs."""
-    response = await client.get(
-        "/api/v1/admin/audit-log", headers=auth_headers
-    )
+    response = await client.get("/api/v1/admin/audit-log", headers=auth_headers)
     assert response.status_code == 403
 
 

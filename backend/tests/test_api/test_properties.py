@@ -37,7 +37,10 @@ async def test_create_property_requires_manager(client, db_session, auth_headers
         "year_built": 2020,
     }
     response = await client.post(
-        "/api/v1/properties/", json=new_property, headers=auth_headers, follow_redirects=True
+        "/api/v1/properties/",
+        json=new_property,
+        headers=auth_headers,
+        follow_redirects=True,
     )
     assert response.status_code == 403
 
@@ -84,7 +87,9 @@ async def test_list_properties_pagination(client, db_session, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_list_properties_filter_by_type(client, db_session, auth_headers, test_property):
+async def test_list_properties_filter_by_type(
+    client, db_session, auth_headers, test_property
+):
     """Test filtering properties by property type."""
     response = await client.get(
         "/api/v1/properties/",
@@ -102,7 +107,9 @@ async def test_list_properties_filter_by_type(client, db_session, auth_headers, 
 
 
 @pytest.mark.asyncio
-async def test_list_properties_filter_by_city(client, db_session, auth_headers, test_property):
+async def test_list_properties_filter_by_city(
+    client, db_session, auth_headers, test_property
+):
     """Test filtering properties by city."""
     response = await client.get(
         "/api/v1/properties/",
@@ -119,7 +126,9 @@ async def test_list_properties_filter_by_city(client, db_session, auth_headers, 
 
 
 @pytest.mark.asyncio
-async def test_list_properties_filter_by_state(client, db_session, auth_headers, test_property):
+async def test_list_properties_filter_by_state(
+    client, db_session, auth_headers, test_property
+):
     """Test filtering properties by state."""
     response = await client.get(
         "/api/v1/properties/",
@@ -348,7 +357,9 @@ async def test_get_property_analytics(client, db_session, auth_headers, test_pro
 
 
 @pytest.mark.asyncio
-async def test_get_property_analytics_metrics(client, db_session, auth_headers, test_property):
+async def test_get_property_analytics_metrics(
+    client, db_session, auth_headers, test_property
+):
     """Test that property analytics returns expected metrics."""
     response = await client.get(
         f"/api/v1/properties/{test_property.id}/analytics",

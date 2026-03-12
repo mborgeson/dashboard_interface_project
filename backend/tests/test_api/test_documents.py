@@ -210,9 +210,7 @@ async def test_create_document_invalid_type(client, db_session, auth_headers):
 @pytest.mark.asyncio
 async def test_upload_requires_auth(client, db_session):
     """POST /documents/upload without auth returns 401."""
-    response = await client.post(
-        "/api/v1/documents/upload", follow_redirects=True
-    )
+    response = await client.post("/api/v1/documents/upload", follow_redirects=True)
     assert response.status_code == 401
 
 
@@ -282,7 +280,9 @@ async def test_delete_document_not_found(client, db_session, admin_auth_headers)
 
 
 @pytest.mark.asyncio
-async def test_deleted_document_not_gettable(client, db_session, admin_auth_headers, auth_headers):
+async def test_deleted_document_not_gettable(
+    client, db_session, admin_auth_headers, auth_headers
+):
     """After soft-delete, GET /documents/{id} should return 404."""
     doc = await _create_document(db_session)
 

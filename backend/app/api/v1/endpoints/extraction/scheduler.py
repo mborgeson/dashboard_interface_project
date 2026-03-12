@@ -5,14 +5,13 @@ Endpoints for managing scheduled extraction runs.
 """
 
 from fastapi import APIRouter, HTTPException
+from loguru import logger
 
 from app.schemas.extraction import (
     SchedulerConfigRequest,
     SchedulerStatusResponse,
 )
 from app.services.extraction.scheduler import get_extraction_scheduler
-
-from .common import logger
 
 router = APIRouter()
 
@@ -57,9 +56,10 @@ async def enable_scheduler():
     try:
         status = await scheduler.enable()
     except RuntimeError as e:
+        logger.error(f"scheduler_enable_failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to enable scheduler: {e}",
+            detail="Failed to enable scheduler. Check server logs for details.",
         ) from None
 
     logger.info(
@@ -92,9 +92,10 @@ async def disable_scheduler():
     try:
         status = await scheduler.disable()
     except RuntimeError as e:
+        logger.error(f"scheduler_disable_failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to disable scheduler: {e}",
+            detail="Failed to disable scheduler. Check server logs for details.",
         ) from None
 
     logger.info("scheduler_disabled")
@@ -132,14 +133,16 @@ async def update_scheduler_config(request: SchedulerConfigRequest):
             timezone=request.timezone,
         )
     except ValueError as e:
+        logger.error(f"scheduler_config_validation_failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=400,
-            detail=str(e),
+            detail="Invalid scheduler configuration. Check server logs for details.",
         ) from None
     except RuntimeError as e:
+        logger.error(f"scheduler_config_update_failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to update scheduler configuration: {e}",
+            detail="Failed to update scheduler configuration. Check server logs for details.",
         ) from None
 
     logger.info(

@@ -1,4 +1,5 @@
 """One-time script to find near-duplicate property names and check source files."""
+
 import sys
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -13,7 +14,9 @@ engine = create_engine(str(settings.DATABASE_URL).replace("+asyncpg", ""))
 def find_dupes():
     with engine.connect() as conn:
         props = conn.execute(
-            text("SELECT DISTINCT property_name FROM extracted_values ORDER BY property_name")
+            text(
+                "SELECT DISTINCT property_name FROM extracted_values ORDER BY property_name"
+            )
         ).fetchall()
         names = [p[0] for p in props]
 
@@ -41,7 +44,9 @@ def check_pairs():
             print(f'--- "{a}" vs "{b}" ---')
             for name in (a, b):
                 files = conn.execute(
-                    text("SELECT DISTINCT source_file FROM extracted_values WHERE property_name = :n"),
+                    text(
+                        "SELECT DISTINCT source_file FROM extracted_values WHERE property_name = :n"
+                    ),
                     {"n": name},
                 ).fetchall()
                 print(f'  "{name}": {len(files)} files')

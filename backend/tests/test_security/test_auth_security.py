@@ -10,7 +10,7 @@ import time
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from jose import jwt
+import jwt
 
 from app.core.config import settings
 from app.core.security import create_access_token, decode_token
@@ -144,12 +144,18 @@ class TestWrongSigningKey:
         import base64
         import json
 
-        header = base64.urlsafe_b64encode(
-            json.dumps({"alg": "none", "typ": "JWT"}).encode()
-        ).rstrip(b"=").decode()
-        payload = base64.urlsafe_b64encode(
-            json.dumps({"sub": "1", "exp": int(time.time()) + 3600}).encode()
-        ).rstrip(b"=").decode()
+        header = (
+            base64.urlsafe_b64encode(json.dumps({"alg": "none", "typ": "JWT"}).encode())
+            .rstrip(b"=")
+            .decode()
+        )
+        payload = (
+            base64.urlsafe_b64encode(
+                json.dumps({"sub": "1", "exp": int(time.time()) + 3600}).encode()
+            )
+            .rstrip(b"=")
+            .decode()
+        )
         # No signature
         token = f"{header}.{payload}."
         response = await client.get(
@@ -487,7 +493,9 @@ class TestLoginSecurity:
         )
         assert response.status_code == 401
 
-    async def test_login_error_does_not_reveal_user_existence(self, client, analyst_user):
+    async def test_login_error_does_not_reveal_user_existence(
+        self, client, analyst_user
+    ):
         """Login failure messages should not reveal whether the user exists."""
         # Wrong password for existing user
         response1 = await client.post(

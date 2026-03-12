@@ -281,7 +281,7 @@ export function AnalyticsPage() {
         titleClassName="text-page-title text-primary-500"
         statCards={4}
         chartHeights={[320, 320, 384]}
-        className="p-6"
+        className=""
       />
     );
   }
@@ -289,7 +289,7 @@ export function AnalyticsPage() {
   // Show error state
   if (error) {
     return (
-      <div className="p-6">
+      <div>
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <h2 className="text-lg font-semibold text-red-800 mb-2">Error Loading Data</h2>
           <p className="text-red-600">
@@ -307,11 +307,11 @@ export function AnalyticsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-page-title text-primary-500">Portfolio Analytics</h1>
+          <h1 className="text-3xl font-bold text-neutral-900">Portfolio Analytics</h1>
           <p className="text-sm text-neutral-600 mt-1">
             Comprehensive performance analysis and insights
             {dateRange !== 'all' && (

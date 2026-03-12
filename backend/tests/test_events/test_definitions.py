@@ -85,9 +85,7 @@ def test_deal_stage_changed_fields() -> None:
 
 
 def test_extraction_completed_fields() -> None:
-    event = ExtractionCompleted(
-        run_id="abc-123", property_count=11, value_count=12881
-    )
+    event = ExtractionCompleted(run_id="abc-123", property_count=11, value_count=12881)
     assert event.run_id == "abc-123"
     assert event.property_count == 11
     assert event.value_count == 12881
@@ -111,9 +109,7 @@ def test_user_logged_in_fields() -> None:
 
 
 def test_property_updated_fields() -> None:
-    event = PropertyUpdated(
-        property_id=99, fields_changed=["noi", "cap_rate"]
-    )
+    event = PropertyUpdated(property_id=99, fields_changed=["noi", "cap_rate"])
     assert event.property_id == 99
     assert event.fields_changed == ["noi", "cap_rate"]
 

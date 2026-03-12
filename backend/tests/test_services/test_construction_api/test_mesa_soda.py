@@ -71,7 +71,9 @@ async def test_fetch_mesa_success():
         request=httpx.Request("GET", "https://data.mesaaz.gov"),
     )
 
-    with patch("app.services.construction_api.mesa_soda.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.mesa_soda.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -101,7 +103,9 @@ async def test_fetch_mesa_empty_response():
         request=httpx.Request("GET", "https://data.mesaaz.gov"),
     )
 
-    with patch("app.services.construction_api.mesa_soda.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.mesa_soda.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -122,7 +126,9 @@ async def test_fetch_mesa_http_error():
         request=httpx.Request("GET", "https://data.mesaaz.gov"),
     )
 
-    with patch("app.services.construction_api.mesa_soda.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.mesa_soda.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -145,7 +151,9 @@ async def test_fetch_mesa_skips_missing_date():
         request=httpx.Request("GET", "https://data.mesaaz.gov"),
     )
 
-    with patch("app.services.construction_api.mesa_soda.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.mesa_soda.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)

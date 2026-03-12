@@ -111,7 +111,7 @@ export function ResultsTab({ results }: ResultsTabProps) {
       {/* Key Return Metrics */}
       <div>
         <SectionTitle title="Return Metrics" />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             label="Levered IRR"
             value={formatPercent(results.leveredIRR)}
@@ -181,7 +181,7 @@ export function ResultsTab({ results }: ResultsTabProps) {
       <div>
         <SectionTitle title="Loan Details" />
         <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
               <div className="text-xs text-neutral-600 mb-1">Loan Amount</div>
               <div className="text-lg font-semibold text-neutral-900">{formatCurrency(results.loanAmount)}</div>
@@ -207,7 +207,7 @@ export function ResultsTab({ results }: ResultsTabProps) {
       {/* Year 1 Operating Metrics */}
       <div>
         <SectionTitle title="Year 1 Operating Performance" />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             label="Gross Income"
             value={formatCurrency(results.year1.grossIncome)}
@@ -236,7 +236,7 @@ export function ResultsTab({ results }: ResultsTabProps) {
       {/* Year 1 Performance Ratios */}
       <div>
         <SectionTitle title="Year 1 Performance Ratios" />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             label="Cash-on-Cash Return"
             value={formatPercent(results.year1.cashOnCashReturn)}
@@ -271,7 +271,7 @@ export function ResultsTab({ results }: ResultsTabProps) {
       {/* Exit Analysis */}
       <div>
         <SectionTitle title="Exit Analysis" />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             label="Exit Value"
             value={formatCurrency(results.exitValue)}

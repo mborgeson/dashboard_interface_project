@@ -27,6 +27,7 @@ from app.services.enrichment import (
 # Helpers — lightweight property stand-in
 # ---------------------------------------------------------------------------
 
+
 def _make_prop(**overrides):
     """Return a SimpleNamespace mimicking a Property with empty defaults."""
     defaults = dict(
@@ -51,6 +52,7 @@ def _make_prop(**overrides):
 # ===================================================================
 # 1. safe_float
 # ===================================================================
+
 
 class TestSafeFloat:
     def test_none(self):
@@ -101,6 +103,7 @@ class TestSafeFloat:
 # 2. to_decimal
 # ===================================================================
 
+
 class TestToDecimal:
     def test_basic(self):
         result = to_decimal(3.14159, 2)
@@ -133,6 +136,7 @@ class TestToDecimal:
 # ===================================================================
 # 3. get_property_name_variants
 # ===================================================================
+
 
 class TestGetPropertyNameVariants:
     def test_simple_name(self):
@@ -173,6 +177,7 @@ class TestGetPropertyNameVariants:
 # 4. match_prop_name
 # ===================================================================
 
+
 class TestMatchPropName:
     def test_exact_match(self):
         prop = _make_prop(name="Sunrise Apartments")
@@ -210,6 +215,7 @@ class TestMatchPropName:
 # ===================================================================
 # 5. update_property_columns
 # ===================================================================
+
 
 class TestUpdatePropertyColumns:
     def test_sets_purchase_price(self):
@@ -334,6 +340,7 @@ class TestUpdatePropertyColumns:
 # 6. build_financial_data_json
 # ===================================================================
 
+
 class TestBuildFinancialDataJson:
     def test_empty_field_values(self):
         prop = _make_prop()
@@ -350,7 +357,9 @@ class TestBuildFinancialDataJson:
         fv = {"PURCHASE_PRICE": 5_000_000, "PRICE_PER_UNIT": 41_666.67}
         result = build_financial_data_json(prop, fv, None)
         assert result["acquisition"]["purchasePrice"] == 5_000_000.0
-        assert result["acquisition"]["pricePerUnit"] == pytest.approx(41_666.67, abs=0.01)
+        assert result["acquisition"]["pricePerUnit"] == pytest.approx(
+            41_666.67, abs=0.01
+        )
 
     def test_financing_fields(self):
         prop = _make_prop()
@@ -446,6 +455,7 @@ class TestBuildFinancialDataJson:
 # ===================================================================
 # 7. build_ops_by_year
 # ===================================================================
+
 
 class TestBuildOpsByYear:
     def test_empty_rows(self):
@@ -548,6 +558,7 @@ class TestBuildOpsByYear:
 # 8. build_base_expenses
 # ===================================================================
 
+
 class TestBuildBaseExpenses:
     def test_basic_scaling(self):
         fv = {"REAL_ESTATE_TAXES": 1200.0, "PROPERTY_INSURANCE": 500.0}
@@ -581,6 +592,7 @@ class TestBuildBaseExpenses:
 # ===================================================================
 # 9. YEAR_FIELD_RE regex
 # ===================================================================
+
 
 class TestYearFieldRegex:
     def test_matches_standard_field(self):

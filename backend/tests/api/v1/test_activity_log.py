@@ -119,9 +119,7 @@ async def test_get_activity_logs_without_auth(client, test_deal):
 
 
 @pytest.mark.asyncio
-async def test_get_activity_logs_success(
-    client, deal_with_activity_logs, auth_headers
-):
+async def test_get_activity_logs_success(client, deal_with_activity_logs, auth_headers):
     """Test successfully getting activity logs."""
     response = await client.get(
         f"/api/v1/deals/{deal_with_activity_logs.id}/activity-log",
@@ -140,9 +138,7 @@ async def test_get_activity_logs_success(
 
 
 @pytest.mark.asyncio
-async def test_get_activity_logs_pagination(
-    client, many_activity_logs, auth_headers
-):
+async def test_get_activity_logs_pagination(client, many_activity_logs, auth_headers):
     """Test pagination with page parameter."""
     # Get page 2
     response = await client.get(
@@ -161,9 +157,7 @@ async def test_get_activity_logs_pagination(
 
 
 @pytest.mark.asyncio
-async def test_get_activity_logs_page_size(
-    client, many_activity_logs, auth_headers
-):
+async def test_get_activity_logs_page_size(client, many_activity_logs, auth_headers):
     """Test pagination with page_size parameter."""
     response = await client.get(
         f"/api/v1/deals/{many_activity_logs.id}/activity-log",
@@ -585,7 +579,9 @@ async def test_create_activity_log_persists(client, test_deal, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_create_activity_log_has_user_id(client, test_deal, auth_headers, test_user):
+async def test_create_activity_log_has_user_id(
+    client, test_deal, auth_headers, test_user
+):
     """Test that created activity log has user_id from authenticated user."""
     activity_data = {
         "action": "viewed",

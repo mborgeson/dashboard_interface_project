@@ -225,9 +225,10 @@ class TestPromoteProformaGroups:
         groups_file = tmp_path / "groups.json"
         groups_file.write_text(json.dumps(groups_data))
 
-        with patch(
-            "scripts.promote_proforma_groups.GROUPS_FILE", groups_file
-        ), patch("scripts.promote_proforma_groups.DATA_DIR", tmp_path):
+        with (
+            patch("scripts.promote_proforma_groups.GROUPS_FILE", groups_file),
+            patch("scripts.promote_proforma_groups.DATA_DIR", tmp_path),
+        ):
             result = promote_groups(dry_run=True)
 
         assert result["promoted"] == 0
@@ -257,9 +258,10 @@ class TestPromoteProformaGroups:
         groups_file = tmp_path / "groups.json"
         groups_file.write_text(json.dumps(groups_data))
 
-        with patch(
-            "scripts.promote_proforma_groups.GROUPS_FILE", groups_file
-        ), patch("scripts.promote_proforma_groups.DATA_DIR", tmp_path):
+        with (
+            patch("scripts.promote_proforma_groups.GROUPS_FILE", groups_file),
+            patch("scripts.promote_proforma_groups.DATA_DIR", tmp_path),
+        ):
             result = promote_groups(dry_run=False)
 
         assert result["promoted"] == 1
@@ -311,7 +313,9 @@ class TestReferenceMappingFormat:
         result = build_reference_mapping("TestGroup")
         for i, m in enumerate(result["mappings"]):
             missing = self.REQUIRED_KEYS - set(m.keys())
-            assert not missing, f"Mapping {i} ({m.get('field_name')}) missing: {missing}"
+            assert not missing, (
+                f"Mapping {i} ({m.get('field_name')}) missing: {missing}"
+            )
 
     def test_mappings_cover_key_fields(self):
         """Mappings should include the critical financial fields."""
@@ -371,9 +375,7 @@ class TestPropertyCollisionDetection:
                 "app.crud.extraction.sync_extracted_to_properties",
                 return_value={"created": 0, "updated": 0},
             ),
-            patch(
-                "app.api.v1.endpoints.extraction.common.logger"
-            ) as mock_logger,
+            patch("app.api.v1.endpoints.extraction.common.logger") as mock_logger,
         ):
             process_files(
                 sync_db_session,

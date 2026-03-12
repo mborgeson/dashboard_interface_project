@@ -46,6 +46,7 @@ def app(groups_dir):
 
     def _test_pipeline():
         from app.extraction.group_pipeline import GroupExtractionPipeline
+
         return GroupExtractionPipeline(data_dir=_dir)
 
     # Create a mock user for testing
@@ -79,6 +80,7 @@ def client(app):
 def pipeline(groups_dir):
     """Direct pipeline instance sharing the same directory as app."""
     from app.extraction.group_pipeline import GroupExtractionPipeline
+
     return GroupExtractionPipeline(data_dir=groups_dir)
 
 
@@ -120,14 +122,16 @@ class TestDiscoveryEndpoint:
 
     def test_discover_with_files(self, client):
         """Discovery with valid files should accept candidates."""
-        files = [{
-            "name": "Deal Proforma vCurrent.xlsb",
-            "path": "/test/model.xlsb",
-            "size": 5000000,
-            "modified_date": "2023-01-15T00:00:00",
-            "deal_name": "Deal",
-            "deal_stage": "Dead",
-        }]
+        files = [
+            {
+                "name": "Deal Proforma vCurrent.xlsb",
+                "path": "/test/model.xlsb",
+                "size": 5000000,
+                "modified_date": "2023-01-15T00:00:00",
+                "deal_name": "Deal",
+                "deal_stage": "Dead",
+            }
+        ]
         response = client.post("/extraction/grouping/discover", json=files)
         assert response.status_code == 200
         data = response.json()
@@ -171,18 +175,28 @@ class TestGroupsEndpoint:
     def test_groups_after_setup(self, client, pipeline):
         """Groups should return data after setup."""
         pipeline.data_dir.mkdir(parents=True, exist_ok=True)
-        (pipeline.data_dir / "groups.json").write_text(json.dumps({
-            "groups": [{
-                "group_name": "test_group",
-                "files": [{"name": "f1.xlsb"}, {"name": "f2.xlsb"}],
-                "structural_overlap": 0.95,
-                "era": "2020-2023",
-                "sub_variants": [],
-            }],
-            "ungrouped": [],
-            "empty_templates": [],
-            "summary": {"total_groups": 1, "total_ungrouped": 0, "total_empty_templates": 0},
-        }))
+        (pipeline.data_dir / "groups.json").write_text(
+            json.dumps(
+                {
+                    "groups": [
+                        {
+                            "group_name": "test_group",
+                            "files": [{"name": "f1.xlsb"}, {"name": "f2.xlsb"}],
+                            "structural_overlap": 0.95,
+                            "era": "2020-2023",
+                            "sub_variants": [],
+                        }
+                    ],
+                    "ungrouped": [],
+                    "empty_templates": [],
+                    "summary": {
+                        "total_groups": 1,
+                        "total_ungrouped": 0,
+                        "total_empty_templates": 0,
+                    },
+                }
+            )
+        )
 
         response = client.get("/extraction/grouping/groups")
         assert response.status_code == 200
@@ -197,10 +211,14 @@ class TestGroupDetailEndpoint:
     def test_group_not_found(self, client, pipeline):
         """Non-existent group should return 404."""
         pipeline.data_dir.mkdir(parents=True, exist_ok=True)
-        (pipeline.data_dir / "groups.json").write_text(json.dumps({
-            "groups": [],
-            "summary": {},
-        }))
+        (pipeline.data_dir / "groups.json").write_text(
+            json.dumps(
+                {
+                    "groups": [],
+                    "summary": {},
+                }
+            )
+        )
 
         response = client.get("/extraction/grouping/groups/nonexistent")
         assert response.status_code == 404
@@ -208,17 +226,23 @@ class TestGroupDetailEndpoint:
     def test_group_found(self, client, pipeline):
         """Existing group should return detail."""
         pipeline.data_dir.mkdir(parents=True, exist_ok=True)
-        (pipeline.data_dir / "groups.json").write_text(json.dumps({
-            "groups": [{
-                "group_name": "test_group",
-                "files": [{"name": "f1.xlsb"}],
-                "structural_overlap": 0.99,
-                "era": "2024+",
-                "sub_variants": [],
-                "variances": {"uniform": True},
-            }],
-            "summary": {},
-        }))
+        (pipeline.data_dir / "groups.json").write_text(
+            json.dumps(
+                {
+                    "groups": [
+                        {
+                            "group_name": "test_group",
+                            "files": [{"name": "f1.xlsb"}],
+                            "structural_overlap": 0.99,
+                            "era": "2024+",
+                            "sub_variants": [],
+                            "variances": {"uniform": True},
+                        }
+                    ],
+                    "summary": {},
+                }
+            )
+        )
 
         response = client.get("/extraction/grouping/groups/test_group")
         assert response.status_code == 200

@@ -198,9 +198,7 @@ class TestBuildFinancialDataJson:
         """Existing financial_data values are not overwritten."""
         prop = self._mock_property()
         existing = {"acquisition": {"purchasePrice": 5000000}}
-        result = build_financial_data_json(
-            prop, {"PURCHASE_PRICE": 10000000}, existing
-        )
+        result = build_financial_data_json(prop, {"PURCHASE_PRICE": 10000000}, existing)
         # Existing value should be preserved
         assert result["acquisition"]["purchasePrice"] == 5000000
 
@@ -520,5 +518,13 @@ class TestPaginatedResult:
         """to_dict returns all expected keys."""
         result = PaginatedResult(items=[1], total=1, page=1, per_page=10)
         d = result.to_dict()
-        expected_keys = {"items", "total", "page", "per_page", "pages", "has_next", "has_prev"}
+        expected_keys = {
+            "items",
+            "total",
+            "page",
+            "per_page",
+            "pages",
+            "has_next",
+            "has_prev",
+        }
         assert set(d.keys()) == expected_keys

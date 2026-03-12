@@ -56,7 +56,11 @@ def run(dry_run: bool = True) -> dict:
                             "UPDATE extracted_values SET property_name = :new "
                             "WHERE property_name = :old AND source_file LIKE :pattern"
                         ),
-                        {"new": new_name, "old": old_name, "pattern": f"%{file_substr}%"},
+                        {
+                            "new": new_name,
+                            "old": old_name,
+                            "pattern": f"%{file_substr}%",
+                        },
                     )
                 results["placeholder_fixes"].append(
                     {"old": old_name, "new": new_name, "file": file_substr, "rows": row}
@@ -66,7 +70,9 @@ def run(dry_run: bool = True) -> dict:
         # Fix duplicates (rename all rows with old_name)
         for old_name, new_name in DUPLICATE_FIXES:
             row = conn.execute(
-                text("SELECT COUNT(*) FROM extracted_values WHERE property_name = :old"),
+                text(
+                    "SELECT COUNT(*) FROM extracted_values WHERE property_name = :old"
+                ),
                 {"old": old_name},
             ).scalar()
 
@@ -101,14 +107,18 @@ if __name__ == "__main__":
     if results["placeholder_fixes"]:
         print("Placeholder fixes:")
         for fix in results["placeholder_fixes"]:
-            print(f'  "{fix["old"]}" → "{fix["new"]}" ({fix["rows"]} rows) [{fix["file"]}]')
+            print(
+                f'  "{fix["old"]}" → "{fix["new"]}" ({fix["rows"]} rows) [{fix["file"]}]'
+            )
 
     if results["duplicate_fixes"]:
         print("\nDuplicate fixes:")
         for fix in results["duplicate_fixes"]:
             print(f'  "{fix["old"]}" → "{fix["new"]}" ({fix["rows"]} rows)')
 
-    print(f"\nTotal rows {'would be' if dry_run else ''} updated: {results['total_rows_updated']}")
+    print(
+        f"\nTotal rows {'would be' if dry_run else ''} updated: {results['total_rows_updated']}"
+    )
 
     if dry_run:
         print("\nRe-run without --dry-run to apply changes.")

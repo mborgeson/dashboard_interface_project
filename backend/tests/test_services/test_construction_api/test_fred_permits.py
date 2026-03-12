@@ -56,16 +56,16 @@ async def test_fetch_fred_success():
         request=httpx.Request("GET", "https://api.stlouisfed.org"),
     )
 
-    with patch("app.services.construction_api.fred_permits.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.fred_permits.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
         mock_instance.__aexit__ = AsyncMock(return_value=False)
         mock_client.return_value = mock_instance
 
-        result = await fetch_fred_permits(
-            "test-key", series_ids=["PHOE004BPPRIVSA"]
-        )
+        result = await fetch_fred_permits("test-key", series_ids=["PHOE004BPPRIVSA"])
 
     # 2 valid records (skips "." value)
     assert len(result["records"]) == 2
@@ -82,16 +82,16 @@ async def test_fetch_fred_http_error():
         request=httpx.Request("GET", "https://api.stlouisfed.org"),
     )
 
-    with patch("app.services.construction_api.fred_permits.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.fred_permits.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
         mock_instance.__aexit__ = AsyncMock(return_value=False)
         mock_client.return_value = mock_instance
 
-        result = await fetch_fred_permits(
-            "test-key", series_ids=["PHOE004BPPRIVSA"]
-        )
+        result = await fetch_fred_permits("test-key", series_ids=["PHOE004BPPRIVSA"])
 
     assert result["records"] == []
     assert len(result["errors"]) > 0

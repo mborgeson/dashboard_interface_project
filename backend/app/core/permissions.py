@@ -15,7 +15,6 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.security import decode_token
 from app.core.token_blacklist import token_blacklist
 from app.crud import user as user_crud
@@ -135,44 +134,30 @@ async def get_current_user(
     # Try to fetch user from database
     db_user = await user_crud.get(db, id=int(user_id))
 
-    if db_user:
-        if not db_user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User account is disabled",
-            )
-
-        # Parse role from database
-        try:
-            role = Role(db_user.role)
-        except ValueError:
-            role = Role.VIEWER  # Default to lowest permission
-
-        return CurrentUser(
-            id=db_user.id,
-            email=db_user.email,
-            role=role,
-            full_name=db_user.full_name,
-            is_active=db_user.is_active,
-        )
-
-    # Fallback for demo/development users only — never in production
-    if settings.ENVIRONMENT == "production":
+    # All users must exist in the database regardless of environment.
+    # Token claims alone are never sufficient for authentication — the user
+    # record must be present and active in the DB to proceed.
+    if not db_user:
         raise credentials_exception
 
-    # Development/testing: trust token claims for demo users
-    role_str = payload.get("role", "viewer")
+    if not db_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is disabled",
+        )
+
+    # Parse role from database
     try:
-        role = Role(role_str)
+        role = Role(db_user.role)
     except ValueError:
-        role = Role.VIEWER
+        role = Role.VIEWER  # Default to lowest permission
 
     return CurrentUser(
-        id=int(user_id),
-        email=payload.get("email", "demo@bandrcapital.com"),
+        id=db_user.id,
+        email=db_user.email,
         role=role,
-        full_name=payload.get("full_name"),
-        is_active=True,
+        full_name=db_user.full_name,
+        is_active=db_user.is_active,
     )
 
 

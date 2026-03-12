@@ -1335,36 +1335,54 @@ class TestRelationships:
         now = datetime.now(UTC)
 
         # Create all one-to-one children
-        db_session.add(ExitAssumptions(
-            underwriting_model_id=parent.id,
-            exit_period_months=60,
-            created_at=now, updated_at=now,
-        ))
-        db_session.add(NOIAssumptions(
-            underwriting_model_id=parent.id,
-            market_rent_per_unit=Decimal("1300.00"),
-            created_at=now, updated_at=now,
-        ))
-        db_session.add(FinancingAssumptions(
-            underwriting_model_id=parent.id,
-            senior_loan_amount=Decimal("15000000.00"),
-            created_at=now, updated_at=now,
-        ))
-        db_session.add(BudgetAssumptions(
-            underwriting_model_id=parent.id,
-            purchase_price=Decimal("20000000.00"),
-            created_at=now, updated_at=now,
-        ))
-        db_session.add(PropertyReturns(
-            underwriting_model_id=parent.id,
-            going_in_cap_rate=Decimal("0.0650"),
-            created_at=now, updated_at=now,
-        ))
-        db_session.add(EquityReturns(
-            underwriting_model_id=parent.id,
-            lp_irr=Decimal("0.1500"),
-            created_at=now, updated_at=now,
-        ))
+        db_session.add(
+            ExitAssumptions(
+                underwriting_model_id=parent.id,
+                exit_period_months=60,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        db_session.add(
+            NOIAssumptions(
+                underwriting_model_id=parent.id,
+                market_rent_per_unit=Decimal("1300.00"),
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        db_session.add(
+            FinancingAssumptions(
+                underwriting_model_id=parent.id,
+                senior_loan_amount=Decimal("15000000.00"),
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        db_session.add(
+            BudgetAssumptions(
+                underwriting_model_id=parent.id,
+                purchase_price=Decimal("20000000.00"),
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        db_session.add(
+            PropertyReturns(
+                underwriting_model_id=parent.id,
+                going_in_cap_rate=Decimal("0.0650"),
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        db_session.add(
+            EquityReturns(
+                underwriting_model_id=parent.id,
+                lp_irr=Decimal("0.1500"),
+                created_at=now,
+                updated_at=now,
+            )
+        )
         await db_session.commit()
 
         result = await db_session.execute(
@@ -1394,16 +1412,22 @@ class TestRelationships:
         """Deleting parent should cascade to children."""
         parent = await _create_uw_model(db_session)
         now = datetime.now(UTC)
-        db_session.add(ExitAssumptions(
-            underwriting_model_id=parent.id,
-            exit_period_months=60,
-            created_at=now, updated_at=now,
-        ))
-        db_session.add(AnnualCashflow(
-            underwriting_model_id=parent.id,
-            year_number=1,
-            created_at=now, updated_at=now,
-        ))
+        db_session.add(
+            ExitAssumptions(
+                underwriting_model_id=parent.id,
+                exit_period_months=60,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        db_session.add(
+            AnnualCashflow(
+                underwriting_model_id=parent.id,
+                year_number=1,
+                created_at=now,
+                updated_at=now,
+            )
+        )
         await db_session.commit()
 
         await db_session.delete(parent)

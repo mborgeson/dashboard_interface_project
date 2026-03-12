@@ -53,7 +53,7 @@ class TestCRUDUserCreate:
         """Test creating user with dictionary input."""
         user_data = {
             "email": "newuser@test.com",
-            "password": "securepassword123",
+            "password": "Secure@pass1",
             "full_name": "New User",
             "role": "analyst",
         }
@@ -64,14 +64,14 @@ class TestCRUDUserCreate:
         assert user.email == "newuser@test.com"
         assert user.full_name == "New User"
         assert user.hashed_password is not None
-        assert user.hashed_password != "securepassword123"  # Password hashed
+        assert user.hashed_password != "Secure@pass1"  # Password hashed
 
     @pytest.mark.asyncio
     async def test_create_user_with_schema(self, db_session, crud_user):
         """Test creating user with Pydantic schema."""
         user_in = UserCreate(
             email="schemauser@test.com",
-            password="schemapassword123",
+            password="Schema@pass1",
             full_name="Schema User",
             role="viewer",
         )

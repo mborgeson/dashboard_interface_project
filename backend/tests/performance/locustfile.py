@@ -190,6 +190,7 @@ class AdminUser(AuthenticatedUser):
 # Event hooks for aggregate reporting
 # ---------------------------------------------------------------------------
 
+
 @events.test_stop.add_listener
 def on_test_stop(environment, **_kwargs) -> None:
     """Print a summary when the test completes."""
@@ -197,9 +198,9 @@ def on_test_stop(environment, **_kwargs) -> None:
     total = stats.total
     if total.num_requests > 0:
         print(
-            f"\n{'='*60}\n"
+            f"\n{'=' * 60}\n"
             f"Load Test Summary\n"
-            f"{'='*60}\n"
+            f"{'=' * 60}\n"
             f"Total requests:  {total.num_requests}\n"
             f"Failed requests: {total.num_failures}\n"
             f"Avg response:    {total.avg_response_time:.0f} ms\n"
@@ -207,5 +208,5 @@ def on_test_stop(environment, **_kwargs) -> None:
             f"95th percentile: {total.get_response_time_percentile(0.95):.0f} ms\n"
             f"99th percentile: {total.get_response_time_percentile(0.99):.0f} ms\n"
             f"Requests/s:      {total.total_rps:.1f}\n"
-            f"{'='*60}\n"
+            f"{'=' * 60}\n"
         )

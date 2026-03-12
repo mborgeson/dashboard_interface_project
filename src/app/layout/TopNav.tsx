@@ -83,15 +83,17 @@ export function TopNav(){
 
       {/* Actions */}
       <div className="flex items-center gap-4 ml-4">
-        <button
-          onClick={handleToastDemo}
-          className="flex items-center gap-2 px-3 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors text-neutral-600 hover:text-neutral-900"
-          title="Test Toast Notifications"
-          aria-label="Show toast notification demo"
-        >
-          <Bell className="w-4 h-4" aria-hidden="true" />
-          <span className="text-sm">Toast Demo</span>
-        </button>
+        {import.meta.env.DEV && (
+          <button
+            onClick={handleToastDemo}
+            className="flex items-center gap-2 px-3 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors text-neutral-600 hover:text-neutral-900"
+            title="Test Toast Notifications"
+            aria-label="Show toast notification demo"
+          >
+            <Bell className="w-4 h-4" aria-hidden="true" />
+            <span className="text-sm">Toast Demo</span>
+          </button>
+        )}
 
         <UnderwritingModal />
 

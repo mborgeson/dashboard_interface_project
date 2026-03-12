@@ -83,7 +83,9 @@ async def test_fetch_tempe_success():
         request=httpx.Request("GET", "https://services1.arcgis.com/Tempe"),
     )
 
-    with patch("app.services.construction_api.tempe_blds.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.tempe_blds.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -113,7 +115,9 @@ async def test_fetch_tempe_empty_features():
         request=httpx.Request("GET", "https://services1.arcgis.com/Tempe"),
     )
 
-    with patch("app.services.construction_api.tempe_blds.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.tempe_blds.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -135,7 +139,9 @@ async def test_fetch_tempe_arcgis_error():
         request=httpx.Request("GET", "https://services1.arcgis.com/Tempe"),
     )
 
-    with patch("app.services.construction_api.tempe_blds.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.tempe_blds.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -156,7 +162,9 @@ async def test_fetch_tempe_http_error():
         request=httpx.Request("GET", "https://services1.arcgis.com/Tempe"),
     )
 
-    with patch("app.services.construction_api.tempe_blds.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.tempe_blds.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -175,11 +183,17 @@ async def test_fetch_tempe_skips_missing_date():
     """Features without IssuedDate are skipped."""
     mock_response = httpx.Response(
         200,
-        json={"features": [{"attributes": {"PermitNumber": "X-001", "Address": "123 Main"}}]},
+        json={
+            "features": [
+                {"attributes": {"PermitNumber": "X-001", "Address": "123 Main"}}
+            ]
+        },
         request=httpx.Request("GET", "https://services1.arcgis.com/Tempe"),
     )
 
-    with patch("app.services.construction_api.tempe_blds.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.tempe_blds.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.get.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)

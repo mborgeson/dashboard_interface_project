@@ -220,7 +220,10 @@ async def test_is_redis_available_false():
 
 def test_make_cache_key():
     """make_cache_key joins parts with colons."""
-    assert make_cache_key("property_list", "multifamily", "1") == "property_list:multifamily:1"
+    assert (
+        make_cache_key("property_list", "multifamily", "1")
+        == "property_list:multifamily:1"
+    )
 
 
 def test_make_cache_key_filters_empty():

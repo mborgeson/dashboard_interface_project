@@ -263,9 +263,7 @@ class TestGetByDeal:
     async def test_returns_entries_for_deal(self, db_session, test_deal):
         """get_by_deal returns all non-deleted entries for a deal."""
         await _create_log_entries(db_session, test_deal.id, n=3)
-        results = await activity_log.get_by_deal(
-            db_session, deal_id=test_deal.id
-        )
+        results = await activity_log.get_by_deal(db_session, deal_id=test_deal.id)
         assert len(results) == 3
 
     @pytest.mark.asyncio
@@ -325,9 +323,7 @@ class TestGetByDeal:
         db_session.add(entries[0])
         await db_session.flush()
 
-        results = await activity_log.get_by_deal(
-            db_session, deal_id=test_deal.id
-        )
+        results = await activity_log.get_by_deal(db_session, deal_id=test_deal.id)
         assert len(results) == 2
 
 
@@ -343,9 +339,7 @@ class TestCountByDeal:
     async def test_correct_count(self, db_session, test_deal):
         """count_by_deal returns accurate count."""
         await _create_log_entries(db_session, test_deal.id, 4)
-        count = await activity_log.count_by_deal(
-            db_session, deal_id=test_deal.id
-        )
+        count = await activity_log.count_by_deal(db_session, deal_id=test_deal.id)
         assert count == 4
 
     @pytest.mark.asyncio
@@ -381,9 +375,7 @@ class TestGetRecentForDeals:
             await _create_log_entries(db_session, deal.id, 2)
 
         deal_ids = [d.id for d in multiple_deals[:2]]
-        result = await activity_log.get_recent_for_deals(
-            db_session, deal_ids=deal_ids
-        )
+        result = await activity_log.get_recent_for_deals(db_session, deal_ids=deal_ids)
 
         assert isinstance(result, dict)
         for deal_id in deal_ids:
@@ -393,9 +385,7 @@ class TestGetRecentForDeals:
     @pytest.mark.asyncio
     async def test_empty_list_returns_empty_dict(self, db_session):
         """get_recent_for_deals returns {} for empty deal_ids list."""
-        result = await activity_log.get_recent_for_deals(
-            db_session, deal_ids=[]
-        )
+        result = await activity_log.get_recent_for_deals(db_session, deal_ids=[])
         assert result == {}
 
     @pytest.mark.asyncio
@@ -427,17 +417,13 @@ class TestGetRecentForDeals:
         assert len(result[test_deal.id]) == 2
 
     @pytest.mark.asyncio
-    async def test_deals_with_no_activities_excluded(
-        self, db_session, multiple_deals
-    ):
+    async def test_deals_with_no_activities_excluded(self, db_session, multiple_deals):
         """Deals with no activity logs are not present in result dict."""
         # Only create activities for the first deal
         await _create_log_entries(db_session, multiple_deals[0].id, 2)
 
         deal_ids = [d.id for d in multiple_deals[:3]]
-        result = await activity_log.get_recent_for_deals(
-            db_session, deal_ids=deal_ids
-        )
+        result = await activity_log.get_recent_for_deals(db_session, deal_ids=deal_ids)
 
         assert multiple_deals[0].id in result
         assert multiple_deals[1].id not in result

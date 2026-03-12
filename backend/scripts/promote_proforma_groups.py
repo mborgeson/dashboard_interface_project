@@ -70,8 +70,20 @@ PROFORMA_MAPPINGS: list[tuple[str, str, str, str, str]] = [
     ("PROFORMA_NOI_YR3", "Proforma", "K15", "NOI/Unit Year 3", "Proforma"),
     ("PROFORMA_NOI_YR5", "Proforma", "M15", "NOI/Unit Year 5", "Proforma"),
     ("T3_RETURN_ON_COST", "Proforma", "I18", "Cap Rate of ALL In Costs Yr1", "Returns"),
-    ("CAP_RATE_ALL_IN_YR3", "Proforma", "K18", "Cap Rate of ALL In Costs Yr3", "Returns"),
-    ("CAP_RATE_ALL_IN_YR5", "Proforma", "M18", "Cap Rate of ALL In Costs Yr5", "Returns"),
+    (
+        "CAP_RATE_ALL_IN_YR3",
+        "Proforma",
+        "K18",
+        "Cap Rate of ALL In Costs Yr3",
+        "Returns",
+    ),
+    (
+        "CAP_RATE_ALL_IN_YR5",
+        "Proforma",
+        "M18",
+        "Cap Rate of ALL In Costs Yr5",
+        "Returns",
+    ),
     ("PROFORMA_DEBT_YIELD_YR1", "Proforma", "I19", "Debt Yield Year 1", "Proforma"),
     ("PROFORMA_DSCR_YR1", "Proforma", "I20", "DSCR Year 1", "Proforma"),
     ("PROFORMA_DSCR_YR3", "Proforma", "K20", "DSCR Year 3", "Proforma"),
@@ -83,17 +95,19 @@ def build_reference_mapping(group_name: str) -> dict:
     """Build a reference_mapping.json dict for a Proforma group."""
     mappings = []
     for field_name, sheet, cell, label, category in PROFORMA_MAPPINGS:
-        mappings.append({
-            "field_name": field_name,
-            "source_sheet": sheet,
-            "source_cell": cell,
-            "match_tier": 1,
-            "confidence": 0.95,
-            "label_text": label,
-            "category": category,
-            "production_sheet": sheet,
-            "production_cell": cell,
-        })
+        mappings.append(
+            {
+                "field_name": field_name,
+                "source_sheet": sheet,
+                "source_cell": cell,
+                "match_tier": 1,
+                "confidence": 0.95,
+                "label_text": label,
+                "category": category,
+                "production_sheet": sheet,
+                "production_cell": cell,
+            }
+        )
 
     return {
         "group_name": group_name,
@@ -131,7 +145,9 @@ def promote_groups(dry_run: bool = True) -> dict:
         promoted_names.append(gname)
 
     if dry_run:
-        print(f"\n[DRY RUN] Would promote {len(deferred)} groups and create reference mappings.")
+        print(
+            f"\n[DRY RUN] Would promote {len(deferred)} groups and create reference mappings."
+        )
         print("Run with --execute to apply changes.")
         return {"promoted": 0, "would_promote": len(deferred)}
 

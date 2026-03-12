@@ -10,8 +10,8 @@ Each endpoint corresponds to a pipeline phase. Phases must be run in order:
 
 from typing import Any
 
-import structlog
 from fastapi import APIRouter, Depends, HTTPException
+from loguru import logger
 from sqlalchemy.orm import Session
 
 from app.core.permissions import CurrentUser, require_analyst, require_manager
@@ -32,8 +32,6 @@ from app.schemas.grouping import (
     PipelineStatusResponse,
     ReferenceMappingResponse,
 )
-
-logger = structlog.get_logger().bind(component="grouping_api")
 
 router = APIRouter(prefix="/grouping", tags=["extraction-grouping"])
 
@@ -81,8 +79,10 @@ def run_discovery(
     try:
         manifest = pipeline.run_discovery(files)
     except Exception as e:
-        logger.error("discovery_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Discovery failed: {e}") from e
+        logger.error(f"discovery_failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Discovery failed. Check server logs for details."
+        ) from e
 
     return DiscoveryResponse(
         total_scanned=manifest["total_scanned"],
@@ -150,9 +150,10 @@ def run_fingerprint(
     try:
         fp_dicts = pipeline.run_fingerprinting(file_paths)
     except Exception as e:
-        logger.error("fingerprinting_failed", error=str(e))
+        logger.error(f"fingerprinting_failed: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Fingerprinting failed: {e}"
+            status_code=500,
+            detail="Fingerprinting failed. Check server logs for details.",
         ) from e
 
     populated = sum(1 for fp in fp_dicts if fp.get("population_status") == "populated")
@@ -266,9 +267,10 @@ def run_reference_map(
             reference_file_path=reference_file_path
         )
     except Exception as e:
-        logger.error("reference_mapping_failed", error=str(e))
+        logger.error(f"reference_mapping_failed: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Reference mapping failed: {e}"
+            status_code=500,
+            detail="Reference mapping failed. Check server logs for details.",
         ) from e
 
     total_mapped = sum(r.get("total_mapped", 0) for r in results.values())
@@ -296,9 +298,10 @@ def run_reconciliation(
             max_edit_distance=max_edit_distance,
         )
     except Exception as e:
-        logger.error("reconciliation_failed", error=str(e))
+        logger.error(f"reconciliation_failed: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Reconciliation failed: {e}"
+            status_code=500,
+            detail="Reconciliation failed. Check server logs for details.",
         ) from e
 
     return results
@@ -326,9 +329,10 @@ def run_conflict_check(
     try:
         conflicts = pipeline.run_conflict_check(db)
     except Exception as e:
-        logger.error("conflict_check_failed", error=str(e))
+        logger.error(f"conflict_check_failed: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Conflict check failed: {e}"
+            status_code=500,
+            detail="Conflict check failed. Check server logs for details.",
         ) from e
 
     total_conflicts = sum(len(c) for c in conflicts.values())
@@ -355,10 +359,18 @@ def run_extraction(
             dry_run=request.dry_run,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        logger.error(
+            f"extraction_validation_failed: group={name}, error={e}", exc_info=True
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Extraction request invalid. Check server logs for details.",
+        ) from e
     except Exception as e:
-        logger.error("extraction_failed", group=name, error=str(e))
-        raise HTTPException(status_code=500, detail=f"Extraction failed: {e}") from e
+        logger.error(f"extraction_failed: group={name}, error={e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Extraction failed. Check server logs for details."
+        ) from e
 
     return GroupExtractionResponse(
         group_name=report["group_name"],
@@ -386,10 +398,18 @@ def approve_group(
     try:
         approved = pipeline.approve_group(name)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        logger.error(
+            f"approval_validation_failed: group={name}, error={e}", exc_info=True
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Approval request invalid. Check server logs for details.",
+        ) from e
     except Exception as e:
-        logger.error("approval_failed", group=name, error=str(e))
-        raise HTTPException(status_code=500, detail=f"Approval failed: {e}") from e
+        logger.error(f"approval_failed: group={name}, error={e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Approval failed. Check server logs for details."
+        ) from e
 
     return GroupApprovalResponse(
         group_name=name,
@@ -419,11 +439,16 @@ def run_batch_extraction(
             stop_on_error=request.stop_on_error,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error("batch_extraction_failed", error=str(e))
+        logger.error(f"batch_extraction_validation_failed: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Batch extraction failed: {e}"
+            status_code=400,
+            detail="Batch extraction request invalid. Check server logs for details.",
+        ) from e
+    except Exception as e:
+        logger.error(f"batch_extraction_failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Batch extraction failed. Check server logs for details.",
         ) from e
 
     # Convert per_group dict values to GroupExtractionResponse
@@ -458,7 +483,9 @@ def run_validation(
     try:
         report = pipeline.run_cross_group_validation(db)
     except Exception as e:
-        logger.error("validation_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Validation failed: {e}") from e
+        logger.error(f"validation_failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Validation failed. Check server logs for details."
+        ) from e
 
     return report

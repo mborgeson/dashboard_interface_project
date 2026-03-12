@@ -81,15 +81,21 @@ def _setup_groups_json(pipeline: GroupExtractionPipeline, groups: list[dict]) ->
     (pipeline.data_dir / "groups.json").write_text(json.dumps(data))
 
 
-def _setup_reference_mapping(pipeline: GroupExtractionPipeline, group_name: str, mappings: list[dict]) -> None:
+def _setup_reference_mapping(
+    pipeline: GroupExtractionPipeline, group_name: str, mappings: list[dict]
+) -> None:
     """Helper to write reference mapping for a group."""
     group_dir = pipeline.data_dir / group_name
     group_dir.mkdir(parents=True, exist_ok=True)
-    (group_dir / "reference_mapping.json").write_text(json.dumps({
-        "group_name": group_name,
-        "mappings": mappings,
-        "unmapped_fields": [],
-    }))
+    (group_dir / "reference_mapping.json").write_text(
+        json.dumps(
+            {
+                "group_name": group_name,
+                "mappings": mappings,
+                "unmapped_fields": [],
+            }
+        )
+    )
 
 
 class TestConflictCheck:
@@ -97,10 +103,15 @@ class TestConflictCheck:
 
     def test_conflict_check_no_existing_data(self, pipeline, sync_db):
         """No existing data → no conflicts."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "group_1",
-            "files": [{"name": "model.xlsb", "deal_name": "Test Deal"}],
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [{"name": "model.xlsb", "deal_name": "Test Deal"}],
+                }
+            ],
+        )
 
         conflicts = pipeline.run_conflict_check(sync_db)
         assert len(conflicts) == 0
@@ -108,25 +119,34 @@ class TestConflictCheck:
     def test_conflict_check_with_existing_data(self, pipeline, sync_db):
         """Existing production data for same property → conflict."""
         # Create a production extraction run
-        run = ExtractionRunCRUD.create(sync_db, trigger_type="manual", files_discovered=1)
+        run = ExtractionRunCRUD.create(
+            sync_db, trigger_type="manual", files_discovered=1
+        )
 
         # Insert some extracted values
-        sync_db.add(ExtractedValue(
-            extraction_run_id=run.id,
-            property_name="Test Deal",
-            field_name="REVENUE",
-            value_text="1000000",
-            value_numeric=1000000,
-            is_error=False,
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC),
-        ))
+        sync_db.add(
+            ExtractedValue(
+                extraction_run_id=run.id,
+                property_name="Test Deal",
+                field_name="REVENUE",
+                value_text="1000000",
+                value_numeric=1000000,
+                is_error=False,
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+        )
         sync_db.commit()
 
-        _setup_groups_json(pipeline, [{
-            "group_name": "group_1",
-            "files": [{"name": "model.xlsb", "deal_name": "Test Deal"}],
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [{"name": "model.xlsb", "deal_name": "Test Deal"}],
+                }
+            ],
+        )
 
         conflicts = pipeline.run_conflict_check(sync_db)
         assert "group_1" in conflicts
@@ -134,10 +154,15 @@ class TestConflictCheck:
 
     def test_conflict_check_persists_results(self, pipeline, sync_db):
         """Conflict results should be persisted per-group."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "group_1",
-            "files": [{"name": "model.xlsb", "deal_name": "Test Deal"}],
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [{"name": "model.xlsb", "deal_name": "Test Deal"}],
+                }
+            ],
+        )
 
         pipeline.run_conflict_check(sync_db)
         conflict_path = pipeline.data_dir / "group_1" / "conflicts.json"
@@ -154,27 +179,49 @@ class TestGroupExtraction:
 
     def test_extraction_requires_reference_mapping(self, pipeline, sync_db):
         """Should raise if reference mapping not found."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "group_1",
-            "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
+                }
+            ],
+        )
 
         with pytest.raises(ValueError, match="Reference mapping not found"):
             pipeline.run_group_extraction(sync_db, "group_1", dry_run=True)
 
     def test_dry_run_no_db_writes(self, pipeline, sync_db):
         """Dry run should not create ExtractionRun or ExtractedValues."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "group_1",
-            "files": [{"name": "model.xlsb", "path": "/nonexistent.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "group_1", [{
-            "field_name": "REVENUE",
-            "source_sheet": "Summary",
-            "source_cell": "D6",
-            "match_tier": 1,
-            "confidence": 0.95,
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/nonexistent.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_1",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "match_tier": 1,
+                    "confidence": 0.95,
+                }
+            ],
+        )
 
         report = pipeline.run_group_extraction(sync_db, "group_1", dry_run=True)
         assert report["dry_run"] is True
@@ -185,17 +232,34 @@ class TestGroupExtraction:
 
     def test_dry_run_report_persisted(self, pipeline, sync_db):
         """Dry run report should be saved to disk."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "group_1",
-            "files": [{"name": "model.xlsb", "path": "/nonexistent.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "group_1", [{
-            "field_name": "REVENUE",
-            "source_sheet": "Summary",
-            "source_cell": "D6",
-            "match_tier": 1,
-            "confidence": 0.95,
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/nonexistent.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_1",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "match_tier": 1,
+                    "confidence": 0.95,
+                }
+            ],
+        )
 
         pipeline.run_group_extraction(sync_db, "group_1", dry_run=True)
         report_path = pipeline.data_dir / "group_1" / "dry_run_report.json"
@@ -205,24 +269,42 @@ class TestGroupExtraction:
     def test_live_extraction_creates_run(self, mock_extract, pipeline, sync_db):
         """Live extraction should create an ExtractionRun."""
         mock_extract.return_value = (
-            "/test.xlsb", "Deal",
+            "/test.xlsb",
+            "Deal",
             {"PROPERTY_NAME": "Deal", "REVENUE": 1000000.0},
             None,
         )
 
-        _setup_groups_json(pipeline, [{
-            "group_name": "group_1",
-            "files": [{"name": "model.xlsb", "path": "/test.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "group_1", [{
-            "field_name": "REVENUE",
-            "source_sheet": "Summary",
-            "source_cell": "D6",
-            "match_tier": 1,
-            "confidence": 0.95,
-            "label_text": "Revenue",
-            "category": "Financial",
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/test.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_1",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "match_tier": 1,
+                    "confidence": 0.95,
+                    "label_text": "Revenue",
+                    "category": "Financial",
+                }
+            ],
+        )
 
         report = pipeline.run_group_extraction(sync_db, "group_1", dry_run=False)
         assert report["dry_run"] is False
@@ -239,17 +321,34 @@ class TestGroupExtraction:
         """Files that fail extraction should be tracked."""
         mock_extract.return_value = ("/test.xlsb", "Deal", None, "File not found")
 
-        _setup_groups_json(pipeline, [{
-            "group_name": "group_1",
-            "files": [{"name": "model.xlsb", "path": "/test.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "group_1", [{
-            "field_name": "REVENUE",
-            "source_sheet": "Summary",
-            "source_cell": "D6",
-            "match_tier": 1,
-            "confidence": 0.95,
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/test.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_1",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "match_tier": 1,
+                    "confidence": 0.95,
+                }
+            ],
+        )
 
         report = pipeline.run_group_extraction(sync_db, "group_1", dry_run=True)
         assert report["files_failed"] == 1
@@ -258,10 +357,21 @@ class TestGroupExtraction:
 
     def test_extraction_empty_mappings(self, pipeline, sync_db):
         """Group with no mappings should return error."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "group_1",
-            "files": [{"name": "model.xlsb", "path": "/test.xlsb", "deal_name": "Deal"}],
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/test.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
         _setup_reference_mapping(pipeline, "group_1", [])
 
         report = pipeline.run_group_extraction(sync_db, "group_1", dry_run=True)
@@ -294,18 +404,22 @@ class TestCrossGroupValidation:
     def test_validation_with_extraction_data(self, pipeline, sync_db):
         """Validation should count group extraction values."""
         # Create a group extraction run
-        run = ExtractionRunCRUD.create(sync_db, trigger_type="group_extraction", files_discovered=1)
+        run = ExtractionRunCRUD.create(
+            sync_db, trigger_type="group_extraction", files_discovered=1
+        )
 
-        sync_db.add(ExtractedValue(
-            extraction_run_id=run.id,
-            property_name="Deal A",
-            field_name="REVENUE",
-            value_text="500000",
-            value_numeric=500000,
-            is_error=False,
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC),
-        ))
+        sync_db.add(
+            ExtractedValue(
+                extraction_run_id=run.id,
+                property_name="Deal A",
+                field_name="REVENUE",
+                value_text="500000",
+                value_numeric=500000,
+                is_error=False,
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+        )
         sync_db.commit()
 
         # Complete the run
@@ -320,27 +434,47 @@ class TestMutationLog:
     """Tests for extraction mutation logging."""
 
     @patch("app.api.v1.endpoints.extraction.common._extract_single_file")
-    def test_live_extraction_creates_mutation_log(self, mock_extract, pipeline, sync_db):
+    def test_live_extraction_creates_mutation_log(
+        self, mock_extract, pipeline, sync_db
+    ):
         """Live extraction should write mutation_log.json."""
         mock_extract.return_value = (
-            "/test.xlsb", "Deal",
+            "/test.xlsb",
+            "Deal",
             {"PROPERTY_NAME": "Deal", "REVENUE": 500000.0},
             None,
         )
 
-        _setup_groups_json(pipeline, [{
-            "group_name": "group_1",
-            "files": [{"name": "model.xlsb", "path": "/test.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "group_1", [{
-            "field_name": "REVENUE",
-            "source_sheet": "Summary",
-            "source_cell": "D6",
-            "match_tier": 1,
-            "confidence": 0.95,
-            "label_text": "Revenue",
-            "category": "Financial",
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/test.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_1",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "match_tier": 1,
+                    "confidence": 0.95,
+                    "label_text": "Revenue",
+                    "category": "Financial",
+                }
+            ],
+        )
 
         pipeline.run_group_extraction(sync_db, "group_1", dry_run=False)
         mutation_log = pipeline.data_dir / "group_1" / "mutation_log.json"

@@ -46,9 +46,7 @@ async def test_log_stage_change() -> None:
 
 @pytest.mark.asyncio
 async def test_log_extraction_completed() -> None:
-    event = ExtractionCompleted(
-        run_id="run-42", property_count=11, value_count=12881
-    )
+    event = ExtractionCompleted(run_id="run-42", property_count=11, value_count=12881)
     with patch("app.events.handlers.logger") as mock_logger:
         await log_extraction_completed(event)
         msg = mock_logger.info.call_args[0][0]

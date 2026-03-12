@@ -84,9 +84,7 @@ class TestGetByProperty:
     @pytest.mark.asyncio
     async def test_empty_for_unknown_property(self, db_session):
         """get_by_property returns empty list for unknown property."""
-        results = await document_crud.get_by_property(
-            db_session, property_id=99999
-        )
+        results = await document_crud.get_by_property(db_session, property_id=99999)
         assert results == []
 
     @pytest.mark.asyncio
@@ -109,9 +107,7 @@ class TestGetByProperty:
     async def test_pagination(self, db_session, test_property):
         """get_by_property supports skip and limit."""
         for i in range(5):
-            await _create_document(
-                db_session, f"Doc {i}", property_id=test_property.id
-            )
+            await _create_document(db_session, f"Doc {i}", property_id=test_property.id)
 
         page1 = await document_crud.get_by_property(
             db_session, property_id=test_property.id, skip=0, limit=2
@@ -282,9 +278,7 @@ class TestGetFiltered:
         await _create_document(db_session, "Lease", doc_type="lease")
         await _create_document(db_session, "Financial", doc_type="financial")
 
-        results = await document_crud.get_filtered(
-            db_session, doc_type="lease"
-        )
+        results = await document_crud.get_filtered(db_session, doc_type="lease")
         assert len(results) == 1
         assert results[0].type == "lease"
 
@@ -307,9 +301,7 @@ class TestGetFiltered:
         )
         await _create_document(db_session, "Tax Return", description="2024 taxes")
 
-        results = await document_crud.get_filtered(
-            db_session, search_term="rent"
-        )
+        results = await document_crud.get_filtered(db_session, search_term="rent")
         assert len(results) == 1
         assert "Rent" in results[0].name
 
@@ -320,9 +312,7 @@ class TestGetFiltered:
         await _create_document(db_session, "Lease 2", doc_type="lease")
         await _create_document(db_session, "Financial", doc_type="financial")
 
-        count = await document_crud.count_filtered(
-            db_session, doc_type="lease"
-        )
+        count = await document_crud.count_filtered(db_session, doc_type="lease")
         assert count == 2
 
     @pytest.mark.asyncio
@@ -341,9 +331,7 @@ class TestGetFiltered:
         for i in range(5):
             await _create_document(db_session, f"Doc {i}")
 
-        results = await document_crud.get_filtered(
-            db_session, skip=0, limit=2
-        )
+        results = await document_crud.get_filtered(db_session, skip=0, limit=2)
         assert len(results) == 2
 
 
@@ -387,9 +375,7 @@ class TestGetStats:
         # Recent upload
         await _create_document(db_session, "Recent", uploaded_at=now)
         # Old upload
-        await _create_document(
-            db_session, "Old", uploaded_at=now - timedelta(days=60)
-        )
+        await _create_document(db_session, "Old", uploaded_at=now - timedelta(days=60))
 
         stats = await document_crud.get_stats(db_session)
         assert stats["total_documents"] == 2
@@ -467,9 +453,7 @@ class TestGetSizeFormatted:
         assert doc.get_size_formatted() == "500 B"
 
     def test_kilobytes(self):
-        doc = Document(
-            name="t", type="other", size=2048, uploaded_at=datetime.now(UTC)
-        )
+        doc = Document(name="t", type="other", size=2048, uploaded_at=datetime.now(UTC))
         assert doc.get_size_formatted() == "2.0 KB"
 
     def test_megabytes(self):

@@ -165,7 +165,9 @@ class TestSupplementalFieldMappings:
         )
         mappings[override.field_name] = override
 
-        assert mappings["UNLEVERED_RETURNS_IRR"].sheet_name == "Returns Metrics (Summary)"
+        assert (
+            mappings["UNLEVERED_RETURNS_IRR"].sheet_name == "Returns Metrics (Summary)"
+        )
         assert mappings["UNLEVERED_RETURNS_IRR"].category == "Supplemental"
 
     def test_sheet_names_use_parenthesized_form(self) -> None:
@@ -182,7 +184,9 @@ class TestSupplementalFieldMappings:
     def test_t3_return_on_cost_maps_to_assumptions_sheet(self) -> None:
         """T3_RETURN_ON_COST specifically targets 'Assumptions (Summary)' sheet G27."""
         t3 = next(
-            m for m in self.EXPECTED_SUPPLEMENTALS if m["field_name"] == "T3_RETURN_ON_COST"
+            m
+            for m in self.EXPECTED_SUPPLEMENTALS
+            if m["field_name"] == "T3_RETURN_ON_COST"
         )
         assert t3["sheet_name"] == "Assumptions (Summary)"
         assert t3["cell_address"] == "G27"
@@ -298,7 +302,9 @@ class TestExtractionRunLifecycle:
 
     def test_create_run_defaults(self, sync_db: Session) -> None:
         """New run starts in 'running' status with zero counters."""
-        run = ExtractionRunCRUD.create(sync_db, trigger_type="manual", files_discovered=10)
+        run = ExtractionRunCRUD.create(
+            sync_db, trigger_type="manual", files_discovered=10
+        )
 
         assert run.id is not None
         assert run.status == "running"
@@ -311,7 +317,9 @@ class TestExtractionRunLifecycle:
 
     def test_transition_running_to_completed(self, sync_db: Session) -> None:
         """Run transitions from running to completed with final counters."""
-        run = ExtractionRunCRUD.create(sync_db, trigger_type="manual", files_discovered=5)
+        run = ExtractionRunCRUD.create(
+            sync_db, trigger_type="manual", files_discovered=5
+        )
         assert run.status == "running"
 
         completed = ExtractionRunCRUD.complete(
@@ -326,7 +334,9 @@ class TestExtractionRunLifecycle:
 
     def test_transition_running_to_failed(self, sync_db: Session) -> None:
         """Run transitions from running to failed with error summary."""
-        run = ExtractionRunCRUD.create(sync_db, trigger_type="manual", files_discovered=3)
+        run = ExtractionRunCRUD.create(
+            sync_db, trigger_type="manual", files_discovered=3
+        )
 
         failed = ExtractionRunCRUD.fail(
             sync_db, run.id, error_summary={"error": "Connection lost"}
@@ -339,7 +349,9 @@ class TestExtractionRunLifecycle:
 
     def test_transition_running_to_cancelled(self, sync_db: Session) -> None:
         """Run transitions from running to cancelled."""
-        run = ExtractionRunCRUD.create(sync_db, trigger_type="manual", files_discovered=8)
+        run = ExtractionRunCRUD.create(
+            sync_db, trigger_type="manual", files_discovered=8
+        )
 
         cancelled = ExtractionRunCRUD.cancel(sync_db, run.id)
 
@@ -349,7 +361,9 @@ class TestExtractionRunLifecycle:
 
     def test_progress_counters_update(self, sync_db: Session) -> None:
         """files_processed and files_failed counters update correctly."""
-        run = ExtractionRunCRUD.create(sync_db, trigger_type="manual", files_discovered=20)
+        run = ExtractionRunCRUD.create(
+            sync_db, trigger_type="manual", files_discovered=20
+        )
 
         updated = ExtractionRunCRUD.update_progress(
             sync_db, run.id, files_processed=10, files_failed=2
@@ -361,7 +375,9 @@ class TestExtractionRunLifecycle:
 
     def test_only_one_running_detected(self, sync_db: Session) -> None:
         """get_running returns the running extraction, preventing duplicates at API level."""
-        run1 = ExtractionRunCRUD.create(sync_db, trigger_type="manual", files_discovered=5)
+        run1 = ExtractionRunCRUD.create(
+            sync_db, trigger_type="manual", files_discovered=5
+        )
         assert ExtractionRunCRUD.get_running(sync_db) is not None
 
         # The API endpoint checks for running before creating a new one.
@@ -372,7 +388,9 @@ class TestExtractionRunLifecycle:
 
     def test_per_file_status_stored(self, sync_db: Session) -> None:
         """per_file_status JSON is stored and retrievable."""
-        run = ExtractionRunCRUD.create(sync_db, trigger_type="manual", files_discovered=2)
+        run = ExtractionRunCRUD.create(
+            sync_db, trigger_type="manual", files_discovered=2
+        )
 
         per_file = {
             "/path/file1.xlsb": {"status": "completed"},
@@ -600,7 +618,9 @@ class TestValueNormalization:
         """Numeric text strings: floats get 4 decimals, integers stay as ints."""
         assert _normalize_value_from_text("1234.5") == "1234.5000"
         assert _normalize_value_from_text("0.0625") == "0.0625"
-        assert _normalize_value_from_text("100") == "100"  # integer-valued → matches _normalize_value(int)
+        assert (
+            _normalize_value_from_text("100") == "100"
+        )  # integer-valued → matches _normalize_value(int)
 
     def test_normalize_value_from_text_none(self) -> None:
         """None text normalizes to 'NULL'."""
@@ -621,8 +641,8 @@ class TestValueNormalization:
         Previously a known bug: int 5 → "5" on extraction vs "5.0000" on DB side.
         Fixed by making _normalize_value_from_text detect integer-valued strings.
         """
-        extraction_side = _normalize_value(5)       # "5"
-        db_side = _normalize_value_from_text("5")   # "5" (fixed)
+        extraction_side = _normalize_value(5)  # "5"
+        db_side = _normalize_value_from_text("5")  # "5" (fixed)
 
         assert extraction_side == db_side
         assert extraction_side == "5"
@@ -630,8 +650,8 @@ class TestValueNormalization:
 
     def test_float_hash_matches_between_extraction_and_db(self) -> None:
         """Float values hash consistently between extraction and DB sides."""
-        extraction_side = _normalize_value(0.0625)      # "0.0625"
-        db_side = _normalize_value_from_text("0.0625")   # "0.0625"
+        extraction_side = _normalize_value(0.0625)  # "0.0625"
+        db_side = _normalize_value_from_text("0.0625")  # "0.0625"
 
         assert extraction_side == db_side
 
@@ -747,9 +767,7 @@ class TestExtractionAuthGuards:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            with patch(
-                "app.api.v1.endpoints.extraction.common.run_extraction_task"
-            ):
+            with patch("app.api.v1.endpoints.extraction.common.run_extraction_task"):
                 response = await ac.post(
                     "/api/v1/extraction/start",
                     json={

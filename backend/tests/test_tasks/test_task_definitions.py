@@ -38,9 +38,7 @@ class TestMarketDataTasks:
             assert result["source"] == "fred"
             assert result["incremental"] is True
             assert result["result"]["records_inserted"] == 150
-            mock_scheduler.run_fred_extraction.assert_called_once_with(
-                incremental=True
-            )
+            mock_scheduler.run_fred_extraction.assert_called_once_with(incremental=True)
 
     @pytest.mark.asyncio
     async def test_refresh_fred_data_task_full(self):
@@ -185,9 +183,7 @@ class TestReportTasks:
 
             assert result["status"] == "completed"
             assert result["report_id"] == 1
-            mock_worker._process_one.assert_called_once_with(
-                mock_session, mock_report
-            )
+            mock_worker._process_one.assert_called_once_with(mock_session, mock_report)
 
 
 class TestExtractionTasks:

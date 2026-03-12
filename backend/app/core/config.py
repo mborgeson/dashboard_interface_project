@@ -20,6 +20,7 @@ import secrets as secrets_module
 from functools import lru_cache
 from typing import Any, Literal
 
+from loguru import logger
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -150,11 +151,13 @@ class AuthSettings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    # Separate signing key for refresh tokens. If empty, falls back to SECRET_KEY.
+    REFRESH_TOKEN_SECRET: str = ""
 
-    # Demo credentials — dev/CI only; production disables in auth.py
-    DEMO_USER_PASSWORD: str = "Wildcats777!!"
-    DEMO_ADMIN_PASSWORD: str = "admin123"
-    DEMO_ANALYST_PASSWORD: str = "analyst123"
+    # Demo credentials — must be provided via environment variables
+    DEMO_USER_PASSWORD: str = ""
+    DEMO_ADMIN_PASSWORD: str = ""
+    DEMO_ANALYST_PASSWORD: str = ""
 
     # API Key Authentication (service-to-service)
     API_KEYS: list[str] = []
@@ -374,6 +377,36 @@ class Settings(
             # For development/testing, generate a random key if not provided
             if not self.SECRET_KEY:
                 object.__setattr__(self, "SECRET_KEY", secrets_module.token_urlsafe(64))
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_demo_credentials(self) -> "Settings":
+        """Validate demo credential configuration for the environment.
+
+        - Production: demo passwords must NOT be set (raises error if present)
+        - Development/testing: logs a warning if demo passwords are empty
+        """
+        demo_passwords = [
+            self.DEMO_USER_PASSWORD,
+            self.DEMO_ADMIN_PASSWORD,
+            self.DEMO_ANALYST_PASSWORD,
+        ]
+        any_set = any(pwd for pwd in demo_passwords)
+
+        if self.ENVIRONMENT == "production" and any_set:
+            raise ValueError(
+                "Demo passwords must not be set in production. "
+                "Remove DEMO_USER_PASSWORD, DEMO_ADMIN_PASSWORD, and "
+                "DEMO_ANALYST_PASSWORD from environment variables."
+            )
+
+        if self.ENVIRONMENT == "development" and not any_set:
+            logger.warning(
+                "Demo passwords are empty. Set DEMO_USER_PASSWORD, "
+                "DEMO_ADMIN_PASSWORD, and DEMO_ANALYST_PASSWORD via "
+                "environment variables to enable demo user login."
+            )
 
         return self
 

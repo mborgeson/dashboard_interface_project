@@ -155,13 +155,9 @@ class TestFindMatchingProject:
         assert match is None
 
     def test_empty_address_no_match(self):
-        match = find_matching_project(
-            "", "MESA", "85201", self.SAMPLE_PROJECTS
-        )
+        match = find_matching_project("", "MESA", "85201", self.SAMPLE_PROJECTS)
         assert match is None
 
     def test_empty_projects_no_match(self):
-        match = find_matching_project(
-            "1234 E MAIN ST", "MESA", "85201", []
-        )
+        match = find_matching_project("1234 E MAIN ST", "MESA", "85201", [])
         assert match is None

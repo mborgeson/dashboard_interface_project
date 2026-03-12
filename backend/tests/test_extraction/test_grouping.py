@@ -39,7 +39,9 @@ def _make_fp(
         sheet_count=len(sheets),
         sheet_signatures=[s.signature for s in sheets],
         sheets=sheets,
-        total_populated_cells=100 if status == "populated" else (5 if status == "sparse" else 0),
+        total_populated_cells=100
+        if status == "populated"
+        else (5 if status == "sparse" else 0),
         population_status=status,
     )
 
@@ -49,11 +51,13 @@ class TestComputeStructuralOverlap:
 
     def test_identical_files_overlap_1(self):
         """Identical structures should have 1.0 overlap."""
-        sheets = [SheetFingerprint(
-            name="Sheet1",
-            header_labels=["A", "B", "C"],
-            col_a_labels=["Row1", "Row2"],
-        )]
+        sheets = [
+            SheetFingerprint(
+                name="Sheet1",
+                header_labels=["A", "B", "C"],
+                col_a_labels=["Row1", "Row2"],
+            )
+        ]
         fp1 = _make_fp("file1", sheets=sheets)
         fp2 = _make_fp("file2", sheets=sheets)
         overlap = compute_structural_overlap(fp1, fp2)
@@ -61,27 +65,51 @@ class TestComputeStructuralOverlap:
 
     def test_completely_different_overlap_0(self):
         """Completely different structures should have 0.0 overlap."""
-        fp1 = _make_fp("file1", sheets=[SheetFingerprint(
-            name="Sheet1", header_labels=["A", "B"], col_a_labels=["X"],
-        )])
-        fp2 = _make_fp("file2", sheets=[SheetFingerprint(
-            name="Sheet2", header_labels=["C", "D"], col_a_labels=["Y"],
-        )])
+        fp1 = _make_fp(
+            "file1",
+            sheets=[
+                SheetFingerprint(
+                    name="Sheet1",
+                    header_labels=["A", "B"],
+                    col_a_labels=["X"],
+                )
+            ],
+        )
+        fp2 = _make_fp(
+            "file2",
+            sheets=[
+                SheetFingerprint(
+                    name="Sheet2",
+                    header_labels=["C", "D"],
+                    col_a_labels=["Y"],
+                )
+            ],
+        )
         overlap = compute_structural_overlap(fp1, fp2)
         assert overlap == 0.0
 
     def test_partial_overlap(self):
         """Partially overlapping structures should have 0 < overlap < 1."""
-        fp1 = _make_fp("file1", sheets=[SheetFingerprint(
-            name="Sheet1",
-            header_labels=["A", "B", "C"],
-            col_a_labels=["Row1"],
-        )])
-        fp2 = _make_fp("file2", sheets=[SheetFingerprint(
-            name="Sheet1",
-            header_labels=["A", "B", "D"],
-            col_a_labels=["Row1"],
-        )])
+        fp1 = _make_fp(
+            "file1",
+            sheets=[
+                SheetFingerprint(
+                    name="Sheet1",
+                    header_labels=["A", "B", "C"],
+                    col_a_labels=["Row1"],
+                )
+            ],
+        )
+        fp2 = _make_fp(
+            "file2",
+            sheets=[
+                SheetFingerprint(
+                    name="Sheet1",
+                    header_labels=["A", "B", "D"],
+                    col_a_labels=["Row1"],
+                )
+            ],
+        )
         overlap = compute_structural_overlap(fp1, fp2)
         assert 0.0 < overlap < 1.0
 
@@ -112,13 +140,15 @@ class TestGroupFingerprints:
 
     def test_identical_files_grouped(self):
         """Files with identical sheet signatures should be in same group."""
-        sheets = [SheetFingerprint(
-            name="Sheet1",
-            row_count=100,
-            col_count=10,
-            header_labels=["A", "B"],
-            col_a_labels=["Row1"],
-        )]
+        sheets = [
+            SheetFingerprint(
+                name="Sheet1",
+                row_count=100,
+                col_count=10,
+                header_labels=["A", "B"],
+                col_a_labels=["Row1"],
+            )
+        ]
         fp1 = _make_fp("file1", sheets=sheets)
         fp2 = _make_fp("file2", sheets=sheets)
         fp3 = _make_fp("file3", sheets=sheets)
@@ -138,16 +168,26 @@ class TestGroupFingerprints:
 
     def test_different_structures_separate_groups(self):
         """Files with different structures should be in separate groups/ungrouped."""
-        fp1 = _make_fp("file1", sheets=[SheetFingerprint(
-            name="Sheet1",
-            header_labels=["A", "B", "C", "D", "E"],
-            col_a_labels=["R1", "R2", "R3", "R4", "R5"],
-        )])
-        fp2 = _make_fp("file2", sheets=[SheetFingerprint(
-            name="Sheet2",
-            header_labels=["X", "Y", "Z", "W", "V"],
-            col_a_labels=["S1", "S2", "S3", "S4", "S5"],
-        )])
+        fp1 = _make_fp(
+            "file1",
+            sheets=[
+                SheetFingerprint(
+                    name="Sheet1",
+                    header_labels=["A", "B", "C", "D", "E"],
+                    col_a_labels=["R1", "R2", "R3", "R4", "R5"],
+                )
+            ],
+        )
+        fp2 = _make_fp(
+            "file2",
+            sheets=[
+                SheetFingerprint(
+                    name="Sheet2",
+                    header_labels=["X", "Y", "Z", "W", "V"],
+                    col_a_labels=["S1", "S2", "S3", "S4", "S5"],
+                )
+            ],
+        )
 
         result = group_fingerprints([fp1, fp2])
         # Both are single files with unique signatures → ungrouped
@@ -161,21 +201,29 @@ class TestGroupFingerprints:
         base_labels = [f"Label{i}" for i in range(20)]
 
         # fp1 and fp2 share same signature
-        sheets1 = [SheetFingerprint(
-            name="Sheet1", row_count=100, col_count=10,
-            header_labels=base_labels,
-            col_a_labels=base_labels[:10],
-        )]
+        sheets1 = [
+            SheetFingerprint(
+                name="Sheet1",
+                row_count=100,
+                col_count=10,
+                header_labels=base_labels,
+                col_a_labels=base_labels[:10],
+            )
+        ]
         fp1 = _make_fp("file1", sheets=sheets1)
         fp2 = _make_fp("file2", sheets=sheets1)
 
         # fp3 has slightly different labels (sub-variant)
         modified_labels = base_labels[:16] + ["New1", "New2", "New3", "New4"]
-        sheets3 = [SheetFingerprint(
-            name="Sheet1", row_count=100, col_count=10,
-            header_labels=modified_labels,
-            col_a_labels=base_labels[:10],
-        )]
+        sheets3 = [
+            SheetFingerprint(
+                name="Sheet1",
+                row_count=100,
+                col_count=10,
+                header_labels=modified_labels,
+                col_a_labels=base_labels[:10],
+            )
+        ]
         fp3 = _make_fp("file3", sheets=sheets3)
 
         result = group_fingerprints([fp1, fp2, fp3])
@@ -185,10 +233,15 @@ class TestGroupFingerprints:
 
     def test_single_file_ungrouped(self):
         """Single file with unique structure should be ungrouped."""
-        fp = _make_fp("lonely", sheets=[SheetFingerprint(
-            name="UniqueSheet",
-            header_labels=["UniqueA", "UniqueB"],
-        )])
+        fp = _make_fp(
+            "lonely",
+            sheets=[
+                SheetFingerprint(
+                    name="UniqueSheet",
+                    header_labels=["UniqueA", "UniqueB"],
+                )
+            ],
+        )
 
         result = group_fingerprints([fp])
         assert len(result.groups) == 0
@@ -226,11 +279,13 @@ class TestIntraGroupVariances:
 
     def test_uniform_group(self):
         """Group with identical files should be uniform."""
-        sheets = [SheetFingerprint(
-            name="Sheet1",
-            header_labels=["A", "B"],
-            col_a_labels=["R1"],
-        )]
+        sheets = [
+            SheetFingerprint(
+                name="Sheet1",
+                header_labels=["A", "B"],
+                col_a_labels=["R1"],
+            )
+        ]
         group = FileGroup(
             group_name="test",
             files=[_make_fp("f1", sheets=sheets), _make_fp("f2", sheets=sheets)],
@@ -241,14 +296,24 @@ class TestIntraGroupVariances:
 
     def test_varying_group(self):
         """Group with different labels should show variances."""
-        fp1 = _make_fp("f1", sheets=[SheetFingerprint(
-            name="Sheet1",
-            header_labels=["A", "B", "C"],
-        )])
-        fp2 = _make_fp("f2", sheets=[SheetFingerprint(
-            name="Sheet1",
-            header_labels=["A", "B", "D"],
-        )])
+        fp1 = _make_fp(
+            "f1",
+            sheets=[
+                SheetFingerprint(
+                    name="Sheet1",
+                    header_labels=["A", "B", "C"],
+                )
+            ],
+        )
+        fp2 = _make_fp(
+            "f2",
+            sheets=[
+                SheetFingerprint(
+                    name="Sheet1",
+                    header_labels=["A", "B", "D"],
+                )
+            ],
+        )
         group = FileGroup(group_name="test", files=[fp1, fp2])
         variances = compute_intra_group_variances(group)
         assert variances["uniform"] is False
@@ -262,18 +327,27 @@ class TestIntraGroupVariances:
 
     def test_varying_sheets_detected(self):
         """Files with different sheets should be detected."""
-        fp1 = _make_fp("f1", sheets=[
-            SheetFingerprint(name="Sheet1"),
-            SheetFingerprint(name="Sheet2"),
-        ])
-        fp2 = _make_fp("f2", sheets=[
-            SheetFingerprint(name="Sheet1"),
-            SheetFingerprint(name="Sheet3"),
-        ])
+        fp1 = _make_fp(
+            "f1",
+            sheets=[
+                SheetFingerprint(name="Sheet1"),
+                SheetFingerprint(name="Sheet2"),
+            ],
+        )
+        fp2 = _make_fp(
+            "f2",
+            sheets=[
+                SheetFingerprint(name="Sheet1"),
+                SheetFingerprint(name="Sheet3"),
+            ],
+        )
         group = FileGroup(group_name="test", files=[fp1, fp2])
         variances = compute_intra_group_variances(group)
         assert variances["varying_sheet_count"] > 0
-        assert "Sheet2" in variances["varying_sheets"] or "Sheet3" in variances["varying_sheets"]
+        assert (
+            "Sheet2" in variances["varying_sheets"]
+            or "Sheet3" in variances["varying_sheets"]
+        )
 
 
 class TestSheetNameClustering:
@@ -290,13 +364,16 @@ class TestSheetNameClustering:
             sheets = []
             for sname in common_sheets:
                 # Same structural labels + deal-specific data in column A
-                sheets.append(SheetFingerprint(
-                    name=sname,
-                    row_count=150,
-                    col_count=20,
-                    header_labels=base_structural_labels[:10],
-                    col_a_labels=base_structural_labels + [f"{deal} Property", f"{deal} Address"],
-                ))
+                sheets.append(
+                    SheetFingerprint(
+                        name=sname,
+                        row_count=150,
+                        col_count=20,
+                        header_labels=base_structural_labels[:10],
+                        col_a_labels=base_structural_labels
+                        + [f"{deal} Property", f"{deal} Address"],
+                    )
+                )
             fps.append(_make_fp(f"{deal}_Proforma", sheets=sheets))
 
         result = group_fingerprints(fps)
@@ -306,14 +383,28 @@ class TestSheetNameClustering:
 
     def test_different_sheet_names_not_grouped(self):
         """Files with different sheet names should not be grouped together."""
-        fp1 = _make_fp("uw_model", sheets=[
-            SheetFingerprint(name="Summary", header_labels=["A", "B"], col_a_labels=["R1"]),
-            SheetFingerprint(name="Cash Flow", header_labels=["C", "D"], col_a_labels=["R2"]),
-        ])
-        fp2 = _make_fp("proforma", sheets=[
-            SheetFingerprint(name="AnnProforma", header_labels=["A", "B"], col_a_labels=["R1"]),
-            SheetFingerprint(name="Capex", header_labels=["C", "D"], col_a_labels=["R2"]),
-        ])
+        fp1 = _make_fp(
+            "uw_model",
+            sheets=[
+                SheetFingerprint(
+                    name="Summary", header_labels=["A", "B"], col_a_labels=["R1"]
+                ),
+                SheetFingerprint(
+                    name="Cash Flow", header_labels=["C", "D"], col_a_labels=["R2"]
+                ),
+            ],
+        )
+        fp2 = _make_fp(
+            "proforma",
+            sheets=[
+                SheetFingerprint(
+                    name="AnnProforma", header_labels=["A", "B"], col_a_labels=["R1"]
+                ),
+                SheetFingerprint(
+                    name="Capex", header_labels=["C", "D"], col_a_labels=["R2"]
+                ),
+            ],
+        )
 
         result = group_fingerprints([fp1, fp2])
         assert len(result.groups) == 0

@@ -47,7 +47,11 @@ MOCK_BLS_RESPONSE = {
                 "data": [
                     {"year": "2025", "period": "M10", "value": "125.4"},
                     {"year": "2025", "period": "M09", "value": "124.1"},
-                    {"year": "2025", "period": "M13", "value": "124.8"},  # Annual avg — should skip
+                    {
+                        "year": "2025",
+                        "period": "M13",
+                        "value": "124.8",
+                    },  # Annual avg — should skip
                 ],
             }
         ]
@@ -64,7 +68,9 @@ async def test_fetch_bls_success():
         request=httpx.Request("POST", "https://api.bls.gov"),
     )
 
-    with patch("app.services.construction_api.bls_employment.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.bls_employment.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -96,7 +102,9 @@ async def test_fetch_bls_api_error():
         request=httpx.Request("POST", "https://api.bls.gov"),
     )
 
-    with patch("app.services.construction_api.bls_employment.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.bls_employment.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -121,7 +129,9 @@ async def test_fetch_bls_http_error():
         request=httpx.Request("POST", "https://api.bls.gov"),
     )
 
-    with patch("app.services.construction_api.bls_employment.httpx.AsyncClient") as mock_client:
+    with patch(
+        "app.services.construction_api.bls_employment.httpx.AsyncClient"
+    ) as mock_client:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)

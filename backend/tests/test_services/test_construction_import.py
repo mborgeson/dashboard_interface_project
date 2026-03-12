@@ -823,9 +823,7 @@ class TestVerificationQueries:
 class TestColumnMapping:
     def test_all_mapped_columns_exist_on_model(self):
         """Every DB column in the mapping must be a valid ConstructionProject attribute."""
-        model_columns = {
-            c.name for c in ConstructionProject.__table__.columns
-        }
+        model_columns = {c.name for c in ConstructionProject.__table__.columns}
         for excel_col, db_col in COSTAR_CONSTRUCTION_COLUMN_MAP.items():
             assert db_col in model_columns, (
                 f"Mapped column '{db_col}' (from '{excel_col}') not found on "

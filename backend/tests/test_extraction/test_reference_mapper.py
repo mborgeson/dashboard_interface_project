@@ -28,7 +28,9 @@ from app.extraction.reference_mapper import (
 )
 
 
-def _make_mapping(field: str, sheet: str, cell: str, desc: str = "", cat: str = "General") -> CellMapping:
+def _make_mapping(
+    field: str, sheet: str, cell: str, desc: str = "", cat: str = "General"
+) -> CellMapping:
     """Helper to create a CellMapping."""
     return CellMapping(
         category=cat,
@@ -46,14 +48,16 @@ def _make_fp_with_labels(sheets_data: dict[str, dict]) -> FileFingerprint:
     """
     sheets = []
     for name, data in sheets_data.items():
-        sheets.append(SheetFingerprint(
-            name=name,
-            row_count=100,
-            col_count=10,
-            header_labels=data.get("headers", []),
-            col_a_labels=data.get("col_a", []),
-            populated_cell_count=50,
-        ))
+        sheets.append(
+            SheetFingerprint(
+                name=name,
+                row_count=100,
+                col_count=10,
+                header_labels=data.get("headers", []),
+                col_a_labels=data.get("col_a", []),
+                populated_cell_count=50,
+            )
+        )
     return FileFingerprint(
         file_path="/test.xlsb",
         file_name="test.xlsb",
@@ -70,7 +74,9 @@ class TestTier1DirectMatch:
 
     def test_same_sheet_same_label(self):
         """Sheet and label both match → Tier 1, high confidence."""
-        mappings = {"FIELD_A": _make_mapping("FIELD_A", "Summary", "D6", desc="Revenue")}
+        mappings = {
+            "FIELD_A": _make_mapping("FIELD_A", "Summary", "D6", desc="Revenue")
+        }
         fp = _make_fp_with_labels({"Summary": {"headers": ["Revenue", "Expenses"]}})
 
         result = auto_map_group("test_group", mappings, fp)
@@ -80,7 +86,9 @@ class TestTier1DirectMatch:
 
     def test_same_sheet_no_label(self):
         """Sheet exists but label doesn't → Tier 1, lower confidence."""
-        mappings = {"FIELD_A": _make_mapping("FIELD_A", "Summary", "D6", desc="Revenue")}
+        mappings = {
+            "FIELD_A": _make_mapping("FIELD_A", "Summary", "D6", desc="Revenue")
+        }
         fp = _make_fp_with_labels({"Summary": {"headers": ["Expenses", "Taxes"]}})
 
         result = auto_map_group("test_group", mappings, fp)
@@ -94,7 +102,9 @@ class TestTier2LabelMatch:
 
     def test_label_in_different_sheet(self):
         """Label exists in different sheet → Tier 2."""
-        mappings = {"FIELD_A": _make_mapping("FIELD_A", "OldSheet", "D6", desc="Revenue")}
+        mappings = {
+            "FIELD_A": _make_mapping("FIELD_A", "OldSheet", "D6", desc="Revenue")
+        }
         fp = _make_fp_with_labels({"NewSheet": {"headers": ["Revenue", "Costs"]}})
 
         result = auto_map_group("test_group", mappings, fp)
@@ -104,7 +114,9 @@ class TestTier2LabelMatch:
 
     def test_label_case_insensitive(self):
         """Label matching should be case-insensitive."""
-        mappings = {"FIELD_A": _make_mapping("FIELD_A", "Missing", "D6", desc="Revenue")}
+        mappings = {
+            "FIELD_A": _make_mapping("FIELD_A", "Missing", "D6", desc="Revenue")
+        }
         fp = _make_fp_with_labels({"Data": {"headers": ["REVENUE"]}})
 
         result = auto_map_group("test_group", mappings, fp)
@@ -117,13 +129,19 @@ class TestTier3PartialMatch:
 
     def test_partial_label_match(self):
         """First 3 words matching → Tier 3."""
-        mappings = {"FIELD_A": _make_mapping(
-            "FIELD_A", "Missing", "D6",
-            desc="Net Operating Income Annual",
-        )}
-        fp = _make_fp_with_labels({
-            "Data": {"col_a": ["NET OPERATING INCOME MONTHLY"]},
-        })
+        mappings = {
+            "FIELD_A": _make_mapping(
+                "FIELD_A",
+                "Missing",
+                "D6",
+                desc="Net Operating Income Annual",
+            )
+        }
+        fp = _make_fp_with_labels(
+            {
+                "Data": {"col_a": ["NET OPERATING INCOME MONTHLY"]},
+            }
+        )
 
         result = auto_map_group("test_group", mappings, fp)
         assert len(result.mappings) == 1
@@ -148,7 +166,9 @@ class TestTier4SynonymMatch:
 
     def test_synonym_match(self):
         """Synonym match → Tier 4."""
-        mappings = {"FIELD_A": _make_mapping("FIELD_A", "Missing", "D6", desc="Cap Rate")}
+        mappings = {
+            "FIELD_A": _make_mapping("FIELD_A", "Missing", "D6", desc="Cap Rate")
+        }
         fp = _make_fp_with_labels({"Data": {"headers": ["CAPITALIZATION RATE"]}})
 
         synonyms = {"CAPITALIZATION RATE": ["Cap Rate"]}
@@ -159,7 +179,9 @@ class TestTier4SynonymMatch:
 
     def test_no_synonym_unmapped(self):
         """Without synonym, field should be unmapped."""
-        mappings = {"FIELD_A": _make_mapping("FIELD_A", "Missing", "D6", desc="Obscure Metric")}
+        mappings = {
+            "FIELD_A": _make_mapping("FIELD_A", "Missing", "D6", desc="Obscure Metric")
+        }
         fp = _make_fp_with_labels({"Data": {"headers": ["Revenue"]}})
 
         result = auto_map_group("test_group", mappings, fp)
@@ -177,10 +199,12 @@ class TestAutoMapGroup:
             "FIELD_B": _make_mapping("FIELD_B", "Missing", "E10", desc="Expenses"),
             "FIELD_C": _make_mapping("FIELD_C", "Gone", "F15", desc="Unknown Metric"),
         }
-        fp = _make_fp_with_labels({
-            "Summary": {"headers": ["Revenue", "Costs"]},
-            "Details": {"col_a": ["Expenses", "Taxes"]},
-        })
+        fp = _make_fp_with_labels(
+            {
+                "Summary": {"headers": ["Revenue", "Costs"]},
+                "Details": {"col_a": ["Expenses", "Taxes"]},
+            }
+        )
 
         result = auto_map_group("test_group", mappings, fp)
         assert result.group_name == "test_group"
@@ -191,7 +215,9 @@ class TestAutoMapGroup:
 
     def test_overall_confidence_computed(self):
         """Overall confidence should be between 0 and 1."""
-        mappings = {"FIELD_A": _make_mapping("FIELD_A", "Summary", "D6", desc="Revenue")}
+        mappings = {
+            "FIELD_A": _make_mapping("FIELD_A", "Summary", "D6", desc="Revenue")
+        }
         fp = _make_fp_with_labels({"Summary": {"headers": ["Revenue"]}})
 
         result = auto_map_group("test_group", mappings, fp)
@@ -201,10 +227,15 @@ class TestAutoMapGroup:
         """to_dict should include all fields."""
         result = GroupReferenceMapping(
             group_name="test",
-            mappings=[MappingMatch(
-                field_name="F", source_sheet="S", source_cell="A1",
-                match_tier=1, confidence=0.95,
-            )],
+            mappings=[
+                MappingMatch(
+                    field_name="F",
+                    source_sheet="S",
+                    source_cell="A1",
+                    match_tier=1,
+                    confidence=0.95,
+                )
+            ],
             unmapped_fields=["G"],
             overall_confidence=0.5,
             tier_counts={1: 1},

@@ -46,7 +46,9 @@ class TestPropertySQLInjection:
         await assert_safe_response(response)
 
     @pytest.mark.parametrize("payload", SQL_INJECTION_PAYLOADS[:7])
-    async def test_property_type_filter_injection(self, client, analyst_headers, payload):
+    async def test_property_type_filter_injection(
+        self, client, analyst_headers, payload
+    ):
         """Property type filter should not be injectable."""
         response = await client.get(
             "/api/v1/properties/",
@@ -289,7 +291,9 @@ class TestAnalyticsSQLInjection:
     """SQL injection tests for analytics and admin endpoints."""
 
     @pytest.mark.parametrize("payload", SQL_INJECTION_PAYLOADS[:5])
-    async def test_audit_log_action_filter_injection(self, client, admin_headers, payload):
+    async def test_audit_log_action_filter_injection(
+        self, client, admin_headers, payload
+    ):
         """Audit log action filter should not be injectable."""
         response = await client.get(
             "/api/v1/admin/audit-log",
@@ -299,7 +303,9 @@ class TestAnalyticsSQLInjection:
         await assert_safe_response(response)
 
     @pytest.mark.parametrize("payload", SQL_INJECTION_PAYLOADS[:5])
-    async def test_audit_log_resource_type_injection(self, client, admin_headers, payload):
+    async def test_audit_log_resource_type_injection(
+        self, client, admin_headers, payload
+    ):
         """Audit log resource_type filter should not be injectable."""
         response = await client.get(
             "/api/v1/admin/audit-log",

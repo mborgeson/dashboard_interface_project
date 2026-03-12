@@ -336,9 +336,7 @@ class TestPagination:
         await _seed_properties(pg_session, count=20)
 
         result = await pg_session.execute(
-            select(func.count()).select_from(Property).where(
-                Property.city == "Phoenix"
-            )
+            select(func.count()).select_from(Property).where(Property.city == "Phoenix")
         )
         count = result.scalar()
         assert count == 4  # indices 0, 5, 10, 15

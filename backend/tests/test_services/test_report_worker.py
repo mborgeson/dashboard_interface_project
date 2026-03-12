@@ -24,7 +24,9 @@ from app.services.report_worker import ReportWorker, _format_file_size
 # ============================================================================
 
 
-async def _create_template(db: AsyncSession, name: str = "Test Template") -> ReportTemplate:
+async def _create_template(
+    db: AsyncSession, name: str = "Test Template"
+) -> ReportTemplate:
     """Create a test report template."""
     template = ReportTemplate(
         name=name,
@@ -133,16 +135,24 @@ class TestReportWorkerProcessing:
         from io import BytesIO
 
         template = await _create_template(db_session)
-        report = await _create_queued_report(db_session, template.id, fmt=ReportFormat.PDF)
+        report = await _create_queued_report(
+            db_session, template.id, fmt=ReportFormat.PDF
+        )
 
         worker = ReportWorker()
 
         # Mock the content generation to return a simple buffer
         mock_buffer = BytesIO(b"fake pdf content")
 
-        with patch.object(
-            worker, "_generate_content", new_callable=AsyncMock, return_value=mock_buffer
-        ), patch("app.services.report_worker.AsyncSessionLocal") as mock_session_cls:
+        with (
+            patch.object(
+                worker,
+                "_generate_content",
+                new_callable=AsyncMock,
+                return_value=mock_buffer,
+            ),
+            patch("app.services.report_worker.AsyncSessionLocal") as mock_session_cls,
+        ):
             # Make AsyncSessionLocal return our test session
             mock_ctx = AsyncMock()
             mock_ctx.__aenter__ = AsyncMock(return_value=db_session)
@@ -174,9 +184,15 @@ class TestReportWorkerProcessing:
 
         mock_buffer = BytesIO(b"fake excel content")
 
-        with patch.object(
-            worker, "_generate_content", new_callable=AsyncMock, return_value=mock_buffer
-        ), patch("app.services.report_worker.AsyncSessionLocal") as mock_session_cls:
+        with (
+            patch.object(
+                worker,
+                "_generate_content",
+                new_callable=AsyncMock,
+                return_value=mock_buffer,
+            ),
+            patch("app.services.report_worker.AsyncSessionLocal") as mock_session_cls,
+        ):
             mock_ctx = AsyncMock()
             mock_ctx.__aenter__ = AsyncMock(return_value=db_session)
             mock_ctx.__aexit__ = AsyncMock(return_value=False)
@@ -196,12 +212,15 @@ class TestReportWorkerProcessing:
 
         worker = ReportWorker()
 
-        with patch.object(
-            worker,
-            "_generate_content",
-            new_callable=AsyncMock,
-            side_effect=RuntimeError("PDF lib crashed"),
-        ), patch("app.services.report_worker.AsyncSessionLocal") as mock_session_cls:
+        with (
+            patch.object(
+                worker,
+                "_generate_content",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("PDF lib crashed"),
+            ),
+            patch("app.services.report_worker.AsyncSessionLocal") as mock_session_cls,
+        ):
             mock_ctx = AsyncMock()
             mock_ctx.__aenter__ = AsyncMock(return_value=db_session)
             mock_ctx.__aexit__ = AsyncMock(return_value=False)
@@ -229,11 +248,12 @@ class TestReportWorkerProcessing:
 
         worker = ReportWorker()
 
-        with patch.object(
-            worker, "_process_one", new_callable=AsyncMock
-        ) as mock_process, patch(
-            "app.services.report_worker.AsyncSessionLocal"
-        ) as mock_session_cls:
+        with (
+            patch.object(
+                worker, "_process_one", new_callable=AsyncMock
+            ) as mock_process,
+            patch("app.services.report_worker.AsyncSessionLocal") as mock_session_cls,
+        ):
             mock_ctx = AsyncMock()
             mock_ctx.__aenter__ = AsyncMock(return_value=db_session)
             mock_ctx.__aexit__ = AsyncMock(return_value=False)
@@ -255,6 +275,7 @@ class TestReportWorkerProcessing:
         worker = ReportWorker()
 
         from io import BytesIO
+
         mock_buffer = BytesIO(b"content")
 
         call_count = 0
@@ -264,9 +285,10 @@ class TestReportWorkerProcessing:
             call_count += 1
             return BytesIO(b"content")
 
-        with patch.object(
-            worker, "_generate_content", side_effect=_mock_generate
-        ), patch("app.services.report_worker.AsyncSessionLocal") as mock_session_cls:
+        with (
+            patch.object(worker, "_generate_content", side_effect=_mock_generate),
+            patch("app.services.report_worker.AsyncSessionLocal") as mock_session_cls,
+        ):
             mock_ctx = AsyncMock()
             mock_ctx.__aenter__ = AsyncMock(return_value=db_session)
             mock_ctx.__aexit__ = AsyncMock(return_value=False)

@@ -105,19 +105,19 @@ class TestBulkInsertPropertyId:
         )
 
         # Verify property_id was set
-        values = sync_db_session.execute(
-            select(ExtractedValue).where(
-                ExtractedValue.extraction_run_id == run.id
+        values = (
+            sync_db_session.execute(
+                select(ExtractedValue).where(ExtractedValue.extraction_run_id == run.id)
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         assert len(values) == 2
         for v in values:
             assert v.property_id == prop.id
 
-    def test_bulk_insert_null_property_id_when_no_match(
-        self, sync_db_session: Session
-    ):
+    def test_bulk_insert_null_property_id_when_no_match(self, sync_db_session: Session):
         """bulk_insert should leave property_id NULL when no Property match."""
         run = ExtractionRunCRUD.create(sync_db_session, trigger_type="manual")
 
@@ -130,11 +130,13 @@ class TestBulkInsertPropertyId:
             "NonExistent Property",
         )
 
-        values = sync_db_session.execute(
-            select(ExtractedValue).where(
-                ExtractedValue.extraction_run_id == run.id
+        values = (
+            sync_db_session.execute(
+                select(ExtractedValue).where(ExtractedValue.extraction_run_id == run.id)
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         assert len(values) == 1
         assert values[0].property_id is None
@@ -164,9 +166,7 @@ class TestContentHash:
         mock_file.name = "test_file.xlsb"
         mock_file.deal_name = "Test Deal"
 
-        result = await download_sharepoint_file(
-            mock_client, mock_file, str(tmp_path)
-        )
+        result = await download_sharepoint_file(mock_client, mock_file, str(tmp_path))
 
         # Should return a tuple (path, hash)
         assert isinstance(result, tuple)
@@ -320,11 +320,13 @@ class TestErrorCategory:
             error_categories=error_categories,
         )
 
-        values = sync_db_session.execute(
-            select(ExtractedValue).where(
-                ExtractedValue.extraction_run_id == run.id
+        values = (
+            sync_db_session.execute(
+                select(ExtractedValue).where(ExtractedValue.extraction_run_id == run.id)
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         by_name = {v.field_name: v for v in values}
         assert by_name["BAD_FIELD"].is_error is True
@@ -349,11 +351,13 @@ class TestErrorCategory:
             error_categories=error_categories,
         )
 
-        values = sync_db_session.execute(
-            select(ExtractedValue).where(
-                ExtractedValue.extraction_run_id == run.id
+        values = (
+            sync_db_session.execute(
+                select(ExtractedValue).where(ExtractedValue.extraction_run_id == run.id)
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         assert len(values) == 1
         assert values[0].is_error is False
@@ -398,10 +402,14 @@ class TestExtractionTriggeredInChangeLog:
         )
 
         logs = (
-            await db_session.execute(
-                select(FileChangeLog).order_by(FileChangeLog.file_path)
+            (
+                await db_session.execute(
+                    select(FileChangeLog).order_by(FileChangeLog.file_path)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         assert len(logs) == 2
 

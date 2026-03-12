@@ -587,6 +587,28 @@ async def http_request_action(
     with contextlib.suppress(KeyError, ValueError):
         url = url.format(**variables)
 
+    # SSRF protection: block dangerous schemes and private/internal networks
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    _BLOCKED_SCHEMES = {"file", "ftp", "gopher"}
+    _BLOCKED_HOSTS = {
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+        "::1",
+        "metadata.google.internal",
+    }
+    if parsed.scheme in _BLOCKED_SCHEMES:
+        raise ValueError(f"URL scheme '{parsed.scheme}' is not allowed")
+    if parsed.hostname and (
+        parsed.hostname in _BLOCKED_HOSTS
+        or parsed.hostname.startswith("169.254.")
+        or parsed.hostname.startswith("10.")
+        or parsed.hostname.startswith("192.168.")
+    ):
+        raise ValueError(f"URL host '{parsed.hostname}' is not allowed")
+
     async with (
         aiohttp.ClientSession() as session,
         session.request(

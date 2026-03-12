@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
-from jose import jwt
+import jwt
 
 from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
@@ -85,7 +85,7 @@ NEGATIVE_INT = -(2**63)
 
 INTERNAL_INFO_PATTERNS = [
     "Traceback",
-    "File \"/",
+    'File "/',
     ".py:",
     "line ",
     "SELECT ",
@@ -253,9 +253,9 @@ def tampered_token(analyst_user) -> str:
     # Tamper: change the user id
     payload["sub"] = "99999"
     # Re-encode without proper signature
-    new_payload = base64.urlsafe_b64encode(
-        json.dumps(payload).encode()
-    ).rstrip(b"=").decode()
+    new_payload = (
+        base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b"=").decode()
+    )
     return f"{parts[0]}.{new_payload}.{parts[2]}"
 
 

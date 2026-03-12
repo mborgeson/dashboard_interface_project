@@ -221,9 +221,7 @@ class TestSlowQueryDetection:
         conn.info[_CONTEXT_KEY] = time.perf_counter() - 0.5
 
         with patch("app.db.query_logger.logger") as mock_logger:
-            _after_cursor_execute(
-                conn, None, "SELECT * FROM deals", None, None, False
-            )
+            _after_cursor_execute(conn, None, "SELECT * FROM deals", None, None, False)
             mock_logger.warning.assert_called_once()
             call_kwargs = mock_logger.warning.call_args
             # First positional arg is the message
@@ -260,8 +258,12 @@ class TestSlowQueryDetection:
 
         with patch("app.db.query_logger.logger") as mock_logger:
             _after_cursor_execute(
-                conn, None, "SELECT * FROM users WHERE username=:username",
-                params, None, False,
+                conn,
+                None,
+                "SELECT * FROM users WHERE username=:username",
+                params,
+                None,
+                False,
             )
             call_kwargs = mock_logger.warning.call_args[1]
             # Params should be sanitized

@@ -25,6 +25,7 @@ from app.middleware.etag import ETagMiddleware
 # Helpers — test the dispatch logic directly
 # =============================================================================
 
+
 async def _make_request(method: str = "GET", headers: dict | None = None) -> Request:
     """Build a fake Starlette Request."""
     scope = {
@@ -32,7 +33,9 @@ async def _make_request(method: str = "GET", headers: dict | None = None) -> Req
         "method": method,
         "path": "/test",
         "query_string": b"",
-        "headers": [(k.lower().encode(), v.encode()) for k, v in (headers or {}).items()],
+        "headers": [
+            (k.lower().encode(), v.encode()) for k, v in (headers or {}).items()
+        ],
     }
     return Request(scope)
 
@@ -264,6 +267,7 @@ async def test_streaming_response_skipped():
 
     class StreamingFake:
         """Fake streaming response without .body attribute."""
+
         status_code = 200
         headers = {}
 

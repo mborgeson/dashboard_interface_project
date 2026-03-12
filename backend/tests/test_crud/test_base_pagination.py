@@ -111,7 +111,7 @@ async def many_deals(db_session, test_user):
     ]
     for i, stage in enumerate(stages):
         deal = Deal(
-            name=f"Pagination Deal #{i+1:04d}",
+            name=f"Pagination Deal #{i + 1:04d}",
             deal_type="acquisition",
             stage=stage,
             stage_order=i,

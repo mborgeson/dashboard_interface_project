@@ -87,9 +87,7 @@ async def test_get_by_stage(db_session, multiple_deals):
 @pytest.mark.asyncio
 async def test_get_by_stage_empty(db_session, multiple_deals):
     """Filtering by stage with no matches returns empty list."""
-    realized = await deal_crud.get_by_stage(
-        db_session, stage=DealStage.REALIZED
-    )
+    realized = await deal_crud.get_by_stage(db_session, stage=DealStage.REALIZED)
     assert realized == []
 
 
@@ -101,9 +99,7 @@ async def test_get_by_stage_empty(db_session, multiple_deals):
 @pytest.mark.asyncio
 async def test_get_multi_filtered_by_stage(db_session, multiple_deals):
     """Filter deals by stage string."""
-    results = await deal_crud.get_multi_filtered(
-        db_session, stage="closed"
-    )
+    results = await deal_crud.get_multi_filtered(db_session, stage="closed")
     assert len(results) == 1
     assert results[0].stage == DealStage.CLOSED
 
@@ -111,9 +107,7 @@ async def test_get_multi_filtered_by_stage(db_session, multiple_deals):
 @pytest.mark.asyncio
 async def test_get_multi_filtered_by_priority(db_session, test_deal):
     """Filter deals by priority."""
-    results = await deal_crud.get_multi_filtered(
-        db_session, priority="high"
-    )
+    results = await deal_crud.get_multi_filtered(db_session, priority="high")
     assert len(results) == 1
     assert results[0].priority == "high"
 
@@ -121,9 +115,7 @@ async def test_get_multi_filtered_by_priority(db_session, test_deal):
 @pytest.mark.asyncio
 async def test_get_multi_filtered_invalid_stage_ignored(db_session, multiple_deals):
     """Invalid stage string is silently ignored (returns all deals)."""
-    results = await deal_crud.get_multi_filtered(
-        db_session, stage="nonexistent_stage"
-    )
+    results = await deal_crud.get_multi_filtered(db_session, stage="nonexistent_stage")
     # Invalid stage is ignored, so all deals returned
     assert len(results) == len(multiple_deals)
 
@@ -164,9 +156,7 @@ async def test_get_kanban_data(db_session, multiple_deals):
 @pytest.mark.asyncio
 async def test_get_kanban_data_with_filter(db_session, multiple_deals, test_user):
     """Kanban data can be filtered by assigned user."""
-    kanban = await deal_crud.get_kanban_data(
-        db_session, assigned_user_id=test_user.id
-    )
+    kanban = await deal_crud.get_kanban_data(db_session, assigned_user_id=test_user.id)
     assert kanban["total_deals"] == len(multiple_deals)
 
 

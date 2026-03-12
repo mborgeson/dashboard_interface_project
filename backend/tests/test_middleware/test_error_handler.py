@@ -269,7 +269,10 @@ async def test_value_error_with_file_path_sanitized():
     assert body["type"] == "value_error"
     # Internal file path should NOT appear in the response
     assert "/app/models/deal.py" not in body["detail"]
-    assert "line" not in body["detail"].lower() or "check your input" in body["detail"].lower()
+    assert (
+        "line" not in body["detail"].lower()
+        or "check your input" in body["detail"].lower()
+    )
 
 
 async def test_value_error_with_sql_sanitized():
@@ -335,7 +338,10 @@ async def test_post_request_error_handled():
 
 def test_sanitize_safe_message():
     """Safe messages should pass through unchanged."""
-    assert _sanitize_error_message("Invalid email format", "value_error") == "Invalid email format"
+    assert (
+        _sanitize_error_message("Invalid email format", "value_error")
+        == "Invalid email format"
+    )
 
 
 def test_sanitize_empty_message():

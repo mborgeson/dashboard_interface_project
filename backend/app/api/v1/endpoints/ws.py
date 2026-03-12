@@ -11,11 +11,13 @@ Supports channel-based subscriptions:
 Authentication: pass JWT token as query parameter ``token``.
 """
 
+import jwt
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
-from jose import JWTError, jwt
+from jwt.exceptions import PyJWTError
 from loguru import logger
 
 from app.core.config import settings
+from app.core.security import _get_secret_key
 from app.core.token_blacklist import token_blacklist
 from app.services.websocket_manager import get_connection_manager
 
@@ -35,9 +37,7 @@ async def _authenticate_token(token: str | None) -> int | None:
     if not token:
         return None
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
+        payload = jwt.decode(token, _get_secret_key(), algorithms=[settings.ALGORITHM])
         sub = payload.get("sub")
         if sub is None:
             return None
@@ -57,7 +57,7 @@ async def _authenticate_token(token: str | None) -> int | None:
                 return None
 
         return int(sub)
-    except (JWTError, ValueError, TypeError):
+    except (PyJWTError, ValueError, TypeError, Exception):
         return None
 
 

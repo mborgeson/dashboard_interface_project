@@ -13,6 +13,7 @@ from app.models import Deal, DealStage
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 async def _create_deal(db: AsyncSession) -> Deal:
     """Insert a deal directly into the database and return it."""
     deal = Deal(

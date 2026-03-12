@@ -88,7 +88,12 @@ MOCK_SPREADS = {
             {"date": "2026-03-01", "spread": 2.40},
         ],
         "fed_funds_vs_treasury": [
-            {"date": "2026-03-01", "fed_funds": 5.33, "treasury_10y": 4.25, "spread": 1.08},
+            {
+                "date": "2026-03-01",
+                "fed_funds": 5.33,
+                "treasury_10y": 4.25,
+                "spread": 1.08,
+            },
         ],
     },
     "last_updated": _NOW,
@@ -117,9 +122,7 @@ MOCK_LENDING_CONTEXT = {
 @pytest.mark.asyncio
 async def test_current_rates_requires_auth(client, db_session):
     """GET /interest-rates/current without auth returns 401."""
-    response = await client.get(
-        "/api/v1/interest-rates/current", follow_redirects=True
-    )
+    response = await client.get("/api/v1/interest-rates/current", follow_redirects=True)
     assert response.status_code == 401
 
 

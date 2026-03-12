@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useProperties, selectProperties } from '@/hooks/api/useProperties';
 import { useTransactionsWithMockFallback } from '@/hooks/api/useTransactions';
 import { formatCurrency, formatPercent, formatPercentOrNA, formatNumber, formatNumberOrNA, shortPropertyName } from '@/lib/utils/formatters';
@@ -12,6 +13,8 @@ import { MarketOverviewWidget } from '@/features/market/components/widgets/Marke
 import { SubmarketComparisonWidget } from '@/features/market/components/widgets/SubmarketComparisonWidget';
 
 export function DashboardMain() {
+  const navigate = useNavigate();
+
   // Fetch properties from API
   const { data, isLoading, error } = useProperties();
   const properties = selectProperties(data);
@@ -58,7 +61,7 @@ export function DashboardMain() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-page-title text-neutral-900 font-semibold">
+          <h1 className="text-3xl font-bold text-neutral-900">
             Portfolio Dashboard
           </h1>
         </div>
@@ -82,7 +85,7 @@ export function DashboardMain() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-page-title text-neutral-900 font-semibold">
+        <h1 className="text-3xl font-bold text-neutral-900">
           Portfolio Dashboard
         </h1>
         <p className="text-neutral-600 mt-1">
@@ -99,6 +102,7 @@ export function DashboardMain() {
           iconBgColor="bg-primary-50"
           label="Portfolio Value"
           value={formatCurrency(totalValue, true)}
+          onClick={() => navigate('/investments')}
         />
         <StatCard
           variant="hero"
@@ -107,6 +111,7 @@ export function DashboardMain() {
           iconBgColor="bg-accent-50"
           label={`Total Units${avgOccupancy > 0 ? ` • ${formatPercent(avgOccupancy)} Occupied` : ''}`}
           value={formatNumber(totalUnits)}
+          onClick={() => navigate('/investments')}
         />
         <StatCard
           variant="hero"
@@ -115,6 +120,7 @@ export function DashboardMain() {
           iconBgColor="bg-green-50"
           label="Monthly NOI"
           value={totalNOI > 0 ? formatCurrency(totalNOI / 12, true) : '--'}
+          onClick={() => navigate('/analytics')}
         />
         <StatCard
           variant="hero"
@@ -123,6 +129,7 @@ export function DashboardMain() {
           iconBgColor="bg-blue-50"
           label="Average Cap Rate"
           value={avgCapRate > 0 ? formatPercent(avgCapRate) : '--'}
+          onClick={() => navigate('/analytics')}
         />
       </div>
 
@@ -141,7 +148,8 @@ export function DashboardMain() {
               .map((property) => (
                 <div
                   key={property.id}
-                  className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg hover:bg-neutral-100 transition-colors"
+                  className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/properties/${property.id}`)}
                 >
                   <div className="flex-1">
                     <div className="font-medium text-neutral-900">
@@ -172,7 +180,8 @@ export function DashboardMain() {
             {recentTransactions.map((txn) => (
               <div
                 key={txn.id}
-                className="flex items-center justify-between p-3 border-b border-neutral-100 last:border-0"
+                className="flex items-center justify-between p-3 border-b border-neutral-100 last:border-0 cursor-pointer hover:bg-neutral-50 transition-colors"
+                onClick={() => navigate('/transactions')}
               >
                 <div className="flex-1">
                   <div className="font-medium text-neutral-900">

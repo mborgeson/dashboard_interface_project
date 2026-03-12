@@ -139,7 +139,9 @@ class TestSavepoints:
         await pg_session.commit()
 
         result = await pg_session.execute(
-            select(User).where(User.email.in_(["sp_level1@example.com", "sp_level2@example.com"]))
+            select(User).where(
+                User.email.in_(["sp_level1@example.com", "sp_level2@example.com"])
+            )
         )
         users = result.scalars().all()
         assert len(users) == 2

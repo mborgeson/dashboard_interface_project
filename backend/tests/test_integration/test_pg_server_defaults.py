@@ -50,8 +50,16 @@ class TestTimestampDefaults:
 
         assert user.created_at is not None
         # Tolerate timezone-aware vs naive comparison
-        created = user.created_at.replace(tzinfo=None) if user.created_at.tzinfo else user.created_at
-        assert before.replace(tzinfo=None) - timedelta(seconds=5) <= created <= after.replace(tzinfo=None) + timedelta(seconds=5)
+        created = (
+            user.created_at.replace(tzinfo=None)
+            if user.created_at.tzinfo
+            else user.created_at
+        )
+        assert (
+            before.replace(tzinfo=None) - timedelta(seconds=5)
+            <= created
+            <= after.replace(tzinfo=None) + timedelta(seconds=5)
+        )
 
     async def test_user_updated_at_auto_populates(self, pg_session):
         """User.updated_at should be set automatically on insert."""

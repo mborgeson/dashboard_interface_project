@@ -69,7 +69,9 @@ async def test_get_report_settings_auto_initializes_when_missing(client, db_sess
 
 
 @pytest.mark.asyncio
-async def test_put_report_settings_partial_update(client, db_session, seed_report_settings):
+async def test_put_report_settings_partial_update(
+    client, db_session, seed_report_settings
+):
     """PUT /settings with partial data updates only provided fields."""
     response = await client.put(
         "/api/v1/reporting/settings",
@@ -89,7 +91,9 @@ async def test_put_report_settings_partial_update(client, db_session, seed_repor
 
 
 @pytest.mark.asyncio
-async def test_put_report_settings_invalid_page_size(client, db_session, seed_report_settings):
+async def test_put_report_settings_invalid_page_size(
+    client, db_session, seed_report_settings
+):
     """PUT /settings with invalid page_size returns 422."""
     response = await client.put(
         "/api/v1/reporting/settings",
@@ -99,7 +103,9 @@ async def test_put_report_settings_invalid_page_size(client, db_session, seed_re
 
 
 @pytest.mark.asyncio
-async def test_put_report_settings_invalid_orientation(client, db_session, seed_report_settings):
+async def test_put_report_settings_invalid_orientation(
+    client, db_session, seed_report_settings
+):
     """PUT /settings with invalid orientation returns 422."""
     response = await client.put(
         "/api/v1/reporting/settings",

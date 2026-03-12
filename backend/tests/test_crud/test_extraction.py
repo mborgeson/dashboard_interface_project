@@ -135,7 +135,7 @@ def extracted_values(
             field_name=field_name,
             field_category="General",
             sheet_name="Summary",
-            cell_address=f"B{len(values)+1}",
+            cell_address=f"B{len(values) + 1}",
             value_text=text_val,
             value_numeric=num_val,
             value_date=date_val,

@@ -260,10 +260,10 @@ async def test_geocode_with_fallback_falls_back_to_city_state():
         return (33.4484, -112.0740)  # City+state succeeds
 
     with (
+        patch("app.services.geocoding.geocode_address", side_effect=mock_geocode),
         patch(
-            "app.services.geocoding.geocode_address", side_effect=mock_geocode
-        ),
-        patch("app.services.geocoding.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+            "app.services.geocoding.asyncio.sleep", new_callable=AsyncMock
+        ) as mock_sleep,
     ):
         result = await geocode_with_fallback(
             "Test Property", "123 Main St", "Phoenix", "AZ"
@@ -283,20 +283,21 @@ async def test_geocode_with_fallback_falls_back_to_city_state():
 @pytest.mark.asyncio
 async def test_geocode_with_fallback_rate_limit_delay():
     """Rate limit delay uses settings.GEOCODING_RATE_LIMIT_DELAY between retries."""
+
     async def mock_geocode(street, city, state, zip_code=None):
         return None
 
     with (
         patch("app.services.geocoding.geocode_address", side_effect=mock_geocode),
-        patch("app.services.geocoding.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        patch(
+            "app.services.geocoding.asyncio.sleep", new_callable=AsyncMock
+        ) as mock_sleep,
         patch("app.services.geocoding.settings") as mock_settings,
     ):
         mock_settings.GEOCODING_RATE_LIMIT_DELAY = 1.1
         mock_settings.HTTP_TIMEOUT = 10.0
 
-        await geocode_with_fallback(
-            "Test Property", "123 Main St", "Phoenix", "AZ"
-        )
+        await geocode_with_fallback("Test Property", "123 Main St", "Phoenix", "AZ")
 
     mock_sleep.assert_called_once_with(1.1)
 
@@ -313,13 +314,13 @@ async def test_geocode_with_fallback_no_street():
         patch(
             "app.services.geocoding.geocode_address", new_callable=AsyncMock
         ) as mock_geocode,
-        patch("app.services.geocoding.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        patch(
+            "app.services.geocoding.asyncio.sleep", new_callable=AsyncMock
+        ) as mock_sleep,
     ):
         mock_geocode.return_value = (33.4484, -112.0740)
 
-        result = await geocode_with_fallback(
-            "Test Property", None, "Phoenix", "AZ"
-        )
+        result = await geocode_with_fallback("Test Property", None, "Phoenix", "AZ")
 
     assert result == (33.4484, -112.0740)
     # Only one call (city+state), no rate limit pause
@@ -334,13 +335,13 @@ async def test_geocode_with_fallback_empty_street():
         patch(
             "app.services.geocoding.geocode_address", new_callable=AsyncMock
         ) as mock_geocode,
-        patch("app.services.geocoding.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        patch(
+            "app.services.geocoding.asyncio.sleep", new_callable=AsyncMock
+        ) as mock_sleep,
     ):
         mock_geocode.return_value = (33.4484, -112.0740)
 
-        result = await geocode_with_fallback(
-            "Test Property", "   ", "Phoenix", "AZ"
-        )
+        result = await geocode_with_fallback("Test Property", "   ", "Phoenix", "AZ")
 
     assert result == (33.4484, -112.0740)
     mock_geocode.assert_called_once_with("", "Phoenix", "AZ", None)

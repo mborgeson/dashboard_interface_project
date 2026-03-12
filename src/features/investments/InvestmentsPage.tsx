@@ -231,11 +231,11 @@ export function InvestmentsPage() {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Investment Portfolio</h1>
+            <h1 className="text-3xl font-bold text-neutral-900">Investment Portfolio</h1>
             <p className="text-muted-foreground">
               Manage and monitor your real estate investments
             </p>
@@ -273,10 +273,10 @@ export function InvestmentsPage() {
   // Show error state
   if (error) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Investment Portfolio</h1>
+            <h1 className="text-3xl font-bold text-neutral-900">Investment Portfolio</h1>
             <p className="text-muted-foreground">
               Manage and monitor your real estate investments
             </p>
@@ -296,11 +296,11 @@ export function InvestmentsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Investment Portfolio</h1>
+          <h1 className="text-3xl font-bold text-neutral-900">Investment Portfolio</h1>
           <p className="text-muted-foreground">
             Manage and monitor your real estate investments
           </p>

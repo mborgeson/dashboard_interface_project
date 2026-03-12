@@ -307,7 +307,7 @@ async def multiple_deals(db_session: AsyncSession, test_user: User) -> list[Deal
 
     for i, stage in enumerate(stages):
         deal = Deal(
-            name=f"Deal #{i+1:04d}",
+            name=f"Deal #{i + 1:04d}",
             deal_type="acquisition",
             stage=stage,
             stage_order=i,

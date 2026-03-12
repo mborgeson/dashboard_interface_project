@@ -32,9 +32,9 @@ export function DealPipeline({ dealsByStage }: DealPipelineProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-neutral-200 shadow-card">
+    <div className="bg-white rounded-lg border border-neutral-200 shadow-card overflow-x-auto">
       {/* Pipeline Header */}
-      <div className="grid grid-cols-6 border-b border-neutral-200">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 border-b border-neutral-200">
         {PIPELINE_STAGES.map((stage) => {
           const deals = dealsByStage[stage];
           const total = getStageTotal(stage);
@@ -61,7 +61,7 @@ export function DealPipeline({ dealsByStage }: DealPipelineProps) {
       </div>
 
       {/* Pipeline Columns */}
-      <div className="grid grid-cols-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6">
         {PIPELINE_STAGES.map((stage) => {
           const deals = dealsByStage[stage];
 

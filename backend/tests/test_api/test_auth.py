@@ -580,7 +580,10 @@ async def test_refresh_token_blacklisted_after_logout(client, test_user):
         json={"refresh_token": original_refresh},
     )
     assert replay_response.status_code == 401
-    assert "reuse" in replay_response.json()["detail"].lower() or "revoked" in replay_response.json()["detail"].lower()
+    assert (
+        "reuse" in replay_response.json()["detail"].lower()
+        or "revoked" in replay_response.json()["detail"].lower()
+    )
 
     # But the NEW refresh token should still work (after clearing user revocation)
     await token_blacklist.clear_user_revocation(user_id)

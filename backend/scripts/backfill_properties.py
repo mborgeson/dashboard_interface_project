@@ -68,9 +68,11 @@ def run(dry_run: bool = True) -> dict:
             results["total_properties_created"] += result.get("properties_created", 0)
             results["total_deals_created"] += result.get("deals_created", 0)
             results["total_properties_linked"] += result.get("properties_linked", 0)
-            print(f"  Created: {result.get('properties_created', 0)} properties, "
-                  f"{result.get('deals_created', 0)} deals | "
-                  f"Linked: {result.get('properties_linked', 0)}")
+            print(
+                f"  Created: {result.get('properties_created', 0)} properties, "
+                f"{result.get('deals_created', 0)} deals | "
+                f"Linked: {result.get('properties_linked', 0)}"
+            )
         except Exception as e:
             results["errors"].append({"run_id": str(run_id), "error": str(e)})
             print(f"  ERROR: {e}")

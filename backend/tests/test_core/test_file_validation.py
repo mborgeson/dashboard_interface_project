@@ -23,6 +23,7 @@ CSV_CONTENT = b"col_a,col_b\n1,2\n3,4\n"  # CSV (no magic bytes)
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _valid_content(ext: str) -> bytes:
     """Return minimal valid content for a given extension."""
     mapping: dict[str, bytes] = {
@@ -39,6 +40,7 @@ def _valid_content(ext: str) -> bytes:
 # ---------------------------------------------------------------------------
 # Tests: valid files pass
 # ---------------------------------------------------------------------------
+
 
 class TestValidFiles:
     """All supported file types should pass validation."""
@@ -72,6 +74,7 @@ class TestValidFiles:
 # Tests: invalid extensions rejected
 # ---------------------------------------------------------------------------
 
+
 class TestInvalidExtension:
     @pytest.mark.parametrize(
         "filename",
@@ -101,6 +104,7 @@ class TestInvalidExtension:
 # ---------------------------------------------------------------------------
 # Tests: oversized files rejected
 # ---------------------------------------------------------------------------
+
 
 class TestOversizedFiles:
     def test_xlsx_over_limit(self) -> None:
@@ -132,6 +136,7 @@ class TestOversizedFiles:
 # Tests: empty files
 # ---------------------------------------------------------------------------
 
+
 class TestEmptyFiles:
     @pytest.mark.parametrize("ext", [".xlsx", ".pdf", ".csv"])
     def test_empty_file_rejected(self, ext: str) -> None:
@@ -143,6 +148,7 @@ class TestEmptyFiles:
 # ---------------------------------------------------------------------------
 # Tests: MIME type mismatches
 # ---------------------------------------------------------------------------
+
 
 class TestMimeTypeMismatch:
     def test_pdf_extension_with_excel_mime(self) -> None:
@@ -173,6 +179,7 @@ class TestMimeTypeMismatch:
 # Tests: magic bytes mismatch
 # ---------------------------------------------------------------------------
 
+
 class TestMagicBytesMismatch:
     def test_xlsx_with_pdf_content(self) -> None:
         """An .xlsx file whose bytes start with %PDF should fail."""
@@ -202,6 +209,7 @@ class TestMagicBytesMismatch:
 # ---------------------------------------------------------------------------
 # Tests: ValidationResult dataclass
 # ---------------------------------------------------------------------------
+
 
 class TestValidationResult:
     def test_defaults(self) -> None:

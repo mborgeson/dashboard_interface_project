@@ -7,7 +7,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.file_validation import validate_upload
-from app.core.permissions import require_analyst, require_viewer
+from app.core.permissions import require_analyst, require_manager, require_viewer
 from app.crud.crud_document import document as document_crud
 from app.db.session import get_db
 from app.schemas.document import (
@@ -195,6 +195,7 @@ async def get_document(
     "/",
     response_model=DocumentResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_analyst)],
     summary="Create document metadata",
     description="Create a new document metadata entry without file upload. "
     "Use POST /upload to upload a file with metadata.",
@@ -332,6 +333,7 @@ async def download_document(
 @router.put(
     "/{document_id}",
     response_model=DocumentResponse,
+    dependencies=[Depends(require_analyst)],
     summary="Update document metadata",
     description="Full update of a document's metadata fields. Returns 404 if the document "
     "does not exist or has been soft-deleted.",
@@ -367,6 +369,7 @@ async def update_document(
 @router.patch(
     "/{document_id}",
     response_model=DocumentResponse,
+    dependencies=[Depends(require_analyst)],
     summary="Partially update document metadata",
     description="Partial update of a document's metadata. Only fields included in the "
     "request body are modified.",
@@ -402,6 +405,7 @@ async def patch_document(
 @router.delete(
     "/{document_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_manager)],
     summary="Delete a document",
     description="Soft-delete a document. The document is marked as deleted but not "
     "permanently removed from the database.",

@@ -82,9 +82,7 @@ class TestBuildPropertyConditions:
         assert len(conditions) == 1
 
     def test_market_filter(self):
-        conditions = property_crud._build_property_conditions(
-            market="Phoenix Metro"
-        )
+        conditions = property_crud._build_property_conditions(market="Phoenix Metro")
         assert len(conditions) == 1
 
     def test_min_units_filter(self):
@@ -148,9 +146,7 @@ class TestGetMultiFiltered:
         await _create_property(db_session, "PHX", city="Phoenix")
         await _create_property(db_session, "TUC", city="Tucson")
 
-        results = await property_crud.get_multi_filtered(
-            db_session, city="phoenix"
-        )
+        results = await property_crud.get_multi_filtered(db_session, city="phoenix")
         assert len(results) == 1
 
     @pytest.mark.asyncio
@@ -159,9 +155,7 @@ class TestGetMultiFiltered:
         await _create_property(db_session, "AZ Prop", state="AZ")
         await _create_property(db_session, "CA Prop", state="CA")
 
-        results = await property_crud.get_multi_filtered(
-            db_session, state="az"
-        )
+        results = await property_crud.get_multi_filtered(db_session, state="az")
         assert len(results) == 1
 
     @pytest.mark.asyncio
@@ -203,9 +197,7 @@ class TestGetMultiFiltered:
         for i in range(5):
             await _create_property(db_session, f"Prop {i}")
 
-        results = await property_crud.get_multi_filtered(
-            db_session, skip=0, limit=2
-        )
+        results = await property_crud.get_multi_filtered(db_session, skip=0, limit=2)
         assert len(results) == 2
 
 
@@ -224,9 +216,7 @@ class TestGetByMarket:
         await _create_property(db_session, "B", market="Phoenix Metro")
         await _create_property(db_session, "C", market="Tucson Metro")
 
-        results = await property_crud.get_by_market(
-            db_session, market="Phoenix Metro"
-        )
+        results = await property_crud.get_by_market(db_session, market="Phoenix Metro")
         assert len(results) == 2
 
     @pytest.mark.asyncio
@@ -234,17 +224,13 @@ class TestGetByMarket:
         """get_by_market is case-insensitive."""
         await _create_property(db_session, "A", market="Phoenix Metro")
 
-        results = await property_crud.get_by_market(
-            db_session, market="phoenix metro"
-        )
+        results = await property_crud.get_by_market(db_session, market="phoenix metro")
         assert len(results) == 1
 
     @pytest.mark.asyncio
     async def test_empty_market(self, db_session):
         """get_by_market returns empty for nonexistent market."""
-        results = await property_crud.get_by_market(
-            db_session, market="Nonexistent"
-        )
+        results = await property_crud.get_by_market(db_session, market="Nonexistent")
         assert results == []
 
 
@@ -270,11 +256,17 @@ class TestGetAnalyticsSummary:
     async def test_aggregates_correctly(self, db_session):
         """get_analytics_summary computes correct aggregates."""
         await _create_property(
-            db_session, "A", total_units=100, cap_rate=Decimal("6.0"),
+            db_session,
+            "A",
+            total_units=100,
+            cap_rate=Decimal("6.0"),
             occupancy_rate=Decimal("95.0"),
         )
         await _create_property(
-            db_session, "B", total_units=200, cap_rate=Decimal("8.0"),
+            db_session,
+            "B",
+            total_units=200,
+            cap_rate=Decimal("8.0"),
             occupancy_rate=Decimal("90.0"),
         )
 

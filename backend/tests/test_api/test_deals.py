@@ -132,9 +132,7 @@ async def test_get_kanban_board_with_filter(client, multiple_deals, auth_headers
 @pytest.mark.asyncio
 async def test_get_deal_by_id(client, test_deal, auth_headers):
     """Test getting a specific deal by ID."""
-    response = await client.get(
-        f"/api/v1/deals/{test_deal.id}", headers=auth_headers
-    )
+    response = await client.get(f"/api/v1/deals/{test_deal.id}", headers=auth_headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -376,9 +374,7 @@ async def test_delete_deal(client, test_deal, admin_auth_headers, auth_headers):
 @pytest.mark.asyncio
 async def test_delete_deal_not_found(client, admin_auth_headers):
     """Test deleting a non-existent deal returns 404."""
-    response = await client.delete(
-        "/api/v1/deals/999999", headers=admin_auth_headers
-    )
+    response = await client.delete("/api/v1/deals/999999", headers=admin_auth_headers)
 
     assert response.status_code == 404
 
@@ -565,7 +561,7 @@ async def test_compare_deals_too_many(client, auth_headers, db_session, test_use
     deals = []
     for i in range(11):
         deal = Deal(
-            name=f"Comparison Deal #{i+1}",
+            name=f"Comparison Deal #{i + 1}",
             deal_type="acquisition",
             stage=DealStage.INITIAL_REVIEW,
             stage_order=i,

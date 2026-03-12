@@ -24,6 +24,8 @@ interface StatCardProps {
   trendValue?: number;
   /** Visual size variant */
   variant?: 'default' | 'compact' | 'hero';
+  /** Optional click handler */
+  onClick?: () => void;
   className?: string;
 }
 
@@ -37,6 +39,7 @@ export function StatCard({
   trend,
   trendValue,
   variant = 'default',
+  onClick,
   className,
 }: StatCardProps) {
   const isHero = variant === 'hero';
@@ -53,6 +56,7 @@ export function StatCard({
 
   return (
     <Card
+      onClick={onClick}
       className={cn(
         'bg-white border border-neutral-200 transition-shadow',
         isHero
@@ -60,6 +64,7 @@ export function StatCard({
           : isCompact
             ? 'p-4 hover:shadow-sm'
             : 'p-6 shadow-card',
+        onClick && 'cursor-pointer',
         className,
       )}
     >
@@ -106,7 +111,7 @@ export function StatCard({
 
       {/* Subtitle */}
       {subtitle && (
-        <p className={cn('text-neutral-500 mt-1', isCompact ? 'text-xs' : 'text-xs')}>
+        <p className={cn('text-neutral-500 mt-1', isCompact ? 'text-xs' : 'text-sm')}>
           {subtitle}
         </p>
       )}

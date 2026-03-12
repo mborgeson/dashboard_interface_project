@@ -190,13 +190,26 @@ class TestApproveGroupEndpoint:
 
     def test_approve_group_success(self, client, pipeline):
         """Successfully approve a group."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "test_group", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6"},
-        ])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "test_group",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                },
+            ],
+        )
         _setup_complete_pipeline(pipeline)
 
         response = client.post("/extraction/grouping/approve/test_group")
@@ -213,17 +226,34 @@ class TestApproveGroupEndpoint:
         response = client.post("/extraction/grouping/approve/nonexistent")
         # Returns 400 because ValueError is raised for missing group
         assert response.status_code == 400
-        assert "not found" in response.json()["detail"].lower()
+        assert (
+            "invalid" in response.json()["detail"].lower()
+            or "not found" in response.json()["detail"].lower()
+        )
 
     def test_approve_group_updates_config_file(self, client, pipeline):
         """Approval should update the pipeline config file."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "test_group", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6"},
-        ], approved=False)
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "test_group",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                },
+            ],
+            approved=False,
+        )
         _setup_complete_pipeline(pipeline)
 
         response = client.post("/extraction/grouping/approve/test_group")
@@ -238,10 +268,15 @@ class TestApproveGroupEndpoint:
 
     def test_approve_group_requires_reference_mapping(self, client, pipeline):
         """Group without reference mapping should fail approval."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
+                }
+            ],
+        )
         _setup_complete_pipeline(pipeline)
 
         response = client.post("/extraction/grouping/approve/test_group")
@@ -249,13 +284,27 @@ class TestApproveGroupEndpoint:
 
     def test_approve_already_approved_group(self, client, pipeline):
         """Re-approving an approved group should succeed (idempotent)."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "test_group", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6"},
-        ], approved=True)
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "test_group",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                },
+            ],
+            approved=True,
+        )
         _setup_complete_pipeline(pipeline)
 
         response = client.post("/extraction/grouping/approve/test_group")
@@ -276,23 +325,57 @@ class TestBatchExtractionDryRun:
     def test_batch_dry_run_success(self, mock_extract, client, pipeline):
         """Batch dry run should process multiple groups without DB writes."""
         mock_extract.return_value = (
-            "/test.xlsb", "Deal",
+            "/test.xlsb",
+            "Deal",
             {"PROPERTY_NAME": "Deal", "REVENUE": 1000000.0},
             None,
         )
 
-        _setup_groups_json(pipeline, [
-            {"group_name": "group_1", "files": [{"name": "a.xlsb", "path": "/a.xlsb", "deal_name": "Deal A"}]},
-            {"group_name": "group_2", "files": [{"name": "b.xlsb", "path": "/b.xlsb", "deal_name": "Deal B"}]},
-        ])
-        _setup_reference_mapping(pipeline, "group_1", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6",
-             "label_text": "Revenue", "category": "Financial"},
-        ], approved=True)
-        _setup_reference_mapping(pipeline, "group_2", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6",
-             "label_text": "Revenue", "category": "Financial"},
-        ], approved=True)
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [
+                        {"name": "a.xlsb", "path": "/a.xlsb", "deal_name": "Deal A"}
+                    ],
+                },
+                {
+                    "group_name": "group_2",
+                    "files": [
+                        {"name": "b.xlsb", "path": "/b.xlsb", "deal_name": "Deal B"}
+                    ],
+                },
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_1",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "label_text": "Revenue",
+                    "category": "Financial",
+                },
+            ],
+            approved=True,
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_2",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "label_text": "Revenue",
+                    "category": "Financial",
+                },
+            ],
+            approved=True,
+        )
         _setup_complete_pipeline(pipeline)
 
         response = client.post(
@@ -306,13 +389,33 @@ class TestBatchExtractionDryRun:
 
     def test_batch_dry_run_no_db_writes(self, client, pipeline, sync_db):
         """Batch dry run should not create any ExtractionRun records."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "path": "/test.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "test_group", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6"},
-        ], approved=True)
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/test.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "test_group",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                },
+            ],
+            approved=True,
+        )
         _setup_complete_pipeline(pipeline)
 
         client.post(
@@ -325,16 +428,47 @@ class TestBatchExtractionDryRun:
 
     def test_batch_dry_run_returns_per_group_reports(self, client, pipeline):
         """Batch dry run should return per-group extraction reports."""
-        _setup_groups_json(pipeline, [
-            {"group_name": "group_1", "files": [{"name": "a.xlsb", "path": "/a.xlsb", "deal_name": "Deal A"}]},
-            {"group_name": "group_2", "files": [{"name": "b.xlsb", "path": "/b.xlsb", "deal_name": "Deal B"}]},
-        ])
-        _setup_reference_mapping(pipeline, "group_1", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6"},
-        ], approved=True)
-        _setup_reference_mapping(pipeline, "group_2", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6"},
-        ], approved=True)
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [
+                        {"name": "a.xlsb", "path": "/a.xlsb", "deal_name": "Deal A"}
+                    ],
+                },
+                {
+                    "group_name": "group_2",
+                    "files": [
+                        {"name": "b.xlsb", "path": "/b.xlsb", "deal_name": "Deal B"}
+                    ],
+                },
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_1",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                },
+            ],
+            approved=True,
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_2",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                },
+            ],
+            approved=True,
+        )
         _setup_complete_pipeline(pipeline)
 
         response = client.post(
@@ -359,6 +493,7 @@ class TestBatchExtractionStopsOnError:
     @patch("app.api.v1.endpoints.extraction.common._extract_single_file")
     def test_batch_stops_on_first_error(self, mock_extract, client, pipeline):
         """Batch should stop on first group error when stop_on_error=True."""
+
         # First group fails, second would succeed
         def side_effect(extractor, path, deal_name):
             if "a.xlsb" in path:
@@ -367,23 +502,60 @@ class TestBatchExtractionStopsOnError:
 
         mock_extract.side_effect = side_effect
 
-        _setup_groups_json(pipeline, [
-            {"group_name": "group_1", "files": [{"name": "a.xlsb", "path": "/a.xlsb", "deal_name": "Deal A"}]},
-            {"group_name": "group_2", "files": [{"name": "b.xlsb", "path": "/b.xlsb", "deal_name": "Deal B"}]},
-        ])
-        _setup_reference_mapping(pipeline, "group_1", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6",
-             "label_text": "Revenue", "category": "Financial"},
-        ], approved=True)
-        _setup_reference_mapping(pipeline, "group_2", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6",
-             "label_text": "Revenue", "category": "Financial"},
-        ], approved=True)
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [
+                        {"name": "a.xlsb", "path": "/a.xlsb", "deal_name": "Deal A"}
+                    ],
+                },
+                {
+                    "group_name": "group_2",
+                    "files": [
+                        {"name": "b.xlsb", "path": "/b.xlsb", "deal_name": "Deal B"}
+                    ],
+                },
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_1",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "label_text": "Revenue",
+                    "category": "Financial",
+                },
+            ],
+            approved=True,
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_2",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "label_text": "Revenue",
+                    "category": "Financial",
+                },
+            ],
+            approved=True,
+        )
         _setup_complete_pipeline(pipeline)
 
         response = client.post(
             "/extraction/grouping/extract-batch",
-            json={"dry_run": True, "group_names": ["group_1", "group_2"], "stop_on_error": True},
+            json={
+                "dry_run": True,
+                "group_names": ["group_1", "group_2"],
+                "stop_on_error": True,
+            },
         )
         assert response.status_code == 200
         data = response.json()
@@ -391,32 +563,77 @@ class TestBatchExtractionStopsOnError:
         assert data["groups_failed"] >= 1
 
     @patch("app.api.v1.endpoints.extraction.common._extract_single_file")
-    def test_batch_continues_without_stop_on_error(self, mock_extract, client, pipeline):
+    def test_batch_continues_without_stop_on_error(
+        self, mock_extract, client, pipeline
+    ):
         """Batch should continue processing all groups when stop_on_error=False."""
+
         def side_effect(extractor, path, deal_name):
             if "a.xlsb" in path:
                 return (path, deal_name, None, "Extraction failed")
-            return (path, deal_name, {"PROPERTY_NAME": deal_name, "REVENUE": 1000000.0}, None)
+            return (
+                path,
+                deal_name,
+                {"PROPERTY_NAME": deal_name, "REVENUE": 1000000.0},
+                None,
+            )
 
         mock_extract.side_effect = side_effect
 
-        _setup_groups_json(pipeline, [
-            {"group_name": "group_1", "files": [{"name": "a.xlsb", "path": "/a.xlsb", "deal_name": "Deal A"}]},
-            {"group_name": "group_2", "files": [{"name": "b.xlsb", "path": "/b.xlsb", "deal_name": "Deal B"}]},
-        ])
-        _setup_reference_mapping(pipeline, "group_1", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6",
-             "label_text": "Revenue", "category": "Financial"},
-        ], approved=True)
-        _setup_reference_mapping(pipeline, "group_2", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6",
-             "label_text": "Revenue", "category": "Financial"},
-        ], approved=True)
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "group_1",
+                    "files": [
+                        {"name": "a.xlsb", "path": "/a.xlsb", "deal_name": "Deal A"}
+                    ],
+                },
+                {
+                    "group_name": "group_2",
+                    "files": [
+                        {"name": "b.xlsb", "path": "/b.xlsb", "deal_name": "Deal B"}
+                    ],
+                },
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_1",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "label_text": "Revenue",
+                    "category": "Financial",
+                },
+            ],
+            approved=True,
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "group_2",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "label_text": "Revenue",
+                    "category": "Financial",
+                },
+            ],
+            approved=True,
+        )
         _setup_complete_pipeline(pipeline)
 
         response = client.post(
             "/extraction/grouping/extract-batch",
-            json={"dry_run": True, "group_names": ["group_1", "group_2"], "stop_on_error": False},
+            json={
+                "dry_run": True,
+                "group_names": ["group_1", "group_2"],
+                "stop_on_error": False,
+            },
         )
         assert response.status_code == 200
         data = response.json()
@@ -426,13 +643,33 @@ class TestBatchExtractionStopsOnError:
 
     def test_batch_stop_on_error_default_false(self, client, pipeline):
         """stop_on_error should default to False."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "path": "/test.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "test_group", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6"},
-        ], approved=True)
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/test.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "test_group",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                },
+            ],
+            approved=True,
+        )
         _setup_complete_pipeline(pipeline)
 
         # Make request without stop_on_error
@@ -451,15 +688,37 @@ class TestBatchExtractionStopsOnError:
 class TestExtractionRequiresApproval:
     """Tests for extraction approval requirements."""
 
-    def test_extraction_processes_unapproved_group_when_explicit(self, client, pipeline):
+    def test_extraction_processes_unapproved_group_when_explicit(
+        self, client, pipeline
+    ):
         """Extraction processes explicitly specified groups regardless of approval status."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "path": "/test.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "test_group", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6"},
-        ], approved=False)  # Not approved but explicitly requested
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/test.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "test_group",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                },
+            ],
+            approved=False,
+        )  # Not approved but explicitly requested
         _setup_complete_pipeline(pipeline)
 
         response = client.post(
@@ -473,22 +732,46 @@ class TestExtractionRequiresApproval:
         assert data["groups_processed"] >= 0
 
     @patch("app.api.v1.endpoints.extraction.common._extract_single_file")
-    def test_extraction_succeeds_for_approved_group(self, mock_extract, client, pipeline):
+    def test_extraction_succeeds_for_approved_group(
+        self, mock_extract, client, pipeline
+    ):
         """Extraction should succeed for approved groups."""
         mock_extract.return_value = (
-            "/test.xlsb", "Deal",
+            "/test.xlsb",
+            "Deal",
             {"PROPERTY_NAME": "Deal", "REVENUE": 1000000.0},
             None,
         )
 
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "path": "/test.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "test_group", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6",
-             "label_text": "Revenue", "category": "Financial"},
-        ], approved=True)  # Approved
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/test.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "test_group",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "label_text": "Revenue",
+                    "category": "Financial",
+                },
+            ],
+            approved=True,
+        )  # Approved
         _setup_complete_pipeline(pipeline)
 
         response = client.post(
@@ -501,16 +784,47 @@ class TestExtractionRequiresApproval:
 
     def test_batch_extracts_only_approved_when_no_group_names(self, client, pipeline):
         """When no group_names specified, should extract all approved groups."""
-        _setup_groups_json(pipeline, [
-            {"group_name": "approved_group", "files": [{"name": "a.xlsb", "path": "/a.xlsb", "deal_name": "Deal A"}]},
-            {"group_name": "unapproved_group", "files": [{"name": "b.xlsb", "path": "/b.xlsb", "deal_name": "Deal B"}]},
-        ])
-        _setup_reference_mapping(pipeline, "approved_group", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6"},
-        ], approved=False)  # Set via helper, but actually approve via config
-        _setup_reference_mapping(pipeline, "unapproved_group", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6"},
-        ], approved=False)
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "approved_group",
+                    "files": [
+                        {"name": "a.xlsb", "path": "/a.xlsb", "deal_name": "Deal A"}
+                    ],
+                },
+                {
+                    "group_name": "unapproved_group",
+                    "files": [
+                        {"name": "b.xlsb", "path": "/b.xlsb", "deal_name": "Deal B"}
+                    ],
+                },
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "approved_group",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                },
+            ],
+            approved=False,
+        )  # Set via helper, but actually approve via config
+        _setup_reference_mapping(
+            pipeline,
+            "unapproved_group",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                },
+            ],
+            approved=False,
+        )
         _setup_complete_pipeline(pipeline)
 
         # First approve the group via the API
@@ -540,13 +854,32 @@ class TestSingleGroupExtractionEndpoint:
 
     def test_extract_single_group_dry_run(self, client, pipeline):
         """Single group extraction should support dry_run mode."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "path": "/test.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "test_group", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6"},
-        ])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/test.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "test_group",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                },
+            ],
+        )
         _setup_complete_pipeline(pipeline)
 
         response = client.post(
@@ -562,19 +895,40 @@ class TestSingleGroupExtractionEndpoint:
     def test_extract_single_group_live(self, mock_extract, client, pipeline, sync_db):
         """Single group live extraction should create DB records."""
         mock_extract.return_value = (
-            "/test.xlsb", "Deal",
+            "/test.xlsb",
+            "Deal",
             {"PROPERTY_NAME": "Deal", "REVENUE": 1000000.0},
             None,
         )
 
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "path": "/test.xlsb", "deal_name": "Deal"}],
-        }])
-        _setup_reference_mapping(pipeline, "test_group", [
-            {"field_name": "REVENUE", "source_sheet": "Summary", "source_cell": "D6",
-             "label_text": "Revenue", "category": "Financial"},
-        ])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [
+                        {
+                            "name": "model.xlsb",
+                            "path": "/test.xlsb",
+                            "deal_name": "Deal",
+                        }
+                    ],
+                }
+            ],
+        )
+        _setup_reference_mapping(
+            pipeline,
+            "test_group",
+            [
+                {
+                    "field_name": "REVENUE",
+                    "source_sheet": "Summary",
+                    "source_cell": "D6",
+                    "label_text": "Revenue",
+                    "category": "Financial",
+                },
+            ],
+        )
         _setup_complete_pipeline(pipeline)
 
         response = client.post(
@@ -613,10 +967,15 @@ class TestConflictCheckEndpoint:
 
     def test_conflict_check_success(self, client, pipeline):
         """Conflict check should return conflict details."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
+                }
+            ],
+        )
         _setup_complete_pipeline(pipeline)
 
         response = client.post("/extraction/grouping/conflict-check")
@@ -628,10 +987,15 @@ class TestConflictCheckEndpoint:
 
     def test_conflict_check_requires_reference_mapping(self, client, pipeline):
         """Conflict check should require reference mapping to be completed."""
-        _setup_groups_json(pipeline, [{
-            "group_name": "test_group",
-            "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
-        }])
+        _setup_groups_json(
+            pipeline,
+            [
+                {
+                    "group_name": "test_group",
+                    "files": [{"name": "model.xlsb", "deal_name": "Deal"}],
+                }
+            ],
+        )
         # Don't set reference_map_completed_at
 
         response = client.post("/extraction/grouping/conflict-check")

@@ -213,9 +213,7 @@ class TestDealSoftDelete:
         assert await deal_crud.get(db_session, sample_deal.id) is None
 
         # With include_deleted: returned
-        result = await deal_crud.get(
-            db_session, sample_deal.id, include_deleted=True
-        )
+        result = await deal_crud.get(db_session, sample_deal.id, include_deleted=True)
         assert result is not None
         assert result.is_deleted is True
 
@@ -228,9 +226,7 @@ class TestDealSoftDelete:
         """Admin can list including deleted items via include_deleted."""
         await deal_crud.remove(db_session, id=sample_deals[0].id)
 
-        results = await deal_crud.get_multi_filtered(
-            db_session, include_deleted=True
-        )
+        results = await deal_crud.get_multi_filtered(db_session, include_deleted=True)
         assert len(results) == 3
 
     async def test_restore_soft_deleted_deal(
@@ -281,9 +277,7 @@ class TestDealSoftDelete:
         await deal_crud.remove(db_session, id=sample_deal.id)
 
         # Direct query without any soft-delete filter
-        result = await db_session.execute(
-            select(Deal).where(Deal.id == sample_deal.id)
-        )
+        result = await db_session.execute(select(Deal).where(Deal.id == sample_deal.id))
         row = result.scalar_one_or_none()
         assert row is not None
         assert row.is_deleted is True

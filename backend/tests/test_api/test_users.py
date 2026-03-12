@@ -55,7 +55,9 @@ async def test_list_users_pagination(client, db_session, admin_auth_headers, tes
 
 
 @pytest.mark.asyncio
-async def test_list_users_filter_by_role(client, db_session, admin_auth_headers, admin_user):
+async def test_list_users_filter_by_role(
+    client, db_session, admin_auth_headers, admin_user
+):
     """Test filtering users by role."""
     response = await client.get(
         "/api/v1/users/",
@@ -93,7 +95,9 @@ async def test_list_users_filter_by_department(
 
 
 @pytest.mark.asyncio
-async def test_list_users_filter_active(client, db_session, admin_auth_headers, admin_user):
+async def test_list_users_filter_active(
+    client, db_session, admin_auth_headers, admin_user
+):
     """Test filtering users by active status."""
     response = await client.get(
         "/api/v1/users/",

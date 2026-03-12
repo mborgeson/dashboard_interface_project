@@ -191,9 +191,7 @@ async def test_get_filtered_by_type_and_property(db_session, sample_transactions
 @pytest.mark.asyncio
 async def test_get_filtered_by_category(db_session, sample_transactions):
     """Filter by category."""
-    results = await txn_crud.get_filtered(
-        db_session, category="Purchase"
-    )
+    results = await txn_crud.get_filtered(db_session, category="Purchase")
     assert len(results) == 2
 
 
@@ -220,7 +218,9 @@ async def test_get_summary(db_session, sample_transactions):
     summary = await txn_crud.get_summary(db_session)
 
     assert summary["transaction_count"] == 4
-    assert summary["total_acquisitions"] == Decimal("8500000.00") + Decimal("12000000.00")
+    assert summary["total_acquisitions"] == Decimal("8500000.00") + Decimal(
+        "12000000.00"
+    )
     assert summary["total_capital_improvements"] == Decimal("250000.00")
     assert summary["total_distributions"] == Decimal("75000.00")
     assert summary["total_dispositions"] == Decimal("0")
@@ -268,7 +268,9 @@ async def test_soft_delete_nonexistent(db_session):
 
 
 @pytest.mark.asyncio
-async def test_soft_deleted_excluded_from_property_query(db_session, sample_transactions):
+async def test_soft_deleted_excluded_from_property_query(
+    db_session, sample_transactions
+):
     """Soft-deleted transactions should be excluded from get_by_property."""
     txn = sample_transactions[0]
     await txn_crud.soft_delete(db_session, id=txn.id)

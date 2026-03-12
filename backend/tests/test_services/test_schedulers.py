@@ -99,13 +99,16 @@ class TestInterestRateScheduler:
         mock_cron_mod = MagicMock()
         mock_cron_mod.CronTrigger = mock_cron_cls
 
-        with patch.dict("sys.modules", {
-            "apscheduler": MagicMock(),
-            "apscheduler.schedulers": MagicMock(),
-            "apscheduler.schedulers.asyncio": mock_async_mod,
-            "apscheduler.triggers": MagicMock(),
-            "apscheduler.triggers.cron": mock_cron_mod,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "apscheduler": MagicMock(),
+                "apscheduler.schedulers": MagicMock(),
+                "apscheduler.schedulers.asyncio": mock_async_mod,
+                "apscheduler.triggers": MagicMock(),
+                "apscheduler.triggers.cron": mock_cron_mod,
+            },
+        ):
             sched = InterestRateScheduler(app_settings=self._make_settings())
             await sched.start()
 
@@ -116,8 +119,7 @@ class TestInterestRateScheduler:
         # Two jobs: AM and PM
         assert mock_scheduler_instance.add_job.call_count == 2
         job_ids = [
-            call.kwargs["id"]
-            for call in mock_scheduler_instance.add_job.call_args_list
+            call.kwargs["id"] for call in mock_scheduler_instance.add_job.call_args_list
         ]
         assert "interest_rate_am" in job_ids
         assert "interest_rate_pm" in job_ids
@@ -128,16 +130,21 @@ class TestInterestRateScheduler:
 
         mock_scheduler_instance = MagicMock()
         mock_async_mod = MagicMock()
-        mock_async_mod.AsyncIOScheduler = MagicMock(return_value=mock_scheduler_instance)
+        mock_async_mod.AsyncIOScheduler = MagicMock(
+            return_value=mock_scheduler_instance
+        )
         mock_cron_mod = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "apscheduler": MagicMock(),
-            "apscheduler.schedulers": MagicMock(),
-            "apscheduler.schedulers.asyncio": mock_async_mod,
-            "apscheduler.triggers": MagicMock(),
-            "apscheduler.triggers.cron": mock_cron_mod,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "apscheduler": MagicMock(),
+                "apscheduler.schedulers": MagicMock(),
+                "apscheduler.schedulers.asyncio": mock_async_mod,
+                "apscheduler.triggers": MagicMock(),
+                "apscheduler.triggers.cron": mock_cron_mod,
+            },
+        ):
             sched = InterestRateScheduler(app_settings=self._make_settings())
             await sched.start()
             await sched.stop()
@@ -240,16 +247,21 @@ class TestMarketDataScheduler:
 
         mock_scheduler_instance = MagicMock()
         mock_async_mod = MagicMock()
-        mock_async_mod.AsyncIOScheduler = MagicMock(return_value=mock_scheduler_instance)
+        mock_async_mod.AsyncIOScheduler = MagicMock(
+            return_value=mock_scheduler_instance
+        )
         mock_cron_mod = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "apscheduler": MagicMock(),
-            "apscheduler.schedulers": MagicMock(),
-            "apscheduler.schedulers.asyncio": mock_async_mod,
-            "apscheduler.triggers": MagicMock(),
-            "apscheduler.triggers.cron": mock_cron_mod,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "apscheduler": MagicMock(),
+                "apscheduler.schedulers": MagicMock(),
+                "apscheduler.schedulers.asyncio": mock_async_mod,
+                "apscheduler.triggers": MagicMock(),
+                "apscheduler.triggers.cron": mock_cron_mod,
+            },
+        ):
             sched = MarketDataScheduler(app_settings=self._make_settings())
             await sched.start()
 
@@ -259,8 +271,7 @@ class TestMarketDataScheduler:
         # Three jobs: FRED, CoStar, Census
         assert mock_scheduler_instance.add_job.call_count == 3
         job_ids = [
-            call.kwargs["id"]
-            for call in mock_scheduler_instance.add_job.call_args_list
+            call.kwargs["id"] for call in mock_scheduler_instance.add_job.call_args_list
         ]
         assert "market_fred_daily" in job_ids
         assert "market_costar_monthly" in job_ids
@@ -272,16 +283,21 @@ class TestMarketDataScheduler:
 
         mock_scheduler_instance = MagicMock()
         mock_async_mod = MagicMock()
-        mock_async_mod.AsyncIOScheduler = MagicMock(return_value=mock_scheduler_instance)
+        mock_async_mod.AsyncIOScheduler = MagicMock(
+            return_value=mock_scheduler_instance
+        )
         mock_cron_mod = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "apscheduler": MagicMock(),
-            "apscheduler.schedulers": MagicMock(),
-            "apscheduler.schedulers.asyncio": mock_async_mod,
-            "apscheduler.triggers": MagicMock(),
-            "apscheduler.triggers.cron": mock_cron_mod,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "apscheduler": MagicMock(),
+                "apscheduler.schedulers": MagicMock(),
+                "apscheduler.schedulers.asyncio": mock_async_mod,
+                "apscheduler.triggers": MagicMock(),
+                "apscheduler.triggers.cron": mock_cron_mod,
+            },
+        ):
             sched = MarketDataScheduler(app_settings=self._make_settings())
             await sched.start()
             await sched.stop()
@@ -391,9 +407,7 @@ class TestExtractionScheduler:
 
         sched = ExtractionScheduler()
 
-        with patch(
-            "app.services.extraction.scheduler.AsyncIOScheduler"
-        ) as mock_cls:
+        with patch("app.services.extraction.scheduler.AsyncIOScheduler") as mock_cls:
             mock_instance = MagicMock()
             mock_cls.return_value = mock_instance
             await sched.initialize(

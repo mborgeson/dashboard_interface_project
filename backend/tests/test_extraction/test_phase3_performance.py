@@ -71,9 +71,7 @@ def sync_db_session() -> Generator[Session, None, None]:
 class TestParallelExtraction:
     """Tests for parallel Excel extraction via ThreadPoolExecutor."""
 
-    def test_parallel_extraction_produces_same_results(
-        self, sync_db_session: Session
-    ):
+    def test_parallel_extraction_produces_same_results(self, sync_db_session: Session):
         """Parallel extraction should produce identical results to sequential."""
         run = ExtractionRunCRUD.create(sync_db_session, trigger_type="manual")
 
@@ -111,15 +109,19 @@ class TestParallelExtraction:
             )
 
         # Verify all 3 properties were processed (2 fields each = 6 values)
-        values = sync_db_session.execute(
-            select(ExtractedValue).where(
-                ExtractedValue.extraction_run_id == run.id
+        values = (
+            sync_db_session.execute(
+                select(ExtractedValue).where(ExtractedValue.extraction_run_id == run.id)
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         property_names = {v.property_name for v in values}
         assert len(property_names) == 3
-        assert len(values) == 9  # 3 files × 3 fields each (PROPERTY_NAME, FIELD_A, FIELD_B)
+        assert (
+            len(values) == 9
+        )  # 3 files × 3 fields each (PROPERTY_NAME, FIELD_A, FIELD_B)
 
         # Verify run completed
         updated_run = ExtractionRunCRUD.get(sync_db_session, run.id)

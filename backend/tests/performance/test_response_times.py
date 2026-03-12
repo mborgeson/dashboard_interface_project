@@ -213,8 +213,7 @@ class TestDealResponseTimes:
 
         assert response.status_code == 200
         assert elapsed < DEALS_THRESHOLD_S, (
-            f"GET /api/v1/deals took {elapsed:.3f}s, "
-            f"threshold is {DEALS_THRESHOLD_S}s"
+            f"GET /api/v1/deals took {elapsed:.3f}s, threshold is {DEALS_THRESHOLD_S}s"
         )
 
     async def test_deals_list_large_page_under_threshold(

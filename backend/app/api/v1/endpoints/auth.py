@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.security import (
     create_access_token,
     create_refresh_token,
+    decode_refresh_token,
     decode_token,
 )
 from app.core.token_blacklist import token_blacklist
@@ -186,7 +187,7 @@ async def refresh_token(request: RefreshTokenRequest):
 
     - **refresh_token**: Valid refresh token
     """
-    payload = decode_token(request.refresh_token)
+    payload = decode_refresh_token(request.refresh_token)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

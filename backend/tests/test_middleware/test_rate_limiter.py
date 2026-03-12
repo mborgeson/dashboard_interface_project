@@ -209,9 +209,7 @@ class TestRedisRateLimitBackend:
         mock_redis = AsyncMock()
         mock_pipe = AsyncMock()
         # zcard returns requests count == limit, so next request is denied
-        mock_pipe.execute = AsyncMock(
-            return_value=[0, rate_config.requests, 1, True]
-        )
+        mock_pipe.execute = AsyncMock(return_value=[0, rate_config.requests, 1, True])
         mock_redis.pipeline = MagicMock(return_value=mock_pipe)
         # Mock zrem for removing the rejected member
         mock_redis.zrem = AsyncMock()

@@ -43,9 +43,7 @@ _SYNC_URL: str | None = os.environ.get("TEST_DATABASE_URL")
 
 # Convert ``postgresql://`` to ``postgresql+asyncpg://`` for the async engine.
 _ASYNC_URL: str | None = (
-    _SYNC_URL.replace("postgresql://", "postgresql+asyncpg://")
-    if _SYNC_URL
-    else None
+    _SYNC_URL.replace("postgresql://", "postgresql+asyncpg://") if _SYNC_URL else None
 )
 
 # Guard: skip all PG tests when no database is configured.

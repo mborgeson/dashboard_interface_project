@@ -91,9 +91,7 @@ class TestCRUDPropertyActivity:
     @pytest.mark.asyncio
     async def test_get_by_property_empty(self, db_session):
         """get_by_property returns empty list for unknown property."""
-        results = await property_activity.get_by_property(
-            db_session, property_id=99999
-        )
+        results = await property_activity.get_by_property(db_session, property_id=99999)
         assert results == []
 
     @pytest.mark.asyncio
@@ -181,9 +179,7 @@ class TestCRUDPropertyActivity:
     @pytest.mark.asyncio
     async def test_count_by_property_zero(self, db_session):
         """count_by_property returns 0 for unknown property."""
-        count = await property_activity.count_by_property(
-            db_session, property_id=99999
-        )
+        count = await property_activity.count_by_property(db_session, property_id=99999)
         assert count == 0
 
     @pytest.mark.asyncio
@@ -206,7 +202,9 @@ class TestCRUDPropertyActivity:
         assert act.user_agent == "TestAgent/1.0"
 
     @pytest.mark.asyncio
-    async def test_log_view_optional_metadata(self, db_session, test_property, test_user):
+    async def test_log_view_optional_metadata(
+        self, db_session, test_property, test_user
+    ):
         """log_view works without optional ip_address and user_agent."""
         act = await property_activity.log_view(
             db_session,
@@ -265,9 +263,7 @@ class TestCRUDDealActivity:
     ):
         """get_by_deal returns activities for the given deal."""
         await _seed_deal_activities(3)
-        results = await deal_activity.get_by_deal(
-            db_session, deal_id=test_deal.id
-        )
+        results = await deal_activity.get_by_deal(db_session, deal_id=test_deal.id)
         assert len(results) == 3
         for act in results:
             assert act.deal_id == test_deal.id
@@ -323,9 +319,7 @@ class TestCRUDDealActivity:
     async def test_count_by_deal(self, db_session, test_deal, _seed_deal_activities):
         """count_by_deal returns correct count."""
         await _seed_deal_activities(4)
-        count = await deal_activity.count_by_deal(
-            db_session, deal_id=test_deal.id
-        )
+        count = await deal_activity.count_by_deal(db_session, deal_id=test_deal.id)
         assert count == 4
 
     @pytest.mark.asyncio
@@ -397,23 +391,17 @@ class TestCRUDWatchlist:
                 db_session, user_id=test_user.id, deal_id=deal.id
             )
 
-        results = await watchlist.get_by_user(
-            db_session, user_id=test_user.id
-        )
+        results = await watchlist.get_by_user(db_session, user_id=test_user.id)
         assert len(results) == 3
 
     @pytest.mark.asyncio
     async def test_get_by_user_empty(self, db_session, test_user):
         """get_by_user returns empty list when no deals are watched."""
-        results = await watchlist.get_by_user(
-            db_session, user_id=test_user.id
-        )
+        results = await watchlist.get_by_user(db_session, user_id=test_user.id)
         assert results == []
 
     @pytest.mark.asyncio
-    async def test_get_by_user_pagination(
-        self, db_session, test_user, multiple_deals
-    ):
+    async def test_get_by_user_pagination(self, db_session, test_user, multiple_deals):
         """get_by_user supports skip and limit."""
         for deal in multiple_deals:
             await watchlist.add_to_watchlist(
@@ -529,9 +517,12 @@ class TestCRUDWatchlist:
         assert is_watched_2 is False
 
         # Confirm gone
-        assert await watchlist.is_watching(
-            db_session, user_id=test_user.id, deal_id=test_deal.id
-        ) is False
+        assert (
+            await watchlist.is_watching(
+                db_session, user_id=test_user.id, deal_id=test_deal.id
+            )
+            is False
+        )
 
     @pytest.mark.asyncio
     async def test_toggle_watchlist_with_notes(self, db_session, test_user, test_deal):
@@ -553,17 +544,13 @@ class TestCRUDWatchlist:
                 db_session, user_id=test_user.id, deal_id=deal.id
             )
 
-        count = await watchlist.count_by_user(
-            db_session, user_id=test_user.id
-        )
+        count = await watchlist.count_by_user(db_session, user_id=test_user.id)
         assert count == 3
 
     @pytest.mark.asyncio
     async def test_count_by_user_zero(self, db_session, test_user):
         """count_by_user returns 0 when no deals are watched."""
-        count = await watchlist.count_by_user(
-            db_session, user_id=test_user.id
-        )
+        count = await watchlist.count_by_user(db_session, user_id=test_user.id)
         assert count == 0
 
     @pytest.mark.asyncio
@@ -576,11 +563,12 @@ class TestCRUDWatchlist:
         )
 
         # Admin user should not see it
-        assert await watchlist.is_watching(
-            db_session, user_id=admin_user.id, deal_id=test_deal.id
-        ) is False
-
-        admin_count = await watchlist.count_by_user(
-            db_session, user_id=admin_user.id
+        assert (
+            await watchlist.is_watching(
+                db_session, user_id=admin_user.id, deal_id=test_deal.id
+            )
+            is False
         )
+
+        admin_count = await watchlist.count_by_user(db_session, user_id=admin_user.id)
         assert admin_count == 0

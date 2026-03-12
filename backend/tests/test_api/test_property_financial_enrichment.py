@@ -59,8 +59,11 @@ def _make_extracted_value(
         "property_id": property_id,
         "property_name": property_name,
         "field_name": field_name,
-        "value_numeric": Decimal(str(value_numeric)) if value_numeric is not None else None,
-        "value_text": value_text or (str(value_numeric) if value_numeric is not None else None),
+        "value_numeric": Decimal(str(value_numeric))
+        if value_numeric is not None
+        else None,
+        "value_text": value_text
+        or (str(value_numeric) if value_numeric is not None else None),
         "is_error": False,
     }
 

@@ -19,6 +19,7 @@ REQUEST_ID_HEADER = "X-Request-ID"
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _is_valid_uuid4(value: str) -> bool:
     """Return True if *value* is a valid UUID-4 string."""
     try:

@@ -106,9 +106,7 @@ async def test_different_users_same_month(db_session: AsyncSession):
     await db_session.commit()
 
     result = await db_session.execute(
-        select(ReminderDismissal).where(
-            ReminderDismissal.dismissed_month == "2026-02"
-        )
+        select(ReminderDismissal).where(ReminderDismissal.dismissed_month == "2026-02")
     )
     dismissals = result.scalars().all()
     assert len(dismissals) == 2

@@ -166,10 +166,10 @@ async def get_market_data_status(
         status = await scheduler.get_status()
         return status
     except Exception as exc:
-        logger.error("market_data_status_error", error=str(exc))
+        logger.error(f"market_data_status_error: {exc}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to retrieve market data status: {exc}",
+            detail="Failed to retrieve market data status. Check server logs for details.",
         ) from exc
 
 
@@ -201,8 +201,8 @@ async def refresh_materialized_views(
             "triggered_by": current_user.email,
         }
     except Exception as exc:
-        logger.error("materialized_view_refresh_error", error=str(exc))
+        logger.error(f"materialized_view_refresh_error: {exc}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to refresh materialized views: {exc}",
+            detail="Failed to refresh materialized views. Check server logs for details.",
         ) from exc

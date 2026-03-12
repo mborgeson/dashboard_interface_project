@@ -202,9 +202,7 @@ class TestDealResponseBodies:
     """Verify deal API responses have expected fields and values."""
 
     @pytest.mark.asyncio
-    async def test_get_deal_has_all_core_fields(
-        self, client, test_deal, auth_headers
-    ):
+    async def test_get_deal_has_all_core_fields(self, client, test_deal, auth_headers):
         """GET /deals/{id} returns all core deal fields."""
         response = await client.get(
             f"/api/v1/deals/{test_deal.id}", headers=auth_headers
@@ -219,9 +217,7 @@ class TestDealResponseBodies:
         assert data["priority"] == "high"
 
     @pytest.mark.asyncio
-    async def test_get_deal_financial_fields(
-        self, client, test_deal, auth_headers
-    ):
+    async def test_get_deal_financial_fields(self, client, test_deal, auth_headers):
         """GET /deals/{id} returns financial projections."""
         response = await client.get(
             f"/api/v1/deals/{test_deal.id}", headers=auth_headers
@@ -235,9 +231,7 @@ class TestDealResponseBodies:
         assert float(data["asking_price"]) > 0
 
     @pytest.mark.asyncio
-    async def test_get_deal_projection_fields(
-        self, client, test_deal, auth_headers
-    ):
+    async def test_get_deal_projection_fields(self, client, test_deal, auth_headers):
         """GET /deals/{id} returns IRR, CoC, equity multiple."""
         response = await client.get(
             f"/api/v1/deals/{test_deal.id}", headers=auth_headers
@@ -254,9 +248,7 @@ class TestDealResponseBodies:
         self, client, multiple_deals, auth_headers
     ):
         """GET /deals/ list items have expected fields."""
-        response = await client.get(
-            "/api/v1/deals/", headers=auth_headers
-        )
+        response = await client.get("/api/v1/deals/", headers=auth_headers)
         data = response.json()
         assert len(data["items"]) >= 1
 
@@ -269,9 +261,7 @@ class TestDealResponseBodies:
         self, client, multiple_deals, auth_headers
     ):
         """GET /deals/ pagination fields have correct types."""
-        response = await client.get(
-            "/api/v1/deals/", headers=auth_headers
-        )
+        response = await client.get("/api/v1/deals/", headers=auth_headers)
         data = response.json()
 
         assert isinstance(data["items"], list)
@@ -305,13 +295,9 @@ class TestDealResponseBodies:
         assert data["priority"] == "medium"
 
     @pytest.mark.asyncio
-    async def test_kanban_board_structure(
-        self, client, multiple_deals, auth_headers
-    ):
+    async def test_kanban_board_structure(self, client, multiple_deals, auth_headers):
         """GET /deals/kanban response has complete structure."""
-        response = await client.get(
-            "/api/v1/deals/kanban", headers=auth_headers
-        )
+        response = await client.get("/api/v1/deals/kanban", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
 
@@ -369,9 +355,7 @@ class TestDocumentResponseBodies:
     """Verify document API responses have expected fields and values."""
 
     @pytest.mark.asyncio
-    async def test_get_document_all_fields(
-        self, client, db_session, auth_headers
-    ):
+    async def test_get_document_all_fields(self, client, db_session, auth_headers):
         """GET /documents/{id} returns all document fields."""
         doc = await _create_doc(db_session)
         response = await client.get(
@@ -550,9 +534,7 @@ class TestErrorResponseBodies:
     """Verify error responses have proper structure."""
 
     @pytest.mark.asyncio
-    async def test_404_has_detail_field(
-        self, client, auth_headers
-    ):
+    async def test_404_has_detail_field(self, client, auth_headers):
         """404 responses include a 'detail' field."""
         response = await client.get(
             "/api/v1/properties/99999",
@@ -568,9 +550,7 @@ class TestErrorResponseBodies:
     @pytest.mark.asyncio
     async def test_401_has_detail_field(self, client):
         """401 responses include a 'detail' field."""
-        response = await client.get(
-            "/api/v1/properties/", follow_redirects=True
-        )
+        response = await client.get("/api/v1/properties/", follow_redirects=True)
         assert response.status_code == 401
         data = response.json()
         assert "detail" in data
@@ -594,9 +574,7 @@ class TestErrorResponseBodies:
     @pytest.mark.asyncio
     async def test_deal_not_found_message(self, client, auth_headers):
         """Deal 404 includes descriptive message."""
-        response = await client.get(
-            "/api/v1/deals/999999", headers=auth_headers
-        )
+        response = await client.get("/api/v1/deals/999999", headers=auth_headers)
         assert response.status_code == 404
         data = response.json()
         assert "not found" in data["detail"].lower()

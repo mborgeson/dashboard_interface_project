@@ -159,9 +159,7 @@ class TestCRUDReportTemplate:
         db_session.add(t)
         await db_session.flush()
 
-        results = await template_crud.get_by_category(
-            db_session, ReportCategory.MARKET
-        )
+        results = await template_crud.get_by_category(db_session, ReportCategory.MARKET)
         assert len(results) == 0
 
     @pytest.mark.asyncio
@@ -200,9 +198,7 @@ class TestCRUDReportTemplate:
         await _create_template(db_session, "Default", is_default=True)
         await _create_template(db_session, "Custom", is_default=False)
 
-        defaults = await template_crud.get_filtered(
-            db_session, is_default=True
-        )
+        defaults = await template_crud.get_filtered(db_session, is_default=True)
         assert len(defaults) == 1
         assert defaults[0].is_default is True
 
@@ -216,9 +212,7 @@ class TestCRUDReportTemplate:
             db_session, "Quarterly Market", description="Market data"
         )
 
-        results = await template_crud.get_filtered(
-            db_session, search="executive"
-        )
+        results = await template_crud.get_filtered(db_session, search="executive")
         assert len(results) == 1
         assert "Executive" in results[0].name
 
@@ -291,9 +285,7 @@ class TestCRUDQueuedReport:
             format="pdf",
             requested_by="analyst@test.com",
         )
-        report = await queued_crud.create_with_timestamp(
-            db_session, obj_in=obj_in
-        )
+        report = await queued_crud.create_with_timestamp(db_session, obj_in=obj_in)
 
         assert report.id is not None
         assert report.status == ReportStatus.PENDING
@@ -304,27 +296,19 @@ class TestCRUDQueuedReport:
     async def test_get_by_status(self, db_session):
         """get_by_status returns reports matching the status."""
         template = await _create_template(db_session)
-        await _create_queued_report(
-            db_session, template.id, "R1", ReportStatus.PENDING
-        )
+        await _create_queued_report(db_session, template.id, "R1", ReportStatus.PENDING)
         await _create_queued_report(
             db_session, template.id, "R2", ReportStatus.COMPLETED
         )
-        await _create_queued_report(
-            db_session, template.id, "R3", ReportStatus.PENDING
-        )
+        await _create_queued_report(db_session, template.id, "R3", ReportStatus.PENDING)
 
-        pending = await queued_crud.get_by_status(
-            db_session, ReportStatus.PENDING
-        )
+        pending = await queued_crud.get_by_status(db_session, ReportStatus.PENDING)
         assert len(pending) == 2
 
     @pytest.mark.asyncio
     async def test_get_by_status_empty(self, db_session):
         """get_by_status returns empty list for unused status."""
-        results = await queued_crud.get_by_status(
-            db_session, ReportStatus.FAILED
-        )
+        results = await queued_crud.get_by_status(db_session, ReportStatus.FAILED)
         assert results == []
 
     @pytest.mark.asyncio
@@ -332,9 +316,7 @@ class TestCRUDQueuedReport:
         """get_recent returns limited number of recent reports."""
         template = await _create_template(db_session)
         for i in range(5):
-            await _create_queued_report(
-                db_session, template.id, f"Report {i}"
-            )
+            await _create_queued_report(db_session, template.id, f"Report {i}")
 
         recent = await queued_crud.get_recent(db_session, limit=3)
         assert len(recent) == 3
@@ -406,9 +388,7 @@ class TestCRUDQueuedReport:
     async def test_get_filtered_by_status(self, db_session):
         """get_filtered filters by status."""
         template = await _create_template(db_session)
-        await _create_queued_report(
-            db_session, template.id, "A", ReportStatus.PENDING
-        )
+        await _create_queued_report(db_session, template.id, "A", ReportStatus.PENDING)
         await _create_queued_report(
             db_session, template.id, "B", ReportStatus.COMPLETED
         )
@@ -426,9 +406,7 @@ class TestCRUDQueuedReport:
         await _create_queued_report(db_session, t1.id, "R1")
         await _create_queued_report(db_session, t2.id, "R2")
 
-        results = await queued_crud.get_filtered(
-            db_session, template_id=t1.id
-        )
+        results = await queued_crud.get_filtered(db_session, template_id=t1.id)
         assert len(results) == 1
 
     @pytest.mark.asyncio
@@ -451,12 +429,8 @@ class TestCRUDQueuedReport:
     async def test_count_filtered(self, db_session):
         """count_filtered returns correct count with filters."""
         template = await _create_template(db_session)
-        await _create_queued_report(
-            db_session, template.id, "A", ReportStatus.PENDING
-        )
-        await _create_queued_report(
-            db_session, template.id, "B", ReportStatus.PENDING
-        )
+        await _create_queued_report(db_session, template.id, "A", ReportStatus.PENDING)
+        await _create_queued_report(db_session, template.id, "B", ReportStatus.PENDING)
         await _create_queued_report(
             db_session, template.id, "C", ReportStatus.COMPLETED
         )
@@ -472,9 +446,7 @@ class TestCRUDQueuedReport:
         assert conditions == []
 
     def test_build_conditions_status(self):
-        conditions = queued_crud._build_queued_conditions(
-            status=ReportStatus.PENDING
-        )
+        conditions = queued_crud._build_queued_conditions(status=ReportStatus.PENDING)
         assert len(conditions) == 1
 
     def test_build_conditions_template_id(self):
@@ -482,9 +454,7 @@ class TestCRUDQueuedReport:
         assert len(conditions) == 1
 
     def test_build_conditions_requested_by(self):
-        conditions = queued_crud._build_queued_conditions(
-            requested_by="user@test.com"
-        )
+        conditions = queued_crud._build_queued_conditions(requested_by="user@test.com")
         assert len(conditions) == 1
 
     def test_build_conditions_all(self):
@@ -644,7 +614,9 @@ class TestCRUDDistributionSchedule:
         assert updated.last_sent is not None
         # SQLite limitation (T-DEBT-023): strips timezone on round-trip.
         # See test_integration/test_pg_server_defaults.py for PG equivalent.
-        assert updated.next_scheduled.replace(tzinfo=None) == next_time.replace(tzinfo=None)
+        assert updated.next_scheduled.replace(tzinfo=None) == next_time.replace(
+            tzinfo=None
+        )
 
     @pytest.mark.asyncio
     async def test_update_last_sent_nonexistent(self, db_session):

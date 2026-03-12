@@ -67,7 +67,14 @@ async def test_health_status_has_all_check_keys(client):
     data = response.json()
 
     checks = data["checks"]
-    expected_keys = {"database", "redis", "sharepoint", "fred_api", "census_api", "disk_space"}
+    expected_keys = {
+        "database",
+        "redis",
+        "sharepoint",
+        "fred_api",
+        "census_api",
+        "disk_space",
+    }
     assert expected_keys == set(checks.keys())
 
 

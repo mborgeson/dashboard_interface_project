@@ -81,7 +81,7 @@ export function DealsPage() {
         </div>
 
         {/* Summary Stats Skeleton */}
-        <div className="grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="bg-white rounded-lg border border-neutral-200 shadow-card p-6">
               <div className="h-10 w-10 bg-neutral-200 animate-pulse rounded-lg mb-3" />
@@ -155,7 +155,7 @@ export function DealsPage() {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg border border-neutral-200 shadow-card p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="p-2 bg-blue-100 rounded-lg">
