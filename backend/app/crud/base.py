@@ -9,7 +9,6 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Generic, TypeVar
 
-from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -200,17 +199,21 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db_obj: ModelType,
         obj_in: UpdateSchemaType | dict[str, Any],
     ) -> ModelType:
-        """Update an existing record."""
-        obj_data = jsonable_encoder(db_obj)
+        """Update an existing record.
 
+        When ``obj_in`` is a Pydantic model, uses ``model_dump(exclude_unset=True)``
+        to obtain only the fields that were explicitly set by the caller,
+        avoiding the overhead of ``jsonable_encoder`` on the full DB object.
+        When ``obj_in`` is a plain dict, applies it directly.
+        """
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
             update_data = obj_in.model_dump(exclude_unset=True)
 
-        for field in obj_data:
-            if field in update_data:
-                setattr(db_obj, field, update_data[field])
+        for field, value in update_data.items():
+            if hasattr(db_obj, field):
+                setattr(db_obj, field, value)
 
         db.add(db_obj)
         await db.flush()

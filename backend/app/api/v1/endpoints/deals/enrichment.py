@@ -5,15 +5,13 @@ Shared utility functions that enrich deal response objects with data
 from the extraction pipeline (units, owner, IRR, cap rates, etc.).
 """
 
-import structlog
+from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import cache, make_cache_key
 from app.models.extraction import ExtractedValue, ExtractionRun
 from app.schemas.deal import DealResponse
-
-slog = structlog.get_logger("app.api.deals")
 
 # Extraction enrichment cache TTL: 30 minutes. Extraction data changes infrequently
 # (only on new extraction runs), so a longer TTL is safe. The key is based on the
@@ -138,17 +136,15 @@ async def enrich_deals_with_extraction(
 
     cached_lookup = await cache.get(cache_key)
     if cached_lookup is not None:
-        slog.debug(
-            "extraction_enrichment_cache_hit",
-            property_count=len(sorted_ids),
+        logger.debug(
+            f"extraction_enrichment_cache_hit property_count={len(sorted_ids)}"
         )
         lookup: dict[int, dict[str, dict[str, str | float | None]]] = {
             int(k): v for k, v in cached_lookup.items()
         }
     else:
-        slog.debug(
-            "extraction_enrichment_cache_miss",
-            property_count=len(sorted_ids),
+        logger.debug(
+            f"extraction_enrichment_cache_miss property_count={len(sorted_ids)}"
         )
         lookup = await _fetch_extraction_lookup(db, prop_ids)
         # Store serializable version in cache
@@ -169,7 +165,7 @@ async def invalidate_extraction_enrichment_cache() -> int:
     """
     count = await cache.invalidate_pattern(EXTRACTION_CACHE_PREFIX)
     if count:
-        slog.info("extraction_enrichment_cache_invalidated", keys_cleared=count)
+        logger.info(f"extraction_enrichment_cache_invalidated keys_cleared={count}")
     return count
 
 
@@ -182,10 +178,11 @@ async def _fetch_extraction_lookup(
         ``{property_id: {field_name: {value_numeric, value_text}}}``
     """
     # Subquery: latest completed extraction_run_id per property_id
+    # V-05: Use max(id) instead of max(completed_at) for monotonic, unambiguous tie-breaking
     latest_run_subq = (
         select(
             ExtractedValue.property_id,
-            func.max(ExtractionRun.completed_at).label("max_completed"),
+            func.max(ExtractionRun.id).label("max_run_id"),
         )
         .join(ExtractionRun, ExtractedValue.extraction_run_id == ExtractionRun.id)
         .where(
@@ -202,7 +199,7 @@ async def _fetch_extraction_lookup(
         .join(
             latest_run_subq,
             (ExtractedValue.property_id == latest_run_subq.c.property_id)
-            & (ExtractionRun.completed_at == latest_run_subq.c.max_completed),
+            & (ExtractionRun.id == latest_run_subq.c.max_run_id),
         )
         .where(
             ExtractedValue.property_id.in_(prop_ids),

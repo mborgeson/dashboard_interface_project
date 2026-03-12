@@ -10,6 +10,7 @@ from app.core.file_validation import validate_upload
 from app.core.permissions import require_analyst, require_manager, require_viewer
 from app.crud.crud_document import document as document_crud
 from app.db.session import get_db
+from app.models.document import Document
 from app.schemas.document import (
     DocumentCreate,
     DocumentListResponse,
@@ -20,6 +21,17 @@ from app.schemas.document import (
 )
 
 router = APIRouter(dependencies=[Depends(require_viewer)])
+
+# ── V-01: Sort column allowlist ──────────────────────────────────────────────
+_SORTABLE_COLUMNS = {
+    "name": Document.name,
+    "type": Document.type,
+    "size": Document.size,
+    "uploaded_at": Document.uploaded_at,
+    "uploaded_by": Document.uploaded_by,
+    "created_at": Document.created_at,
+    "updated_at": Document.updated_at,
+}
 
 
 @router.get(
@@ -39,8 +51,8 @@ async def list_documents(
     property_id: int | None = None,
     search: str | None = None,
     date_range: str | None = Query(None, pattern="^(all|7days|30days|90days|1year)$"),
-    sort_by: str | None = "uploaded_at",
-    sort_order: str = "desc",
+    sort_by: str = Query("uploaded_at"),
+    sort_order: str = Query("desc"),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -56,8 +68,18 @@ async def list_documents(
         sort_by: Field to sort by
         sort_order: Sort direction (asc/desc)
     """
+    if sort_by not in _SORTABLE_COLUMNS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid sort_by. Valid options: {list(_SORTABLE_COLUMNS.keys())}",
+        )
+    if sort_order not in ("asc", "desc"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid sort_order. Must be 'asc' or 'desc'.",
+        )
     skip = (page - 1) * page_size
-    order_desc = sort_order.lower() == "desc"
+    order_desc = sort_order == "desc"
 
     # Get filtered documents from database
     items = await document_crud.get_filtered(

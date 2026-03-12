@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.permissions import require_manager, require_viewer
 from app.crud.crud_transaction import transaction as transaction_crud
 from app.db.session import get_db
+from app.models.transaction import Transaction
 from app.schemas.transaction import (
     TransactionCreate,
     TransactionListResponse,
@@ -22,6 +23,17 @@ from app.schemas.transaction import (
 # Read endpoints use require_viewer (router default).
 # Write endpoints (create, update, delete, restore) override with require_manager.
 router = APIRouter(dependencies=[Depends(require_viewer)])
+
+# ── V-01: Sort column allowlist ──────────────────────────────────────────────
+_SORTABLE_COLUMNS = {
+    "date": Transaction.date,
+    "type": Transaction.type,
+    "category": Transaction.category,
+    "amount": Transaction.amount,
+    "property_name": Transaction.property_name,
+    "created_at": Transaction.created_at,
+    "updated_at": Transaction.updated_at,
+}
 
 
 @router.get(
@@ -42,8 +54,8 @@ async def list_transactions(
     category: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
-    sort_by: str | None = "date",
-    sort_order: str = "desc",
+    sort_by: str = Query("date"),
+    sort_order: str = Query("desc"),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -55,8 +67,18 @@ async def list_transactions(
     - category: Transaction category
     - date_from/date_to: Date range filter
     """
+    if sort_by not in _SORTABLE_COLUMNS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid sort_by. Valid options: {list(_SORTABLE_COLUMNS.keys())}",
+        )
+    if sort_order not in ("asc", "desc"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid sort_order. Must be 'asc' or 'desc'.",
+        )
     skip = (page - 1) * page_size
-    order_desc = sort_order.lower() == "desc"
+    order_desc = sort_order == "desc"
 
     # Get filtered transactions from database
     items = await transaction_crud.get_filtered(

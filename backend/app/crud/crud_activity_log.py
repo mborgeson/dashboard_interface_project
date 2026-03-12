@@ -2,10 +2,9 @@
 CRUD operations for ActivityLog model.
 """
 
-from collections import defaultdict
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -192,8 +191,9 @@ class CRUDActivityLog(CRUDBase[ActivityLog, ActivityLogCreate, ActivityLogCreate
         """
         Batch-fetch the most recent activities for multiple deals.
 
-        Uses a single query with a window function to get the N most recent
-        activities per deal efficiently.
+        Uses a SQL window function (ROW_NUMBER) to get the N most recent
+        activities per deal directly in the database, avoiding loading
+        all rows and filtering in Python.
 
         Returns:
             Dict mapping deal_id -> list of ActivityLog (newest first)
@@ -201,25 +201,43 @@ class CRUDActivityLog(CRUDBase[ActivityLog, ActivityLogCreate, ActivityLogCreate
         if not deal_ids:
             return {}
 
-        # Fetch recent activities for all requested deals, ordered by recency
-        query = (
-            select(ActivityLog)
+        # Use ROW_NUMBER() OVER (PARTITION BY deal_id ORDER BY created_at DESC)
+        # to rank activities per deal, then filter to only the top N
+        row_num = (
+            func.row_number()
+            .over(
+                partition_by=ActivityLog.deal_id,
+                order_by=ActivityLog.created_at.desc(),
+            )
+            .label("rn")
+        )
+
+        subquery = (
+            select(ActivityLog.id, row_num)
             .where(
                 ActivityLog.deal_id.in_(deal_ids),
                 ActivityLog.is_deleted.is_(False),
             )
+            .subquery()
+        )
+
+        # Join back to ActivityLog to get full objects, filtered by row number
+        query = (
+            select(ActivityLog)
+            .join(subquery, ActivityLog.id == subquery.c.id)
+            .where(subquery.c.rn <= limit_per_deal)
             .order_by(ActivityLog.deal_id, ActivityLog.created_at.desc())
         )
+
         result = await db.execute(query)
         rows = list(result.scalars().all())
 
-        # Group by deal_id and limit per deal
-        grouped: dict[int, list[ActivityLog]] = defaultdict(list)
+        # Group by deal_id (already limited by SQL)
+        grouped: dict[int, list[ActivityLog]] = {}
         for row in rows:
-            if len(grouped[row.deal_id]) < limit_per_deal:
-                grouped[row.deal_id].append(row)
+            grouped.setdefault(row.deal_id, []).append(row)
 
-        return dict(grouped)
+        return grouped
 
     async def log_update(
         self,

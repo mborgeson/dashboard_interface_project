@@ -4,7 +4,7 @@ CRUD operations for Deal model.
 
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -145,36 +145,96 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         deal_type: str | None = None,
         assigned_user_id: int | None = None,
         include_deleted: bool = False,
+        limit_per_stage: int | None = None,
     ) -> dict[str, Any]:
-        """Get deals organized by stage for Kanban board."""
-        query = select(Deal)
-        query = self._apply_soft_delete_filter(query, include_deleted=include_deleted)
+        """Get deals organized by stage for Kanban board.
 
+        Uses SQL-level counting and optional per-stage row limiting via
+        a window function to avoid fetching every deal in the database.
+
+        Args:
+            db: Async database session.
+            deal_type: Optional filter for deal type.
+            assigned_user_id: Optional filter for assigned user.
+            include_deleted: Whether to include soft-deleted deals.
+            limit_per_stage: Optional max deals to return per stage.
+                When None, all deals are returned (backward-compatible).
+        """
+        # ── Build shared filter conditions ──
+        conditions: list[Any] = []
         if deal_type:
-            query = query.where(Deal.deal_type == deal_type)
-
+            conditions.append(Deal.deal_type == deal_type)
         if assigned_user_id:
-            query = query.where(Deal.assigned_user_id == assigned_user_id)
+            conditions.append(Deal.assigned_user_id == assigned_user_id)
 
-        query = query.order_by(Deal.stage_order.asc())
-        result = await db.execute(query)
+        # ── Step 1: Get per-stage counts in a single GROUP BY query ──
+        count_query = select(Deal.stage, func.count().label("cnt")).group_by(Deal.stage)
+        count_query = self._apply_soft_delete_filter(
+            count_query, include_deleted=include_deleted
+        )
+        for cond in conditions:
+            count_query = count_query.where(cond)
+
+        count_result = await db.execute(count_query)
+        stage_counts: dict[str, int] = {stage.value: 0 for stage in DealStage}
+        total_deals = 0
+        for row in count_result:
+            stage_value = (
+                row.stage.value if hasattr(row.stage, "value") else str(row.stage)
+            )
+            if stage_value in stage_counts:
+                stage_counts[stage_value] = row.cnt
+                total_deals += row.cnt
+
+        # ── Step 2: Fetch deals with optional per-stage limit ──
+        if limit_per_stage is not None:
+            # Use ROW_NUMBER to limit deals per stage
+            row_num = (
+                func.row_number()
+                .over(
+                    partition_by=Deal.stage,
+                    order_by=Deal.stage_order.asc(),
+                )
+                .label("rn")
+            )
+            inner_query = select(Deal.id, row_num)
+            inner_query = self._apply_soft_delete_filter(
+                inner_query, include_deleted=include_deleted
+            )
+            for cond in conditions:
+                inner_query = inner_query.where(cond)
+            subquery = inner_query.subquery()
+
+            deal_query = (
+                select(Deal)
+                .join(subquery, Deal.id == subquery.c.id)
+                .where(subquery.c.rn <= limit_per_stage)
+                .order_by(Deal.stage, Deal.stage_order.asc())
+            )
+        else:
+            deal_query = select(Deal)
+            deal_query = self._apply_soft_delete_filter(
+                deal_query, include_deleted=include_deleted
+            )
+            for cond in conditions:
+                deal_query = deal_query.where(cond)
+            deal_query = deal_query.order_by(Deal.stage, Deal.stage_order.asc())
+
+        result = await db.execute(deal_query)
         deals = list(result.scalars().all())
 
         # Group by stage
         stages: dict[str, list[Deal]] = {stage.value: [] for stage in DealStage}
-        stage_counts: dict[str, int] = {stage.value: 0 for stage in DealStage}
-
         for deal in deals:
             stage_value = (
                 deal.stage.value if hasattr(deal.stage, "value") else str(deal.stage)
             )
             if stage_value in stages:
                 stages[stage_value].append(deal)
-                stage_counts[stage_value] += 1
 
         return {
             "stages": stages,
-            "total_deals": len(deals),
+            "total_deals": total_deals,
             "stage_counts": stage_counts,
         }
 

@@ -27,7 +27,8 @@ from app.api.v1.endpoints import (
     ws,
 )
 
-api_router = APIRouter()
+# V-06: redirect_slashes=False prevents 307 redirects when clients omit trailing slash
+api_router = APIRouter(redirect_slashes=False)
 
 
 # Health check endpoint (legacy - use /health/status for detailed checks)
@@ -57,6 +58,8 @@ api_router.include_router(documents.router, prefix="/documents", tags=["document
 api_router.include_router(market_data.router, prefix="/market", tags=["market-data"])
 api_router.include_router(reporting.router, prefix="/reporting", tags=["reporting"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+# A-06: market_data_admin.router already has prefix="/admin/market-data" and
+# tags=["Admin - Market Data"] set on the router itself — no prefix here.
 api_router.include_router(market_data_admin.router)
 api_router.include_router(
     sales_analysis.router, prefix="/sales-analysis", tags=["sales-analysis"]

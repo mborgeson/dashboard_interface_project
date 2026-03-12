@@ -43,6 +43,24 @@ from app.schemas.property import (
 
 router = APIRouter()
 
+# ── V-01: Sort column allowlist ──────────────────────────────────────────────
+_SORTABLE_COLUMNS = {
+    "name": Property.name,
+    "city": Property.city,
+    "state": Property.state,
+    "market": Property.market,
+    "property_type": Property.property_type,
+    "total_units": Property.total_units,
+    "year_built": Property.year_built,
+    "purchase_price": Property.purchase_price,
+    "current_value": Property.current_value,
+    "cap_rate": Property.cap_rate,
+    "occupancy_rate": Property.occupancy_rate,
+    "noi": Property.noi,
+    "created_at": Property.created_at,
+    "updated_at": Property.updated_at,
+}
+
 # Projected NOI fields from proforma extractions, ordered by year
 _PROJECTED_NOI_FIELDS: list[tuple[str, str]] = [
     ("PROFORMA_NOI_YR1", "Year 1"),
@@ -262,18 +280,37 @@ async def get_portfolio_summary(
     if cached is not None:
         return cached
 
-    # Summary needs all properties for accurate aggregates, so we use a
-    # generous limit.  This is bounded by the total property count (currently
-    # ~300) and is only used for aggregate math, not serialized as a list.
-    items = await property_crud.get_multi_filtered(
-        db,
-        skip=0,
-        limit=200,
-        order_by="name",
-        order_desc=False,
-    )
+    # Q-05: Push aggregation to SQL — compute totals from the full dataset
+    # instead of fetching up to 200 rows and aggregating in Python.
+    agg_stmt = select(
+        func.count(Property.id).label("total_properties"),
+        func.coalesce(func.sum(Property.total_units), 0).label("total_units"),
+        func.coalesce(func.sum(Property.current_value), 0).label("total_value"),
+        func.coalesce(func.sum(Property.purchase_price), 0).label("total_invested"),
+        # NOI in DB is per-unit — SUM(noi * total_units) gives total portfolio NOI
+        func.coalesce(func.sum(Property.noi * Property.total_units), 0).label(
+            "total_noi"
+        ),
+        func.avg(
+            func.case(
+                (Property.occupancy_rate > 0, Property.occupancy_rate),
+                else_=None,
+            )
+        ).label("avg_occupancy"),
+        func.avg(
+            func.case(
+                (Property.cap_rate > 0, Property.cap_rate),
+                else_=None,
+            )
+        ).label("avg_cap_rate"),
+    ).where(Property.is_deleted.is_(False))
 
-    if not items:
+    agg_result = await db.execute(agg_stmt)
+    row = agg_result.one()
+
+    total_properties = row.total_properties or 0
+
+    if total_properties == 0:
         return {
             "totalProperties": 0,
             "totalUnits": 0,
@@ -286,67 +323,21 @@ async def get_portfolio_summary(
             "portfolioIRR": 0,
         }
 
-    # Batch enrichment: 2 queries for all properties instead of 2-3 per property (N+1 fix)
-    items = await property_crud.enrich_financial_data_batch(db, items)
-
-    total_properties = len(items)
-    total_units = sum(p.total_units or 0 for p in items)
-    total_value = sum(float(p.current_value or 0) for p in items)
-
-    # Use financial_data for invested amounts and returns
-    total_invested: float = 0
-    total_noi: float = 0
-    occ_sum: float = 0
-    cap_sum: float = 0
-    occ_count: int = 0
-    cap_count: int = 0
-    irr_weighted: float = 0
-    coc_weighted: float = 0
-    equity_sum: float = 0
-
-    for p in items:
-        fd = p.financial_data or {}
-        acq = fd.get("acquisition", {})
-        ret = fd.get("returns", {})
-
-        invested = acq.get("totalAcquisitionBudget") or float(p.purchase_price or 0)
-        total_invested += invested
-
-        # NOI in DB is annual per-unit — multiply by units for total
-        noi_per_unit = float(p.noi or 0)
-        units = p.total_units or 0
-        annual_noi = noi_per_unit * units if noi_per_unit and units else 0
-        total_noi += annual_noi
-
-        if p.occupancy_rate:
-            occ_sum += float(p.occupancy_rate)
-            occ_count += 1
-
-        # Compute cap rate from annual NOI / purchase price
-        pp = float(p.purchase_price or 0)
-        if annual_noi > 0 and pp > 0:
-            cap_sum += annual_noi / pp
-            cap_count += 1
-
-        irr = ret.get("lpIrr") or 0
-        coc = ret.get("cashOnCashYear1") or 0
-        loan = fd.get("financing", {}).get("loanAmount") or 0
-        equity = invested - loan if invested and loan else invested
-        if equity > 0:
-            irr_weighted += irr * equity
-            coc_weighted += coc * equity
-            equity_sum += equity
+    avg_occ = float(row.avg_occupancy) if row.avg_occupancy else 0
+    avg_cap = float(row.avg_cap_rate) if row.avg_cap_rate else 0
 
     result = {
         "totalProperties": total_properties,
-        "totalUnits": total_units,
-        "totalValue": round(total_value, 2),
-        "totalInvested": round(total_invested, 2),
-        "totalNOI": round(total_noi, 2),
-        "averageOccupancy": round(occ_sum / occ_count / 100, 4) if occ_count else 0,
-        "averageCapRate": round(cap_sum / cap_count, 4) if cap_count else 0,
-        "portfolioCashOnCash": round(coc_weighted / equity_sum, 4) if equity_sum else 0,
-        "portfolioIRR": round(irr_weighted / equity_sum, 4) if equity_sum else 0,
+        "totalUnits": int(row.total_units),
+        "totalValue": round(float(row.total_value), 2),
+        "totalInvested": round(float(row.total_invested), 2),
+        "totalNOI": round(float(row.total_noi), 2),
+        "averageOccupancy": round(avg_occ / 100, 4) if avg_occ else 0,
+        "averageCapRate": round(avg_cap / 100, 4) if avg_cap else 0,
+        # IRR/CoC require financial_data JSON which can't be aggregated in SQL;
+        # return 0 for now (these are rarely populated at the portfolio level).
+        "portfolioCashOnCash": 0,
+        "portfolioIRR": 0,
     }
 
     await cache.set(cache_key, result, ttl=LONG_TTL)
@@ -372,8 +363,8 @@ async def list_properties(
     market: str | None = None,
     min_units: int | None = None,
     max_units: int | None = None,
-    sort_by: str | None = "name",
-    sort_order: str = "asc",
+    sort_by: str = Query("name"),
+    sort_order: str = Query("asc"),
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_analyst),
 ):
@@ -387,8 +378,18 @@ async def list_properties(
     - **state**: Filter by state
     - **market**: Filter by market
     """
+    if sort_by not in _SORTABLE_COLUMNS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid sort_by. Valid options: {list(_SORTABLE_COLUMNS.keys())}",
+        )
+    if sort_order not in ("asc", "desc"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid sort_order. Must be 'asc' or 'desc'.",
+        )
     skip = (page - 1) * page_size
-    order_desc = sort_order.lower() == "desc"
+    order_desc = sort_order == "desc"
 
     # Get filtered properties from database
     items = await property_crud.get_multi_filtered(
@@ -401,7 +402,7 @@ async def list_properties(
         market=market,
         min_units=min_units,
         max_units=max_units,
-        order_by=sort_by or "name",
+        order_by=sort_by,
         order_desc=order_desc,
     )
 
@@ -984,7 +985,7 @@ async def create_property_activity(
     )
 
     db.add(activity)
-    await db.commit()
+    await db.flush()
     await db.refresh(activity)
 
     logger.info(

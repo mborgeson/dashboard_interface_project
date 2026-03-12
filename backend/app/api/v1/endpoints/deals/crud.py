@@ -2,14 +2,15 @@
 Deal CRUD endpoints — list, get, create, update, delete, restore.
 """
 
-import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import cache
 from app.core.permissions import CurrentUser, require_analyst, require_manager
 from app.crud import deal as deal_crud
 from app.db.session import get_db
+from app.models.deal import Deal
 from app.schemas.deal import (
     DealCreate,
     DealCursorPaginatedResponse,
@@ -23,7 +24,17 @@ from app.services import get_websocket_manager
 from .enrichment import enrich_deals_with_extraction
 
 router = APIRouter()
-slog = structlog.get_logger("app.api.deals")
+
+_SORTABLE_COLUMNS = {
+    "name": Deal.name,
+    "stage": Deal.stage,
+    "deal_type": Deal.deal_type,
+    "priority": Deal.priority,
+    "asking_price": Deal.asking_price,
+    "deal_score": Deal.deal_score,
+    "created_at": Deal.created_at,
+    "updated_at": Deal.updated_at,
+}
 
 
 @router.get(
@@ -44,16 +55,26 @@ async def list_deals(
     deal_type: str | None = None,
     priority: str | None = None,
     assigned_user_id: int | None = None,
-    sort_by: str | None = "created_at",
-    sort_order: str = "desc",
+    sort_by: str = Query("created_at"),
+    sort_order: str = Query("desc"),
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     List all deals with filtering and pagination.
     """
+    if sort_by not in _SORTABLE_COLUMNS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid sort_by. Valid options: {list(_SORTABLE_COLUMNS.keys())}",
+        )
+    if sort_order not in ("asc", "desc"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid sort_order. Must be 'asc' or 'desc'.",
+        )
     skip = (page - 1) * page_size
-    order_desc = sort_order.lower() == "desc"
+    order_desc = sort_order == "desc"
 
     # Get filtered deals from database
     items = await deal_crud.get_multi_filtered(
@@ -226,12 +247,9 @@ async def create_deal(
         data={"id": new_deal.id, "name": new_deal.name},
     )
 
-    slog.info(
-        "deal_created",
-        deal_id=new_deal.id,
-        deal_name=new_deal.name,
-        user_id=current_user.id,
-        user_email=current_user.email,
+    logger.info(
+        f"deal_created deal_id={new_deal.id} deal_name={new_deal.name} "
+        f"user_id={current_user.id} user_email={current_user.email}"
     )
 
     await cache.invalidate_deals()
@@ -303,12 +321,9 @@ async def patch_deal(
         data={"id": updated_deal.id, "name": updated_deal.name},
     )
 
-    slog.info(
-        "deal_updated",
-        deal_id=deal_id,
-        user_id=current_user.id,
-        user_email=current_user.email,
-        fields_changed=list(update_data.keys()),
+    logger.info(
+        f"deal_updated deal_id={deal_id} user_id={current_user.id} "
+        f"user_email={current_user.email} fields_changed={list(update_data.keys())}"
     )
 
     await cache.invalidate_deals()
@@ -383,11 +398,9 @@ async def delete_deal(
         data={"id": deal_id},
     )
 
-    slog.info(
-        "deal_deleted",
-        deal_id=deal_id,
-        user_id=current_user.id,
-        user_email=current_user.email,
+    logger.info(
+        f"deal_deleted deal_id={deal_id} user_id={current_user.id} "
+        f"user_email={current_user.email}"
     )
     await cache.invalidate_deals()
     return None
@@ -444,11 +457,8 @@ async def restore_deal(
         data={"id": deal_id, "name": restored.name},
     )
 
-    slog.info(
-        "deal_restored",
-        deal_id=deal_id,
-        deal_name=restored.name,
-        user_id=current_user.id,
-        user_email=current_user.email,
+    logger.info(
+        f"deal_restored deal_id={deal_id} deal_name={restored.name} "
+        f"user_id={current_user.id} user_email={current_user.email}"
     )
     return DealResponse.model_validate(restored)

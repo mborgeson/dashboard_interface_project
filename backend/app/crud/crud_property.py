@@ -302,33 +302,24 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
         self,
         db: AsyncSession,
     ) -> dict[str, Any]:
-        """Get aggregate analytics for all properties."""
-        # Total count
-        count_result = await db.execute(select(func.count()).select_from(Property))
-        total_count = count_result.scalar() or 0
-
-        # Sum of units
-        units_result = await db.execute(select(func.sum(Property.total_units)))
-        total_units = units_result.scalar() or 0
-
-        # Sum of square feet
-        sf_result = await db.execute(select(func.sum(Property.total_sf)))
-        total_sf = sf_result.scalar() or 0
-
-        # Average cap rate
-        cap_result = await db.execute(select(func.avg(Property.cap_rate)))
-        avg_cap_rate = cap_result.scalar()
-
-        # Average occupancy
-        occ_result = await db.execute(select(func.avg(Property.occupancy_rate)))
-        avg_occupancy = occ_result.scalar()
+        """Get aggregate analytics for all properties in a single query."""
+        result = await db.execute(
+            select(
+                func.count().label("total_count"),
+                func.coalesce(func.sum(Property.total_units), 0).label("total_units"),
+                func.coalesce(func.sum(Property.total_sf), 0).label("total_sf"),
+                func.avg(Property.cap_rate).label("avg_cap_rate"),
+                func.avg(Property.occupancy_rate).label("avg_occupancy"),
+            ).select_from(Property)
+        )
+        row = result.one()
 
         return {
-            "total_properties": total_count,
-            "total_units": total_units,
-            "total_sf": total_sf,
-            "avg_cap_rate": float(avg_cap_rate) if avg_cap_rate else None,
-            "avg_occupancy": float(avg_occupancy) if avg_occupancy else None,
+            "total_properties": row.total_count or 0,
+            "total_units": row.total_units or 0,
+            "total_sf": row.total_sf or 0,
+            "avg_cap_rate": float(row.avg_cap_rate) if row.avg_cap_rate else None,
+            "avg_occupancy": float(row.avg_occupancy) if row.avg_occupancy else None,
         }
 
     async def get_markets(

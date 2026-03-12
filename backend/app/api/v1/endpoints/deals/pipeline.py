@@ -2,8 +2,8 @@
 Deal pipeline/Kanban board endpoints — stage management and board view.
 """
 
-import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import cache
@@ -23,7 +23,6 @@ from app.services import get_websocket_manager
 from .enrichment import enrich_deals_with_extraction
 
 router = APIRouter()
-slog = structlog.get_logger("app.api.deals")
 
 
 @router.get(
@@ -157,13 +156,11 @@ async def update_deal_stage(
         },
     )
 
-    slog.info(
-        "deal_stage_changed",
-        deal_id=deal_id,
-        old_stage=old_stage.value if hasattr(old_stage, "value") else str(old_stage),
-        new_stage=stage_data.stage,
-        user_id=current_user.id,
-        user_email=current_user.email,
+    old_stage_val = old_stage.value if hasattr(old_stage, "value") else str(old_stage)
+    logger.info(
+        f"deal_stage_changed deal_id={deal_id} old_stage={old_stage_val} "
+        f"new_stage={stage_data.stage} user_id={current_user.id} "
+        f"user_email={current_user.email}"
     )
 
     await cache.invalidate_deals()

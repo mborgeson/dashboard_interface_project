@@ -13,8 +13,8 @@ Deferred to a future sprint as it requires careful integration testing.
 
 from datetime import UTC, datetime
 
-import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import CurrentUser, get_current_user
@@ -30,7 +30,6 @@ from app.schemas.deal import DealResponse
 from .enrichment import enrich_deals_with_extraction
 
 router = APIRouter()
-slog = structlog.get_logger("app.api.deals")
 
 
 @router.get(
@@ -208,13 +207,9 @@ async def compare_deals(
     add_mc("Deal Score", "deal_score")
     add_mc("Unlevered IRR", "unlevered_irr")
 
-    slog.info(
-        "deals_compared",
-        user_email=current_user.email,
-        user_id=current_user.id,
-        deal_ids=deal_ids,
-        deal_count=len(deal_ids),
-        overall_recommendation=overall_rec,
+    logger.info(
+        f"deals_compared user_email={current_user.email} user_id={current_user.id} "
+        f"deal_ids={deal_ids} deal_count={len(deal_ids)} overall_recommendation={overall_rec}"
     )
 
     return DealComparisonResponse(

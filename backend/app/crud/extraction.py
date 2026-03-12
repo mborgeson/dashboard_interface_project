@@ -8,13 +8,14 @@ Provides database operations for:
 """
 
 import contextlib
+from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
 import numpy as np
-import structlog
+from loguru import logger
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
@@ -22,8 +23,6 @@ from sqlalchemy.orm import Session
 from app.models.deal import Deal, DealStage
 from app.models.extraction import ExtractedValue, ExtractionRun
 from app.models.property import Property
-
-logger = structlog.get_logger(__name__)
 
 # Extraction runs older than this are considered stale/crashed
 STALE_RUN_TIMEOUT_MINUTES = 30
@@ -400,7 +399,7 @@ def sync_extracted_to_properties(
     stages = property_stages or {}
 
     # Get distinct property names from this run that have NULL property_id
-    unlinked = (
+    unlinked: list[str] = list(
         db.execute(
             select(func.distinct(ExtractedValue.property_name)).where(
                 and_(
@@ -413,58 +412,89 @@ def sync_extracted_to_properties(
         .all()
     )
 
+    if not unlinked:
+        # Still need to handle stage updates even if nothing is unlinked
+        stages_updated = _batch_update_deal_stages(db, stages)
+        db.commit()
+        return {
+            "properties_created": 0,
+            "deals_created": 0,
+            "properties_linked": 0,
+            "stages_updated": stages_updated,
+        }
+
+    # ── Pre-fetch all existing properties in bulk ──
+    # Build OR conditions for all unlinked names
+    name_conditions = []
+    for prop_name in unlinked:
+        name_conditions.append(func.lower(Property.name) == func.lower(prop_name))
+        name_conditions.append(
+            func.lower(Property.name).like(func.lower(prop_name) + " (%")
+        )
+
+    existing_props_rows = db.execute(
+        select(Property.id, Property.name).where(or_(*name_conditions))
+    ).all()
+
+    # Build a lookup: lowercase-name -> property_id (for exact and prefix match)
+    existing_lookup: dict[str, int] = {}
+    for pid, pname in existing_props_rows:
+        existing_lookup[pname.lower()] = pid
+
+    # ── Pre-fetch all extracted field values for unlinked properties in bulk ──
+    _SYNC_FIELDS = [
+        "PROPERTY_NAME",
+        "PROPERTY_CITY",
+        "PROPERTY_STATE",
+        "PROPERTY_ZIP",
+        "TOTAL_UNITS",
+        "UNITS",
+        "PURCHASE_PRICE",
+        "YEAR_BUILT",
+        "MARKET",
+        "SUBMARKET",
+        "TOTAL_SF",
+        "PROPERTY_TYPE",
+    ]
+
+    bulk_field_rows = db.execute(
+        select(
+            ExtractedValue.property_name,
+            ExtractedValue.field_name,
+            ExtractedValue.value_text,
+            ExtractedValue.value_numeric,
+        ).where(
+            and_(
+                ExtractedValue.extraction_run_id == extraction_run_id,
+                ExtractedValue.property_name.in_(unlinked),
+                ExtractedValue.field_name.in_(_SYNC_FIELDS),
+            )
+        )
+    ).all()
+
+    # Group field values by property name
+    fields_by_prop: dict[str, dict[str, Any]] = defaultdict(dict)
+    for pname, fname, vtext, vnumeric in bulk_field_rows:
+        fields_by_prop[pname][fname] = vnumeric if vnumeric is not None else vtext
+
     created_properties = 0
     created_deals = 0
     linked = 0
 
     for prop_name in unlinked:
-        # Try prefix match against existing properties
-        existing = db.execute(
-            select(Property.id)
-            .where(
-                or_(
-                    func.lower(Property.name) == func.lower(prop_name),
-                    func.lower(Property.name).like(func.lower(prop_name) + " (%"),
-                )
-            )
-            .limit(1)
-        ).scalar_one_or_none()
+        # Try to find existing property via the pre-fetched lookup
+        prop_id: int | None = None
+        prop_name_lower = prop_name.lower()
+        for existing_name_lower, existing_pid in existing_lookup.items():
+            if existing_name_lower == prop_name_lower or existing_name_lower.startswith(
+                f"{prop_name_lower} ("
+            ):
+                prop_id = existing_pid
+                break
 
-        if existing:
-            prop_id = existing
-        else:
-            # Gather field values from this extraction run
-            fields = {}
-            rows = db.execute(
-                select(
-                    ExtractedValue.field_name,
-                    ExtractedValue.value_text,
-                    ExtractedValue.value_numeric,
-                ).where(
-                    and_(
-                        ExtractedValue.extraction_run_id == extraction_run_id,
-                        ExtractedValue.property_name == prop_name,
-                        ExtractedValue.field_name.in_(
-                            [
-                                "PROPERTY_NAME",
-                                "PROPERTY_CITY",
-                                "PROPERTY_STATE",
-                                "PROPERTY_ZIP",
-                                "TOTAL_UNITS",
-                                "UNITS",
-                                "PURCHASE_PRICE",
-                                "YEAR_BUILT",
-                                "MARKET",
-                                "SUBMARKET",
-                                "TOTAL_SF",
-                                "PROPERTY_TYPE",
-                            ]
-                        ),
-                    )
-                )
-            ).all()
-            for fname, vtext, vnumeric in rows:
-                fields[fname] = vnumeric if vnumeric is not None else vtext
+        if prop_id is None:
+            # Create new Property + Deal using pre-fetched fields
+            fields = fields_by_prop.get(prop_name, {})
 
             city = str(fields.get("PROPERTY_CITY", "")) or "Unknown"
             state = str(fields.get("PROPERTY_STATE", "")) or "AZ"
@@ -543,32 +573,7 @@ def sync_extracted_to_properties(
         linked += 1
 
     # Update deal stages for ALL properties with known stages (not just unlinked)
-    stages_updated = 0
-    if stages:
-        for prop_name, stage_str in stages.items():
-            try:
-                target_stage = DealStage(stage_str)
-            except ValueError:
-                continue
-
-            # Find deals matching this property name (exact or prefix)
-            matched_deals = (
-                db.execute(
-                    select(Deal).where(
-                        or_(
-                            func.lower(Deal.name) == func.lower(prop_name),
-                            func.lower(Deal.name).like(func.lower(prop_name) + " (%"),
-                        )
-                    )
-                )
-                .scalars()
-                .all()
-            )
-
-            for deal in matched_deals:
-                if deal.stage != target_stage:
-                    deal.stage = target_stage
-                    stages_updated += 1
+    stages_updated = _batch_update_deal_stages(db, stages)
 
     db.commit()
 
@@ -578,6 +583,56 @@ def sync_extracted_to_properties(
         "properties_linked": linked,
         "stages_updated": stages_updated,
     }
+
+
+def _batch_update_deal_stages(db: Session, stages: dict[str, str]) -> int:
+    """Batch-update deal stages from a property_name -> stage_str mapping.
+
+    Pre-fetches all matching deals in a single query instead of one query
+    per property name.
+
+    Returns the number of deals whose stage was changed.
+    """
+    if not stages:
+        return 0
+
+    # Validate stage values and filter to valid ones
+    valid_stages: dict[str, DealStage] = {}
+    for prop_name, stage_str in stages.items():
+        try:
+            valid_stages[prop_name] = DealStage(stage_str)
+        except ValueError:
+            continue
+
+    if not valid_stages:
+        return 0
+
+    # Build OR conditions for all property names at once
+    name_conditions = []
+    for prop_name in valid_stages:
+        name_conditions.append(func.lower(Deal.name) == func.lower(prop_name))
+        name_conditions.append(
+            func.lower(Deal.name).like(func.lower(prop_name) + " (%")
+        )
+
+    all_deals = list(
+        db.execute(select(Deal).where(or_(*name_conditions))).scalars().all()
+    )
+
+    stages_updated = 0
+    for deal in all_deals:
+        deal_name_lower = deal.name.lower() if deal.name else ""
+        for prop_name, target_stage in valid_stages.items():
+            prop_lower = prop_name.lower()
+            if deal_name_lower == prop_lower or deal_name_lower.startswith(
+                f"{prop_lower} ("
+            ):
+                if deal.stage != target_stage:
+                    deal.stage = target_stage
+                    stages_updated += 1
+                break
+
+    return stages_updated
 
 
 # ── Field-name → property column mapping ────────────────────────────────────
@@ -625,6 +680,194 @@ _FINANCIAL_DATA_FIELDS: set[str] = {
 }
 
 
+def _safe_float(val: Any) -> float | None:
+    """Safely convert to float, returning None on failure."""
+    if val is None:
+        return None
+    try:
+        f = float(val)
+        if np.isnan(f) or np.isinf(f):
+            return None
+        return f
+    except (ValueError, TypeError):
+        return None
+
+
+def _dec(val: Any, places: int = 2) -> Decimal | None:
+    """Convert to Decimal for SQLAlchemy Numeric columns."""
+    f = _safe_float(val)
+    return Decimal(str(round(f, places))) if f is not None else None
+
+
+def _apply_hydration(
+    prop: Property, field_values: dict[str, float | str | None]
+) -> bool:
+    """Apply extracted field values to a Property, updating columns and
+    financial_data JSON. Returns True if any field was changed."""
+    changed = False
+
+    # Update direct columns
+    pp = _safe_float(field_values.get("PURCHASE_PRICE"))
+    if pp is not None and not prop.purchase_price:
+        prop.purchase_price = _dec(pp, 2)
+        changed = True
+
+    units_f = _safe_float(field_values.get("TOTAL_UNITS"))
+    if units_f is not None and units_f > 0 and not prop.total_units:
+        prop.total_units = int(units_f)
+        changed = True
+
+    # Fallback: derive units from financial_data purchasePrice / pricePerUnit
+    if not prop.total_units:
+        fd_acq = (prop.financial_data or {}).get("acquisition", {})
+        fd_pp = fd_acq.get("purchasePrice") or 0
+        fd_ppu = fd_acq.get("pricePerUnit") or 0
+        if fd_pp > 0 and fd_ppu > 0:
+            prop.total_units = round(fd_pp / fd_ppu)
+            changed = True
+
+    yb = _safe_float(field_values.get("YEAR_BUILT"))
+    if yb is not None and not prop.year_built:
+        prop.year_built = int(yb)
+        changed = True
+
+    sf = _safe_float(field_values.get("TOTAL_SF"))
+    if sf is not None and not prop.total_sf:
+        prop.total_sf = int(sf)
+        changed = True
+
+    cap = _safe_float(field_values.get("GOING_IN_CAP_RATE"))
+    if cap is not None and not prop.cap_rate:
+        prop.cap_rate = _dec(cap, 6)
+        changed = True
+
+    addr = field_values.get("PROPERTY_ADDRESS")
+    if addr and (not prop.address or prop.address == "TBD"):
+        prop.address = str(addr)
+        changed = True
+
+    # Compute and set NOI per unit
+    noi_total = _safe_float(field_values.get("NOI"))
+    noi_per_unit = _safe_float(field_values.get("NOI_PER_UNIT"))
+    if noi_per_unit and not prop.noi:
+        prop.noi = _dec(noi_per_unit, 2)
+        changed = True
+    elif noi_total and prop.total_units and not prop.noi:
+        prop.noi = _dec(noi_total / prop.total_units, 2)
+        changed = True
+
+    occ = _safe_float(field_values.get("OCCUPANCY_PERCENT"))
+    if occ and not prop.occupancy_rate:
+        prop.occupancy_rate = _dec(occ, 4)
+        changed = True
+
+    avg_rent = _safe_float(field_values.get("AVG_RENT_PER_UNIT"))
+    if avg_rent and not prop.avg_rent_per_unit:
+        prop.avg_rent_per_unit = _dec(avg_rent, 2)
+        changed = True
+
+    avg_rent_sf = _safe_float(field_values.get("AVG_RENT_PER_SF"))
+    if avg_rent_sf and not prop.avg_rent_per_sf:
+        prop.avg_rent_per_sf = _dec(avg_rent_sf, 4)
+        changed = True
+
+    # Set current_value to purchase_price if missing
+    if not prop.current_value and prop.purchase_price:
+        prop.current_value = prop.purchase_price
+        changed = True
+
+    # Build financial_data JSON
+    fd = dict(prop.financial_data) if prop.financial_data else {}
+    acq = fd.get("acquisition", {})
+    fin = fd.get("financing", {})
+    ret = fd.get("returns", {})
+    ops = fd.get("operations", {})
+
+    # Acquisition
+    if pp is not None and not acq.get("purchasePrice"):
+        acq["purchasePrice"] = round(pp, 2)
+    ppu = _safe_float(field_values.get("PRICE_PER_UNIT"))
+    if ppu is not None and not acq.get("pricePerUnit"):
+        acq["pricePerUnit"] = round(ppu, 2)
+    eq = _safe_float(field_values.get("EQUITY"))
+    if eq is not None:
+        acq["totalAcquisitionBudget"] = acq.get("totalAcquisitionBudget") or round(
+            pp or 0, 2
+        )
+
+    # Financing
+    la = _safe_float(field_values.get("LOAN_AMOUNT"))
+    if la is not None and not fin.get("loanAmount"):
+        fin["loanAmount"] = round(la, 2)
+    ltv = _safe_float(field_values.get("LOAN_TO_VALUE"))
+    if ltv is not None and not fin.get("ltv"):
+        fin["ltv"] = round(ltv, 4)
+    ir = _safe_float(field_values.get("INTEREST_RATE"))
+    if ir is not None and not fin.get("interestRate"):
+        fin["interestRate"] = round(ir, 6)
+    lt = _safe_float(field_values.get("LOAN_TERM"))
+    if lt is not None and not fin.get("loanTermMonths"):
+        fin["loanTermMonths"] = int(lt * 12) if lt < 40 else int(lt)
+    amort = _safe_float(field_values.get("AMORTIZATION"))
+    if amort is not None and not fin.get("amortizationMonths"):
+        fin["amortizationMonths"] = int(amort * 12) if amort < 50 else int(amort)
+    ds = _safe_float(field_values.get("DEBT_SERVICE_ANNUAL"))
+    if ds is not None and not fin.get("annualDebtService"):
+        fin["annualDebtService"] = round(ds, 2)
+
+    # Returns
+    lirr = _safe_float(field_values.get("LEVERED_RETURNS_IRR"))
+    if lirr is not None and not ret.get("leveredIrr"):
+        ret["leveredIrr"] = round(lirr, 6)
+        ret["lpIrr"] = round(lirr, 6)
+    lmoic = _safe_float(field_values.get("LEVERED_RETURNS_MOIC"))
+    if lmoic is not None and not ret.get("leveredMoic"):
+        ret["leveredMoic"] = round(lmoic, 4)
+        ret["lpMoic"] = round(lmoic, 4)
+    uirr = _safe_float(field_values.get("UNLEVERED_RETURNS_IRR"))
+    if uirr is not None and not ret.get("unleveredIrr"):
+        ret["unleveredIrr"] = round(uirr, 6)
+    umoic = _safe_float(field_values.get("UNLEVERED_RETURNS_MOIC"))
+    if umoic is not None and not ret.get("unleveredMoic"):
+        ret["unleveredMoic"] = round(umoic, 4)
+
+    # Operations
+    egi = _safe_float(field_values.get("EFFECTIVE_GROSS_INCOME"))
+    if egi is not None and not ops.get("totalRevenueYear1"):
+        ops["totalRevenueYear1"] = round(egi, 2)
+    nri = _safe_float(field_values.get("NET_RENTAL_INCOME"))
+    if nri is not None and not ops.get("netRentalIncomeYear1"):
+        ops["netRentalIncomeYear1"] = round(nri, 2)
+    noi_val = _safe_float(field_values.get("NOI"))
+    if noi_val is not None and not ops.get("noiYear1"):
+        ops["noiYear1"] = round(noi_val, 2)
+    tex = _safe_float(field_values.get("TOTAL_EXPENSES"))
+    if tex is not None and not ops.get("totalExpensesYear1"):
+        ops["totalExpensesYear1"] = round(tex, 2)
+    if occ is not None and not ops.get("occupancy"):
+        ops["occupancy"] = round(occ, 4)
+    if avg_rent is not None and not ops.get("avgRentPerUnit"):
+        ops["avgRentPerUnit"] = round(avg_rent, 2)
+    if avg_rent_sf is not None and not ops.get("avgRentPerSf"):
+        ops["avgRentPerSf"] = round(avg_rent_sf, 4)
+
+    new_fd: dict[str, Any] = {}
+    if acq:
+        new_fd["acquisition"] = acq
+    if fin:
+        new_fd["financing"] = fin
+    if ret:
+        new_fd["returns"] = ret
+    if ops:
+        new_fd["operations"] = ops
+
+    if new_fd and new_fd != (prop.financial_data or {}):
+        prop.financial_data = new_fd
+        changed = True
+
+    return changed
+
+
 def hydrate_properties_from_extracted(db: Session) -> dict[str, Any]:
     """
     Populate properties table columns and financial_data JSON from
@@ -633,244 +876,119 @@ def hydrate_properties_from_extracted(db: Session) -> dict[str, Any]:
     For each property, finds the most recent non-null extracted value
     per field_name and uses it to fill in missing data.
 
+    Uses bulk queries to avoid N+1: fetches all relevant extracted values
+    in a single query, then groups them by property_name in Python.
+
     Returns summary of updated records.
     """
     # Get all properties
-    all_props = db.execute(select(Property)).scalars().all()
-    updated = 0
+    all_props: list[Property] = list(db.execute(select(Property)).scalars().all())
+    if not all_props:
+        return {"total_properties": 0, "properties_updated": 0}
+
+    # Build name variants for all properties
+    # Map: variant (lowercase) -> list of Property objects
+    variant_to_props: dict[str, list[Property]] = defaultdict(list)
+    all_target_fields = list(_FINANCIAL_DATA_FIELDS) + list(_EXTRACTED_FIELD_MAP.keys())
 
     for prop in all_props:
-        # Build name variants for matching
-        short_name = prop.name.split("(")[0].strip() if prop.name else ""
-        name_variants = [prop.name]
+        if not prop.name:
+            continue
+        full_lower = prop.name.lower()
+        variant_to_props[full_lower].append(prop)
+        short_name = prop.name.split("(")[0].strip()
         if short_name and short_name != prop.name:
-            name_variants.append(short_name)
+            variant_to_props[short_name.lower()].append(prop)
 
-        # Query latest extracted values for this property
-        # Use the most recent value per field (by extraction_run started_at)
+    # ── Single bulk query for ALL extracted values across all properties ──
+    # Build OR conditions for all name variants
+    name_conditions = []
+    all_variant_names = list(variant_to_props.keys())
+    for variant in all_variant_names:
+        name_conditions.append(func.lower(ExtractedValue.property_name) == variant)
+        name_conditions.append(
+            func.lower(ExtractedValue.property_name).like(variant + " (%")
+        )
+
+    if not name_conditions:
+        return {"total_properties": len(all_props), "properties_updated": 0}
+
+    bulk_rows = db.execute(
+        select(
+            ExtractedValue.property_name,
+            ExtractedValue.field_name,
+            ExtractedValue.value_numeric,
+            ExtractedValue.value_text,
+        )
+        .where(
+            and_(
+                or_(*name_conditions),
+                ExtractedValue.is_error.is_(False),
+                ExtractedValue.field_name.in_(all_target_fields),
+            )
+        )
+        .order_by(
+            ExtractedValue.property_name,
+            ExtractedValue.field_name,
+            ExtractedValue.created_at.desc(),
+        )
+    ).all()
+
+    # Group extracted values by property_name (lowercase)
+    # Keep first occurrence per (property_name, field_name) since ordered by
+    # created_at DESC
+    values_by_ev_name: dict[str, dict[str, float | str | None]] = defaultdict(dict)
+    for ev_pname, ev_fname, ev_vnumeric, ev_vtext in bulk_rows:
+        ev_key = ev_pname.lower()
+        if ev_fname not in values_by_ev_name[ev_key]:
+            values_by_ev_name[ev_key] = values_by_ev_name.get(ev_key, {})
+            if ev_fname not in values_by_ev_name[ev_key]:
+                values_by_ev_name[ev_key][ev_fname] = (
+                    ev_vnumeric if ev_vnumeric is not None else ev_vtext
+                )
+
+    # Match extracted values back to properties
+    updated = 0
+    for prop in all_props:
+        if not prop.name:
+            continue
+
+        # Try full name first, then short name
+        full_lower = prop.name.lower()
+        short_name = prop.name.split("(")[0].strip().lower()
+
         field_values: dict[str, float | str | None] = {}
 
-        for variant in name_variants:
-            if not variant:
-                continue
-            rows = db.execute(
-                select(
-                    ExtractedValue.field_name,
-                    ExtractedValue.value_numeric,
-                    ExtractedValue.value_text,
-                )
-                .where(
-                    and_(
-                        or_(
-                            ExtractedValue.property_name == variant,
-                            ExtractedValue.property_name.like(variant + " (%"),
-                        ),
-                        ExtractedValue.is_error.is_(False),
-                        ExtractedValue.field_name.in_(
-                            list(_FINANCIAL_DATA_FIELDS)
-                            + list(_EXTRACTED_FIELD_MAP.keys())
-                        ),
-                    )
-                )
-                .order_by(
-                    ExtractedValue.field_name,
-                    ExtractedValue.created_at.desc(),
-                )
-            ).all()
-
-            for fname, vnumeric, vtext in rows:
-                if fname not in field_values:
-                    field_values[fname] = vnumeric if vnumeric is not None else vtext
-
-            if field_values:
-                break  # Found data with this variant
+        # Check direct match on full name
+        if full_lower in values_by_ev_name:
+            field_values = values_by_ev_name[full_lower]
+        elif short_name and short_name != full_lower:
+            # Check short name match
+            if short_name in values_by_ev_name:
+                field_values = values_by_ev_name[short_name]
+            else:
+                # Check prefix matches: any ev_name that starts with short_name + " ("
+                for ev_name, ev_fields in values_by_ev_name.items():
+                    if ev_name.startswith(f"{short_name} ("):
+                        field_values = ev_fields
+                        break
+        else:
+            # Check prefix matches for full name
+            for ev_name, ev_fields in values_by_ev_name.items():
+                if ev_name.startswith(f"{full_lower} ("):
+                    field_values = ev_fields
+                    break
 
         if not field_values:
             continue
 
-        def _safe_float(val: Any) -> float | None:
-            """Safely convert to float, returning None on failure."""
-            if val is None:
-                return None
-            try:
-                f = float(val)
-                if np.isnan(f) or np.isinf(f):
-                    return None
-                return f
-            except (ValueError, TypeError):
-                return None
-
-        def _dec(val: Any, places: int = 2) -> Decimal | None:
-            """Convert to Decimal for SQLAlchemy Numeric columns."""
-            f = _safe_float(val)
-            return Decimal(str(round(f, places))) if f is not None else None
-
-        changed = False
-
-        # Update direct columns
-        pp = _safe_float(field_values.get("PURCHASE_PRICE"))
-        if pp is not None and not prop.purchase_price:
-            prop.purchase_price = _dec(pp, 2)
-            changed = True
-
-        units_f = _safe_float(field_values.get("TOTAL_UNITS"))
-        if units_f is not None and units_f > 0 and not prop.total_units:
-            prop.total_units = int(units_f)
-            changed = True
-
-        # Fallback: derive units from financial_data purchasePrice / pricePerUnit
-        if not prop.total_units:
-            fd_acq = (prop.financial_data or {}).get("acquisition", {})
-            fd_pp = fd_acq.get("purchasePrice") or 0
-            fd_ppu = fd_acq.get("pricePerUnit") or 0
-            if fd_pp > 0 and fd_ppu > 0:
-                prop.total_units = round(fd_pp / fd_ppu)
-                changed = True
-
-        yb = _safe_float(field_values.get("YEAR_BUILT"))
-        if yb is not None and not prop.year_built:
-            prop.year_built = int(yb)
-            changed = True
-
-        sf = _safe_float(field_values.get("TOTAL_SF"))
-        if sf is not None and not prop.total_sf:
-            prop.total_sf = int(sf)
-            changed = True
-
-        cap = _safe_float(field_values.get("GOING_IN_CAP_RATE"))
-        if cap is not None and not prop.cap_rate:
-            prop.cap_rate = _dec(cap, 6)
-            changed = True
-
-        addr = field_values.get("PROPERTY_ADDRESS")
-        if addr and (not prop.address or prop.address == "TBD"):
-            prop.address = str(addr)
-            changed = True
-
-        # Compute and set NOI per unit
-        noi_total = _safe_float(field_values.get("NOI"))
-        noi_per_unit = _safe_float(field_values.get("NOI_PER_UNIT"))
-        if noi_per_unit and not prop.noi:
-            prop.noi = _dec(noi_per_unit, 2)
-            changed = True
-        elif noi_total and prop.total_units and not prop.noi:
-            prop.noi = _dec(noi_total / prop.total_units, 2)
-            changed = True
-
-        occ = _safe_float(field_values.get("OCCUPANCY_PERCENT"))
-        if occ and not prop.occupancy_rate:
-            prop.occupancy_rate = _dec(occ, 4)
-            changed = True
-
-        avg_rent = _safe_float(field_values.get("AVG_RENT_PER_UNIT"))
-        if avg_rent and not prop.avg_rent_per_unit:
-            prop.avg_rent_per_unit = _dec(avg_rent, 2)
-            changed = True
-
-        avg_rent_sf = _safe_float(field_values.get("AVG_RENT_PER_SF"))
-        if avg_rent_sf and not prop.avg_rent_per_sf:
-            prop.avg_rent_per_sf = _dec(avg_rent_sf, 4)
-            changed = True
-
-        # Set current_value to purchase_price if missing
-        if not prop.current_value and prop.purchase_price:
-            prop.current_value = prop.purchase_price
-            changed = True
-
-        # Build financial_data JSON
-        fd = dict(prop.financial_data) if prop.financial_data else {}
-        acq = fd.get("acquisition", {})
-        fin = fd.get("financing", {})
-        ret = fd.get("returns", {})
-        ops = fd.get("operations", {})
-
-        # Acquisition
-        if pp is not None and not acq.get("purchasePrice"):
-            acq["purchasePrice"] = round(pp, 2)
-        ppu = _safe_float(field_values.get("PRICE_PER_UNIT"))
-        if ppu is not None and not acq.get("pricePerUnit"):
-            acq["pricePerUnit"] = round(ppu, 2)
-        eq = _safe_float(field_values.get("EQUITY"))
-        if eq is not None:
-            acq["totalAcquisitionBudget"] = acq.get("totalAcquisitionBudget") or round(
-                pp or 0, 2
-            )
-
-        # Financing
-        la = _safe_float(field_values.get("LOAN_AMOUNT"))
-        if la is not None and not fin.get("loanAmount"):
-            fin["loanAmount"] = round(la, 2)
-        ltv = _safe_float(field_values.get("LOAN_TO_VALUE"))
-        if ltv is not None and not fin.get("ltv"):
-            fin["ltv"] = round(ltv, 4)
-        ir = _safe_float(field_values.get("INTEREST_RATE"))
-        if ir is not None and not fin.get("interestRate"):
-            fin["interestRate"] = round(ir, 6)
-        lt = _safe_float(field_values.get("LOAN_TERM"))
-        if lt is not None and not fin.get("loanTermMonths"):
-            fin["loanTermMonths"] = int(lt * 12) if lt < 40 else int(lt)
-        amort = _safe_float(field_values.get("AMORTIZATION"))
-        if amort is not None and not fin.get("amortizationMonths"):
-            fin["amortizationMonths"] = int(amort * 12) if amort < 50 else int(amort)
-        ds = _safe_float(field_values.get("DEBT_SERVICE_ANNUAL"))
-        if ds is not None and not fin.get("annualDebtService"):
-            fin["annualDebtService"] = round(ds, 2)
-
-        # Returns
-        lirr = _safe_float(field_values.get("LEVERED_RETURNS_IRR"))
-        if lirr is not None and not ret.get("leveredIrr"):
-            ret["leveredIrr"] = round(lirr, 6)
-            ret["lpIrr"] = round(lirr, 6)
-        lmoic = _safe_float(field_values.get("LEVERED_RETURNS_MOIC"))
-        if lmoic is not None and not ret.get("leveredMoic"):
-            ret["leveredMoic"] = round(lmoic, 4)
-            ret["lpMoic"] = round(lmoic, 4)
-        uirr = _safe_float(field_values.get("UNLEVERED_RETURNS_IRR"))
-        if uirr is not None and not ret.get("unleveredIrr"):
-            ret["unleveredIrr"] = round(uirr, 6)
-        umoic = _safe_float(field_values.get("UNLEVERED_RETURNS_MOIC"))
-        if umoic is not None and not ret.get("unleveredMoic"):
-            ret["unleveredMoic"] = round(umoic, 4)
-
-        # Operations
-        egi = _safe_float(field_values.get("EFFECTIVE_GROSS_INCOME"))
-        if egi is not None and not ops.get("totalRevenueYear1"):
-            ops["totalRevenueYear1"] = round(egi, 2)
-        nri = _safe_float(field_values.get("NET_RENTAL_INCOME"))
-        if nri is not None and not ops.get("netRentalIncomeYear1"):
-            ops["netRentalIncomeYear1"] = round(nri, 2)
-        noi_val = _safe_float(field_values.get("NOI"))
-        if noi_val is not None and not ops.get("noiYear1"):
-            ops["noiYear1"] = round(noi_val, 2)
-        tex = _safe_float(field_values.get("TOTAL_EXPENSES"))
-        if tex is not None and not ops.get("totalExpensesYear1"):
-            ops["totalExpensesYear1"] = round(tex, 2)
-        if occ is not None and not ops.get("occupancy"):
-            ops["occupancy"] = round(occ, 4)
-        if avg_rent is not None and not ops.get("avgRentPerUnit"):
-            ops["avgRentPerUnit"] = round(avg_rent, 2)
-        if avg_rent_sf is not None and not ops.get("avgRentPerSf"):
-            ops["avgRentPerSf"] = round(avg_rent_sf, 4)
-
-        new_fd = {}
-        if acq:
-            new_fd["acquisition"] = acq
-        if fin:
-            new_fd["financing"] = fin
-        if ret:
-            new_fd["returns"] = ret
-        if ops:
-            new_fd["operations"] = ops
-
-        if new_fd and new_fd != (prop.financial_data or {}):
-            prop.financial_data = new_fd
-            changed = True
-
-        if changed:
+        if _apply_hydration(prop, field_values):
             updated += 1
 
     db.commit()
-    logger.info("hydrate_properties_complete", updated=updated, total=len(all_props))
+    logger.info(
+        f"hydrate_properties_complete: updated={updated}, total={len(all_props)}"
+    )
 
     return {
         "total_properties": len(all_props),

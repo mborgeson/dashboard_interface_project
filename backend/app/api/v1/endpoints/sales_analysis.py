@@ -739,7 +739,7 @@ async def dismiss_reminder(
             dismissed_at=now,
         )
         db.add(dismissal)
-        await db.commit()
+        await db.flush()
 
     return {"dismissed": True, "month": month_key}
 

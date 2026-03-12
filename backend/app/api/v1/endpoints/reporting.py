@@ -198,7 +198,7 @@ async def delete_template(
 
     existing.soft_delete()
     db.add(existing)
-    await db.commit()
+    await db.flush()
 
     logger.info(f"Deleted report template: {template_id}")
     return None
@@ -388,6 +388,8 @@ async def get_queued_report(
     "by active status and template.",
 )
 async def list_schedules(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
     active_only: bool = Query(False, description="Show only active schedules"),
     template_id: int | None = None,
     db: AsyncSession = Depends(get_db),
@@ -399,12 +401,13 @@ async def list_schedules(
     - active_only: Show only active schedules
     - template_id: Filter to specific template
     """
+    skip = (page - 1) * page_size
     if template_id:
         items = await schedule_crud.get_by_template(db, template_id)
     elif active_only:
         items = await schedule_crud.get_active(db)
     else:
-        items = await schedule_crud.get_multi(db, skip=0, limit=100)
+        items = await schedule_crud.get_multi(db, skip=skip, limit=page_size)
 
     # Batch lookup template names to avoid N+1 queries
     sched_template_ids = list(
@@ -573,7 +576,7 @@ async def delete_schedule(
 
     existing.soft_delete()
     db.add(existing)
-    await db.commit()
+    await db.flush()
 
     logger.info(f"Deleted distribution schedule: {schedule_id}")
     return None
@@ -600,7 +603,7 @@ async def get_report_settings(
         # Auto-initialize default settings (model has server_defaults for all fields)
         settings = ReportSettings(id=1)
         db.add(settings)
-        await db.commit()
+        await db.flush()
         await db.refresh(settings)
         logger.info("Auto-initialized default report settings")
 
@@ -634,7 +637,7 @@ async def update_report_settings(
         setattr(settings, field, value)
 
     db.add(settings)
-    await db.commit()
+    await db.flush()
     await db.refresh(settings)
 
     logger.info(f"Updated report settings: {list(update_data.keys())}")
