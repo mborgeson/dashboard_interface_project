@@ -243,7 +243,7 @@ async def list_sales(
         if r.number_of_units and r.avg_unit_sf:
             nrsf = r.number_of_units * r.avg_unit_sf
             if r.sale_price and nrsf > 0:
-                price_per_nrsf = r.sale_price / nrsf
+                price_per_nrsf = float(r.sale_price) / nrsf
 
         records.append(
             SalesRecord(

@@ -124,7 +124,7 @@ class Property(Base, TimestampMixin, SoftDeleteMixin):
         nullable=True,
     )
     cap_rate: Mapped[Decimal | None] = mapped_column(
-        Numeric(5, 3),
+        Numeric(6, 3),
         nullable=True,
     )
 

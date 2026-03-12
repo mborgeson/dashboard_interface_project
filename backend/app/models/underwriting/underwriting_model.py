@@ -84,8 +84,9 @@ class UnderwritingModel(Base, TimestampMixin, SoftDeleteMixin, SourceTrackingMix
     )
     created_by_user_id: Mapped[int | None] = mapped_column(
         Integer,
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
 
     # Status and workflow
@@ -97,8 +98,9 @@ class UnderwritingModel(Base, TimestampMixin, SoftDeleteMixin, SourceTrackingMix
     )
     approved_by_user_id: Mapped[int | None] = mapped_column(
         Integer,
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     approved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),

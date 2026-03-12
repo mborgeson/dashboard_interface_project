@@ -4,6 +4,7 @@ Extraction operations endpoints.
 Endpoints for starting, canceling, and managing extraction runs.
 """
 
+import asyncio
 from pathlib import Path
 from uuid import UUID
 
@@ -46,7 +47,7 @@ async def start_extraction(
     AZURE_CLIENT_SECRET, and SHAREPOINT_SITE_URL to be configured.
     """
     # Check if extraction is already running
-    running = ExtractionRunCRUD.get_running(db)
+    running = await asyncio.to_thread(ExtractionRunCRUD.get_running, db)
     if running:
         raise HTTPException(
             status_code=409, detail=f"Extraction already running (id={running.id})"
@@ -126,8 +127,11 @@ async def start_extraction(
         logger.info("fixture_extraction_requested", file_count=files_discovered)
 
     # Create extraction run
-    run = ExtractionRunCRUD.create(
-        db, trigger_type="manual", files_discovered=files_discovered
+    run = await asyncio.to_thread(
+        ExtractionRunCRUD.create,
+        db,
+        trigger_type="manual",
+        files_discovered=files_discovered,
     )
 
     # Start background task
@@ -157,9 +161,9 @@ async def cancel_extraction(
     If run_id is not provided, cancels the currently running extraction.
     """
     if run_id:
-        run = ExtractionRunCRUD.get(db, run_id)
+        run = await asyncio.to_thread(ExtractionRunCRUD.get, db, run_id)
     else:
-        run = ExtractionRunCRUD.get_running(db)
+        run = await asyncio.to_thread(ExtractionRunCRUD.get_running, db)
 
     if not run:
         raise HTTPException(status_code=404, detail="No running extraction found")
@@ -169,7 +173,7 @@ async def cancel_extraction(
             status_code=400, detail=f"Extraction is not running (status={run.status})"
         )
 
-    cancelled = ExtractionRunCRUD.cancel(db, run.id)
+    cancelled = await asyncio.to_thread(ExtractionRunCRUD.cancel, db, run.id)
 
     if cancelled is None:
         raise HTTPException(status_code=500, detail="Failed to cancel extraction")
@@ -193,5 +197,5 @@ async def hydrate_properties(
     """
     from app.crud.extraction import hydrate_properties_from_extracted
 
-    result = hydrate_properties_from_extracted(db)
+    result = await asyncio.to_thread(hydrate_properties_from_extracted, db)
     return result

@@ -2,7 +2,7 @@
 Document model for storing property-related documents and files.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from sqlalchemy import (
@@ -63,6 +63,7 @@ class Document(Base, TimestampMixin, SoftDeleteMixin):
         DateTime(timezone=True),
         nullable=False,
         index=True,
+        default=lambda: datetime.now(UTC),
     )
     uploaded_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
 

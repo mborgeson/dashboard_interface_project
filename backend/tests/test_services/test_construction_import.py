@@ -8,6 +8,7 @@ import os
 import tempfile
 from collections.abc import Generator
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 import numpy as np
 import pandas as pd
@@ -678,8 +679,8 @@ class TestImportConstructionFile:
         project = sync_db.query(ConstructionProject).first()
         assert project.latitude == pytest.approx(33.4484)
         assert project.longitude == pytest.approx(-112.074)
-        assert project.avg_asking_per_unit == pytest.approx(1850.50)
-        assert project.vacancy_pct == pytest.approx(5.2)
+        assert project.avg_asking_per_unit == pytest.approx(Decimal("1850.50"))
+        assert project.vacancy_pct == pytest.approx(Decimal("5.2"))
         assert project.land_area_ac == pytest.approx(8.75)
 
 

@@ -7,6 +7,7 @@ auto-increment primary key and a unique constraint on (comp_id, source_file).
 """
 
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     CheckConstraint,
@@ -15,6 +16,7 @@ from sqlalchemy import (
     Float,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -66,7 +68,9 @@ class SalesData(Base, TimestampMixin):
 
     # ── 1-10: Core Property Identifiers ──────────────────────────────────
     property_name: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    property_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    property_id: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, index=True
+    )
     comp_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     property_address: Mapped[str | None] = mapped_column(String(500), nullable=True)
     property_city: Mapped[str | None] = mapped_column(String(200), nullable=True)
@@ -153,13 +157,17 @@ class SalesData(Base, TimestampMixin):
 
     # ── 56-68: Transaction Details ───────────────────────────────────────
     sale_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    sale_price: Mapped[float | None] = mapped_column(Float, nullable=True)
-    price_per_unit: Mapped[float | None] = mapped_column(Float, nullable=True)
-    price_per_sf_net: Mapped[float | None] = mapped_column(Float, nullable=True)
-    price_per_sf: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sale_price: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
+    price_per_unit: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    price_per_sf_net: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    price_per_sf: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
     hold_period: Mapped[str | None] = mapped_column(Text, nullable=True)
     document_number: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    down_payment: Mapped[float | None] = mapped_column(Float, nullable=True)
+    down_payment: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
     sale_type: Mapped[str | None] = mapped_column(Text, nullable=True)
     sale_condition: Mapped[str | None] = mapped_column(Text, nullable=True)
     sale_price_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -167,21 +175,29 @@ class SalesData(Base, TimestampMixin):
     sale_category: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # ── 69-78: Financial Metrics ─────────────────────────────────────────
-    actual_cap_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    actual_cap_rate: Mapped[Decimal | None] = mapped_column(
+        Numeric(8, 4), nullable=True
+    )
     units_per_acre: Mapped[float | None] = mapped_column(Float, nullable=True)
     zoning: Mapped[str | None] = mapped_column(Text, nullable=True)
     number_of_beds: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    gross_income: Mapped[float | None] = mapped_column(Float, nullable=True)
-    grm: Mapped[float | None] = mapped_column(Float, nullable=True)
-    gim: Mapped[float | None] = mapped_column(Float, nullable=True)
+    gross_income: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
+    grm: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
+    gim: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
     building_operating_expenses: Mapped[str | None] = mapped_column(Text, nullable=True)
-    total_expense_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
-    vacancy: Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_expense_amount: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    vacancy: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
 
     # ── 79-82: Assessment ────────────────────────────────────────────────
-    assessed_improved: Mapped[float | None] = mapped_column(Float, nullable=True)
-    assessed_land: Mapped[float | None] = mapped_column(Float, nullable=True)
-    assessed_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    assessed_improved: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    assessed_land: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
+    assessed_value: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
     assessed_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # ── 83-87: Unit Mix ──────────────────────────────────────────────────
@@ -203,19 +219,23 @@ class SalesData(Base, TimestampMixin):
     first_trust_deed_terms: Mapped[str | None] = mapped_column(
         String(500), nullable=True
     )
-    first_trust_deed_balance: Mapped[float | None] = mapped_column(Float, nullable=True)
+    first_trust_deed_balance: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
     first_trust_deed_lender: Mapped[str | None] = mapped_column(
         String(500), nullable=True
     )
-    first_trust_deed_payment: Mapped[float | None] = mapped_column(Float, nullable=True)
-    second_trust_deed_balance: Mapped[float | None] = mapped_column(
-        Float, nullable=True
+    first_trust_deed_payment: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    second_trust_deed_balance: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
     )
     second_trust_deed_lender: Mapped[str | None] = mapped_column(
         String(500), nullable=True
     )
-    second_trust_deed_payment: Mapped[float | None] = mapped_column(
-        Float, nullable=True
+    second_trust_deed_payment: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
     )
     second_trust_deed_terms: Mapped[str | None] = mapped_column(
         String(500), nullable=True

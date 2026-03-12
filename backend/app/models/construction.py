@@ -13,6 +13,7 @@ Property classifications (8 types):
 """
 
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from enum import StrEnum
 
 from sqlalchemy import (
@@ -24,6 +25,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -138,11 +140,11 @@ class ConstructionProject(Base, TimestampMixin):
     sprinklers: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # ── Unit Mix (percentages) ───────────────────────────────────────────
-    pct_studio: Mapped[float | None] = mapped_column(Float, nullable=True)
-    pct_1bed: Mapped[float | None] = mapped_column(Float, nullable=True)
-    pct_2bed: Mapped[float | None] = mapped_column(Float, nullable=True)
-    pct_3bed: Mapped[float | None] = mapped_column(Float, nullable=True)
-    pct_4bed: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pct_studio: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    pct_1bed: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    pct_2bed: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    pct_3bed: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    pct_4bed: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
 
     # ── Unit Mix (counts) ────────────────────────────────────────────────
     num_studios: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -157,13 +159,23 @@ class ConstructionProject(Base, TimestampMixin):
     rent_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     affordable_type: Mapped[str | None] = mapped_column(String(200), nullable=True)
     market_segment: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    avg_asking_per_unit: Mapped[float | None] = mapped_column(Float, nullable=True)
-    avg_asking_per_sf: Mapped[float | None] = mapped_column(Float, nullable=True)
-    avg_effective_per_unit: Mapped[float | None] = mapped_column(Float, nullable=True)
-    avg_effective_per_sf: Mapped[float | None] = mapped_column(Float, nullable=True)
-    avg_concessions_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
-    vacancy_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
-    pct_leased: Mapped[float | None] = mapped_column(Float, nullable=True)
+    avg_asking_per_unit: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    avg_asking_per_sf: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    avg_effective_per_unit: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    avg_effective_per_sf: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    avg_concessions_pct: Mapped[Decimal | None] = mapped_column(
+        Numeric(8, 4), nullable=True
+    )
+    vacancy_pct: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
+    pct_leased: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
     pre_leasing: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     # ── Timeline ─────────────────────────────────────────────────────────
@@ -184,13 +196,21 @@ class ConstructionProject(Base, TimestampMixin):
     )
 
     # ── Sale / For-Sale Info ─────────────────────────────────────────────
-    for_sale_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    for_sale_price: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
     for_sale_status: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    for_sale_price_per_unit: Mapped[float | None] = mapped_column(Float, nullable=True)
-    for_sale_price_per_sf: Mapped[float | None] = mapped_column(Float, nullable=True)
-    cap_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    for_sale_price_per_unit: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    for_sale_price_per_sf: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
+    cap_rate: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
     last_sale_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    last_sale_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    last_sale_price: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
     days_on_market: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # ── Land / Parking / Zoning ──────────────────────────────────────────
@@ -198,8 +218,10 @@ class ConstructionProject(Base, TimestampMixin):
     land_area_sf: Mapped[float | None] = mapped_column(Float, nullable=True)
     zoning: Mapped[str | None] = mapped_column(String(200), nullable=True)
     parking_spaces: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    parking_spaces_per_unit: Mapped[float | None] = mapped_column(Float, nullable=True)
-    parking_ratio: Mapped[float | None] = mapped_column(Float, nullable=True)
+    parking_spaces_per_unit: Mapped[Decimal | None] = mapped_column(
+        Numeric(8, 4), nullable=True
+    )
+    parking_ratio: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
 
     # ── Flood / FEMA ─────────────────────────────────────────────────────
     fema_flood_zone: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -207,18 +229,20 @@ class ConstructionProject(Base, TimestampMixin):
     in_sfha: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # ── Financing ────────────────────────────────────────────────────────
-    origination_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
+    origination_amount: Mapped[Decimal | None] = mapped_column(
+        Numeric(15, 2), nullable=True
+    )
     origination_date: Mapped[str | None] = mapped_column(String(100), nullable=True)
     originator: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    interest_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    interest_rate: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
     interest_rate_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     loan_type: Mapped[str | None] = mapped_column(String(200), nullable=True)
     maturity_date: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # ── Tax ───────────────────────────────────────────────────────────────
     tax_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    taxes_per_sf: Mapped[float | None] = mapped_column(Float, nullable=True)
-    taxes_total: Mapped[float | None] = mapped_column(Float, nullable=True)
+    taxes_per_sf: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
+    taxes_total: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
 
     # ── Amenities / Misc ─────────────────────────────────────────────────
     amenities: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -315,7 +339,10 @@ class ConstructionPermitData(Base, TimestampMixin):
     structure_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     raw_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     source_log_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("construction_source_logs.id"), nullable=True
+        Integer,
+        ForeignKey("construction_source_logs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
 
     def __repr__(self) -> str:
@@ -351,7 +378,10 @@ class ConstructionEmploymentData(Base, TimestampMixin):
         String(20), nullable=False, default="monthly"
     )
     source_log_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("construction_source_logs.id"), nullable=True
+        Integer,
+        ForeignKey("construction_source_logs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
 
     def __repr__(self) -> str:
@@ -387,7 +417,10 @@ class ConstructionBrokerageMetrics(Base, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     entered_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
     source_log_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("construction_source_logs.id"), nullable=True
+        Integer,
+        ForeignKey("construction_source_logs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
 
     def __repr__(self) -> str:

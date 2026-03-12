@@ -37,6 +37,7 @@ else:
         max_overflow=settings.DATABASE_MAX_OVERFLOW,
         pool_timeout=settings.DATABASE_POOL_TIMEOUT,
         pool_pre_ping=True,  # Enable connection health checks
+        pool_recycle=3600,  # Recycle connections after 1 hour to prevent stale conns
     )
 
 # Attach slow-query detection event listeners to async engine
@@ -71,6 +72,7 @@ else:
         max_overflow=settings.DATABASE_MAX_OVERFLOW,
         pool_timeout=settings.DATABASE_POOL_TIMEOUT,
         pool_pre_ping=True,
+        pool_recycle=3600,  # Recycle connections after 1 hour to prevent stale conns
     )
 
 # Attach slow-query detection event listeners to sync engine

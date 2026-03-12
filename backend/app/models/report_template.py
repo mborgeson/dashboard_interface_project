@@ -87,12 +87,12 @@ class ReportTemplate(Base, TimestampMixin, SoftDeleteMixin):
     queued_reports: Mapped[list["QueuedReport"]] = relationship(
         "QueuedReport",
         back_populates="template",
-        lazy="dynamic",
+        lazy="selectin",
     )
     schedules: Mapped[list["DistributionSchedule"]] = relationship(
         "DistributionSchedule",
         back_populates="template",
-        lazy="dynamic",
+        lazy="selectin",
     )
 
     def __repr__(self) -> str:

@@ -36,6 +36,8 @@ class AuditLog(Base):
     )
 
     # Who
+    # Intentionally not a FK: audit records must survive user deletion
+    # to maintain tamper-evident audit trail integrity.
     user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     user_email: Mapped[str] = mapped_column(String(255), nullable=False)
 
