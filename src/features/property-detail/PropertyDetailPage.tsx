@@ -28,7 +28,7 @@ export function PropertyDetailPage() {
         {/* Back Navigation */}
         <button
           onClick={() => navigate('/investments')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          className="flex items-center gap-2 text-neutral-600 hover:text-neutral-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Investments
@@ -46,7 +46,7 @@ export function PropertyDetailPage() {
         {/* Back Navigation */}
         <button
           onClick={() => navigate('/investments')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          className="flex items-center gap-2 text-neutral-600 hover:text-neutral-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Investments
@@ -72,8 +72,8 @@ export function PropertyDetailPage() {
   if (!property) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-2">Property Not Found</h2>
-        <p className="text-gray-600 mb-4">The property you're looking for doesn't exist.</p>
+        <h2 className="text-2xl font-semibold text-neutral-900 mb-2">Property Not Found</h2>
+        <p className="text-neutral-600 mb-4">The property you're looking for doesn't exist.</p>
         <button
           onClick={() => navigate('/investments')}
           className="flex items-center gap-2 text-primary-600 hover:text-primary-700"
@@ -98,7 +98,7 @@ export function PropertyDetailPage() {
       {/* Back Navigation */}
       <button
         onClick={() => navigate('/investments')}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+        className="flex items-center gap-2 text-neutral-600 hover:text-neutral-900 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Investments
@@ -117,7 +117,7 @@ export function PropertyDetailPage() {
               className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
               }`}
             >
               {tab.label}
@@ -127,7 +127,7 @@ export function PropertyDetailPage() {
       </div>
 
       {/* Tab Content with Activity Feed Sidebar */}
-      <div className="bg-gray-50 min-h-[600px]">
+      <div className="bg-neutral-50 min-h-[600px]">
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 p-6">
           {/* Main Tab Content */}
           <div className="min-w-0">

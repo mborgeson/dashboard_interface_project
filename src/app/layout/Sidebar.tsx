@@ -179,7 +179,7 @@ export function Sidebar(){
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-400 hover:bg-neutral-700 hover:text-white transition-colors min-h-[40px]"
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-400 hover:bg-neutral-700 hover:text-white transition-colors min-h-[44px]"
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                   <span className="text-sm">{link.name}</span>
@@ -208,7 +208,7 @@ export function Sidebar(){
                   target={isDisabled ? undefined : '_blank'}
                   rel={isDisabled ? undefined : 'noopener noreferrer'}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors min-h-[40px]',
+                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors min-h-[44px]',
                     isDisabled
                       ? 'text-neutral-600 cursor-not-allowed'
                       : 'text-neutral-400 hover:bg-neutral-700 hover:text-white'

@@ -54,7 +54,7 @@ export function PropertyDetailSkeleton() {
       </div>
 
       {/* Tab Content + Activity Feed Sidebar Skeleton */}
-      <div className="bg-gray-50 min-h-[600px]">
+      <div className="bg-neutral-50 min-h-[600px]">
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 p-6">
           {/* Main Content Area */}
           <div className="space-y-6">

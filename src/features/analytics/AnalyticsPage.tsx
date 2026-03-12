@@ -54,7 +54,7 @@ export function AnalyticsPage() {
       return acqDate >= cutoff;
     });
 
-    return filtered.length > 0 ? filtered : allProperties;
+    return filtered;
   }, [allProperties, dateRange]);
 
   // Calculate portfolio-wide KPIs
@@ -316,7 +316,7 @@ export function AnalyticsPage() {
             Comprehensive performance analysis and insights
             {dateRange !== 'all' && (
               <span className="ml-2 text-xs text-primary-600 font-medium">
-                ({properties.length} of {allProperties.length} properties{properties.length === allProperties.length ? ' — showing all, none match filter' : ''})
+                ({properties.length} of {allProperties.length} properties)
               </span>
             )}
           </p>
@@ -341,6 +341,13 @@ export function AnalyticsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Empty state when date filter matches nothing */}
+      {properties.length === 0 && dateRange !== 'all' && (
+        <div className="text-center py-8 text-neutral-500 bg-white rounded-lg border border-neutral-200">
+          No properties match the selected date range. Try a wider range or select &ldquo;All Time&rdquo;.
+        </div>
+      )}
 
       {/* KPI Summary Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

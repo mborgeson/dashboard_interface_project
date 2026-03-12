@@ -35,14 +35,17 @@ vi.mock('@/hooks/api/useProperties', () => ({
 }));
 
 // --- Factory ---
+// Use a recent date so the default "Last Year" filter includes test properties
+const recentAcquisitionDate = new Date(Date.now() - 30 * 86400000); // 30 days ago
+
 function makeProperty(overrides: Partial<Property> = {}): Property {
   return {
     id: 'prop-1',
     name: 'Test Property',
     address: { street: '123 Main', city: 'Phoenix', state: 'AZ', zip: '85001', latitude: 33.4, longitude: -112.0, submarket: 'Central Phoenix' },
     propertyDetails: { units: 100, squareFeet: 90000, averageUnitSize: 900, yearBuilt: 2000, propertyClass: 'B', assetType: 'Multifamily', amenities: [] },
-    acquisition: { date: new Date('2024-01-15'), purchasePrice: 20000000, pricePerUnit: 200000, closingCosts: 100000, acquisitionFee: 50000, totalInvested: 25000000, landAndAcquisitionCosts: 0, hardCosts: 0, softCosts: 0, lenderClosingCosts: 0, equityClosingCosts: 0, totalAcquisitionBudget: 0 },
-    financing: { loanAmount: 15000000, loanToValue: 0.6, interestRate: 0.05, loanTerm: 30, amortization: 30, monthlyPayment: 80000, lender: 'Test Bank', originationDate: new Date('2024-01-15'), maturityDate: null },
+    acquisition: { date: recentAcquisitionDate, purchasePrice: 20000000, pricePerUnit: 200000, closingCosts: 100000, acquisitionFee: 50000, totalInvested: 25000000, landAndAcquisitionCosts: 0, hardCosts: 0, softCosts: 0, lenderClosingCosts: 0, equityClosingCosts: 0, totalAcquisitionBudget: 0 },
+    financing: { loanAmount: 15000000, loanToValue: 0.6, interestRate: 0.05, loanTerm: 30, amortization: 30, monthlyPayment: 80000, lender: 'Test Bank', originationDate: recentAcquisitionDate, maturityDate: null },
     valuation: { currentValue: 28000000, lastAppraisalDate: new Date('2025-01-01'), capRate: 0.055, appreciationSinceAcquisition: 0.12 },
     operations: { occupancy: 0.94, averageRent: 1500, rentPerSqft: 1.67, monthlyRevenue: 150000, otherIncome: 5000, expenses: { realEstateTaxes: 100000, otherExpenses: 20000, propertyInsurance: 30000, staffingPayroll: 80000, propertyManagementFee: 60000, repairsAndMaintenance: 40000, turnover: 15000, contractServices: 10000, reservesForReplacement: 25000, adminLegalSecurity: 10000, advertisingLeasingMarketing: 5000, total: 395000 }, noi: 1400000, operatingExpenseRatio: 0.22, grossPotentialRevenue: 1800000, netRentalIncome: 1600000, otherIncomeAnnual: 60000, vacancyLoss: 100000, concessions: 0 },
     operationsByYear: [],

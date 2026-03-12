@@ -1,3 +1,5 @@
+// Note: Inline font sizes in Recharts components are intentional.
+// Recharts renders SVG where CSS classes don't apply to text elements.
 import { Card } from '@/components/ui/card';
 import {
   BarChart,

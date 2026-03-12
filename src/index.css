@@ -81,3 +81,9 @@
     @apply w-full h-full;
   }
 }
+
+/* Custom marker icon for Leaflet divIcon — removes default border/bg */
+.custom-marker-icon {
+  background: transparent;
+  border: none;
+}

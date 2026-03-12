@@ -99,7 +99,7 @@ export function TopNav(){
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 cursor-pointer rounded-lg p-1 hover:bg-neutral-50 transition-colors" aria-label="User menu">
+            <button className="flex items-center gap-3 cursor-pointer rounded-lg p-1 hover:bg-neutral-50 transition-colors min-h-[44px] min-w-[44px]" aria-label="User menu">
               <div className="text-right">
                 <div className="text-sm font-medium text-neutral-900">
                   {displayName}

@@ -141,15 +141,7 @@ export function DealComparisonPage() {
       info('Comparison URL copied to clipboard');
       setTimeout(() => setIsCopied(false), 2000);
     } catch {
-      const textArea = document.createElement('textarea');
-      textArea.value = url;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setIsCopied(true);
-      info('Comparison URL copied to clipboard');
-      setTimeout(() => setIsCopied(false), 2000);
+      error('Failed to copy URL to clipboard');
     }
   };
 

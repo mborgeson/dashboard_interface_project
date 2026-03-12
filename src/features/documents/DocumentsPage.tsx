@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useCallback, lazy, Suspense } from 'react';
 import { Grid3x3, List, Upload, HardDrive } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,16 @@ import { useToast } from '@/hooks/useToast';
 import type { Document, DocumentType } from '@/types/document';
 import { EmptyDocuments } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Lazy load DocumentUploadModal for code splitting
 const DocumentUploadModal = lazy(() =>
@@ -25,6 +35,9 @@ export function DocumentsPage() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const { info, success: showSuccess, error: showError } = useToast();
   const deleteDocumentMutation = useDeleteDocument();
+
+  // Delete confirmation state
+  const [pendingDelete, setPendingDelete] = useState<Document | null>(null);
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,22 +66,26 @@ export function DocumentsPage() {
     info(`Download not yet implemented`);
   };
 
-  const handleDelete = (document: Document) => {
-    if (!confirm(`Are you sure you want to delete "${document.name}"?`)) {
-      return;
-    }
-    deleteDocumentMutation.mutate(document.id, {
+  const handleDelete = useCallback((document: Document) => {
+    setPendingDelete(document);
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    if (!pendingDelete) return;
+    const doc = pendingDelete;
+    setPendingDelete(null);
+    deleteDocumentMutation.mutate(doc.id, {
       onSuccess: () => {
-        showSuccess(`Deleted "${document.name}"`);
+        showSuccess(`Deleted "${doc.name}"`);
       },
       onError: (err) => {
         showError(
-          `Failed to delete "${document.name}"`,
+          `Failed to delete "${doc.name}"`,
           { description: err instanceof Error ? err.message : 'An unexpected error occurred' }
         );
       },
     });
-  };
+  }, [pendingDelete, deleteDocumentMutation, showSuccess, showError]);
 
   // Format file size
   const formatFileSize = (bytes: number): string => {
@@ -300,6 +317,24 @@ export function DocumentsPage() {
           />
         </Suspense>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => { if (!open) setPendingDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &ldquo;{pendingDelete?.name}&rdquo;? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
