@@ -62,7 +62,7 @@ export function DocumentsPage() {
     }
   };
 
-  const handleDownload = (document: Document) => {
+  const handleDownload = (_document: Document) => {
     info(`Download not yet implemented`);
   };
 

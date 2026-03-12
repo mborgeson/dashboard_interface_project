@@ -11,8 +11,8 @@ import time
 import pytest
 
 from app.core.token_blacklist import (
-    TokenBlacklist,
     _EVICTION_HIGH_WATER,
+    TokenBlacklist,
     _memory_blacklist,
 )
 

@@ -30,10 +30,9 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from app.db.base import Base
-
 # Import all models so Base.metadata.create_all() creates every table.
 import app.models  # noqa: F401
+from app.db.base import Base
 
 # ---------------------------------------------------------------------------
 # URL resolution

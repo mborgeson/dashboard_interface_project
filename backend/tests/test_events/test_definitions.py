@@ -14,7 +14,6 @@ from app.events.definitions import (
     UserLoggedIn,
 )
 
-
 # ---------------------------------------------------------------------------
 # Each event should carry the correct default event_type
 # ---------------------------------------------------------------------------

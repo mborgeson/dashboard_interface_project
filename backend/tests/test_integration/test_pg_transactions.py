@@ -113,8 +113,8 @@ class TestSavepoints:
 
     async def test_nested_savepoints(self, pg_session: AsyncSession):
         """Multiple levels of savepoints should work correctly."""
-        from app.models import User
         from app.core.security import get_password_hash
+        from app.models import User
 
         async with pg_session.begin_nested():
             u1 = User(
@@ -189,8 +189,8 @@ class TestRollback:
 
     async def test_rollback_after_integrity_error(self, pg_session: AsyncSession):
         """Session should recover after an IntegrityError + rollback."""
-        from app.models import User
         from app.core.security import get_password_hash
+        from app.models import User
 
         user1 = User(
             email="dupe@example.com",
@@ -236,8 +236,8 @@ class TestUniqueConstraints:
 
     async def test_user_email_unique_constraint(self, pg_session: AsyncSession):
         """Duplicate emails should raise IntegrityError."""
-        from app.models import User
         from app.core.security import get_password_hash
+        from app.models import User
 
         u1 = User(
             email="unique@example.com",

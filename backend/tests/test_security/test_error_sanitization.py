@@ -21,7 +21,6 @@ from app.middleware.error_handler import (
 
 from .conftest import INTERNAL_INFO_PATTERNS, assert_safe_response
 
-
 # =============================================================================
 # Direct Unit Tests for _sanitize_error_message()
 # =============================================================================

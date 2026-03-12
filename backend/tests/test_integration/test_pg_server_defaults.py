@@ -32,8 +32,8 @@ class TestTimestampDefaults:
 
     async def test_user_created_at_auto_populates(self, pg_session):
         """User.created_at should be set automatically on insert."""
-        from app.models import User
         from app.core.security import get_password_hash
+        from app.models import User
 
         before = datetime.now(UTC)
         user = User(
@@ -63,8 +63,8 @@ class TestTimestampDefaults:
 
     async def test_user_updated_at_auto_populates(self, pg_session):
         """User.updated_at should be set automatically on insert."""
-        from app.models import User
         from app.core.security import get_password_hash
+        from app.models import User
 
         user = User(
             email="updated_test@example.com",
@@ -157,8 +157,8 @@ class TestBooleanAndStatusDefaults:
 
     async def test_user_is_active_defaults_true(self, pg_session):
         """User.is_active should default to True."""
-        from app.models import User
         from app.core.security import get_password_hash
+        from app.models import User
 
         user = User(
             email="active_default@example.com",
@@ -174,8 +174,8 @@ class TestBooleanAndStatusDefaults:
 
     async def test_user_is_verified_defaults_false(self, pg_session):
         """User.is_verified should default to False."""
-        from app.models import User
         from app.core.security import get_password_hash
+        from app.models import User
 
         user = User(
             email="verified_default@example.com",

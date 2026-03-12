@@ -144,7 +144,7 @@ async def test_ttl_expiration():
     assert result == "value"
 
     # Directly set the expiry timestamp to the past instead of sleeping
-    full_key = f"dashboard:expiring"
+    full_key = "dashboard:expiring"
     stored_value, _old_expiry = _memory_cache[full_key]
     _memory_cache[full_key] = (stored_value, time.time() - 1)
 

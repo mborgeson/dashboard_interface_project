@@ -9,15 +9,14 @@ malformed tokens, blacklisted tokens, and role escalation attempts.
 import time
 from datetime import UTC, datetime, timedelta
 
-import pytest
 import jwt
+import pytest
 
 from app.core.config import settings
 from app.core.security import create_access_token, decode_token
 from app.core.token_blacklist import token_blacklist
 
 from .conftest import assert_safe_response
-
 
 # =============================================================================
 # Expired Token Tests

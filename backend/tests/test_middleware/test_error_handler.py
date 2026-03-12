@@ -7,9 +7,9 @@ structured JSON error responses with request_id correlation.
 T-DEBT-006: Edge cases for sanitization, empty messages, and concurrent errors.
 """
 
-import pytest
 from unittest.mock import patch
 
+import pytest
 from fastapi import FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
 from pydantic import BaseModel, ValidationError

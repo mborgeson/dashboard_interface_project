@@ -7,8 +7,8 @@ Verifies that revoked JWT tokens are rejected during WebSocket authentication.
 import uuid
 from unittest.mock import AsyncMock, patch
 
-import pytest
 import jwt
+import pytest
 
 from app.api.v1.endpoints.ws import _authenticate_token
 from app.core.config import settings

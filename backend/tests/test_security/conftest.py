@@ -7,15 +7,14 @@ multiple attack payloads against an endpoint.
 
 from datetime import UTC, datetime, timedelta
 
+import jwt
 import pytest
 import pytest_asyncio
-import jwt
 
 from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
 from app.core.token_blacklist import token_blacklist
 from app.models import User
-
 
 # =============================================================================
 # Common SQL injection payloads

@@ -16,7 +16,6 @@ from .conftest import (
     check_payloads_against_endpoint,
 )
 
-
 # =============================================================================
 # Property Endpoint SQL Injection Tests
 # =============================================================================

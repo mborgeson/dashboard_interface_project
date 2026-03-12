@@ -137,13 +137,16 @@ async def test_login_inactive_user(client, inactive_user):
 
 
 @pytest.mark.asyncio
-async def test_login_demo_user_admin(client):
+async def test_login_demo_user_admin(client, monkeypatch):
     """Test login with demo admin user (fallback for development only).
 
     NOTE: Demo users are only available in non-production environments.
     In production, this should fail with 401 (tested separately).
     """
     from app.core.config import settings
+
+    # Ensure demo admin password is set for test (Wave 1 S-01 made these env-var-driven)
+    monkeypatch.setattr(settings, "DEMO_ADMIN_PASSWORD", "admin123")
 
     response = await client.post(
         "/api/v1/auth/login",
@@ -167,9 +170,12 @@ async def test_login_demo_user_admin(client):
 
 
 @pytest.mark.asyncio
-async def test_login_demo_user_analyst(client):
+async def test_login_demo_user_analyst(client, monkeypatch):
     """Test login with demo analyst user (fallback for development only)."""
     from app.core.config import settings
+
+    # Ensure demo analyst password is set for test (Wave 1 S-01 made these env-var-driven)
+    monkeypatch.setattr(settings, "DEMO_ANALYST_PASSWORD", "analyst123")
 
     response = await client.post(
         "/api/v1/auth/login",
@@ -386,10 +392,14 @@ async def test_protected_endpoint_with_auth(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_demo_users_disabled_in_production_environment():
+async def test_demo_users_disabled_in_production_environment(monkeypatch):
     """Test that _get_demo_users returns empty dict in production."""
     from app.api.v1.endpoints.auth import _get_demo_users
     from app.core.config import settings
+
+    # Ensure demo passwords are set for test (Wave 1 S-01 made these env-var-driven)
+    monkeypatch.setattr(settings, "DEMO_ADMIN_PASSWORD", "admin123")
+    monkeypatch.setattr(settings, "DEMO_ANALYST_PASSWORD", "analyst123")
 
     demo_users = _get_demo_users()
 

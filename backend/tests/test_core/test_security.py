@@ -2,8 +2,8 @@
 
 from datetime import UTC, datetime, timedelta
 
-import pytest
 import jwt
+import pytest
 
 from app.core.config import settings
 from app.core.security import (

@@ -14,7 +14,6 @@ from app.core.security import create_access_token
 
 from .conftest import INTERNAL_INFO_PATTERNS, assert_safe_response
 
-
 # =============================================================================
 # Unauthenticated Access Tests
 # =============================================================================
