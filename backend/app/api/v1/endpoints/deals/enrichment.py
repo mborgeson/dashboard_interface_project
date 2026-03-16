@@ -178,11 +178,11 @@ async def _fetch_extraction_lookup(
         ``{property_id: {field_name: {value_numeric, value_text}}}``
     """
     # Subquery: latest completed extraction_run_id per property_id
-    # V-05: Use max(id) instead of max(completed_at) for monotonic, unambiguous tie-breaking
+    # Use max(completed_at) — ExtractionRun.id is UUID (no max() support in PG)
     latest_run_subq = (
         select(
             ExtractedValue.property_id,
-            func.max(ExtractionRun.id).label("max_run_id"),
+            func.max(ExtractionRun.completed_at).label("max_completed_at"),
         )
         .join(ExtractionRun, ExtractedValue.extraction_run_id == ExtractionRun.id)
         .where(
@@ -199,7 +199,7 @@ async def _fetch_extraction_lookup(
         .join(
             latest_run_subq,
             (ExtractedValue.property_id == latest_run_subq.c.property_id)
-            & (ExtractionRun.id == latest_run_subq.c.max_run_id),
+            & (ExtractionRun.completed_at == latest_run_subq.c.max_completed_at),
         )
         .where(
             ExtractedValue.property_id.in_(prop_ids),

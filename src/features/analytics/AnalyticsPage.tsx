@@ -34,7 +34,7 @@ function calcCashOnCash(p: { operations: { noi: number }; financing: { monthlyPa
 }
 
 export function AnalyticsPage() {
-  const [dateRange, setDateRange] = useState<DateRange>('365');
+  const [dateRange, setDateRange] = useState<DateRange>('all');
   const [showReportWizard, setShowReportWizard] = useState(false);
 
   // Fetch properties from API
