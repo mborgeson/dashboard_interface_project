@@ -6,7 +6,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.core.sanitization import make_sanitized_validator
 
@@ -188,11 +188,11 @@ class DealResponse(DealBase, TimestampSchema):
     notes: str | None = None
     investment_thesis: str | None = None
     key_risks: str | None = None
-    documents: list[dict] | None = None
-    activity_log: list[dict] | None = None
+    documents: list[dict] = Field(default_factory=list)
+    activity_log: list[dict] = Field(default_factory=list)
 
-    tags: list[str] | None = None
-    custom_fields: dict[str, Any] | None = None
+    tags: list[str] = Field(default_factory=list)
+    custom_fields: dict[str, Any] = Field(default_factory=dict)
     deal_score: int | None = None
     priority: str
 
@@ -245,7 +245,19 @@ class DealResponse(DealBase, TimestampSchema):
     longitude: float | None = None
 
     # Mini activity feed (most recent 1-3 actions)
-    recent_activities: list[RecentActivityItem] | None = None
+    recent_activities: list[RecentActivityItem] = Field(default_factory=list)
+
+    @field_validator(
+        "documents", "activity_log", "tags", "recent_activities", mode="before"
+    )
+    @classmethod
+    def _coerce_none_to_list(cls, v: Any) -> Any:
+        return v if v is not None else []
+
+    @field_validator("custom_fields", mode="before")
+    @classmethod
+    def _coerce_none_to_dict(cls, v: Any) -> Any:
+        return v if v is not None else {}
 
 
 class DealListResponse(BaseSchema):

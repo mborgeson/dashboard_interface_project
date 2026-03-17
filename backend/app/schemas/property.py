@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.core.sanitization import make_sanitized_validator
 
@@ -151,13 +151,18 @@ class PropertyResponse(PropertyBase, TimestampSchema):
     description: str | None = None
     amenities: dict[str, Any] | None = None
     unit_mix: dict[str, Any] | None = None
-    images: list[str] | None = None
+    images: list[str] = Field(default_factory=list)
     external_id: str | None = None
     data_source: str | None = None
 
     # Computed fields
     price_per_unit: Decimal | None = None
     price_per_sf: Decimal | None = None
+
+    @field_validator("images", mode="before")
+    @classmethod
+    def _coerce_none_to_list(cls, v: Any) -> Any:
+        return v if v is not None else []
 
 
 class PropertyListResponse(BaseSchema):

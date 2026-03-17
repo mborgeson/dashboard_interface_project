@@ -3,8 +3,9 @@ Document schemas for API request/response validation.
 """
 
 from datetime import datetime
+from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.core.sanitization import make_sanitized_validator
 
@@ -98,10 +99,15 @@ class DocumentResponse(DocumentBase, TimestampSchema):
     uploaded_at: datetime
     uploaded_by: str | None = None
     description: str | None = None
-    tags: list[str] | None = None
+    tags: list[str] = Field(default_factory=list)
     url: str | None = None
     file_path: str | None = None
     mime_type: str | None = None
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _coerce_none_to_list(cls, v: Any) -> Any:
+        return v if v is not None else []
 
 
 class DocumentListResponse(BaseSchema):
