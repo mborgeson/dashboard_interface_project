@@ -20,17 +20,15 @@ but never exposed in API responses.
 
 import re
 
-import structlog
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
+from loguru import logger
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 from app.middleware.request_id import get_request_id
-
-slog = structlog.get_logger("app.middleware.error_handler")
 
 # Patterns that indicate internal details that should not be exposed to clients
 _INTERNAL_DETAIL_PATTERNS = [
@@ -58,10 +56,9 @@ def _sanitize_error_message(message: str, error_type: str) -> str:
         return _FALLBACK_MESSAGES.get(error_type, "An error occurred")
     for pattern in _INTERNAL_DETAIL_PATTERNS:
         if pattern.search(message):
-            slog.debug(
-                "error_message_sanitized",
-                error_type=error_type,
-                reason="internal details detected",
+            logger.debug(
+                "error_message_sanitized error_type={} reason=internal details detected",
+                error_type,
             )
             return _FALLBACK_MESSAGES.get(error_type, "An error occurred")
     return message
@@ -104,13 +101,12 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             raise
         except SQLAlchemyError as exc:
             rid = get_request_id() or "unknown"
-            slog.error(
-                "database_error",
-                request_id=rid,
-                path=request.url.path,
-                method=request.method,
-                error_type="database_error",
-                error=str(exc),
+            logger.error(
+                "database_error request_id={} path={} method={} error={}",
+                rid,
+                request.url.path,
+                request.method,
+                str(exc),
             )
             return _build_error_response(
                 status_code=500,
@@ -121,15 +117,12 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
         except ValidationError as exc:
             rid = get_request_id() or "unknown"
             raw_message = str(exc)
-            slog.warning(
-                "validation_error",
-                request_id=rid,
-                path=request.url.path,
-                method=request.method,
-                error_type="validation_error",
-                error_count=exc.error_count(),
-                # Full details logged server-side only
-                error_detail=raw_message,
+            logger.warning(
+                "validation_error request_id={} path={} method={} error_count={}",
+                rid,
+                request.url.path,
+                request.method,
+                exc.error_count(),
             )
             return _build_error_response(
                 status_code=422,
@@ -140,14 +133,11 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
         except PermissionError as exc:
             rid = get_request_id() or "unknown"
             raw_message = str(exc)
-            slog.warning(
-                "permission_denied",
-                request_id=rid,
-                path=request.url.path,
-                method=request.method,
-                error_type="permission_error",
-                # Full details logged server-side only
-                error_detail=raw_message,
+            logger.warning(
+                "permission_denied request_id={} path={} method={}",
+                rid,
+                request.url.path,
+                request.method,
             )
             return _build_error_response(
                 status_code=403,
@@ -158,14 +148,12 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
         except ValueError as exc:
             rid = get_request_id() or "unknown"
             raw_message = str(exc)
-            slog.warning(
-                "value_error",
-                request_id=rid,
-                path=request.url.path,
-                method=request.method,
-                error_type="value_error",
-                # Full details logged server-side only
-                error_detail=raw_message,
+            logger.warning(
+                "value_error request_id={} path={} method={} detail={}",
+                rid,
+                request.url.path,
+                request.method,
+                raw_message,
             )
             return _build_error_response(
                 status_code=400,
@@ -175,12 +163,11 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             )
         except Exception:
             rid = get_request_id() or "unknown"
-            slog.exception(
-                "unhandled_exception",
-                request_id=rid,
-                path=request.url.path,
-                method=request.method,
-                error_type="internal_error",
+            logger.opt(exception=True).error(
+                "unhandled_exception request_id={} path={} method={}",
+                rid,
+                request.url.path,
+                request.method,
             )
             return _build_error_response(
                 status_code=500,
