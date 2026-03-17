@@ -89,7 +89,7 @@ export function MappingPage() {
   const [tileLayer, setTileLayer] = useState<'street' | 'satellite'>('street');
 
   // Fetch properties from API
-  const { data, isLoading, error } = useProperties();
+  const { data, isLoading, error, refetch } = useProperties();
   const properties = selectProperties(data);
 
   const {
@@ -283,7 +283,7 @@ export function MappingPage() {
           </p>
           <button
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-            onClick={() => window.location.reload()}
+            onClick={() => refetch()}
           >
             Retry
           </button>

@@ -16,7 +16,7 @@ export function DashboardMain() {
   const navigate = useNavigate();
 
   // Fetch properties from API
-  const { data, isLoading, error } = useProperties();
+  const { data, isLoading, error, refetch } = useProperties();
   const properties = selectProperties(data);
 
   // Fetch transactions from API
@@ -72,7 +72,7 @@ export function DashboardMain() {
           </p>
           <button
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-            onClick={() => window.location.reload()}
+            onClick={() => refetch()}
           >
             Retry
           </button>

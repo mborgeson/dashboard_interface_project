@@ -19,7 +19,7 @@ export function TransactionsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
 
   // Fetch transactions from API (with mock fallback)
-  const { data: txnData, isLoading, error } = useTransactionsWithMockFallback();
+  const { data: txnData, isLoading, error, refetch } = useTransactionsWithMockFallback();
   const allTransactions = txnData?.transactions ?? [];
 
   // Fetch properties from API for property filter dropdown
@@ -55,7 +55,7 @@ export function TransactionsPage() {
         <ErrorState
           title="Failed to load transactions"
           description={error instanceof Error ? error.message : 'An unexpected error occurred while loading transactions.'}
-          onRetry={() => window.location.reload()}
+          onRetry={() => refetch()}
         />
       </div>
     );

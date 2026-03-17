@@ -54,6 +54,7 @@ export function USAMarketPage() {
     isSparklinePlaceholder,
     isLoading,
     error,
+    refetchAll,
   } = useUSAMarketData();
 
   // Show error state
@@ -72,7 +73,7 @@ export function USAMarketPage() {
         <ErrorState
           title="Failed to load market data"
           description="Unable to fetch national market data. Please try again later."
-          onRetry={() => window.location.reload()}
+          onRetry={() => refetchAll()}
         />
       </div>
     );

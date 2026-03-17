@@ -93,7 +93,7 @@ export function MarketPage() {
         <ErrorState
           title="Failed to load market data"
           description="Unable to fetch market data. Please try again later."
-          onRetry={() => window.location.reload()}
+          onRetry={() => refreshAll()}
         />
       </div>
     );

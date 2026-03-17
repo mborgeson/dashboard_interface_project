@@ -46,7 +46,7 @@ export function DocumentsPage() {
   const [dateRange, setDateRange] = useState<'all' | '7days' | '30days' | '90days' | '1year'>('all');
 
   // Get filtered documents and stats from API
-  const { documents, stats, isLoading, error } = useDocuments({
+  const { documents, stats, isLoading, error, refetch } = useDocuments({
     searchTerm,
     type: documentType,
     propertyId,
@@ -111,7 +111,7 @@ export function DocumentsPage() {
         <ErrorState
           title="Failed to load documents"
           description={error instanceof Error ? error.message : 'An unexpected error occurred while loading documents.'}
-          onRetry={() => window.location.reload()}
+          onRetry={() => refetch()}
         />
       </div>
     );

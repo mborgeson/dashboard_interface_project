@@ -51,7 +51,7 @@ export function AnalyticsPage() {
   const [showReportWizard, setShowReportWizard] = useState(false);
 
   // Fetch properties from API
-  const { data, isLoading, error } = useProperties();
+  const { data, isLoading, error, refetch } = useProperties();
   const allProperties = selectProperties(data);
 
   // Filter properties by date range based on acquisition date
@@ -302,7 +302,7 @@ export function AnalyticsPage() {
           </p>
           <Button
             className="mt-4"
-            onClick={() => window.location.reload()}
+            onClick={() => refetch()}
           >
             Retry
           </Button>

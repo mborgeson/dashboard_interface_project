@@ -18,7 +18,7 @@ export function InvestmentsPage() {
   const navigate = useNavigate();
 
   // Fetch properties from API
-  const { data, isLoading, error } = useProperties();
+  const { data, isLoading, error, refetch } = useProperties();
   const properties = selectProperties(data);
 
   // Filter state
@@ -287,7 +287,7 @@ export function InvestmentsPage() {
           <p className="text-red-600 mb-4">
             {error instanceof Error ? error.message : 'Failed to load property data'}
           </p>
-          <Button onClick={() => window.location.reload()}>
+          <Button onClick={() => refetch()}>
             Retry
           </Button>
         </div>

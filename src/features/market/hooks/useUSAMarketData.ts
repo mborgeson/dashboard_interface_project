@@ -125,8 +125,8 @@ function useUSAMarketTrends(periodMonths: number = 12) {
 // ============================================================================
 
 export function useUSAMarketData() {
-  const { data: overviewData, isLoading: overviewLoading, error: overviewError } = useUSAMarketOverview();
-  const { data: trendsData, isLoading: trendsLoading, error: trendsError } = useUSAMarketTrends();
+  const { data: overviewData, isLoading: overviewLoading, error: overviewError, refetch: refetchOverview } = useUSAMarketOverview();
+  const { data: trendsData, isLoading: trendsLoading, error: trendsError, refetch: refetchTrends } = useUSAMarketTrends();
 
   const isLoading = overviewLoading || trendsLoading;
   const error = overviewError || trendsError;
@@ -182,6 +182,10 @@ export function useUSAMarketData() {
     }));
   }, [trends]);
 
+  const refetchAll = async () => {
+    await Promise.all([refetchOverview(), refetchTrends()]);
+  };
+
   return {
     msaOverview: overviewData?.msaOverview ?? null,
     economicIndicators: overviewData?.economicIndicators ?? [],
@@ -190,5 +194,6 @@ export function useUSAMarketData() {
     isSparklinePlaceholder,
     isLoading,
     error,
+    refetchAll,
   };
 }

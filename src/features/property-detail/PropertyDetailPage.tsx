@@ -19,7 +19,7 @@ export function PropertyDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   // Fetch property from API
-  const { data: property, isLoading, error } = useProperty(id);
+  const { data: property, isLoading, error, refetch } = useProperty(id);
 
   // Loading state
   if (isLoading) {
@@ -58,7 +58,7 @@ export function PropertyDetailPage() {
             {error instanceof Error ? error.message : 'Failed to load property details'}
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => refetch()}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
           >
             Retry
