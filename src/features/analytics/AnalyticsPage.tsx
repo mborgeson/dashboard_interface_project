@@ -33,6 +33,19 @@ function calcCashOnCash(p: { operations: { noi: number }; financing: { monthlyPa
   return preTaxCashFlow / equity;
 }
 
+/** Equity-weighted average, skipping items where weight <= 0. Returns 0 if no valid items. */
+function weightedAvg<T>(items: T[], valueFn: (item: T) => number, weightFn: (item: T) => number): number {
+  let sumProduct = 0;
+  let sumWeight = 0;
+  for (const item of items) {
+    const w = weightFn(item);
+    if (w <= 0) continue;
+    sumProduct += valueFn(item) * w;
+    sumWeight += w;
+  }
+  return sumWeight > 0 ? sumProduct / sumWeight : 0;
+}
+
 export function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [showReportWizard, setShowReportWizard] = useState(false);
@@ -63,25 +76,17 @@ export function AnalyticsPage() {
       return { irr: 0, cashOnCash: 0, equityMultiple: 0, avgDSCR: 0 };
     }
 
-    const totalEquity = properties.reduce(
-      (sum, p) => sum + (p.acquisition.totalInvested - p.financing.loanAmount),
-      0
-    );
-    if (totalEquity === 0) {
-      return { irr: 0, cashOnCash: 0, equityMultiple: 0, avgDSCR: 0 };
-    }
-    const weightedIRR = properties.reduce(
-      (sum, p) => sum + p.performance.leveredIrr * (p.acquisition.totalInvested - p.financing.loanAmount),
-      0
-    ) / totalEquity;
-    const weightedCashOnCash = properties.reduce(
-      (sum, p) => sum + calcCashOnCash(p) * (p.acquisition.totalInvested - p.financing.loanAmount),
-      0
-    ) / totalEquity;
-    const weightedEquityMultiple = properties.reduce(
-      (sum, p) => sum + p.performance.leveredMoic * (p.acquisition.totalInvested - p.financing.loanAmount),
-      0
-    ) / totalEquity;
+    const equity = (p: { acquisition: { totalInvested: number }; financing: { loanAmount: number } }) =>
+      p.acquisition.totalInvested - p.financing.loanAmount;
+
+    // Filter out properties with safeNum-coerced zeros (missing data)
+    const withIRR = properties.filter(p => p.performance.leveredIrr !== 0);
+    const withMOIC = properties.filter(p => p.performance.leveredMoic !== 0);
+    const withCashFlow = properties.filter(p => p.operations.noi !== 0);
+
+    const weightedIRR = weightedAvg(withIRR, p => p.performance.leveredIrr, equity);
+    const weightedCashOnCash = weightedAvg(withCashFlow, calcCashOnCash, equity);
+    const weightedEquityMultiple = weightedAvg(withMOIC, p => p.performance.leveredMoic, equity);
 
     // Calculate average DSCR (Debt Service Coverage Ratio)
     const propertiesWithDebt = properties.filter(p => p.financing.monthlyPayment > 0);

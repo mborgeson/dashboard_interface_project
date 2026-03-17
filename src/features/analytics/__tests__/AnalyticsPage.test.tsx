@@ -242,7 +242,7 @@ describe('AnalyticsPage', () => {
   });
 
   describe('Date range filter', () => {
-    it('renders date range dropdown with default "Last Year"', () => {
+    it('renders date range dropdown with default "All Time"', () => {
       mockUseProperties.mockReturnValue({
         data: { properties: mockProperties, total: mockProperties.length },
         isLoading: false,
@@ -251,7 +251,7 @@ describe('AnalyticsPage', () => {
       render(<AnalyticsPage />);
 
       const select = screen.getByRole('combobox');
-      expect(select).toHaveValue('365');
+      expect(select).toHaveValue('all');
     });
 
     it('allows changing date range', async () => {
@@ -269,7 +269,8 @@ describe('AnalyticsPage', () => {
       expect(select).toHaveValue('all');
     });
 
-    it('shows property count when filter is active', () => {
+    it('shows property count when filter is active', async () => {
+      const user = userEvent.setup();
       mockUseProperties.mockReturnValue({
         data: { properties: mockProperties, total: mockProperties.length },
         isLoading: false,
@@ -277,7 +278,10 @@ describe('AnalyticsPage', () => {
       });
       render(<AnalyticsPage />);
 
-      // Default is 365, so filter text should appear
+      // Default is 'all', so switch to a time-based filter to see the count
+      const select = screen.getByRole('combobox');
+      await user.selectOptions(select, '365');
+
       expect(screen.getByText(/of 2 properties/)).toBeInTheDocument();
     });
   });
