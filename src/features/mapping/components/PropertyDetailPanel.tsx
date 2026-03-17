@@ -53,7 +53,7 @@ export function PropertyDetailPanel({ property, onClose }: PropertyDetailPanelPr
           <div className="bg-neutral-50 rounded-lg p-3">
             <div className="text-xs text-neutral-600 mb-1">Built</div>
             <div className="text-lg font-semibold text-neutral-900">
-              {property.propertyDetails.yearBuilt}
+              {property.propertyDetails.yearBuilt || 'N/A'}
             </div>
           </div>
         </div>

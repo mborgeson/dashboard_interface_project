@@ -109,7 +109,7 @@ const PropertyRow = memo(function PropertyRow({
                   <p className="mt-1 text-sm">
                     {property.propertyDetails.squareFeet ? property.propertyDetails.squareFeet.toLocaleString() : 'N/A'} sq ft
                     <br />
-                    Built: {property.propertyDetails.yearBuilt}
+                    Built: {property.propertyDetails.yearBuilt || 'N/A'}
                     <br />
                     Type: {property.propertyDetails.assetType}
                   </p>
