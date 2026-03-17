@@ -230,7 +230,7 @@ export function DashboardMain() {
             );
 
             return (
-              <div key={propertyClass} className="p-4 bg-neutral-50 rounded-lg">
+              <div key={propertyClass} className={`p-4 bg-neutral-50 rounded-lg${count === 0 ? ' opacity-50' : ''}`}>
                 <div className="text-2xl font-bold text-primary-500 mb-2">
                   Class {propertyClass}
                 </div>
@@ -242,13 +242,13 @@ export function DashboardMain() {
                   <div className="flex justify-between">
                     <span className="text-neutral-600">Units:</span>
                     <span className="font-semibold text-neutral-900">
-                      {formatNumber(totalUnitsInClass)}
+                      {count > 0 ? formatNumber(totalUnitsInClass) : '--'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-neutral-600">Value:</span>
                     <span className="font-semibold text-neutral-900">
-                      {formatCurrency(totalValueInClass, true)}
+                      {count > 0 ? formatCurrency(totalValueInClass, true) : '--'}
                     </span>
                   </div>
                 </div>

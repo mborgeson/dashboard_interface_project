@@ -316,7 +316,7 @@ export function InvestmentsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{summaryStats.totalProperties}</div>
             <p className="text-xs text-muted-foreground">
-              Across 6 submarkets
+              Across {new Set(properties.map(p => p.address.submarket).filter(Boolean)).size} submarkets
             </p>
           </CardContent>
         </Card>
