@@ -890,5 +890,106 @@ class TestCheckForChangesIntegration:
         assert result.files_added == 1
 
 
+# ============================================================================
+# _sync_deal_stages Tests
+# ============================================================================
+
+
+class TestSyncDealStages:
+    """Test deal stage sync when files move between folders."""
+
+    @pytest.mark.asyncio
+    async def test_sync_updates_deal_stage(
+        self, db_session: AsyncSession, file_monitor
+    ):
+        """Moving a file to a different stage folder updates the Deal record."""
+        from app.models.deal import Deal, DealStage
+
+        # Create a deal
+        deal = Deal(
+            name="Test Deal (Phoenix, AZ)",
+            deal_type="acquisition",
+            stage=DealStage.INITIAL_REVIEW,
+            priority="medium",
+        )
+        db_session.add(deal)
+        await db_session.commit()
+        await db_session.refresh(deal)
+
+        # Simulate folder move: deal_stage changes from initial_review to dead
+        updated = await file_monitor._sync_deal_stages(
+            [("Test Deal", "dead")]
+        )
+
+        assert updated == 1
+        await db_session.refresh(deal)
+        assert deal.stage == DealStage.DEAD
+        assert deal.stage_updated_at is not None
+
+    @pytest.mark.asyncio
+    async def test_sync_no_change_when_same_stage(
+        self, db_session: AsyncSession, file_monitor
+    ):
+        """No update when deal is already in the target stage."""
+        from app.models.deal import Deal, DealStage
+
+        deal = Deal(
+            name="Already Dead (Mesa, AZ)",
+            deal_type="acquisition",
+            stage=DealStage.DEAD,
+            priority="medium",
+        )
+        db_session.add(deal)
+        await db_session.commit()
+
+        updated = await file_monitor._sync_deal_stages(
+            [("Already Dead", "dead")]
+        )
+
+        assert updated == 0
+
+    @pytest.mark.asyncio
+    async def test_sync_invalid_stage_skipped(
+        self, db_session: AsyncSession, file_monitor
+    ):
+        """Invalid stage strings are skipped without error."""
+        updated = await file_monitor._sync_deal_stages(
+            [("Some Deal", "invalid_stage")]
+        )
+        assert updated == 0
+
+    @pytest.mark.asyncio
+    async def test_sync_multiple_stage_changes(
+        self, db_session: AsyncSession, file_monitor
+    ):
+        """Multiple deals can be synced in one call."""
+        from app.models.deal import Deal, DealStage
+
+        deal1 = Deal(
+            name="Deal One (Phoenix, AZ)",
+            deal_type="acquisition",
+            stage=DealStage.INITIAL_REVIEW,
+            priority="medium",
+        )
+        deal2 = Deal(
+            name="Deal Two (Tempe, AZ)",
+            deal_type="acquisition",
+            stage=DealStage.DEAD,
+            priority="medium",
+        )
+        db_session.add_all([deal1, deal2])
+        await db_session.commit()
+
+        updated = await file_monitor._sync_deal_stages(
+            [("Deal One", "active_review"), ("Deal Two", "under_contract")]
+        )
+
+        assert updated == 2
+        await db_session.refresh(deal1)
+        await db_session.refresh(deal2)
+        assert deal1.stage == DealStage.ACTIVE_REVIEW
+        assert deal2.stage == DealStage.UNDER_CONTRACT
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

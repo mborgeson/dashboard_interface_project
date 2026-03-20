@@ -50,7 +50,7 @@ _SORTABLE_COLUMNS = {
 )
 async def list_deals(
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=500),
     stage: str | None = None,
     deal_type: str | None = None,
     priority: str | None = None,

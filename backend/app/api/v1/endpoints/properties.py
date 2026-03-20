@@ -171,7 +171,7 @@ async def _build_projected_trends(
     summary="List properties (dashboard format)",
     description="List properties in the nested frontend format used by the dashboard. "
     "Properties missing financial_data are lazily enriched from extracted values. "
-    "Supports pagination via skip/limit query parameters (default: skip=0, limit=50, max=200).",
+    "Supports pagination via skip/limit query parameters (default: skip=0, limit=50, max=500).",
     responses={
         200: {
             "description": "Properties list in frontend-compatible format with total count"
@@ -188,7 +188,7 @@ async def list_properties_dashboard(
     Returns { properties: [...], total: N } matching the frontend Property type.
 
     **Breaking change**: Previously returned up to 1,000 records.  Now
-    defaults to 50 (max 200).  Pass ``?limit=200`` to retrieve more.
+    defaults to 50 (max 500).  Pass ``?limit=500`` to retrieve more.
     """
     cache_key = f"property_dashboard_list:{pagination.skip}:{pagination.limit}"
     cached = await cache.get(cache_key)

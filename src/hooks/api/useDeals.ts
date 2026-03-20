@@ -58,7 +58,7 @@ export interface DealsWithFallbackResponse {
  * Errors propagate to React Query error state
  */
 export function useDealsWithMockFallback(
-  { pageSize = 100 }: { pageSize?: number } = {},
+  { pageSize = 500 }: { pageSize?: number } = {},
   options?: Omit<UseQueryOptions<DealsWithFallbackResponse>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery({

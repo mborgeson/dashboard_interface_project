@@ -522,8 +522,10 @@ def sync_extracted_to_properties(
                 with contextlib.suppress(ValueError, TypeError):
                     year_built = int(float(raw_year))
 
-            # Determine deal stage from folder structure or default
-            deal_stage = DealStage.INITIAL_REVIEW
+            # Determine deal stage from folder structure or default to dead
+            # (new imports without an explicit stage are unreviewed — default dead,
+            # not initial_review, to avoid polluting the kanban board)
+            deal_stage = DealStage.DEAD
             if prop_name in stages:
                 with contextlib.suppress(ValueError):
                     deal_stage = DealStage(stages[prop_name])

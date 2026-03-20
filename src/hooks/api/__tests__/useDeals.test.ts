@@ -172,7 +172,7 @@ describe('useDealsWithMockFallback', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(mockGet).toHaveBeenCalledWith('/deals', { page_size: 100 });
+    expect(mockGet).toHaveBeenCalledWith('/deals', { page_size: 500 });
     expect(result.current.data?.deals).toHaveLength(1);
     expect(result.current.data?.total).toBe(1);
 

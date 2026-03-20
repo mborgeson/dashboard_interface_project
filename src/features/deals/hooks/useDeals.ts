@@ -17,7 +17,7 @@ const DEFAULT_FILTERS: DealFilterState = {
   stages: [],
   propertyTypes: [],
   assignees: [],
-  valueRange: [0, 100000000],
+  valueRange: [0, 500000000],
   searchQuery: '',
   lastSalePricePerUnitRange: [null, null],
   lastSaleDateRange: [null, null],

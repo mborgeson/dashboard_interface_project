@@ -313,13 +313,13 @@ async def test_dashboard_skip_pagination(
 
 
 @pytest.mark.asyncio
-async def test_dashboard_limit_max_200(
+async def test_dashboard_limit_max_500(
     client, db_session, auth_headers, multiple_properties
 ):
-    """Dashboard endpoint rejects limit > 200."""
+    """Dashboard endpoint rejects limit > 500."""
     response = await client.get(
         "/api/v1/properties/dashboard",
-        params={"limit": 201},
+        params={"limit": 501},
         headers=auth_headers,
         follow_redirects=True,
     )

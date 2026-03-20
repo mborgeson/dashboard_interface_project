@@ -16,8 +16,9 @@ from typing import Literal
 from uuid import UUID
 
 import structlog
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import func
 
 from app.core.config import settings
 from app.extraction.sharepoint import (
@@ -344,11 +345,23 @@ class SharePointFileMonitor:
         # Get existing records
         stored_files = await self._get_stored_state()
 
+        # Track stage changes for deal sync
+        stage_changes: list[tuple[str, str]] = []  # (deal_name, new_stage)
+
         # Update existing and create new records
         for file in files:
             if file.path in stored_files:
                 # Update existing record
                 existing = stored_files[file.path]
+                # Detect folder move (deal_stage changed)
+                if file.deal_stage and existing.deal_stage != file.deal_stage:
+                    self.logger.info(
+                        "deal_stage_changed",
+                        deal=file.deal_name,
+                        old_stage=existing.deal_stage,
+                        new_stage=file.deal_stage,
+                    )
+                    stage_changes.append((file.deal_name, file.deal_stage))
                 existing.file_name = file.name
                 existing.deal_name = file.deal_name
                 existing.size_bytes = file.size
@@ -384,6 +397,72 @@ class SharePointFileMonitor:
 
         await self.db.commit()
         self.logger.debug("stored_state_updated", file_count=len(files))
+
+        # Sync deal stages when files move between stage folders
+        if stage_changes:
+            await self._sync_deal_stages(stage_changes)
+
+    async def _sync_deal_stages(
+        self,
+        stage_changes: list[tuple[str, str]],
+    ) -> int:
+        """
+        Update Deal records when their files move between stage folders.
+
+        When the file monitor detects that a file's folder path has changed
+        (e.g., from "1) Initial UW and Review" to "0) Dead Deals"), this
+        method updates the corresponding Deal's stage in the database.
+
+        Args:
+            stage_changes: List of (deal_name, new_stage_str) tuples
+
+        Returns:
+            Number of deals updated
+        """
+        from app.models.deal import Deal, DealStage
+
+        updated = 0
+        for deal_name, new_stage_str in stage_changes:
+            try:
+                target_stage = DealStage(new_stage_str)
+            except ValueError:
+                self.logger.warning(
+                    "invalid_deal_stage_from_folder",
+                    deal=deal_name,
+                    stage=new_stage_str,
+                )
+                continue
+
+            # Match deal by name (exact or "Name (City, ST)" pattern)
+            stmt = select(Deal).where(
+                or_(
+                    func.lower(Deal.name) == func.lower(deal_name),
+                    func.lower(Deal.name).like(func.lower(deal_name) + " (%"),
+                ),
+                Deal.is_deleted.is_(False),
+            )
+            result = await self.db.execute(stmt)
+            deals = list(result.scalars().all())
+
+            for deal in deals:
+                if deal.stage != target_stage:
+                    old_stage = deal.stage
+                    deal.stage = target_stage
+                    deal.stage_updated_at = datetime.now(UTC)
+                    updated += 1
+                    self.logger.info(
+                        "deal_stage_synced_from_folder",
+                        deal_id=deal.id,
+                        deal_name=deal.name,
+                        old_stage=old_stage.value if old_stage else None,
+                        new_stage=target_stage.value,
+                    )
+
+        if updated:
+            await self.db.commit()
+            self.logger.info("deal_stages_synced", count=updated)
+
+        return updated
 
     async def _log_changes(
         self,
