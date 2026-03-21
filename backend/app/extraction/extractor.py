@@ -15,6 +15,7 @@ Key features:
 import io
 import re
 import warnings
+import zipfile
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
@@ -195,12 +196,34 @@ class ExcelDataExtractor:
         # Determine file type and load workbook
         file_ext = Path(file_path).suffix.lower()
 
-        if file_ext == ".xlsb":
-            workbook = self._load_xlsb(file_path, file_content)
-            is_xlsb = True
-        else:
-            workbook = self._load_xlsx(file_path, file_content)
-            is_xlsb = False
+        try:
+            if file_ext == ".xlsb":
+                workbook = self._load_xlsb(file_path, file_content)
+                is_xlsb = True
+            else:
+                workbook = self._load_xlsx(file_path, file_content)
+                is_xlsb = False
+        except FileAccessError as e:
+            duration = (datetime.now(UTC) - start_time).total_seconds()
+            extracted_data["_load_error"] = str(e)
+            extracted_data["_extraction_errors"].append(
+                {"field": "_workbook_load", "error": str(e)}
+            )
+            extracted_data["_extraction_metadata"] = {
+                "total_fields": len(self.mappings),
+                "successful": 0,
+                "failed": len(self.mappings),
+                "success_rate": 0,
+                "duration_seconds": round(duration, 2),
+                "skipped": True,
+                "skip_reason": str(e),
+            }
+            self.logger.warning(
+                "extraction_skipped_corrupt_file",
+                file_path=file_path,
+                error=str(e),
+            )
+            return extracted_data
 
         # Get available sheets for error reporting
         available_sheets = list(workbook.sheets) if is_xlsb else workbook.sheetnames
@@ -300,20 +323,50 @@ class ExcelDataExtractor:
         return extracted_data
 
     def _load_xlsb(self, file_path: str, file_content: bytes | None = None):
-        """Load .xlsb file using pyxlsb"""
-        if file_content:
-            return pyxlsb.open_workbook(io.BytesIO(file_content))
-        return pyxlsb.open_workbook(file_path)
+        """Load .xlsb file using pyxlsb.
+
+        Raises:
+            FileAccessError: If the file is corrupt or not a valid zip archive.
+        """
+        try:
+            if file_content:
+                return pyxlsb.open_workbook(io.BytesIO(file_content))
+            return pyxlsb.open_workbook(file_path)
+        except zipfile.BadZipFile as err:
+            self.logger.error(
+                "xlsb_bad_zip_file",
+                file_path=file_path,
+                error="File is not a valid zip archive (corrupt or unsupported format)",
+            )
+            raise FileAccessError(
+                f"Cannot open XLSB file '{Path(file_path).name}': "
+                f"file is corrupt or not a valid zip archive"
+            ) from err
 
     def _load_xlsx(self, file_path: str, file_content: bytes | None = None):
-        """Load .xlsx/.xlsm file using openpyxl"""
-        if file_content:
-            return openpyxl.load_workbook(
-                io.BytesIO(file_content),
-                data_only=True,  # Get calculated values, not formulas
-                keep_vba=True,  # Preserve VBA for .xlsm files
+        """Load .xlsx/.xlsm file using openpyxl.
+
+        Raises:
+            FileAccessError: If the file is corrupt or not a valid zip archive.
+        """
+        try:
+            if file_content:
+                return openpyxl.load_workbook(
+                    io.BytesIO(file_content),
+                    data_only=True,  # Get calculated values, not formulas
+                    keep_vba=True,  # Preserve VBA for .xlsm files
+                )
+            return openpyxl.load_workbook(file_path, data_only=True, keep_vba=True)
+        except zipfile.BadZipFile as err:
+            self.logger.error(
+                "xlsx_bad_zip_file",
+                file_path=file_path,
+                error="File is not a valid zip archive (corrupt or unsupported format)",
             )
-        return openpyxl.load_workbook(file_path, data_only=True, keep_vba=True)
+            raise FileAccessError(
+                f"Cannot open XLSX file '{Path(file_path).name}': "
+                f"file is corrupt or not a valid zip archive"
+            ) from err
 
     def _extract_cell_value(
         self,

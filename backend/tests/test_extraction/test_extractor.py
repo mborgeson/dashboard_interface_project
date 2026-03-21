@@ -15,11 +15,14 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+import zipfile
+from unittest.mock import patch
+
 import pytest
 
 from app.extraction.cell_mapping import CellMapping, CellMappingParser
 from app.extraction.error_handler import ErrorCategory, ErrorHandler
-from app.extraction.extractor import ExcelDataExtractor
+from app.extraction.extractor import BatchProcessor, ExcelDataExtractor, FileAccessError
 
 # Paths
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "uw_models"
@@ -205,6 +208,141 @@ class TestExcelDataExtractor:
         print(
             f"✓ Processed {min(3, len(fixture_files))} files: {total_successful} successful, {total_failed} failed"
         )
+
+
+class TestCorruptFileHandling:
+    """Tests for graceful handling of corrupt/invalid Excel files."""
+
+    @pytest.fixture
+    def simple_extractor(self) -> ExcelDataExtractor:
+        """Create extractor with minimal mappings for unit tests."""
+        mappings = {
+            "PROPERTY_NAME": CellMapping(
+                category="General",
+                description="Property Name",
+                field_name="PROPERTY_NAME",
+                sheet_name="Summary",
+                cell_address="B2",
+            ),
+            "TOTAL_UNITS": CellMapping(
+                category="General",
+                description="Total Units",
+                field_name="TOTAL_UNITS",
+                sheet_name="Summary",
+                cell_address="B3",
+            ),
+        }
+        return ExcelDataExtractor(mappings)
+
+    def test_load_xlsb_bad_zip_file_raises_file_access_error(
+        self, simple_extractor: ExcelDataExtractor
+    ) -> None:
+        """_load_xlsb raises FileAccessError for corrupt zip files."""
+        corrupt_content = b"This is not a valid zip file at all"
+        with pytest.raises(FileAccessError, match="corrupt or not a valid zip archive"):
+            simple_extractor._load_xlsb("Charleston_Row.xlsb", corrupt_content)
+
+    def test_load_xlsx_bad_zip_file_raises_file_access_error(
+        self, simple_extractor: ExcelDataExtractor
+    ) -> None:
+        """_load_xlsx raises FileAccessError for corrupt zip files."""
+        corrupt_content = b"This is not a valid zip file at all"
+        with pytest.raises(FileAccessError, match="corrupt or not a valid zip archive"):
+            simple_extractor._load_xlsx("Zen_on_50.xlsx", corrupt_content)
+
+    def test_extract_from_file_returns_graceful_result_for_corrupt_xlsb(
+        self, simple_extractor: ExcelDataExtractor
+    ) -> None:
+        """extract_from_file returns a result dict (not exception) for corrupt XLSB."""
+        corrupt_content = b"not a zip file"
+        result = simple_extractor.extract_from_file(
+            "Charleston_Row.xlsb",
+            file_content=corrupt_content,
+            validate=False,
+        )
+
+        # Should return a result dict, not raise
+        assert isinstance(result, dict)
+        assert result["_file_path"] == "Charleston_Row.xlsb"
+
+        # Should have load error metadata
+        assert "_load_error" in result
+        assert "corrupt" in result["_load_error"]
+
+        # Should record the error in _extraction_errors
+        assert len(result["_extraction_errors"]) == 1
+        assert result["_extraction_errors"][0]["field"] == "_workbook_load"
+
+        # Metadata should show all fields failed
+        metadata = result["_extraction_metadata"]
+        assert metadata["successful"] == 0
+        assert metadata["failed"] == len(simple_extractor.mappings)
+        assert metadata["success_rate"] == 0
+        assert metadata["skipped"] is True
+        assert "corrupt" in metadata["skip_reason"]
+
+    def test_extract_from_file_returns_graceful_result_for_corrupt_xlsx(
+        self, simple_extractor: ExcelDataExtractor
+    ) -> None:
+        """extract_from_file returns a result dict (not exception) for corrupt XLSX."""
+        corrupt_content = b"definitely not an xlsx file"
+        result = simple_extractor.extract_from_file(
+            "Villas_at_Vesta_View.xlsx",
+            file_content=corrupt_content,
+            validate=False,
+        )
+
+        assert isinstance(result, dict)
+        assert "_load_error" in result
+        assert result["_extraction_metadata"]["skipped"] is True
+
+    def test_batch_processor_skips_corrupt_file_and_continues(
+        self, simple_extractor: ExcelDataExtractor
+    ) -> None:
+        """BatchProcessor continues processing after a corrupt file."""
+        corrupt_content = b"bad zip content"
+        file_list = [
+            {
+                "file_path": "corrupt_file.xlsb",
+                "file_content": corrupt_content,
+                "deal_name": "Corrupt Deal",
+                "deal_stage": "Screening",
+                "modified_date": None,
+            },
+        ]
+
+        processor = BatchProcessor(simple_extractor, batch_size=10, max_workers=1)
+
+        # Mock validation to skip filename pattern check (we're testing load, not filter)
+        with patch.object(simple_extractor, "validate_file", return_value=(True, None)):
+            batch_result = processor.process_files(file_list)
+
+        # The file should be processed (not crash), with load error in result
+        assert batch_result["summary"]["total_files"] == 1
+        assert batch_result["summary"]["processed"] == 1
+        assert batch_result["summary"]["failed"] == 0
+
+        # The result should contain the graceful error dict
+        result = batch_result["results"][0]
+        assert "_load_error" in result
+        assert result["_extraction_metadata"]["skipped"] is True
+
+    def test_file_access_error_message_includes_filename(
+        self, simple_extractor: ExcelDataExtractor
+    ) -> None:
+        """FileAccessError message includes the file name for diagnostics."""
+        corrupt_content = b"nope"
+        with pytest.raises(FileAccessError) as exc_info:
+            simple_extractor._load_xlsb(
+                "/mnt/c/Users/data/Zen_on_50.xlsb", corrupt_content
+            )
+        assert "Zen_on_50.xlsb" in str(exc_info.value)
+
+    def test_file_access_error_is_extraction_error_subclass(self) -> None:
+        """FileAccessError inherits from ExtractionError for catch-all handling."""
+        from app.extraction.extractor import ExtractionError
+
+        assert issubclass(FileAccessError, ExtractionError)
 
 
 def run_quick_test():
