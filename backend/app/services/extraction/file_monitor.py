@@ -10,6 +10,7 @@ Provides polling-based monitoring of SharePoint for file changes:
 Uses a database-backed state store to track file metadata between checks.
 """
 
+import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Literal
@@ -505,6 +506,41 @@ class SharePointFileMonitor:
             await self.db.commit()
             self.logger.debug("changes_logged", count=len(changes))
 
+    def _create_extraction_run_sync(self, files_discovered: int) -> UUID | None:
+        """
+        Create an extraction run using sync CRUD operations.
+
+        Intended to be called via asyncio.to_thread() so blocking DB calls
+        don't conflict with the running event loop.
+
+        Args:
+            files_discovered: Number of extractable files detected
+
+        Returns:
+            Extraction run UUID if created, None if a run is already active
+        """
+        from app.crud.extraction import ExtractionRunCRUD
+        from app.db.session import SessionLocal
+
+        sync_db = SessionLocal()
+        try:
+            running = ExtractionRunCRUD.get_running(sync_db)
+            if running:
+                self.logger.info(
+                    "extraction_skipped_already_running",
+                    running_run_id=str(running.id),
+                )
+                return None
+
+            run = ExtractionRunCRUD.create(
+                sync_db,
+                trigger_type="file_monitor",
+                files_discovered=files_discovered,
+            )
+            return run.id
+        finally:
+            sync_db.close()
+
     async def _trigger_extraction(
         self,
         changes: list[FileChange],
@@ -533,31 +569,14 @@ class SharePointFileMonitor:
         )
 
         try:
-            # Import here to avoid circular imports
-            from app.crud.extraction import ExtractionRunCRUD
-            from app.db.session import SessionLocal
+            # Delegate sync CRUD calls to a worker thread to avoid
+            # "This event loop is already running" RuntimeError.
+            run_id = await asyncio.to_thread(
+                self._create_extraction_run_sync, len(extractable)
+            )
 
-            # Use a sync session for the sync CRUD operations
-            sync_db = SessionLocal()
-            try:
-                # Check if an extraction is already running — skip if busy
-                running = ExtractionRunCRUD.get_running(sync_db)
-                if running:
-                    self.logger.info(
-                        "extraction_skipped_already_running",
-                        running_run_id=str(running.id),
-                    )
-                    return None
-
-                # Create a new extraction run triggered by the file monitor
-                run = ExtractionRunCRUD.create(
-                    sync_db,
-                    trigger_type="file_monitor",
-                    files_discovered=len(extractable),
-                )
-                run_id = run.id
-            finally:
-                sync_db.close()
+            if run_id is None:
+                return None
 
             # Mark files as pending extraction
             file_paths = [c.file_path for c in extractable]

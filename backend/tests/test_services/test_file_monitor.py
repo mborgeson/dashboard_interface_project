@@ -9,6 +9,7 @@ Tests cover:
 - SharePointFileMonitor._detect_changes()
 - SharePointFileMonitor._update_stored_state()
 - SharePointFileMonitor._log_changes()
+- SharePointFileMonitor._trigger_extraction() (asyncio.to_thread delegation)
 - SharePointFileMonitor.get_pending_files()
 - SharePointFileMonitor.mark_file_extracted()
 - SharePointFileMonitor.get_recent_changes()
@@ -888,6 +889,168 @@ class TestCheckForChangesIntegration:
         assert result.folders_scanned == 10
         # Should detect new file as added
         assert result.files_added == 1
+
+
+# ============================================================================
+# Test: SharePointFileMonitor._trigger_extraction()
+# ============================================================================
+
+
+class TestTriggerExtraction:
+    """Tests for _trigger_extraction with asyncio.to_thread delegation."""
+
+    @pytest.mark.asyncio
+    async def test_trigger_extraction_delegates_to_thread(
+        self,
+        file_monitor: SharePointFileMonitor,
+    ) -> None:
+        """Sync CRUD calls run in a worker thread without event loop conflict."""
+        mock_run_id = uuid4()
+        changes = [
+            FileChange(
+                file_path="/sites/deals/DealA/UW Model.xlsb",
+                file_name="UW Model.xlsb",
+                change_type="added",
+                deal_name="Deal A",
+                old_modified_date=None,
+                new_modified_date=datetime.now(UTC),
+                new_size_bytes=1024000,
+            ),
+        ]
+
+        with patch.object(
+            file_monitor,
+            "_create_extraction_run_sync",
+            return_value=mock_run_id,
+        ) as mock_sync:
+            result = await file_monitor._trigger_extraction(changes)
+
+        assert result == mock_run_id
+        mock_sync.assert_called_once_with(1)
+
+    @pytest.mark.asyncio
+    async def test_trigger_extraction_skips_when_already_running(
+        self,
+        file_monitor: SharePointFileMonitor,
+    ) -> None:
+        """Returns None when _create_extraction_run_sync returns None (run active)."""
+        changes = [
+            FileChange(
+                file_path="/sites/deals/DealB/UW Model.xlsb",
+                file_name="UW Model.xlsb",
+                change_type="modified",
+                deal_name="Deal B",
+                old_modified_date=datetime.now(UTC) - timedelta(days=1),
+                new_modified_date=datetime.now(UTC),
+                new_size_bytes=2048000,
+            ),
+        ]
+
+        with patch.object(
+            file_monitor,
+            "_create_extraction_run_sync",
+            return_value=None,
+        ):
+            result = await file_monitor._trigger_extraction(changes)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_trigger_extraction_skips_deleted_changes(
+        self,
+        file_monitor: SharePointFileMonitor,
+    ) -> None:
+        """Ignores deleted-only changes without calling sync CRUD."""
+        changes = [
+            FileChange(
+                file_path="/sites/deals/DealC/UW Model.xlsb",
+                file_name="UW Model.xlsb",
+                change_type="deleted",
+                deal_name="Deal C",
+                old_modified_date=datetime.now(UTC) - timedelta(days=1),
+                new_modified_date=None,
+                old_size_bytes=1024000,
+            ),
+        ]
+
+        with patch.object(
+            file_monitor,
+            "_create_extraction_run_sync",
+        ) as mock_sync:
+            result = await file_monitor._trigger_extraction(changes)
+
+        assert result is None
+        mock_sync.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_trigger_extraction_empty_changes(
+        self,
+        file_monitor: SharePointFileMonitor,
+    ) -> None:
+        """Returns None for empty changes list."""
+        result = await file_monitor._trigger_extraction([])
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_create_extraction_run_sync_called_via_to_thread(
+        self,
+        file_monitor: SharePointFileMonitor,
+    ) -> None:
+        """Verifies asyncio.to_thread is used (no event loop conflict)."""
+        mock_run_id = uuid4()
+        changes = [
+            FileChange(
+                file_path="/sites/deals/DealD/UW Model.xlsb",
+                file_name="UW Model.xlsb",
+                change_type="added",
+                deal_name="Deal D",
+                old_modified_date=None,
+                new_modified_date=datetime.now(UTC),
+                new_size_bytes=1024000,
+            ),
+        ]
+
+        with (
+            patch(
+                "app.services.extraction.file_monitor.asyncio.to_thread",
+                new_callable=AsyncMock,
+                return_value=mock_run_id,
+            ) as mock_to_thread,
+        ):
+            result = await file_monitor._trigger_extraction(changes)
+
+        assert result == mock_run_id
+        mock_to_thread.assert_awaited_once_with(
+            file_monitor._create_extraction_run_sync, 1
+        )
+
+    @pytest.mark.asyncio
+    async def test_trigger_extraction_handles_crud_error(
+        self,
+        file_monitor: SharePointFileMonitor,
+    ) -> None:
+        """Returns None and logs error when sync CRUD raises."""
+        changes = [
+            FileChange(
+                file_path="/sites/deals/DealE/UW Model.xlsb",
+                file_name="UW Model.xlsb",
+                change_type="added",
+                deal_name="Deal E",
+                old_modified_date=None,
+                new_modified_date=datetime.now(UTC),
+                new_size_bytes=1024000,
+            ),
+        ]
+
+        with patch.object(
+            file_monitor,
+            "_create_extraction_run_sync",
+            side_effect=ConnectionError("DB down"),
+        ):
+            result = await file_monitor._trigger_extraction(changes)
+
+        assert result is None
 
 
 # ============================================================================
