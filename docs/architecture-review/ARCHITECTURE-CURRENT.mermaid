@@ -1,0 +1,75 @@
+graph TB
+    subgraph "Data Sources"
+        SP[SharePoint Online<br/>Graph API + MSAL]
+        LOCAL[Local OneDrive<br/>WSL2 /mnt/c/...]
+        COSTAR[CoStar Data<br/>Market Analytics]
+        FRED[FRED API<br/>Interest Rates]
+    end
+
+    subgraph "Extraction Layer"
+        FILTER[FileFilter<br/>classify files]
+        FP[Fingerprint<br/>identify template]
+        MAPPER[ReferenceMapper<br/>4-tier auto-map]
+        EXTRACTOR[Extractor<br/>openpyxl cell read]
+        VALID[Validation<br/>type/range checks]
+        MONITOR[FileMonitor<br/>polling 30-min]
+        SCHED[APScheduler<br/>cron + interval]
+    end
+
+    subgraph "Backend - FastAPI"
+        API[API Router<br/>20 endpoints]
+        AUTH[JWT Auth<br/>+ token blacklist]
+        MW[Middleware Chain<br/>8 layers]
+        CACHE[CacheService<br/>Redis + memory fallback]
+        WORKER[Report Worker<br/>background generation]
+        WS[WebSocket<br/>real-time updates]
+    end
+
+    subgraph "Database - PostgreSQL"
+        PROPS[properties]
+        DEALS[deals<br/>6-stage pipeline]
+        EV[extracted_values<br/>EAV pattern]
+        ER[extraction_runs]
+        MF[monitored_files]
+        MARKET[market_data<br/>253K records]
+        UW[underwriting models<br/>11 tables]
+    end
+
+    subgraph "Frontend - React + Vite"
+        DASH[Dashboard<br/>portfolio summary]
+        KANBAN[Deals Kanban<br/>6-stage board]
+        ANALYTICS[Analytics<br/>charts + KPIs]
+        EXTRACT_UI[Extraction UI<br/>pipeline stepper]
+        MAP[Property Map<br/>aerial views]
+        MARKET_UI[Market Analysis<br/>15 CoStar clusters]
+        CONSTRUCT[Construction<br/>pipeline tracker]
+    end
+
+    SP --> MONITOR
+    SP --> FILTER
+    LOCAL --> FILTER
+    COSTAR --> MARKET
+    FRED --> API
+
+    MONITOR --> FILTER
+    SCHED --> MONITOR
+    FILTER --> FP --> MAPPER --> EXTRACTOR --> VALID --> EV
+    EXTRACTOR --> ER
+
+    API --> AUTH --> MW
+    API --> PROPS
+    API --> DEALS
+    API --> EV
+    API --> MARKET
+    API --> UW
+    CACHE --> API
+    WORKER --> API
+    WS --> API
+
+    DASH --> API
+    KANBAN --> API
+    ANALYTICS --> API
+    EXTRACT_UI --> API
+    MAP --> API
+    MARKET_UI --> API
+    CONSTRUCT --> API

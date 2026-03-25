@@ -1,0 +1,105 @@
+graph TB
+    subgraph "Data Sources"
+        SP[SharePoint Online<br/>Graph API + MSAL]
+        LOCAL[Local OneDrive<br/>WSL2 /mnt/c/...]
+        COSTAR[CoStar Data<br/>Market Analytics]
+        FRED[FRED API<br/>Interest Rates]
+    end
+
+    subgraph "Extraction Layer"
+        WEBHOOK[Webhook Endpoint<br/>instant Graph notifications]
+        MONITOR[FileMonitor<br/>delta queries + full-scan fallback]
+        SCHED[APScheduler<br/>cron + interval + renewal]
+        FILTER[FileFilter<br/>classify files]
+        FP[Fingerprint<br/>identify template]
+        MAPPER[ReferenceMapper<br/>4-tier + synonyms]
+        DRIFT[SchemaDriftDetector<br/>baseline comparison]
+        EXTRACTOR[Extractor<br/>retry + backoff]
+        VALID[Validation<br/>type + range + domain]
+        DEADLETTER[Dead-Letter Queue<br/>quarantine persistent failures]
+        RECON[Reconciliation<br/>coverage verification]
+    end
+
+    subgraph "Stage Sync"
+        STAGE_MAP[Unified Stage Mapping<br/>single canonical source]
+        STAGE_LOG[StageChangeLog<br/>audit trail per change]
+        STAGE_SVC[change_deal_stage<br/>central function]
+    end
+
+    subgraph "Backend - FastAPI"
+        API[API Router<br/>20+ endpoints]
+        AUTH[JWT Auth<br/>+ Redis blacklist]
+        MW[Middleware Chain<br/>8 layers]
+        REDIS[(Redis<br/>cache + blacklist + pubsub)]
+        WORKER[Report Worker<br/>background generation]
+        WS[WebSocket<br/>real-time stage updates]
+    end
+
+    subgraph "Database - PostgreSQL"
+        PROPS[properties]
+        DEALS[deals<br/>6-stage pipeline]
+        EV[extracted_values<br/>EAV + error_category + confidence]
+        ER[extraction_runs]
+        MF[monitored_files<br/>+ failure tracking]
+        MARKET[market_data<br/>253K records]
+        UW[underwriting models<br/>11 tables]
+        DT[delta_tokens]
+        SCL[stage_change_logs]
+        RECON_TBL[reconciliation_reports]
+        DRIFT_TBL[schema_drift_alerts]
+    end
+
+    subgraph "Frontend - React + Vite"
+        DASH[Dashboard<br/>portfolio summary]
+        KANBAN[Deals Kanban<br/>real-time stage sync]
+        ANALYTICS[Analytics<br/>charts + KPIs]
+        EXTRACT_UI[Extraction UI<br/>pipeline + dead-letter + drift]
+        MAP[Property Map<br/>aerial views]
+        MARKET_UI[Market Analysis<br/>15 CoStar clusters]
+        CONSTRUCT[Construction<br/>pipeline tracker]
+        HISTORY[Stage History<br/>timeline per deal]
+    end
+
+    SP --> WEBHOOK
+    WEBHOOK -->|debounce via Redis| MONITOR
+    SP --> MONITOR
+    LOCAL --> FILTER
+    COSTAR --> MARKET
+    FRED --> API
+
+    MONITOR --> FILTER
+    SCHED --> MONITOR
+    SCHED -->|renew subscription| WEBHOOK
+    SCHED -->|daily reconciliation| RECON
+    FILTER --> FP --> DRIFT
+    DRIFT --> MAPPER --> EXTRACTOR --> VALID --> EV
+    EXTRACTOR --> ER
+    EXTRACTOR --> DEADLETTER
+    RECON --> MF
+    RECON --> EV
+    MONITOR --> DT
+
+    MONITOR --> STAGE_MAP --> STAGE_SVC --> STAGE_LOG --> SCL
+    STAGE_SVC --> DEALS
+    STAGE_SVC --> WS
+
+    API --> AUTH --> MW
+    API --> PROPS
+    API --> DEALS
+    API --> EV
+    API --> MARKET
+    API --> UW
+    REDIS --> AUTH
+    REDIS --> API
+    REDIS --> WEBHOOK
+    WORKER --> API
+    WS --> API
+
+    DASH --> API
+    KANBAN --> API
+    ANALYTICS --> API
+    EXTRACT_UI --> API
+    MAP --> API
+    MARKET_UI --> API
+    CONSTRUCT --> API
+    HISTORY --> API
