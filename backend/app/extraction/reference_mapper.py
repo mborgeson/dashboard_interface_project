@@ -36,6 +36,7 @@ class MappingMatch:
     category: str = ""
     production_sheet: str = ""
     production_cell: str = ""
+    label_verified: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -228,7 +229,8 @@ def _find_best_match(
                 production_cell=prod_cell,
             )
         else:
-            # Sheet exists but label not found — still Tier 1 (structural match)
+            # Sheet exists but label not found — Tier 1b (structural match,
+            # label unverified). Flagged for manual review.
             return MappingMatch(
                 field_name=field_name,
                 source_sheet=prod_sheet,
@@ -239,6 +241,7 @@ def _find_best_match(
                 category=mapping.category,
                 production_sheet=prod_sheet,
                 production_cell=prod_cell,
+                label_verified=False,
             )
 
     # Tier 2: Label found in fingerprint (same label, any sheet)
@@ -462,3 +465,151 @@ def _levenshtein(s1: str, s2: str) -> int:
         prev_row = curr_row
 
     return prev_row[-1]
+
+
+# ---------------------------------------------------------------------------
+# Domain range validation for extracted values (UR-002)
+# ---------------------------------------------------------------------------
+
+# Expected ranges for financial fields. Values outside these ranges
+# trigger a loguru warning when the mapping is Tier 1b (label_verified=False).
+DOMAIN_RANGES: dict[str, tuple[float | None, float | None]] = {
+    "GOING_IN_CAP_RATE": (0.0, 0.25),  # 0 – 25%
+    "T3_RETURN_ON_COST": (0.0, 0.30),  # 0 – 30%
+    "UNLEVERED_RETURNS_IRR": (-0.50, 1.0),  # -50% – 100%
+    "LEVERED_RETURNS_IRR": (-0.50, 2.0),  # -50% – 200%
+    "UNLEVERED_RETURNS_MOIC": (0.0, 10.0),  # 0x – 10x
+    "LEVERED_RETURNS_MOIC": (0.0, 10.0),  # 0x – 10x
+    "PURCHASE_PRICE": (0.0, None),  # >= 0
+    "TOTAL_UNITS": (1.0, 2000.0),  # 1 – 2000
+    "PRICE_PER_UNIT": (0.0, 1_000_000.0),  # 0 – $1M/unit
+    "NOI_YEAR_1": (None, None),  # no constraint (can be negative)
+}
+
+
+def validate_domain_ranges(
+    extracted_data: dict[str, object],
+    unverified_fields: set[str],
+) -> list[dict[str, object]]:
+    """Check Tier 1b (unverified) field values against domain ranges.
+
+    Args:
+        extracted_data: Dict of field_name -> extracted value.
+        unverified_fields: Set of field names where label_verified is False.
+
+    Returns:
+        List of warning dicts with field_name, value, min, max, message.
+    """
+    warnings_list: list[dict[str, object]] = []
+
+    for field_name in unverified_fields:
+        value = extracted_data.get(field_name)
+        if value is None or not isinstance(value, int | float):
+            continue
+
+        import math
+
+        if math.isnan(value) or math.isinf(value):
+            continue
+
+        bounds = DOMAIN_RANGES.get(field_name)
+        if bounds is None:
+            continue
+
+        lo, hi = bounds
+        if lo is not None and value < lo:
+            msg = (
+                f"Tier 1b field '{field_name}' value {value} is below "
+                f"expected minimum {lo}"
+            )
+            logger.warning(
+                "domain_range_violation",
+                field=field_name,
+                value=value,
+                min=lo,
+                max=hi,
+                message=msg,
+            )
+            warnings_list.append(
+                {
+                    "field_name": field_name,
+                    "value": value,
+                    "min": lo,
+                    "max": hi,
+                    "message": msg,
+                }
+            )
+        elif hi is not None and value > hi:
+            msg = (
+                f"Tier 1b field '{field_name}' value {value} exceeds "
+                f"expected maximum {hi}"
+            )
+            logger.warning(
+                "domain_range_violation",
+                field=field_name,
+                value=value,
+                min=lo,
+                max=hi,
+                message=msg,
+            )
+            warnings_list.append(
+                {
+                    "field_name": field_name,
+                    "value": value,
+                    "min": lo,
+                    "max": hi,
+                    "message": msg,
+                }
+            )
+
+    return warnings_list
+
+
+def generate_tier1b_report(
+    group_name: str,
+    mapping_result: GroupReferenceMapping,
+    extracted_data: dict[str, object] | None = None,
+) -> dict[str, object]:
+    """Generate a review report for Tier 1b (unverified label) matches.
+
+    Args:
+        group_name: Name of the group.
+        mapping_result: The GroupReferenceMapping from auto_map_group.
+        extracted_data: Optional extracted data dict for domain validation.
+
+    Returns:
+        Report dict with tier1b_fields, count, and optional domain_warnings.
+    """
+    tier1b_matches = [m for m in mapping_result.mappings if not m.label_verified]
+
+    unverified_fields = {m.field_name for m in tier1b_matches}
+
+    report: dict[str, object] = {
+        "group_name": group_name,
+        "tier1b_count": len(tier1b_matches),
+        "tier1b_fields": [
+            {
+                "field_name": m.field_name,
+                "source_sheet": m.source_sheet,
+                "source_cell": m.source_cell,
+                "confidence": m.confidence,
+                "label_text": m.label_text,
+                "label_verified": m.label_verified,
+            }
+            for m in tier1b_matches
+        ],
+    }
+
+    if extracted_data is not None:
+        domain_warnings = validate_domain_ranges(extracted_data, unverified_fields)
+        report["domain_warnings"] = domain_warnings
+        report["domain_warning_count"] = len(domain_warnings)
+
+    logger.info(
+        "tier1b_review_report",
+        group=group_name,
+        tier1b_count=len(tier1b_matches),
+        total_mapped=len(mapping_result.mappings),
+    )
+
+    return report

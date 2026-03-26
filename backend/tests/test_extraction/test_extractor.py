@@ -77,12 +77,12 @@ class TestErrorHandler:
     """Tests for ErrorHandler"""
 
     def test_all_error_categories(self):
-        """Verify all 9 error categories return np.nan"""
-        import numpy as np
+        """Verify all 9 error categories return NullValue"""
+        from app.extraction.error_handler import NullValue, is_null_value
 
         handler = ErrorHandler()
 
-        # Test each handler returns np.nan
+        # Test each handler returns NullValue
         results = [
             handler.handle_missing_sheet("field", "Sheet1", ["Other"]),
             handler.handle_invalid_cell_address("field", "Sheet1", "XYZ", "bad format"),
@@ -96,13 +96,23 @@ class TestErrorHandler:
         ]
 
         for i, result in enumerate(results):
-            assert np.isnan(result), f"Error handler {i} did not return np.nan"
+            assert isinstance(result, NullValue), (
+                f"Error handler {i} did not return NullValue, got {type(result)}"
+            )
+            assert is_null_value(result)
 
-        print("✓ All 9 error categories return np.nan")
+        # Error handlers (all except handle_empty_value) should be is_error=True
+        for i, result in enumerate(results):
+            if i == 5:  # handle_empty_value without treat_as_error
+                assert result.is_error is False
+            else:
+                assert result.is_error is True
+
+        print("✓ All 9 error categories return NullValue")
 
     def test_process_cell_value_formula_errors(self):
         """Test formula error detection"""
-        import numpy as np
+        from app.extraction.error_handler import NullValue
 
         handler = ErrorHandler()
 
@@ -118,7 +128,10 @@ class TestErrorHandler:
 
         for error in formula_errors:
             result = handler.process_cell_value(error, "field", "Sheet", "A1")
-            assert np.isnan(result), f"Formula error {error} not detected"
+            assert isinstance(result, NullValue), f"Formula error {error} not detected"
+            assert result.is_error is True
+            assert result.error_category == "formula_error"
+            assert result.raw_value == error
 
         print("✓ All 7 formula error types detected")
 
@@ -368,9 +381,11 @@ def run_quick_test():
     import numpy as np
 
     handler = ErrorHandler()
+    from app.extraction.error_handler import NullValue
+
     result = handler.handle_missing_sheet("test", "Missing", ["Other"])
-    assert np.isnan(result)
-    print("   ✓ Error handler returns np.nan for errors")
+    assert isinstance(result, NullValue)
+    print("   ✓ Error handler returns NullValue for errors")
 
     # Test 3: Extract from first fixture
     print("\n3. Testing ExcelDataExtractor...")
@@ -394,13 +409,9 @@ def run_quick_test():
         count = 0
         for key, value in result.items():
             if not key.startswith("_") and value is not None:
-                try:
-                    if not np.isnan(value) if isinstance(value, float) else True:
-                        print(f"     {key}: {value}")
-                        count += 1
-                        if count >= 5:
-                            break
-                except:
+                from app.extraction.error_handler import is_null_value
+
+                if not is_null_value(value):
                     print(f"     {key}: {value}")
                     count += 1
                     if count >= 5:

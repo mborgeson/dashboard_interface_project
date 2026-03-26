@@ -4,6 +4,7 @@ Deal pipeline/Kanban board endpoints — stage management and board view.
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import cache
@@ -12,11 +13,14 @@ from app.crud import deal as deal_crud
 from app.crud.crud_activity_log import activity_log as activity_log_crud
 from app.db.session import get_db
 from app.models.deal import DealStage
+from app.models.stage_change_log import StageChangeLog
 from app.schemas.deal import (
     DealResponse,
     DealStageUpdate,
     KanbanBoardResponse,
     RecentActivityItem,
+    StageChangeLogResponse,
+    StageHistoryResponse,
 )
 from app.services import get_websocket_manager
 
@@ -140,6 +144,7 @@ async def update_deal_stage(
         deal_id=deal_id,
         new_stage=new_stage_enum,
         stage_order=stage_data.stage_order,
+        changed_by_user_id=current_user.id,
     )
 
     # Notify via WebSocket
@@ -165,3 +170,47 @@ async def update_deal_stage(
 
     await cache.invalidate_deals()
     return updated_deal
+
+
+@router.get(
+    "/{deal_id}/stage-history",
+    response_model=StageHistoryResponse,
+    summary="Get deal stage change history",
+    description="Returns the audit trail of all stage transitions for a deal, "
+    "ordered by most recent first. Each entry records the old/new stage, the "
+    "source of the change, the user who made it (if applicable), and an "
+    "optional reason.",
+    responses={
+        200: {"description": "Stage change history"},
+        404: {"description": "Deal not found"},
+    },
+)
+async def get_stage_history(
+    deal_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_analyst),
+):
+    """
+    Get the full stage change audit trail for a deal.
+    """
+    # Verify deal exists
+    deal = await deal_crud.get(db, deal_id)
+    if not deal:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Deal {deal_id} not found",
+        )
+
+    stmt = (
+        select(StageChangeLog)
+        .where(StageChangeLog.deal_id == deal_id)
+        .order_by(StageChangeLog.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    entries = list(result.scalars().all())
+
+    return StageHistoryResponse(
+        deal_id=deal_id,
+        history=[StageChangeLogResponse.model_validate(e) for e in entries],
+        total=len(entries),
+    )

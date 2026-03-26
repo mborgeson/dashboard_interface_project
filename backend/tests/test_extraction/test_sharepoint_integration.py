@@ -569,31 +569,44 @@ class TestDealStageInference:
             )
 
     def test_closed_deal_inference(self, client: SharePointClient) -> None:
-        """Verify closed deals are identified."""
-        assert client._infer_deal_stage("Deals/Closed/Property A") == "closed"
-        assert client._infer_deal_stage("Deals/Acquired/Property B") == "closed"
+        """Verify closed deals are identified via canonical folder names."""
+        assert client._infer_deal_stage("Deals/4) Closed Deals/Property A") == "closed"
+        # Non-canonical folder names return None (path-component match only)
+        assert client._infer_deal_stage("Deals/Closed/Property A") is None
+        assert client._infer_deal_stage("Deals/Acquired/Property B") is None
 
-    def test_pipeline_deal_inference(self, client: SharePointClient) -> None:
-        """Verify pipeline deals are identified."""
-        assert client._infer_deal_stage("Deals/Pipeline/Property A") == "pipeline"
-        assert client._infer_deal_stage("Deals/Active/Property B") == "pipeline"
+    def test_canonical_stage_folders(self, client: SharePointClient) -> None:
+        """Verify all 6 canonical stage folders resolve correctly."""
+        assert client._infer_deal_stage("Deals/0) Dead Deals/Prop") == "dead"
+        assert (
+            client._infer_deal_stage("Deals/1) Initial UW and Review/Prop")
+            == "initial_review"
+        )
+        assert (
+            client._infer_deal_stage("Deals/2) Active UW and Review/Prop")
+            == "active_review"
+        )
+        assert (
+            client._infer_deal_stage("Deals/3) Deals Under Contract/Prop")
+            == "under_contract"
+        )
+        assert client._infer_deal_stage("Deals/4) Closed Deals/Prop") == "closed"
+        assert client._infer_deal_stage("Deals/5) Realized Deals/Prop") == "realized"
+
+    def test_non_canonical_folders_return_none(self, client: SharePointClient) -> None:
+        """Non-canonical folders like Pipeline, LOI, DD return None."""
+        assert client._infer_deal_stage("Deals/Pipeline/Property A") is None
+        assert client._infer_deal_stage("Deals/Active/Property B") is None
+        assert client._infer_deal_stage("Deals/LOI/Property A") is None
+        assert client._infer_deal_stage("Deals/Due Diligence/Property A") is None
+        assert client._infer_deal_stage("Deals/DD/Property B") is None
 
     def test_dead_deal_inference(self, client: SharePointClient) -> None:
-        """Verify dead deals are identified."""
-        assert client._infer_deal_stage("Deals/Dead/Property A") == "dead"
-        assert client._infer_deal_stage("Deals/Passed/Property B") == "dead"
-
-    def test_loi_deal_inference(self, client: SharePointClient) -> None:
-        """Verify LOI deals are identified."""
-        assert client._infer_deal_stage("Deals/LOI/Property A") == "loi"
-
-    def test_due_diligence_deal_inference(self, client: SharePointClient) -> None:
-        """Verify due diligence deals are identified."""
-        assert (
-            client._infer_deal_stage("Deals/Due Diligence/Property A")
-            == "due_diligence"
-        )
-        assert client._infer_deal_stage("Deals/DD/Property B") == "due_diligence"
+        """Verify dead deals via canonical folder name only."""
+        assert client._infer_deal_stage("Deals/0) Dead Deals/Property A") == "dead"
+        # Non-canonical "Dead" or "Passed" no longer match
+        assert client._infer_deal_stage("Deals/Dead/Property A") is None
+        assert client._infer_deal_stage("Deals/Passed/Property B") is None
 
     def test_unknown_stage_inference(self, client: SharePointClient) -> None:
         """Verify unknown stages return None."""

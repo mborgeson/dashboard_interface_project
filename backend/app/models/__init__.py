@@ -39,6 +39,9 @@ from .report_template import (
 )
 from .sales_data import SalesData
 
+# Stage Change Audit Log
+from .stage_change_log import StageChangeLog, StageChangeSource
+
 # Underwriting Models
 from .underwriting import (
     AnnualCashflow,
@@ -65,6 +68,8 @@ __all__ = [
     "Property",
     "Deal",
     "DealStage",
+    "StageChangeLog",
+    "StageChangeSource",
     "Document",
     "DocumentType",
     # Activity Models

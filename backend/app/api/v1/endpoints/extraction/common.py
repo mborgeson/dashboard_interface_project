@@ -28,15 +28,8 @@ from app.extraction.sharepoint import (
 )
 from app.services.extraction.metrics import FileMetrics, RunMetrics
 
-# Folder name → DealStage value mapping
-STAGE_FOLDER_MAP: dict[str, str] = {
-    "0) Dead Deals": "dead",
-    "1) Initial UW and Review": "initial_review",
-    "2) Active UW and Review": "active_review",
-    "3) Deals Under Contract": "under_contract",
-    "4) Closed Deals": "closed",
-    "5) Realized Deals": "realized",
-}
+# Folder name → DealStage value mapping (canonical source in stage_mapping)
+from app.services.stage_mapping import STAGE_FOLDER_MAP
 
 logger = structlog.get_logger().bind(component="extraction_api")
 
@@ -414,6 +407,7 @@ def process_files(
                         mappings=mappings,
                         property_name=str(property_name),
                         source_file=source_file,
+                        error_categories=result.get("_error_categories"),
                     )
 
                     processed += 1

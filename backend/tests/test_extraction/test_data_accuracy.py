@@ -110,7 +110,9 @@ class TestDataAccuracy:
         value = result["TOTAL_UNITS"]
 
         # Check value is numeric and matches expected
-        if not (isinstance(value, float) and np.isnan(value)):
+        from app.extraction.error_handler import is_null_value
+
+        if not is_null_value(value):
             assert isinstance(value, (int, float))
             # Use relative tolerance for floating point comparison
             assert abs(value - 250) < 0.01 * abs(250)
@@ -230,37 +232,61 @@ class TestDataAccuracy:
             )
 
         # Verify we got the calculated value, not a formula string
+        from app.extraction.error_handler import is_null_value
+
         value = result.get("PURCHASE_PRICE")
-        if value is not None and not (isinstance(value, float) and np.isnan(value)):
+        if value is not None and not is_null_value(value):
             assert not isinstance(value, str) or not value.startswith("=")
             assert isinstance(value, (int, float))
 
     def test_empty_cells_handled(self) -> None:
-        """Verify empty cells are properly marked."""
+        """Verify empty cells return NullValue(is_error=False)."""
+        from app.extraction.error_handler import NullValue, is_null_value
+
         handler = ErrorHandler()
 
         empty_values = [None, "", "   ", "\t", "\n"]
 
         for empty_val in empty_values:
             result = handler.process_cell_value(empty_val, "field", "Sheet", "A1")
-            assert np.isnan(result), (
-                f"Empty value '{repr(empty_val)}' should return np.nan"
+            assert is_null_value(result), (
+                f"Empty value '{repr(empty_val)}' should return NullValue"
             )
+            assert isinstance(result, NullValue)
+            assert result.is_error is False
+            assert result.raw_value is None
 
     def test_missing_value_indicators_handled(self) -> None:
-        """Verify common missing value indicators return np.nan."""
+        """Verify placeholder indicators preserve raw_value (UR-003)."""
+        from app.extraction.error_handler import NullValue, is_null_value
+
         handler = ErrorHandler()
 
-        missing_indicators = ["N/A", "n/a", "NA", "null", "None", "-", "TBD", "TBA"]
-
-        for indicator in missing_indicators:
+        # Placeholder text — preserved as raw_value, not errors
+        placeholders = {"N/A": "N/A", "n/a": "n/a", "NA": "NA", "TBD": "TBD", "TBA": "TBA"}
+        for indicator, expected_raw in placeholders.items():
             result = handler.process_cell_value(indicator, "field", "Sheet", "A1")
-            assert np.isnan(result), (
-                f"Missing indicator '{indicator}' should return np.nan"
+            assert isinstance(result, NullValue), (
+                f"Placeholder '{indicator}' should return NullValue"
             )
+            assert result.is_error is False
+            assert result.raw_value == expected_raw
+
+        # Empty-equivalent strings — treated as empty cells
+        empty_equivalents = ["null", "None", "-"]
+        for indicator in empty_equivalents:
+            result = handler.process_cell_value(indicator, "field", "Sheet", "A1")
+            assert is_null_value(result), (
+                f"Empty-equivalent '{indicator}' should return NullValue"
+            )
+            assert isinstance(result, NullValue)
+            assert result.is_error is False
+            assert result.raw_value is None
 
     def test_error_cells_flagged(self) -> None:
-        """Verify #REF!, #VALUE! etc are flagged as errors."""
+        """Verify #REF!, #VALUE! etc return NullValue(is_error=True)."""
+        from app.extraction.error_handler import NullValue
+
         handler = ErrorHandler()
 
         formula_errors = [
@@ -275,7 +301,12 @@ class TestDataAccuracy:
 
         for error in formula_errors:
             result = handler.process_cell_value(error, "field", "Sheet", "A1")
-            assert np.isnan(result), f"Formula error '{error}' should return np.nan"
+            assert isinstance(result, NullValue), (
+                f"Formula error '{error}' should return NullValue"
+            )
+            assert result.is_error is True
+            assert result.error_category == "formula_error"
+            assert result.raw_value == error
 
         # Verify error was logged
         summary = handler.get_error_summary()
@@ -361,13 +392,12 @@ class TestDataAccuracy:
         assert metadata["success_rate"] >= 0
 
         # Count non-NaN values
+        from app.extraction.error_handler import is_null_value
+
         non_nan_count = 0
         for key, value in result.items():
             if not key.startswith("_"):
-                try:
-                    if not (isinstance(value, float) and np.isnan(value)):
-                        non_nan_count += 1
-                except (TypeError, ValueError):
+                if not is_null_value(value):
                     non_nan_count += 1
 
         # Should have extracted some values successfully
@@ -405,8 +435,10 @@ class TestDataAccuracy:
 
                 actual_value = result[field_name]
 
-                # Skip if actual is NaN
-                if isinstance(actual_value, float) and np.isnan(actual_value):
+                # Skip if actual is NullValue or NaN
+                from app.extraction.error_handler import is_null_value
+
+                if is_null_value(actual_value):
                     continue
 
                 # Compare based on type
@@ -463,43 +495,61 @@ class TestEdgeCases:
     """Test edge cases in data extraction."""
 
     def test_nan_propagation(self) -> None:
-        """Verify np.nan values are properly propagated."""
+        """Verify np.nan values return NullValue (empty, not error)."""
+        from app.extraction.error_handler import NullValue, is_null_value
+
         handler = ErrorHandler()
 
         result = handler.process_cell_value(np.nan, "field", "Sheet", "A1")
-        assert np.isnan(result)
+        assert is_null_value(result)
+        assert isinstance(result, NullValue)
+        assert result.is_error is False
 
     def test_infinity_handled(self) -> None:
-        """Verify infinity values return np.nan."""
+        """Verify infinity values return NullValue (empty, not error)."""
+        from app.extraction.error_handler import NullValue, is_null_value
+
         handler = ErrorHandler()
 
         for inf_val in [np.inf, -np.inf, float("inf"), float("-inf")]:
             result = handler.process_cell_value(inf_val, "field", "Sheet", "A1")
-            assert np.isnan(result), f"Infinity {inf_val} should return np.nan"
+            assert is_null_value(result), (
+                f"Infinity {inf_val} should return NullValue"
+            )
+            assert isinstance(result, NullValue)
+            assert result.is_error is False
 
     def test_zero_value_preserved(self) -> None:
         """Verify zero is not treated as empty."""
+        from app.extraction.error_handler import is_null_value
+
         handler = ErrorHandler()
 
         result = handler.process_cell_value(0, "field", "Sheet", "A1")
         assert result == 0
-        assert not np.isnan(result)
+        assert not is_null_value(result)
 
         result = handler.process_cell_value(0.0, "field", "Sheet", "A1")
         assert result == 0.0
-        assert not np.isnan(result)
+        assert not is_null_value(result)
 
     def test_empty_string_vs_whitespace(self) -> None:
-        """Verify empty string and whitespace-only strings are handled."""
+        """Verify empty string and whitespace-only strings return NullValue."""
+        from app.extraction.error_handler import NullValue, is_null_value
+
         handler = ErrorHandler()
 
         # Empty string
         result = handler.process_cell_value("", "field", "Sheet", "A1")
-        assert np.isnan(result)
+        assert is_null_value(result)
+        assert isinstance(result, NullValue)
+        assert result.is_error is False
 
         # Whitespace only
         result = handler.process_cell_value("   ", "field", "Sheet", "A1")
-        assert np.isnan(result)
+        assert is_null_value(result)
+        assert isinstance(result, NullValue)
+        assert result.is_error is False
 
 
 if __name__ == "__main__":

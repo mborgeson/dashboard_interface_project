@@ -822,6 +822,7 @@ class GroupExtractionPipeline:
                             mappings=cell_mappings,
                             property_name=str(property_name),
                             source_file=file_path,
+                            error_categories=result.get("_error_categories"),
                         )
                     except Exception as e:
                         logger.warning(

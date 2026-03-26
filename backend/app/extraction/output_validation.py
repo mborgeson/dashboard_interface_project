@@ -188,7 +188,11 @@ VALIDATION_RULES: list[ValidationRule] = [
 
 
 def _is_empty(value: Any) -> bool:
-    """Check if a value is None, NaN, or empty string."""
+    """Check if a value is None, NaN, NullValue, or empty string."""
+    from app.extraction.error_handler import NullValue
+
+    if isinstance(value, NullValue):
+        return True
     if value is None:
         return True
     if isinstance(value, str) and not value.strip():
@@ -198,6 +202,10 @@ def _is_empty(value: Any) -> bool:
 
 def _to_numeric(value: Any) -> float | None:
     """Attempt to convert a value to float. Returns None if not possible."""
+    from app.extraction.error_handler import NullValue
+
+    if isinstance(value, NullValue):
+        return None
     if _is_empty(value):
         return None
     if isinstance(value, int | float):

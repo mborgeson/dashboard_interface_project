@@ -2,39 +2,39 @@
 
 ## Sprint 1: Data Integrity + Infrastructure (Week 1-2)
 
-### Epic 1.1: Error Category Population [WS4]
-- [ ] UR-001: Wire ErrorHandler.errors into bulk_insert() in group_pipeline.py [WS4] [S]
-- [ ] UR-001: Wire ErrorHandler.errors into bulk_insert() in common.py [WS4] [S]
-- [ ] UR-001: Integration test -- extract file with known errors, verify error_category in DB [WS4] [S]
+### Epic 1.1: Error Category Population [WS4] ✅ (2026-03-26)
+- [x] UR-001: Wire ErrorHandler.errors into bulk_insert() in group_pipeline.py [WS4] [S]
+- [x] UR-001: Wire ErrorHandler.errors into bulk_insert() in common.py [WS4] [S]
+- [x] UR-001: Integration test -- extract file with known errors, verify error_category in DB [WS4] [S]
 
-### Epic 1.2: Tier 1b Match Validation [WS4]
-- [ ] UR-002: Add label_verified=False flag on Tier 1b MappingMatch results [WS4] [S]
-- [ ] UR-002: Log warning for Tier 1b fields outside expected domain range [WS4] [S]
-- [ ] UR-002: Generate Tier 1b review report per group after extraction [WS4] [M]
-- [ ] UR-002: Tests for Tier 1b flagging and domain range cross-check [WS4] [S]
+### Epic 1.2: Tier 1b Match Validation [WS4] ✅ (2026-03-26)
+- [x] UR-002: Add label_verified=False flag on Tier 1b MappingMatch results [WS4] [S]
+- [x] UR-002: Log warning for Tier 1b fields outside expected domain range [WS4] [S]
+- [x] UR-002: Generate Tier 1b review report per group after extraction [WS4] [M]
+- [x] UR-002: Tests for Tier 1b flagging and domain range cross-check [WS4] [S]
 
-### Epic 1.3: Null Type Differentiation [WS4]
-- [ ] UR-003: Define null handling policy (empty/N-A/TBD/formula error/missing sheet) [WS4] [S]
-- [ ] UR-003: Refactor handle_empty_value() and process_cell_value() [WS4] [M]
-- [ ] UR-003: Update bulk_insert() empty-cell handling [WS4] [S]
-- [ ] UR-003: Update 10+ tests relying on NaN-to-is_error behavior [WS4] [M]
+### Epic 1.3: Null Type Differentiation [WS4] ✅ (2026-03-26)
+- [x] UR-003: Define null handling policy (empty/N-A/TBD/formula error/missing sheet) [WS4] [S]
+- [x] UR-003: Refactor handle_empty_value() and process_cell_value() [WS4] [M]
+- [x] UR-003: Update bulk_insert() empty-cell handling [WS4] [S]
+- [x] UR-003: Update 10+ tests relying on NaN-to-is_error behavior [WS4] [M]
 
-### Epic 1.4: Redis Enablement [WS1]
-- [ ] UR-004: Install Redis on WSL2, configure password, start service [WS1] [S]
-- [ ] UR-004: Fix REDIS_URL in .env to include password [WS1] [XS]
-- [ ] UR-005: Add REDIS_REQUIRED config setting with startup validation [WS1] [S]
-- [ ] UR-005: Add config validator -- warn if REDIS_PASSWORD set but not in REDIS_URL [WS1] [S]
-- [ ] UR-004: Verify token blacklist survives restart, cache populates, rate limiter works [WS1] [S]
+### Epic 1.4: Redis Enablement [WS1] ✅ (2026-03-26)
+- [x] UR-004: Install Redis on WSL2, configure password, start service [WS1] [S]
+- [x] UR-004: Fix REDIS_URL in .env to include password [WS1] [XS]
+- [x] UR-005: Add REDIS_REQUIRED config setting with startup validation [WS1] [S]
+- [x] UR-005: Add config validator -- warn if REDIS_PASSWORD set but not in REDIS_URL [WS1] [S]
+- [x] UR-004: Verify token blacklist survives restart, cache populates, rate limiter works [WS1] [S]
 
-### Epic 1.5: StageChangeLog Audit Trail [WS3]
-- [ ] UR-007: Create stage_mapping.py with canonical FOLDER_TO_STAGE and resolve_stage() [WS3] [S]
-- [ ] UR-007: Replace _infer_deal_stage() substring matching with resolve_stage() [WS3] [S]
-- [ ] UR-007: Fix frontend folder names to match backend canonical mapping [WS3] [S]
-- [ ] UR-006: Create StageChangeLog model and Alembic migration [WS3] [M]
-- [ ] UR-006: Create central change_deal_stage() function (stage + stage_updated_at + log) [WS3] [S]
-- [ ] UR-006: Retrofit 3 existing callers (file_monitor, crud_deal, extraction) [WS3] [M]
-- [ ] UR-006: Stage history API endpoint GET /deals/{id}/stage-history [WS3] [S]
-- [ ] UR-006: Tests -- audit log creation, all source types, stage_updated_at always set [WS3] [M]
+### Epic 1.5: StageChangeLog Audit Trail [WS3] ✅ (2026-03-26)
+- [x] UR-007: Create stage_mapping.py with canonical FOLDER_TO_STAGE and resolve_stage() [WS3] [S]
+- [x] UR-007: Replace _infer_deal_stage() substring matching with resolve_stage() [WS3] [S]
+- [x] UR-007: Fix frontend folder names to match backend canonical mapping [WS3] [S]
+- [x] UR-006: Create StageChangeLog model and Alembic migration [WS3] [M]
+- [x] UR-006: Create central change_deal_stage() function (stage + stage_updated_at + log) [WS3] [S]
+- [x] UR-006: Retrofit 3 existing callers (file_monitor, crud_deal, extraction) [WS3] [M]
+- [x] UR-006: Stage history API endpoint GET /deals/{id}/stage-history [WS3] [S]
+- [x] UR-006: Tests -- audit log creation, all source types, stage_updated_at always set [WS3] [M]
 
 ---
 

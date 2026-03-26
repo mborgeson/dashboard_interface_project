@@ -13,7 +13,13 @@ Components:
 """
 
 from .cell_mapping import CellMapping, CellMappingParser
-from .error_handler import ErrorCategory, ErrorHandler, ExtractionError
+from .error_handler import (
+    ErrorCategory,
+    ErrorHandler,
+    ExtractionError,
+    NullValue,
+    is_null_value,
+)
 from .extractor import ExcelDataExtractor
 from .file_filter import (
     CandidateFileFilter,
@@ -26,7 +32,13 @@ from .file_filter import (
 from .fingerprint import FileFingerprint, SheetFingerprint, fingerprint_file
 from .group_pipeline import GroupExtractionPipeline
 from .grouping import FileGroup, GroupingResult, compute_structural_overlap
-from .reference_mapper import GroupReferenceMapping, MappingMatch, PropertyMatch
+from .reference_mapper import (
+    GroupReferenceMapping,
+    MappingMatch,
+    PropertyMatch,
+    generate_tier1b_report,
+    validate_domain_ranges,
+)
 from .sharepoint import (
     DiscoveryResult,
     SharePointClient,
@@ -40,6 +52,8 @@ __all__ = [
     "ErrorHandler",
     "ErrorCategory",
     "ExtractionError",
+    "NullValue",
+    "is_null_value",
     # Cell mapping
     "CellMapping",
     "CellMappingParser",
@@ -64,6 +78,8 @@ __all__ = [
     "GroupReferenceMapping",
     "MappingMatch",
     "PropertyMatch",
+    "generate_tier1b_report",
+    "validate_domain_ranges",
     # Pipeline
     "GroupExtractionPipeline",
     # SharePoint

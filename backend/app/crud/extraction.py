@@ -20,6 +20,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.extraction.error_handler import NullValue
 from app.models.deal import Deal, DealStage
 from app.models.extraction import ExtractedValue, ExtractionRun
 from app.models.property import Property
@@ -238,14 +239,20 @@ class ExtractedValueCRUD:
             # Get mapping info if available
             mapping = mappings.get(field_name)
 
-            # Determine value types
+            # Determine value types with null type differentiation (UR-003)
             value_text = None
             value_numeric = None
             value_date = None
             is_error = False
+            error_cat = None
 
-            # Handle NaN values
-            if value is None or (isinstance(value, float) and np.isnan(value)):
+            if isinstance(value, NullValue):
+                # Preserve null type information from extraction
+                is_error = value.is_error
+                value_text = value.raw_value  # "N/A", "TBD", "#REF!", or None
+                error_cat = value.error_category
+            elif value is None or (isinstance(value, float) and np.isnan(value)):
+                # Legacy NaN path (backward compat for callers not using NullValue)
                 is_error = True
                 value_text = None
             elif isinstance(value, int | float):
@@ -257,12 +264,10 @@ class ExtractedValueCRUD:
             else:
                 value_text = str(value)
 
-            # Resolve error_category from the error_categories dict if present
-            error_cat = (
-                error_categories.get(field_name)
-                if error_categories and is_error
-                else None
-            )
+            # If NullValue didn't carry error_category, fall back to
+            # the explicit error_categories dict from the ErrorHandler
+            if error_cat is None and is_error and error_categories:
+                error_cat = error_categories.get(field_name)
 
             values_to_insert.append(
                 {
@@ -621,6 +626,9 @@ def _batch_update_deal_stages(db: Session, stages: dict[str, str]) -> int:
         db.execute(select(Deal).where(or_(*name_conditions))).scalars().all()
     )
 
+    from app.models.stage_change_log import StageChangeSource
+    from app.services.stage_mapping import change_deal_stage_sync
+
     stages_updated = 0
     for deal in all_deals:
         deal_name_lower = deal.name.lower() if deal.name else ""
@@ -630,7 +638,13 @@ def _batch_update_deal_stages(db: Session, stages: dict[str, str]) -> int:
                 f"{prop_lower} ("
             ):
                 if deal.stage != target_stage:
-                    deal.stage = target_stage
+                    change_deal_stage_sync(
+                        db=db,
+                        deal=deal,
+                        new_stage=target_stage,
+                        source=StageChangeSource.EXTRACTION_SYNC,
+                        reason="Stage inferred from extraction folder structure",
+                    )
                     stages_updated += 1
                 break
 

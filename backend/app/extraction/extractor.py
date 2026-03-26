@@ -22,7 +22,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import numpy as np
 import openpyxl
 import pyxlsb
 import structlog
@@ -30,7 +29,7 @@ import structlog
 from app.core.config import settings
 
 from .cell_mapping import CellMapping
-from .error_handler import ErrorHandler
+from .error_handler import ErrorHandler, NullValue, is_null_value
 
 if TYPE_CHECKING:
     from .file_filter import FileFilter
@@ -251,17 +250,17 @@ class ExcelDataExtractor:
                 )
                 extracted_data[field_name] = value
 
-                if (
-                    not np.isnan(value)
-                    if isinstance(value, float)
-                    else value is not None
-                ):
-                    successful += 1
-                else:
+                if is_null_value(value):
                     failed += 1
+                else:
+                    successful += 1
 
             except Exception as e:
-                extracted_data[field_name] = np.nan
+                extracted_data[field_name] = NullValue(
+                    is_error=True,
+                    raw_value=None,
+                    error_category="unknown_error",
+                )
                 extracted_data["_extraction_errors"].append(
                     {
                         "field": field_name,
@@ -292,6 +291,9 @@ class ExcelDataExtractor:
             "duration_seconds": round(duration, 2),
             "error_summary": error_summary,
         }
+
+        # Attach per-field error categories so callers can pass to bulk_insert
+        extracted_data["_error_categories"] = self.error_handler.get_error_categories()
 
         # Log cache statistics for performance monitoring
         if is_xlsb and hasattr(workbook, "_cache_stats"):

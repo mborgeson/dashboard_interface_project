@@ -208,6 +208,8 @@ class DatabaseSettings(BaseSettings):
     REDIS_CACHE_TTL: int = 3600
     REDIS_MAX_CONNECTIONS: int = 50
     REDIS_SOCKET_CONNECT_TIMEOUT: int = 5
+    REDIS_REQUIRED: bool = False
+    REDIS_PASSWORD: str = ""
 
     # Interest Rate Service DB
     INTEREST_RATE_CACHE_TTL: int = 300
@@ -406,6 +408,27 @@ class Settings(
                 "Demo passwords are empty. Set DEMO_USER_PASSWORD, "
                 "DEMO_ADMIN_PASSWORD, and DEMO_ANALYST_PASSWORD via "
                 "environment variables to enable demo user login."
+            )
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_redis_config(self) -> "Settings":
+        """Validate Redis configuration consistency.
+
+        Warns if REDIS_PASSWORD is set but not included in REDIS_URL,
+        which likely indicates a misconfiguration.
+        """
+        if (
+            self.REDIS_PASSWORD
+            and self.REDIS_URL
+            and f":{self.REDIS_PASSWORD}@" not in self.REDIS_URL
+        ):
+            logger.warning(
+                "REDIS_PASSWORD is set but does not appear in REDIS_URL. "
+                "Ensure REDIS_URL includes the password "
+                "(e.g., redis://:password@localhost:6379/0) or remove "
+                "REDIS_PASSWORD to suppress this warning."
             )
 
         return self

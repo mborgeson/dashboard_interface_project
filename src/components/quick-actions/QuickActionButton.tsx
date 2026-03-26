@@ -76,10 +76,10 @@ const actionConfig: Record<
 const UW_STAGE_FOLDER_MAP: Record<string, string> = {
   dead: '0) Dead Deals',
   initial_review: '1) Initial UW and Review',
-  active_review: '2) Active Review',
-  under_contract: '3) Under Contract',
-  closed: '4) Closed - Active Assets',
-  realized: '5) Realized',
+  active_review: '2) Active UW and Review',
+  under_contract: '3) Deals Under Contract',
+  closed: '4) Closed Deals',
+  realized: '5) Realized Deals',
 };
 
 const sizeConfig = {

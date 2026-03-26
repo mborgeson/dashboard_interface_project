@@ -21,6 +21,8 @@ import structlog
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.extraction.error_handler import NullValue
+
 logger = structlog.get_logger(__name__)
 
 
@@ -28,9 +30,13 @@ def _normalize_value(value: Any) -> str:
     """
     Normalize a value to a stable string representation for hashing.
 
-    Handles NaN, None, floats (rounded to avoid floating-point drift),
-    and other types consistently.
+    Handles NullValue, NaN, None, floats (rounded to avoid floating-point
+    drift), and other types consistently.
     """
+    if isinstance(value, NullValue):
+        if value.raw_value is not None:
+            return f"NULL:{value.raw_value}"
+        return "NULL"
     if value is None:
         return "NULL"
     if isinstance(value, float):

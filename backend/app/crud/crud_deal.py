@@ -2,7 +2,9 @@
 CRUD operations for Deal model.
 """
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud.base import CRUDBase
 from app.models import Deal, DealStage
 from app.schemas.deal import DealCreate, DealUpdate
+
+if TYPE_CHECKING:
+    from app.models.stage_change_log import StageChangeSource
 
 
 class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
@@ -298,13 +303,30 @@ class CRUDDeal(CRUDBase[Deal, DealCreate, DealUpdate]):
         deal_id: int,
         new_stage: DealStage,
         stage_order: int | None = None,
+        changed_by_user_id: int | None = None,
+        source: StageChangeSource | None = None,
     ) -> Deal | None:
-        """Update deal stage (for Kanban drag-and-drop)."""
+        """Update deal stage (for Kanban drag-and-drop).
+
+        Records a StageChangeLog audit entry via the central
+        ``change_deal_stage()`` function.
+        """
+        from app.models.stage_change_log import StageChangeSource
+        from app.services.stage_mapping import change_deal_stage
+
         deal = await self.get(db, deal_id)
         if not deal:
             return None
 
-        deal.stage = new_stage
+        if deal.stage != new_stage:
+            await change_deal_stage(
+                db=db,
+                deal=deal,
+                new_stage=new_stage,
+                source=source or StageChangeSource.USER_KANBAN,
+                changed_by_user_id=changed_by_user_id,
+            )
+
         if stage_order is not None:
             deal.stage_order = stage_order
 

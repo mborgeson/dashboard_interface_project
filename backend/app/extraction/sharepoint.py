@@ -662,40 +662,18 @@ class SharePointClient:
     def _infer_deal_stage(self, folder_path: str) -> str | None:
         """Infer deal stage from folder path structure.
 
-        Maps SharePoint folder names to normalized stage identifiers:
-          0) Dead Deals          -> dead
-          1) Initial UW and Review -> initial_review
-          2) Active UW and Review  -> active_review
-          3) Deals Under Contract  -> under_contract
-          4) Closed Deals          -> closed
-          5) Realized Deals        -> realized
-          Archive                  -> archive
-          Deal Pipeline            -> pipeline
+        Delegates to the canonical ``resolve_stage()`` in stage_mapping.py,
+        which uses path-component matching instead of fragile substring
+        matching.
+
+        Returns the stage *value string* (e.g. ``"dead"``) for backward
+        compatibility with callers that expect a plain string, or ``None``
+        if no canonical folder is found in the path.
         """
-        path_lower = folder_path.lower()
+        from app.services.stage_mapping import resolve_stage
 
-        if "dead" in path_lower or "passed" in path_lower:
-            return "dead"
-        elif "initial uw" in path_lower or "initial review" in path_lower:
-            return "initial_review"
-        elif "active uw" in path_lower or "active review" in path_lower:
-            return "active_review"
-        elif "under contract" in path_lower:
-            return "under_contract"
-        elif "closed" in path_lower or "acquired" in path_lower:
-            return "closed"
-        elif "realized" in path_lower:
-            return "realized"
-        elif "archive" in path_lower:
-            return "archive"
-        elif "pipeline" in path_lower or "active" in path_lower:
-            return "pipeline"
-        elif "loi" in path_lower:
-            return "loi"
-        elif "due diligence" in path_lower or "dd" in path_lower:
-            return "due_diligence"
-
-        return None
+        stage = resolve_stage(folder_path)
+        return stage.value if stage is not None else None
 
 
 # Convenience function for creating client from settings

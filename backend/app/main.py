@@ -193,6 +193,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         await get_redis_service()
         logger.info("Redis service initialized", url=settings.REDIS_URL)
     except Exception as e:
+        if settings.REDIS_REQUIRED:
+            logger.error(
+                f"Redis is required (REDIS_REQUIRED=True) but unavailable: {e}"
+            )
+            raise RuntimeError(
+                f"Redis is required but unavailable: {e}. "
+                "Set REDIS_REQUIRED=False to allow in-memory fallback."
+            ) from e
         logger.warning(f"Redis unavailable, falling back to in-memory: {e}")
 
     # Initialize WebSocket connection manager

@@ -456,7 +456,11 @@ class ExtractionValidator:
         )
 
     def _is_empty(self, value: Any) -> bool:
-        """Check if value is empty/null/NaN."""
+        """Check if value is empty/null/NaN/NullValue."""
+        from app.extraction.error_handler import NullValue
+
+        if isinstance(value, NullValue):
+            return True
         if value is None:
             return True
         if isinstance(value, str) and not value.strip():

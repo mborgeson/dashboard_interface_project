@@ -3,7 +3,7 @@ B&R Capital Dashboard - Comprehensive Error Handling System
 
 Provides robust error handling for Excel data extraction with:
 - 9 error categories for detailed categorization
-- NaN handling for all missing value scenarios
+- Null type differentiation (empty cell, N/A, TBD, formula errors, missing sheet)
 - Graceful degradation without stopping extraction
 - Detailed error statistics and recovery suggestions
 """
@@ -31,6 +31,50 @@ class ErrorCategory(StrEnum):
     FILE_ACCESS_ERROR = "file_access_error"
     PARSING_ERROR = "parsing_error"
     UNKNOWN_ERROR = "unknown_error"
+
+
+@dataclass(frozen=True)
+class NullValue:
+    """Sentinel representing a null/missing extraction value with type info.
+
+    Instead of collapsing all missing values to np.nan, this preserves
+    the *reason* a value is null so bulk_insert can set appropriate
+    is_error, value_text (raw_value), and error_category columns.
+
+    Attributes:
+        is_error: True for formula errors, missing sheets, etc.
+                  False for genuinely empty cells or placeholder text.
+        raw_value: Original cell text (e.g. "N/A", "TBD", "#REF!", None).
+        error_category: ErrorCategory value string, or None for non-errors.
+    """
+
+    is_error: bool = False
+    raw_value: str | None = None
+    error_category: str | None = None
+
+    def __float__(self) -> float:
+        """Allow isinstance(v, float) and np.isnan() checks to still work
+        for any legacy code that hasn't been updated yet."""
+        return float("nan")
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, NullValue):
+            return (
+                self.is_error == other.is_error
+                and self.raw_value == other.raw_value
+                and self.error_category == other.error_category
+            )
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        return hash((self.is_error, self.raw_value, self.error_category))
+
+
+def is_null_value(value: Any) -> bool:
+    """Check if a value is a NullValue or NaN."""
+    if isinstance(value, NullValue):
+        return True
+    return bool(isinstance(value, float) and np.isnan(value))
 
 
 @dataclass
@@ -63,7 +107,7 @@ class ErrorHandler:
 
     def handle_missing_sheet(
         self, field_name: str, sheet_name: str, available_sheets: list[str]
-    ) -> Any:
+    ) -> NullValue:
         """Handle missing sheet scenarios"""
         similar_sheets = self._find_similar_sheets(sheet_name, available_sheets)
 
@@ -81,11 +125,15 @@ class ErrorHandler:
         )
 
         self._log_error(error)
-        return np.nan
+        return NullValue(
+            is_error=True,
+            raw_value=None,
+            error_category=ErrorCategory.MISSING_SHEET.value,
+        )
 
     def handle_invalid_cell_address(
         self, field_name: str, sheet_name: str, cell_address: str, error_msg: str
-    ) -> Any:
+    ) -> NullValue:
         """Handle invalid cell address formats"""
         error = ExtractionError(
             category=ErrorCategory.INVALID_CELL_ADDRESS,
@@ -97,7 +145,11 @@ class ErrorHandler:
         )
 
         self._log_error(error)
-        return np.nan
+        return NullValue(
+            is_error=True,
+            raw_value=None,
+            error_category=ErrorCategory.INVALID_CELL_ADDRESS.value,
+        )
 
     def handle_cell_not_found(
         self,
@@ -105,7 +157,7 @@ class ErrorHandler:
         sheet_name: str,
         cell_address: str,
         sheet_size: tuple[int, int] | None = None,
-    ) -> Any:
+    ) -> NullValue:
         """Handle cases where cell address is outside sheet bounds"""
         suggested_fix = "Check if cell address is within sheet bounds"
         if sheet_size:
@@ -122,11 +174,15 @@ class ErrorHandler:
         )
 
         self._log_error(error)
-        return np.nan
+        return NullValue(
+            is_error=True,
+            raw_value=None,
+            error_category=ErrorCategory.CELL_NOT_FOUND.value,
+        )
 
     def handle_formula_error(
         self, field_name: str, sheet_name: str, cell_address: str, formula_error: str
-    ) -> Any:
+    ) -> NullValue:
         """Handle Excel formula errors (#REF!, #DIV/0!, etc.)"""
         error_meanings = {
             "#REF!": "Invalid cell reference",
@@ -151,7 +207,11 @@ class ErrorHandler:
         )
 
         self._log_error(error)
-        return np.nan
+        return NullValue(
+            is_error=True,
+            raw_value=formula_error,
+            error_category=ErrorCategory.FORMULA_ERROR.value,
+        )
 
     def handle_data_type_error(
         self,
@@ -160,7 +220,7 @@ class ErrorHandler:
         cell_address: str,
         value: Any,
         expected_type: str,
-    ) -> Any:
+    ) -> NullValue:
         """Handle data type conversion errors"""
         error = ExtractionError(
             category=ErrorCategory.DATA_TYPE_ERROR,
@@ -173,7 +233,11 @@ class ErrorHandler:
         )
 
         self._log_error(error)
-        return np.nan
+        return NullValue(
+            is_error=True,
+            raw_value=str(value) if value is not None else None,
+            error_category=ErrorCategory.DATA_TYPE_ERROR.value,
+        )
 
     def handle_empty_value(
         self,
@@ -181,8 +245,13 @@ class ErrorHandler:
         sheet_name: str,
         cell_address: str,
         treat_as_error: bool = False,
-    ) -> Any:
-        """Handle empty/null values"""
+    ) -> NullValue:
+        """Handle genuinely empty/null cell values.
+
+        Empty cells are NOT errors by default -- they represent cells
+        that exist but have no data. Set treat_as_error=True for
+        required fields where emptiness is unexpected.
+        """
         if treat_as_error:
             error = ExtractionError(
                 category=ErrorCategory.EMPTY_VALUE,
@@ -193,12 +262,18 @@ class ErrorHandler:
                 suggested_fix="Verify if this field should contain data",
             )
             self._log_error(error)
+            return NullValue(
+                is_error=True,
+                raw_value=None,
+                error_category=ErrorCategory.EMPTY_VALUE.value,
+            )
 
-        return np.nan
+        # Genuinely empty cell -- not an error
+        return NullValue(is_error=False, raw_value=None, error_category=None)
 
     def handle_parsing_error(
         self, field_name: str, sheet_name: str, cell_address: str, error_msg: str
-    ) -> Any:
+    ) -> NullValue:
         """Handle general parsing errors"""
         error = ExtractionError(
             category=ErrorCategory.PARSING_ERROR,
@@ -210,9 +285,13 @@ class ErrorHandler:
         )
 
         self._log_error(error)
-        return np.nan
+        return NullValue(
+            is_error=True,
+            raw_value=None,
+            error_category=ErrorCategory.PARSING_ERROR.value,
+        )
 
-    def handle_file_access_error(self, field_name: str, error_msg: str) -> Any:
+    def handle_file_access_error(self, field_name: str, error_msg: str) -> NullValue:
         """Handle file access and loading errors"""
         error = ExtractionError(
             category=ErrorCategory.FILE_ACCESS_ERROR,
@@ -224,11 +303,15 @@ class ErrorHandler:
         )
 
         self._log_error(error)
-        return np.nan
+        return NullValue(
+            is_error=True,
+            raw_value=None,
+            error_category=ErrorCategory.FILE_ACCESS_ERROR.value,
+        )
 
     def handle_unknown_error(
         self, field_name: str, sheet_name: str, cell_address: str, error_msg: str
-    ) -> Any:
+    ) -> NullValue:
         """Handle unexpected errors"""
         error = ExtractionError(
             category=ErrorCategory.UNKNOWN_ERROR,
@@ -240,7 +323,11 @@ class ErrorHandler:
         )
 
         self._log_error(error)
-        return np.nan
+        return NullValue(
+            is_error=True,
+            raw_value=None,
+            error_category=ErrorCategory.UNKNOWN_ERROR.value,
+        )
 
     def process_cell_value(
         self,
@@ -250,7 +337,13 @@ class ErrorHandler:
         cell_address: str = "",
     ) -> Any:
         """
-        Process and validate cell values with comprehensive error handling.
+        Process and validate cell values with null type differentiation.
+
+        Null handling policy (UR-003):
+        - Empty cell (None/"")  -> NullValue(is_error=False, raw_value=None)
+        - "N/A" or "TBD" text  -> NullValue(is_error=False, raw_value="N/A"/"TBD")
+        - Formula error (#REF!) -> NullValue(is_error=True, error_category="formula_error")
+        - NaN / Inf numeric     -> NullValue(is_error=False, raw_value=None)
 
         Args:
             value: Raw cell value from Excel
@@ -259,7 +352,7 @@ class ErrorHandler:
             cell_address: Cell address (e.g., 'A1')
 
         Returns:
-            Processed value or np.nan for errors/missing values
+            Processed value, or NullValue for missing/error cases.
         """
         # Handle None/empty values
         if value is None or value == "":
@@ -267,7 +360,7 @@ class ErrorHandler:
 
         # Handle string values
         if isinstance(value, str):
-            # Check for Excel formula errors
+            # Check for Excel formula errors first
             excel_errors = [
                 "#REF!",
                 "#VALUE!",
@@ -284,13 +377,24 @@ class ErrorHandler:
                         field_name, sheet_name, cell_address, error_code
                     )
 
-            # Handle string representations of missing values
-            missing_indicators = ["n/a", "na", "null", "none", "", "-", "tbd", "tba"]
-            if value.lower().strip() in missing_indicators:
+            # Differentiate placeholder text from empty values (UR-003)
+            stripped = value.strip()
+            lower = stripped.lower()
+
+            # Placeholder text -- preserve the original text, not an error
+            if lower in ("n/a", "na", "tbd", "tba"):
+                return NullValue(
+                    is_error=False,
+                    raw_value=stripped,
+                    error_category=None,
+                )
+
+            # Truly empty-equivalent strings
+            if lower in ("null", "none", "", "-"):
                 return self.handle_empty_value(field_name, sheet_name, cell_address)
 
             # Clean and return string value
-            return value.strip()
+            return stripped
 
         # Handle numeric values
         if isinstance(value, int | float):
@@ -458,6 +562,18 @@ class ErrorHandler:
             "unknown_error": "Review error details and contact support",
         }
         return suggestions.get(error_category, "No specific suggestion available")
+
+    def get_error_categories(self) -> dict[str, str]:
+        """Build a field_name -> error_category mapping for bulk_insert.
+
+        When multiple errors exist for the same field, the last recorded
+        error category wins (consistent with extraction order).
+
+        Returns:
+            Dict mapping field_name to its ErrorCategory value string.
+        """
+        with self._lock:
+            return {error.field_name: error.category.value for error in self.errors}
 
     def reset(self) -> None:
         """Reset error tracking for new extraction (thread-safe)."""

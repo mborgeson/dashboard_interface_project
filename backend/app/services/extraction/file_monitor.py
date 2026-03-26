@@ -414,6 +414,9 @@ class SharePointFileMonitor:
         (e.g., from "1) Initial UW and Review" to "0) Dead Deals"), this
         method updates the corresponding Deal's stage in the database.
 
+        Creates a StageChangeLog audit entry for every transition via the
+        central ``change_deal_stage()`` function.
+
         Args:
             stage_changes: List of (deal_name, new_stage_str) tuples
 
@@ -421,6 +424,8 @@ class SharePointFileMonitor:
             Number of deals updated
         """
         from app.models.deal import Deal, DealStage
+        from app.models.stage_change_log import StageChangeSource
+        from app.services.stage_mapping import change_deal_stage
 
         updated = 0
         for deal_name, new_stage_str in stage_changes:
@@ -447,17 +452,14 @@ class SharePointFileMonitor:
 
             for deal in deals:
                 if deal.stage != target_stage:
-                    old_stage = deal.stage
-                    deal.stage = target_stage
-                    deal.stage_updated_at = datetime.now(UTC)
-                    updated += 1
-                    self.logger.info(
-                        "deal_stage_synced_from_folder",
-                        deal_id=deal.id,
-                        deal_name=deal.name,
-                        old_stage=old_stage.value if old_stage else None,
-                        new_stage=target_stage.value,
+                    await change_deal_stage(
+                        db=self.db,
+                        deal=deal,
+                        new_stage=target_stage,
+                        source=StageChangeSource.SHAREPOINT_SYNC,
+                        reason=f"File moved to folder for stage '{new_stage_str}'",
                     )
+                    updated += 1
 
         if updated:
             await self.db.commit()

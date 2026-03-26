@@ -322,3 +322,29 @@ class WatchlistStatusResponse(BaseSchema):
 
     deal_id: int
     is_watched: bool
+
+
+# ── Stage Change Audit Log Response ────────────────────────────────────────
+
+
+class StageChangeLogResponse(BaseSchema):
+    """Response schema for a single stage change audit entry."""
+
+    id: int
+    deal_id: int
+    old_stage: str | None = None
+    new_stage: str
+    source: str
+    changed_by_user_id: int | None = None
+    reason: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class StageHistoryResponse(BaseSchema):
+    """List of stage change audit entries for a deal."""
+
+    deal_id: int
+    history: list[StageChangeLogResponse]
+    total: int
