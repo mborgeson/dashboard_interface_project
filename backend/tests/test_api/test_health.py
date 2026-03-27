@@ -143,12 +143,13 @@ async def test_health_status_timestamp_format(client):
 
 
 async def test_health_status_sharepoint_check(client):
-    """Test that SharePoint check reflects configuration status."""
+    """Test that SharePoint check reflects auth status with last_checked timestamp."""
     response = await client.get("/api/v1/health/status")
     data = response.json()
 
     sp = data["checks"]["sharepoint"]
-    assert sp["status"] in ["configured", "not_configured"]
+    assert sp["status"] in ["connected", "disconnected", "not_configured", "error"]
+    assert "last_checked" in sp
 
 
 async def test_health_status_api_keys_check(client):

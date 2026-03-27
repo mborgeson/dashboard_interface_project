@@ -29,9 +29,7 @@ from typing import Any
 
 import asyncpg
 import openpyxl
-import structlog
-
-logger = structlog.get_logger(__name__)
+from loguru import logger
 
 # Quarter string -> month mapping
 QUARTER_TO_MONTH: dict[str, int] = {"Q1": 1, "Q2": 4, "Q3": 7, "Q4": 10}

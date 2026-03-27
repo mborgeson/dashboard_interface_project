@@ -1,7 +1,7 @@
 """
 Structured extraction metrics for monitoring and observability.
 
-Emits structured log events via structlog that can be consumed by
+Emits structured log events via loguru that can be consumed by
 log aggregation systems (ELK, Datadog, CloudWatch, etc.) for:
 - Per-run throughput and duration
 - Per-file extraction statistics
@@ -13,9 +13,9 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 
-import structlog
+from loguru import logger as _base_logger
 
-logger = structlog.get_logger().bind(component="extraction_metrics")
+logger = _base_logger.bind(component="extraction_metrics")
 
 
 @dataclass

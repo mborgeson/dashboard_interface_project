@@ -15,11 +15,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import structlog
+from loguru import logger as _base_logger
 
 from .fingerprint import FileFingerprint
 
-logger = structlog.get_logger().bind(component="grouping")
+logger = _base_logger.bind(component="grouping")
 
 
 @dataclass

@@ -9,15 +9,14 @@ Features:
 - Persistent scheduler state tracking
 """
 
+import uuid
 from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-
-logger = structlog.get_logger(__name__)
+from loguru import logger
 
 
 class ExtractionSchedulerState:
@@ -144,7 +143,14 @@ class ExtractionScheduler:
 
         This is called by APScheduler when a scheduled run is due.
         Prevents overlapping runs by checking for currently running extractions.
+        Each run gets a unique correlation ID for log tracing.
         """
+        correlation_id = f"extract-sched-{uuid.uuid4().hex[:8]}"
+        with logger.contextualize(correlation_id=correlation_id):
+            await self._run_scheduled_extraction_inner()
+
+    async def _run_scheduled_extraction_inner(self) -> None:
+        """Inner implementation of scheduled extraction with correlation context."""
         if self._state.running:
             logger.warning(
                 "Skipping scheduled extraction - previous run still in progress"

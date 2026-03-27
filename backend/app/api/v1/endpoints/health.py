@@ -5,6 +5,8 @@ Provides a comprehensive health check for load balancers, monitoring systems,
 and operational dashboards. Does NOT require authentication.
 """
 
+from __future__ import annotations
+
 import asyncio
 import shutil
 import time
@@ -24,6 +26,13 @@ router = APIRouter()
 
 # Track application start time
 _app_start_time: float = time.monotonic()
+
+# ── SharePoint auth status cache ────────────────────────────────────────────
+# Cache the SharePoint auth check result for 5 minutes to avoid hitting the
+# Graph API on every health check request.
+_sharepoint_auth_cache: dict[str, Any] | None = None
+_sharepoint_auth_cache_time: float = 0.0
+_SHAREPOINT_AUTH_CACHE_TTL: float = 300.0  # 5 minutes
 
 
 def _get_uptime_seconds() -> float:
@@ -82,11 +91,73 @@ async def _check_redis() -> dict[str, Any]:
         return {"status": "down", "error": "unavailable"}
 
 
-def _check_sharepoint() -> dict[str, Any]:
-    """Check if SharePoint/Azure AD credentials are configured."""
-    if settings.sharepoint_configured:
-        return {"status": "configured"}
-    return {"status": "not_configured"}
+async def _check_sharepoint_auth() -> dict[str, Any]:
+    """Check SharePoint authentication status with a live Graph API call.
+
+    Makes a lightweight GET /me request to verify the Azure AD token is valid.
+    Results are cached for 5 minutes to avoid excessive Graph API calls.
+    The overall health check is NOT failed if SharePoint is unreachable --
+    the status is reported for operational awareness only.
+    """
+    global _sharepoint_auth_cache, _sharepoint_auth_cache_time  # noqa: PLW0603
+
+    # Return cached result if still fresh
+    now = time.monotonic()
+    if (
+        _sharepoint_auth_cache is not None
+        and (now - _sharepoint_auth_cache_time) < _SHAREPOINT_AUTH_CACHE_TTL
+    ):
+        return _sharepoint_auth_cache
+
+    if not settings.sharepoint_configured:
+        result: dict[str, Any] = {
+            "status": "not_configured",
+            "last_checked": datetime.now(UTC).isoformat(),
+        }
+        _sharepoint_auth_cache = result
+        _sharepoint_auth_cache_time = now
+        return result
+
+    try:
+        from app.extraction.sharepoint import SharePointClient
+
+        client = SharePointClient()
+        token = await asyncio.wait_for(
+            client._get_access_token(),
+            timeout=5.0,
+        )
+        if token:
+            result = {
+                "status": "connected",
+                "last_checked": datetime.now(UTC).isoformat(),
+            }
+        else:
+            result = {
+                "status": "disconnected",
+                "last_checked": datetime.now(UTC).isoformat(),
+                "error": "empty_token",
+            }
+    except TimeoutError:
+        result = {
+            "status": "disconnected",
+            "last_checked": datetime.now(UTC).isoformat(),
+            "error": "timeout",
+        }
+    except Exception as exc:
+        error_msg = str(exc)
+        # Sanitize error message -- don't leak secrets
+        if len(error_msg) > 200:
+            error_msg = error_msg[:200] + "..."
+        result = {
+            "status": "error",
+            "last_checked": datetime.now(UTC).isoformat(),
+            "error": error_msg,
+        }
+        logger.warning(f"health_check_sharepoint_error: {error_msg}")
+
+    _sharepoint_auth_cache = result
+    _sharepoint_auth_cache_time = now
+    return result
 
 
 def _check_external_apis() -> dict[str, Any]:
@@ -199,13 +270,13 @@ async def health_check(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
     No authentication required.
     """
     # Run async checks concurrently
-    db_check, redis_check = await asyncio.gather(
+    db_check, redis_check, sharepoint_check = await asyncio.gather(
         _check_database(db),
         _check_redis(),
+        _check_sharepoint_auth(),
     )
 
     # Sync checks
-    sharepoint_check = _check_sharepoint()
     api_checks = _check_external_apis()
     disk_check = _check_disk_space()
 

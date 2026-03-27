@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from uuid import UUID
 
-import structlog
+from loguru import logger as _base_logger
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -31,7 +31,7 @@ from app.services.extraction.metrics import FileMetrics, RunMetrics
 # Folder name → DealStage value mapping (canonical source in stage_mapping)
 from app.services.stage_mapping import STAGE_FOLDER_MAP
 
-logger = structlog.get_logger().bind(component="extraction_api")
+logger = _base_logger.bind(component="extraction_api")
 
 # Path to reference file (project root / filename)
 REFERENCE_FILE = Path(__file__).parent.parent.parent.parent.parent.parent.parent / (
@@ -440,11 +440,10 @@ def process_files(
                         status="failed",
                     )
                 )
-                logger.error(
+                logger.opt(exception=True).error(
                     "file_processing_failed",
                     file=file_name,
                     error=str(e),
-                    exc_info=True,
                 )
 
         # Update progress after each file

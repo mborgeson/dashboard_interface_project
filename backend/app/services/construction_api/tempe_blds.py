@@ -10,11 +10,9 @@ API endpoint: ArcGIS REST MapServer/FeatureServer query endpoint
 from datetime import UTC, date, datetime
 
 import httpx
-import structlog
+from loguru import logger
 
 from app.models.construction import ConstructionPermitData, ConstructionSourceLog
-
-logger = structlog.get_logger(__name__)
 
 # Default Tempe ArcGIS layer URL for building permits
 DEFAULT_TEMPE_LAYER_URL = (

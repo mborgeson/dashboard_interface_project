@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 import numpy as np
-import structlog
+from loguru import logger
 
 if TYPE_CHECKING:
     from app.extraction.cell_mapping import CellMapping
@@ -113,7 +113,7 @@ class ExtractionValidator:
     NUMERIC_TOLERANCE = 0.0001
 
     def __init__(self):
-        self.logger = structlog.get_logger().bind(component="ExtractionValidator")
+        self.logger = logger.bind(component="ExtractionValidator")
 
     def compare_with_source(
         self,

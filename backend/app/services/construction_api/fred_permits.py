@@ -12,11 +12,9 @@ API endpoint: https://api.stlouisfed.org/fred/series/observations
 from datetime import UTC, date, datetime
 
 import httpx
-import structlog
+from loguru import logger
 
 from app.models.construction import ConstructionPermitData, ConstructionSourceLog
-
-logger = structlog.get_logger(__name__)
 
 # FRED series IDs for Phoenix MSA building permits
 FRED_PERMIT_SERIES = [

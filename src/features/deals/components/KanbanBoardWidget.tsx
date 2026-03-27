@@ -26,6 +26,7 @@ import { KanbanFiltersBar } from './KanbanFiltersBar';
 import { KanbanSkeleton } from './KanbanSkeleton';
 import { useToast } from '@/hooks/useToast';
 import { cn } from '@/lib/utils';
+import { useStageChangeNotifications } from '../hooks/useStageChangeNotifications';
 
 interface KanbanBoardWidgetProps {
   className?: string;
@@ -67,6 +68,9 @@ export function KanbanBoardWidget({
   const { data, isLoading, error, refetch } = useKanbanBoardWithMockFallback(filters);
   const updateStageMutation = useUpdateDealStage();
   const { success, error: showError } = useToast();
+
+  // Listen for server-side stage changes and auto-refresh the board
+  useStageChangeNotifications(!isLoading);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

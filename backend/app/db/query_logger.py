@@ -4,7 +4,7 @@ Slow query detection and logging via SQLAlchemy event listeners.
 Attaches ``before_cursor_execute`` / ``after_cursor_execute`` listeners to
 a SQLAlchemy engine.  Queries that exceed the configurable threshold
 (``SLOW_QUERY_THRESHOLD_MS``) are logged with structured context via
-structlog and recorded in a Prometheus histogram.
+loguru and recorded in a Prometheus histogram.
 
 Usage:
     from app.db.query_logger import attach_query_logger
@@ -19,11 +19,9 @@ import time
 import traceback
 from typing import Any
 
-import structlog
+from loguru import logger
 
 from app.services.monitoring.metrics import DB_QUERY_LATENCY
-
-logger = structlog.get_logger("app.db.query_logger")
 
 # ---------------------------------------------------------------------------
 # Prometheus histogram dedicated to slow-query tracking (finer buckets at the

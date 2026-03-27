@@ -11,11 +11,9 @@ Filter: permits for residential with 5+ units
 from datetime import UTC, date, datetime
 
 import httpx
-import structlog
+from loguru import logger
 
 from app.models.construction import ConstructionPermitData, ConstructionSourceLog
-
-logger = structlog.get_logger(__name__)
 
 # Default Mesa SODA dataset ID for building permits
 DEFAULT_MESA_DATASET_ID = "h2sj-gt3d"

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import uuid
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
@@ -80,8 +81,10 @@ class ReportWorker:
     async def _loop(self) -> None:
         """Main polling loop — checks for pending reports every POLL_INTERVAL seconds."""
         while self._running:
+            correlation_id = f"report-poll-{uuid.uuid4().hex[:8]}"
             try:
-                await self._process_pending()
+                with logger.contextualize(correlation_id=correlation_id):
+                    await self._process_pending()
             except asyncio.CancelledError:
                 raise
             except Exception:

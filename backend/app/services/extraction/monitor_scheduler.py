@@ -9,17 +9,16 @@ Features:
 - Automatic extraction triggering on changes
 """
 
+import uuid
 from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from loguru import logger
 
 from app.core.config import settings
-
-logger = structlog.get_logger(__name__)
 
 
 class MonitorSchedulerState:
@@ -148,7 +147,14 @@ class FileMonitorScheduler:
         Execute a scheduled monitoring check.
 
         This is called by APScheduler when a scheduled check is due.
+        Each check gets a unique correlation ID for log tracing.
         """
+        correlation_id = f"monitor-check-{uuid.uuid4().hex[:8]}"
+        with logger.contextualize(correlation_id=correlation_id):
+            await self._run_monitoring_check_inner()
+
+    async def _run_monitoring_check_inner(self) -> None:
+        """Inner implementation with correlation context."""
         if self._state.is_checking:
             logger.warning(
                 "Skipping scheduled monitoring check - previous check still in progress"

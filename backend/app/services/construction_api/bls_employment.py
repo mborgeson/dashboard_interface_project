@@ -12,14 +12,12 @@ Note: No API key required (25 queries/day limit for v2 without key).
 from datetime import UTC, date, datetime
 
 import httpx
-import structlog
+from loguru import logger
 
 from app.models.construction import (
     ConstructionEmploymentData,
     ConstructionSourceLog,
 )
-
-logger = structlog.get_logger(__name__)
 
 # BLS series IDs for construction employment
 BLS_EMPLOYMENT_SERIES = [

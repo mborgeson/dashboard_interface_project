@@ -12,15 +12,73 @@ field vocabulary from the production reference file:
 Also provides property name reconciliation (exact, normalized, fuzzy, unmatched).
 """
 
+from __future__ import annotations
+
+import json
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
-import structlog
+from loguru import logger as _base_logger
 
-from .cell_mapping import CellMapping
-from .fingerprint import FileFingerprint
+if TYPE_CHECKING:
+    from .cell_mapping import CellMapping
+    from .fingerprint import FileFingerprint
 
-logger = structlog.get_logger().bind(component="reference_mapper")
+logger = _base_logger.bind(component="reference_mapper")
+
+# Path to the synonym definitions file (co-located in extraction package)
+_SYNONYMS_FILE = Path(__file__).parent / "field_synonyms.json"
+
+
+def load_field_synonyms(
+    path: Path | str | None = None,
+) -> dict[str, list[str]]:
+    """Load field synonym groups from JSON and convert to canonical dict.
+
+    The JSON file contains ``{"synonym_groups": [["alias1", "alias2", ...], ...]}``.
+    This function converts each group into a dict entry where the first element
+    is the canonical name and the remaining elements are the synonyms list.
+
+    Args:
+        path: Path to the synonyms JSON file.  Defaults to
+              ``field_synonyms.json`` in the extraction package directory.
+
+    Returns:
+        Dict of ``canonical_name -> [synonym1, synonym2, ...]``.
+        Returns an empty dict if the file is missing or malformed.
+    """
+    synonyms_path = Path(path) if path is not None else _SYNONYMS_FILE
+
+    if not synonyms_path.exists():
+        logger.warning(
+            "field_synonyms_file_not_found",
+            path=str(synonyms_path),
+        )
+        return {}
+
+    try:
+        raw = json.loads(synonyms_path.read_text(encoding="utf-8"))
+        groups: list[list[str]] = raw.get("synonym_groups", [])
+        result: dict[str, list[str]] = {}
+        for group in groups:
+            if not group or len(group) < 2:
+                continue
+            canonical = group[0]
+            result[canonical] = group[1:]
+        logger.debug(
+            "field_synonyms_loaded",
+            count=len(result),
+            path=str(synonyms_path),
+        )
+        return result
+    except (json.JSONDecodeError, TypeError, AttributeError) as exc:
+        logger.warning(
+            "field_synonyms_load_error",
+            error=str(exc),
+            path=str(synonyms_path),
+        )
+        return {}
 
 
 @dataclass

@@ -37,6 +37,7 @@ from .reference_mapper import (
     MappingMatch,
     PropertyMatch,
     generate_tier1b_report,
+    load_field_synonyms,
     validate_domain_ranges,
 )
 from .sharepoint import (
@@ -79,6 +80,7 @@ __all__ = [
     "MappingMatch",
     "PropertyMatch",
     "generate_tier1b_report",
+    "load_field_synonyms",
     "validate_domain_ranges",
     # Pipeline
     "GroupExtractionPipeline",

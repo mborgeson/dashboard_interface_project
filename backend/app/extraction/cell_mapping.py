@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import structlog
+from loguru import logger
 
 
 @dataclass
@@ -48,7 +48,7 @@ class CellMappingParser:
     def __init__(self, reference_file_path: str):
         self.reference_file_path = Path(reference_file_path)
         self.mappings: dict[str, CellMapping] = {}
-        self.logger = structlog.get_logger().bind(component="CellMappingParser")
+        self.logger = logger.bind(component="CellMappingParser")
         self._duplicate_tracker: set[str] = set()
 
     def load_mappings(self) -> dict[str, CellMapping]:

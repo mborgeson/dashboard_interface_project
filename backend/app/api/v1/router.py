@@ -20,11 +20,13 @@ from app.api.v1.endpoints import (
     market_data_admin,
     monitoring,
     properties,
+    reconciliation,
     reporting,
     sales_analysis,
     tasks,
     transactions,
     users,
+    webhook,
     ws,
 )
 
@@ -73,5 +75,11 @@ api_router.include_router(
     prefix="/construction-pipeline",
     tags=["construction-pipeline"],
 )
+api_router.include_router(
+    reconciliation.router,
+    prefix="/reconciliation",
+    tags=["reconciliation"],
+)
 api_router.include_router(tasks.router, tags=["tasks"])
+api_router.include_router(webhook.router, prefix="/webhook", tags=["webhook"])
 api_router.include_router(ws.router, tags=["websocket"])

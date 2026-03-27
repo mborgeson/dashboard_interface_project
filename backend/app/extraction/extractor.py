@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 
 import openpyxl
 import pyxlsb
-import structlog
+from loguru import logger
 
 from app.core.config import settings
 
@@ -53,7 +53,7 @@ class ExcelDataExtractor:
         file_filter: "FileFilter | None" = None,
     ):
         self.mappings = cell_mappings
-        self.logger = structlog.get_logger().bind(component="ExcelDataExtractor")
+        self.logger = logger.bind(component="ExcelDataExtractor")
         self.error_handler = ErrorHandler()
         self._file_filter = file_filter
 
@@ -565,7 +565,7 @@ class BatchProcessor:
         self.max_workers = (
             max_workers if max_workers is not None else settings.EXTRACTION_MAX_WORKERS
         )
-        self.logger = structlog.get_logger().bind(component="BatchProcessor")
+        self.logger = logger.bind(component="BatchProcessor")
 
     def process_files(
         self,

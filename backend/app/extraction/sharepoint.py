@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import aiohttp
 import msal
-import structlog
+from loguru import logger
 
 from app.core.config import settings
 
@@ -132,7 +132,7 @@ class SharePointClient:
         # File filter for configurable filtering
         self._file_filter = file_filter
 
-        self.logger = structlog.get_logger().bind(component="SharePointClient")
+        self.logger = logger.bind(component="SharePointClient")
 
         # MSAL app and token cache
         self._msal_app: msal.ConfidentialClientApplication | None = None

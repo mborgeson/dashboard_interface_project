@@ -16,9 +16,9 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-import structlog
+from loguru import logger as _base_logger
 
-logger = structlog.get_logger().bind(component="fingerprint")
+logger = _base_logger.bind(component="fingerprint")
 
 
 @dataclass

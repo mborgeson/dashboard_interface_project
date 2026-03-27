@@ -70,10 +70,13 @@ The reference mapper adapts the canonical ~1,179 cell mappings to variant UW mod
 
 | Tier | Confidence | Strategy | Description |
 |------|-----------|----------|-------------|
-| 1 | 0.95 | Direct match | Same sheet + same cell address |
-| 2 | 0.85 | Shifted match | Same sheet + same label text at a different cell |
-| 3 | 0.70 | Renamed sheet | Different sheet + same label text |
-| 4 | 0.40--0.50 | Semantic match | Same sheet + synonym match via `field_synonyms.json` |
+| 1a | 0.95 | Exact cell reference match | Same sheet exists in fingerprint + description label found in that sheet (highest confidence) |
+| 1b | 0.85 | Label-based match | Same sheet exists but description label NOT found; cell address used unchanged (`label_verified=False`) -- needs manual verification |
+| 2 | 0.70 | Cross-sheet label match | Description label found in a different sheet (prefers header labels over column-A labels) |
+| 3 | 0.50 | Partial label match | First 3+ words of the description match a label prefix in any sheet (heuristic) |
+| 4 | 0.40 | Semantic/synonym match | Description matched via `field_synonyms.json` synonym group (lowest confidence) |
+
+**Note on Tier 1b risk:** Tier 1b matches appear reliable (Tier 1, 0.85 confidence) but may silently read from a shifted cell because the label was not verified. Financial decisions could be based on incorrect values. The `label_verified` flag on `MappingMatch` distinguishes 1a from 1b. Domain range validation (`validate_domain_ranges()`) provides a post-extraction safety net for Tier 1b fields.
 
 ### Key Function
 

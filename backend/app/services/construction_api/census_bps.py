@@ -12,11 +12,9 @@ Series: BLDG5O_UNITS (5+ unit buildings, unit count),
 from datetime import UTC, date, datetime
 
 import httpx
-import structlog
+from loguru import logger
 
 from app.models.construction import ConstructionPermitData, ConstructionSourceLog
-
-logger = structlog.get_logger(__name__)
 
 # Census BPS series we're interested in for 5+ unit multifamily
 CENSUS_BPS_SERIES = ["BLDG5O_UNITS", "BLDG_UNITS", "BLDG5O_BLDGS"]

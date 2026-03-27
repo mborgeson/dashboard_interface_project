@@ -17,13 +17,11 @@ import json
 from typing import Any
 
 import numpy as np
-import structlog
+from loguru import logger
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.extraction.error_handler import NullValue
-
-logger = structlog.get_logger(__name__)
 
 
 def _normalize_value(value: Any) -> str:

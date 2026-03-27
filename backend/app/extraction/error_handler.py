@@ -16,7 +16,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-import structlog
+from loguru import logger
 
 
 class ErrorCategory(StrEnum):
@@ -102,7 +102,7 @@ class ErrorHandler:
     def __init__(self) -> None:
         self.errors: list[ExtractionError] = []
         self.error_counts: dict[ErrorCategory, int] = dict.fromkeys(ErrorCategory, 0)
-        self.logger = structlog.get_logger(__name__)
+        self.logger = logger.bind(component="ErrorHandler")
         self._lock = threading.Lock()
 
     def handle_missing_sheet(

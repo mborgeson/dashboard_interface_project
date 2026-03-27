@@ -4,9 +4,9 @@ Authentication endpoints for login, logout, and token management.
 
 import time
 
-import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -23,7 +23,6 @@ from app.schemas.auth import RefreshTokenRequest, Token
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
-slog = structlog.get_logger("app.api.auth")
 
 
 def _get_demo_users() -> dict:
@@ -108,7 +107,7 @@ async def login(
         )
         refresh_token = create_refresh_token(subject=str(db_user.id))
 
-        slog.info(
+        logger.info(
             "user_login_success",
             user_id=db_user.id,
             email=form_data.username,
@@ -136,7 +135,7 @@ async def login(
         )
         refresh_token = create_refresh_token(subject=str(demo_user["id"]))
 
-        slog.info(
+        logger.info(
             "user_login_success",
             user_id=demo_user["id"],
             email=form_data.username,
@@ -151,7 +150,7 @@ async def login(
         )
 
     # Authentication failed
-    slog.warning(
+    logger.warning(
         "user_login_failed",
         email=form_data.username,
         reason="invalid_credentials",
@@ -199,7 +198,7 @@ async def refresh_token(request: RefreshTokenRequest):
 
     # Check if user's tokens have been globally revoked (replay attack response)
     if user_id and await token_blacklist.is_user_revoked(user_id):
-        slog.warning(
+        logger.warning(
             "token_refresh_revoked_user",
             user_id=user_id,
         )
@@ -217,7 +216,7 @@ async def refresh_token(request: RefreshTokenRequest):
                 user_id,
                 expires_in=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
             )
-        slog.warning(
+        logger.warning(
             "token_replay_attack_detected",
             user_id=user_id,
             jti_prefix=jti[:8] if jti else None,
@@ -233,7 +232,7 @@ async def refresh_token(request: RefreshTokenRequest):
         ttl = max(0, int(exp) - int(time.time()))
         if ttl > 0:
             await token_blacklist.add(jti, ttl)
-            slog.debug(
+            logger.debug(
                 "token_refresh_rotated",
                 user_id=user_id,
                 jti_prefix=jti[:8],
@@ -282,14 +281,14 @@ async def logout(
                     ttl = max(0, int(exp) - int(time.time()))
                     if ttl > 0:
                         await token_blacklist.add(jti, ttl)
-                        slog.info(
+                        logger.info(
                             "user_logout",
                             jti_prefix=jti[:8],
                             ttl_seconds=ttl,
                         )
         except Exception as e:
             # Token may be invalid or expired, no need to blacklist
-            slog.debug("logout_token_processing_skipped", error=str(e))
+            logger.debug("logout_token_processing_skipped", error=str(e))
 
     return {"message": "Successfully logged out"}
 

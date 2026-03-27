@@ -4,7 +4,6 @@ Deal analytics endpoints — proforma returns and extraction-derived metrics.
 
 from collections.abc import Sequence
 
-import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import Row, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +17,6 @@ from app.schemas.deal import ProformaReturnsResponse
 from .enrichment import PROFORMA_FIELDS
 
 router = APIRouter()
-slog = structlog.get_logger("app.api.deals")
 
 
 @router.get(

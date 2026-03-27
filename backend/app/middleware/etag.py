@@ -18,12 +18,10 @@ Only applies to:
 import hashlib
 from collections import OrderedDict
 
-import structlog
+from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-
-slog = structlog.get_logger("app.middleware.etag")
 
 # Maximum number of cached ETag entries.  Sized to cover the most
 # frequently-accessed GET endpoints without consuming excessive memory
@@ -116,7 +114,7 @@ class ETagMiddleware(BaseHTTPMiddleware):
             # Handle multiple ETags in If-None-Match (comma-separated)
             client_etags = [t.strip() for t in if_none_match.split(",")]
             if etag in client_etags or "*" in client_etags:
-                slog.debug(
+                logger.debug(
                     "etag_match_304",
                     path=request.url.path,
                     etag=etag,

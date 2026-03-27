@@ -22,12 +22,12 @@ from uuid import UUID
 if TYPE_CHECKING:
     from .cell_mapping import CellMapping
 
-import structlog
+from loguru import logger as _base_logger
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 
-logger = structlog.get_logger().bind(component="GroupExtractionPipeline")
+logger = _base_logger.bind(component="GroupExtractionPipeline")
 
 
 @dataclass
@@ -385,13 +385,18 @@ class GroupExtractionPipeline:
         Args:
             reference_file_path: Path to production reference Excel file.
             synonyms: Optional synonym dictionary for tier-4 matching.
+                If None, auto-loads from field_synonyms.json.
 
         Returns:
             Dict of group_name -> mapping summary.
         """
         from .cell_mapping import CellMappingParser
         from .fingerprint import FileFingerprint
-        from .reference_mapper import auto_map_group
+        from .reference_mapper import auto_map_group, load_field_synonyms
+
+        # Auto-load synonyms from field_synonyms.json if not provided
+        if synonyms is None:
+            synonyms = load_field_synonyms()
 
         # Load production mappings
         if reference_file_path is None:

@@ -13,9 +13,7 @@ Strategy:
 
 import re
 
-import structlog
-
-logger = structlog.get_logger(__name__)
+from loguru import logger
 
 # Street suffix normalization (USPS standard abbreviations)
 _SUFFIX_MAP: dict[str, str] = {

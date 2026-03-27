@@ -2,8 +2,8 @@
 Deal activity and watchlist endpoints — activity logs, timeline, watchlist.
 """
 
-import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import CurrentUser, get_current_user, require_analyst
@@ -28,7 +28,6 @@ from app.schemas.activity_log import (
 from app.schemas.deal import WatchlistStatusResponse
 
 router = APIRouter()
-slog = structlog.get_logger("app.api.deals")
 
 
 @router.post(
@@ -69,7 +68,7 @@ async def add_deal_activity(
     # Create and persist the activity
     created_activity = await deal_activity.create(db, obj_in=activity_data)
 
-    slog.info(
+    logger.info(
         "deal_activity_logged",
         deal_id=deal_id,
         activity_type=activity.activity_type,
@@ -185,7 +184,7 @@ async def toggle_watchlist(
     else:
         message = f"Deal '{deal.name}' removed from your watchlist"
 
-    slog.info(
+    logger.info(
         "deal_watchlist_toggled",
         deal_id=deal_id,
         is_watched=is_watched,
@@ -373,7 +372,7 @@ async def create_deal_activity_log(
         meta=meta,
     )
 
-    slog.info(
+    logger.info(
         "deal_activity_log_created",
         deal_id=deal_id,
         action=activity_data.action.value,

@@ -18,12 +18,10 @@ import asyncio
 import sys
 
 import httpx
-import structlog
+from loguru import logger as log
 from sqlalchemy import create_engine, text
 
 from app.core.config import settings
-
-log = structlog.get_logger(__name__)
 
 
 class CensusExtractor:

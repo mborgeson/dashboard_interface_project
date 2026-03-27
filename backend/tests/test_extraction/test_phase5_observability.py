@@ -260,7 +260,7 @@ class TestFileMetadataPersistence:
         assert file1_meta["status"] == "completed"
 
     def test_metrics_emitted_on_completion(self, sync_db_session: Session):
-        """Structured metrics should be emitted via structlog on completion."""
+        """Structured metrics should be emitted via loguru on completion."""
         run = ExtractionRunCRUD.create(sync_db_session, trigger_type="manual")
 
         mock_extractor = MagicMock()

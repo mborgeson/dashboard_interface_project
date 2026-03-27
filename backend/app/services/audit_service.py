@@ -9,14 +9,12 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-import structlog
 from fastapi import Request
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import CurrentUser
 from app.models.audit_log import AuditLog
-
-slog = structlog.get_logger("app.services.audit")
 
 
 async def log_action(
@@ -77,7 +75,7 @@ async def log_action(
         db.add(entry)
         await db.flush()
 
-        slog.info(
+        logger.info(
             "audit_action_logged",
             user_id=user.id,
             user_email=user.email,
@@ -87,11 +85,10 @@ async def log_action(
             ip_address=ip_address,
         )
     except Exception:
-        slog.warning(
+        logger.opt(exception=True).warning(
             "audit_log_write_failed",
             user_email=user.email if user else "unknown",
             action=action,
             resource_type=resource_type,
             resource_id=resource_id,
-            exc_info=True,
         )

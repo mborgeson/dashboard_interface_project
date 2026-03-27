@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
-import structlog
+from loguru import logger
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
@@ -120,7 +120,7 @@ class SharePointFileMonitor:
         """
         self.db = db
         self.client = sharepoint_client or SharePointClient()
-        self.logger = structlog.get_logger().bind(component="FileMonitor")
+        self.logger = logger.bind(component="FileMonitor")
 
     async def check_for_changes(
         self,
@@ -553,11 +553,13 @@ class SharePointFileMonitor:
                 )
                 self.db.add(new_file)
 
-        # Mark deleted files as inactive
+        # Mark deleted files as inactive and track deals that lost files
+        deleted_deal_names: set[str] = set()
         for path, stored in stored_files.items():
             if path not in current_paths:
                 stored.is_active = False
                 stored.last_checked = now
+                deleted_deal_names.add(stored.deal_name)
 
         await self.db.commit()
         self.logger.debug("stored_state_updated", file_count=len(files))
@@ -565,6 +567,10 @@ class SharePointFileMonitor:
         # Sync deal stages when files move between stage folders
         if stage_changes:
             await self._sync_deal_stages(stage_changes)
+
+        # Deletion policy: mark deals DEAD when ALL their files are removed
+        if deleted_deal_names:
+            await self._apply_deletion_policy(deleted_deal_names, current_paths, files)
 
     async def _sync_deal_stages(
         self,
@@ -580,6 +586,11 @@ class SharePointFileMonitor:
         Creates a StageChangeLog audit entry for every transition via the
         central ``change_deal_stage()`` function.
 
+        Emits WebSocket notifications for stage changes:
+        - Individual ``stage_changed`` events for small batches
+        - A single ``batch_stage_changed`` event when the number of
+          changes exceeds ``STAGE_SYNC_BATCH_THRESHOLD``
+
         Args:
             stage_changes: List of (deal_name, new_stage_str) tuples
 
@@ -590,19 +601,189 @@ class SharePointFileMonitor:
         from app.models.stage_change_log import StageChangeSource
         from app.services.stage_mapping import change_deal_stage
 
-        updated = 0
+        # Parse and validate all stage changes first, filtering out invalid stages
+        valid_changes: list[tuple[str, DealStage]] = []
         for deal_name, new_stage_str in stage_changes:
             try:
                 target_stage = DealStage(new_stage_str)
+                valid_changes.append((deal_name, target_stage))
             except ValueError:
                 self.logger.warning(
                     "invalid_deal_stage_from_folder",
                     deal=deal_name,
                     stage=new_stage_str,
                 )
-                continue
 
-            # Match deal by name (exact or "Name (City, ST)" pattern)
+        if not valid_changes:
+            return 0
+
+        # Batch-fetch all relevant deals in a single query (N+1 optimization)
+        deal_names = list({name for name, _ in valid_changes})
+        name_conditions = []
+        for name in deal_names:
+            name_conditions.append(func.lower(Deal.name) == func.lower(name))
+            name_conditions.append(func.lower(Deal.name).like(func.lower(name) + " (%"))
+
+        stmt = select(Deal).where(
+            or_(*name_conditions),
+            Deal.is_deleted.is_(False),
+        )
+        result = await self.db.execute(stmt)
+        all_deals = list(result.scalars().all())
+
+        # Build a lookup: lowercase deal name -> list of Deal objects
+        deals_by_name: dict[str, list[Deal]] = {}
+        for deal in all_deals:
+            deal_name_lower = deal.name.lower()
+            deals_by_name.setdefault(deal_name_lower, []).append(deal)
+            # Also index by the base name (before parenthetical suffix)
+            if " (" in deal.name:
+                base_name = deal.name.split(" (")[0].lower()
+                deals_by_name.setdefault(base_name, []).append(deal)
+
+        # Apply stage changes using the pre-fetched deals
+        updated = 0
+        stage_change_details: list[dict[str, object]] = []
+
+        for deal_name, target_stage in valid_changes:
+            matching_deals = deals_by_name.get(deal_name.lower(), [])
+            for deal in matching_deals:
+                if deal.stage != target_stage:
+                    old_stage = deal.stage
+                    await change_deal_stage(
+                        db=self.db,
+                        deal=deal,
+                        new_stage=target_stage,
+                        source=StageChangeSource.SHAREPOINT_SYNC,
+                        reason=f"File moved to folder for stage '{target_stage.value}'",
+                    )
+                    updated += 1
+                    stage_change_details.append(
+                        {
+                            "deal_id": deal.id,
+                            "deal_name": deal.name,
+                            "old_stage": old_stage.value if old_stage else None,
+                            "new_stage": target_stage.value,
+                        }
+                    )
+
+        if updated:
+            await self.db.commit()
+            self.logger.info("deal_stages_synced", count=updated)
+
+        # Fire-and-forget WebSocket notifications
+        if stage_change_details:
+            await self._emit_stage_change_notifications(stage_change_details)
+
+        return updated
+
+    async def _emit_stage_change_notifications(
+        self,
+        changes: list[dict[str, object]],
+    ) -> None:
+        """Emit WebSocket notifications for stage changes.
+
+        Sends individual ``stage_changed`` events when the number of changes
+        is at or below ``STAGE_SYNC_BATCH_THRESHOLD``.  For larger batches a
+        single ``batch_stage_changed`` event is sent instead, preventing
+        notification spam during bulk folder moves.
+
+        Args:
+            changes: List of dicts with deal_id, deal_name, old_stage,
+                     new_stage for each changed deal.
+        """
+        from app.services.websocket_manager import get_connection_manager
+
+        try:
+            manager = get_connection_manager()
+            batch_threshold = getattr(settings, "STAGE_SYNC_BATCH_THRESHOLD", 5)
+
+            if len(changes) > batch_threshold:
+                # Batch notification
+                await manager.send_to_channel(
+                    "deals",
+                    {
+                        "type": "batch_stage_changed",
+                        "count": len(changes),
+                        "deals": [
+                            {
+                                "deal_id": c["deal_id"],
+                                "deal_name": c["deal_name"],
+                                "old_stage": c["old_stage"],
+                                "new_stage": c["new_stage"],
+                            }
+                            for c in changes
+                        ],
+                        "source": "sharepoint_sync",
+                        "timestamp": datetime.now(UTC).isoformat(),
+                    },
+                )
+                self.logger.info(
+                    "batch_stage_change_notification_sent",
+                    count=len(changes),
+                )
+            else:
+                # Individual notifications
+                for change in changes:
+                    await manager.notify_deal_update(
+                        deal_id=int(str(change["deal_id"])),
+                        action="stage_changed",
+                        data={
+                            "deal_name": change["deal_name"],
+                            "old_stage": change["old_stage"],
+                            "new_stage": change["new_stage"],
+                            "source": "sharepoint_sync",
+                        },
+                    )
+                self.logger.debug(
+                    "individual_stage_change_notifications_sent",
+                    count=len(changes),
+                )
+        except Exception:
+            # Fire-and-forget — never block the sync on notification failures
+            self.logger.opt(exception=True).warning(
+                "stage_change_notification_failed",
+                count=len(changes),
+            )
+
+    async def _apply_deletion_policy(
+        self,
+        deleted_deal_names: set[str],
+        current_paths: set[str],
+        current_files: list[SharePointFile],
+    ) -> None:
+        """Apply deletion policy when files are removed from SharePoint.
+
+        When ALL files for a deal have been removed (none remain in
+        ``current_files``), the deal is marked as DEAD — unless:
+        - ``STAGE_SYNC_DELETE_POLICY`` is ``"ignore"``
+        - ``STAGE_SYNC_PROTECT_CLOSED`` is True and the deal is CLOSED
+
+        Args:
+            deleted_deal_names: Set of deal names that had files removed.
+            current_paths: Set of file paths still present in SharePoint.
+            current_files: List of SharePointFile objects from discovery.
+        """
+        from app.models.deal import Deal, DealStage
+        from app.models.stage_change_log import StageChangeSource
+        from app.services.stage_mapping import change_deal_stage
+
+        policy = getattr(settings, "STAGE_SYNC_DELETE_POLICY", "mark_dead")
+        if policy != "mark_dead":
+            return
+
+        protect_closed = getattr(settings, "STAGE_SYNC_PROTECT_CLOSED", True)
+
+        # Build set of deal names that still have at least one active file
+        active_deal_names = {f.deal_name for f in current_files}
+
+        # Deals with ALL files removed
+        fully_removed = deleted_deal_names - active_deal_names
+
+        if not fully_removed:
+            return
+
+        for deal_name in fully_removed:
             stmt = select(Deal).where(
                 or_(
                     func.lower(Deal.name) == func.lower(deal_name),
@@ -614,21 +795,34 @@ class SharePointFileMonitor:
             deals = list(result.scalars().all())
 
             for deal in deals:
-                if deal.stage != target_stage:
-                    await change_deal_stage(
-                        db=self.db,
-                        deal=deal,
-                        new_stage=target_stage,
-                        source=StageChangeSource.SHAREPOINT_SYNC,
-                        reason=f"File moved to folder for stage '{new_stage_str}'",
+                # Protect CLOSED deals
+                if protect_closed and deal.stage == DealStage.CLOSED:
+                    self.logger.info(
+                        "deletion_policy_skipped_closed",
+                        deal_id=deal.id,
+                        deal_name=deal.name,
                     )
-                    updated += 1
+                    continue
 
-        if updated:
-            await self.db.commit()
-            self.logger.info("deal_stages_synced", count=updated)
+                if deal.stage == DealStage.DEAD:
+                    continue  # Already dead
 
-        return updated
+                old_stage = deal.stage
+                await change_deal_stage(
+                    db=self.db,
+                    deal=deal,
+                    new_stage=DealStage.DEAD,
+                    source=StageChangeSource.SHAREPOINT_SYNC,
+                    reason="All files removed from SharePoint",
+                )
+                self.logger.info(
+                    "deletion_policy_marked_dead",
+                    deal_id=deal.id,
+                    deal_name=deal.name,
+                    old_stage=old_stage.value if old_stage else None,
+                )
+
+        await self.db.commit()
 
     async def _log_changes(
         self,

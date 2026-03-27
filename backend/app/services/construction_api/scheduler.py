@@ -6,14 +6,13 @@ and municipal permit data (Mesa, Tempe, Gilbert).
 Mirrors the ExtractionScheduler pattern with APScheduler AsyncIOScheduler.
 """
 
+import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-
-logger = structlog.get_logger(__name__)
+from loguru import logger
 
 
 class ConstructionSchedulerState:
@@ -191,6 +190,12 @@ class ConstructionDataScheduler:
 
     async def _run_census_fetch(self) -> None:
         """Execute Census BPS fetch. Called by scheduler."""
+        correlation_id = f"census-fetch-{uuid.uuid4().hex[:8]}"
+        with logger.contextualize(correlation_id=correlation_id):
+            await self._run_census_fetch_inner()
+
+    async def _run_census_fetch_inner(self) -> None:
+        """Inner implementation with correlation context."""
         if self.state.running:
             logger.warning("construction_fetch_skipped_already_running")
             return
@@ -231,6 +236,12 @@ class ConstructionDataScheduler:
 
     async def _run_fred_fetch(self) -> None:
         """Execute FRED permits fetch. Called by scheduler."""
+        correlation_id = f"fred-fetch-{uuid.uuid4().hex[:8]}"
+        with logger.contextualize(correlation_id=correlation_id):
+            await self._run_fred_fetch_inner()
+
+    async def _run_fred_fetch_inner(self) -> None:
+        """Inner implementation with correlation context."""
         if self.state.running:
             logger.warning("construction_fetch_skipped_already_running")
             return
@@ -271,6 +282,12 @@ class ConstructionDataScheduler:
 
     async def _run_bls_fetch(self) -> None:
         """Execute BLS employment fetch. Called by scheduler."""
+        correlation_id = f"bls-fetch-{uuid.uuid4().hex[:8]}"
+        with logger.contextualize(correlation_id=correlation_id):
+            await self._run_bls_fetch_inner()
+
+    async def _run_bls_fetch_inner(self) -> None:
+        """Inner implementation with correlation context."""
         if self.state.running:
             logger.warning("construction_fetch_skipped_already_running")
             return
@@ -307,6 +324,12 @@ class ConstructionDataScheduler:
 
     async def _run_municipal_fetch(self) -> None:
         """Execute municipal permit fetches (Mesa, Tempe, Gilbert). Called by scheduler."""
+        correlation_id = f"municipal-fetch-{uuid.uuid4().hex[:8]}"
+        with logger.contextualize(correlation_id=correlation_id):
+            await self._run_municipal_fetch_inner()
+
+    async def _run_municipal_fetch_inner(self) -> None:
+        """Inner implementation with correlation context."""
         if self.state.running:
             logger.warning("construction_fetch_skipped_already_running")
             return

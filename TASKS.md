@@ -72,14 +72,14 @@
 
 ## Sprint 3: Production Readiness (Week 5-6)
 
-### Epic 3.1: Webhook Endpoint [WS2]
-- [ ] UR-014: POST /webhook with validation handshake + clientState verification [WS2] [M]
-- [ ] UR-014: WebhookSubscriptionManager (create, renew, delete lifecycle) [WS2] [M]
-- [ ] UR-014: APScheduler job for subscription renewal (every 2 days) [WS2] [S]
-- [ ] UR-014: Redis-based debounce (10-second window) [WS2] [S]
-- [ ] UR-014: Tests -- handshake, valid notification, invalid clientState, debounce [WS2] [M]
+### Epic 3.1: Webhook Endpoint [WS2] ✅ (2026-03-26)
+- [x] UR-014: POST /webhook with validation handshake + clientState verification [WS2] [M]
+- [x] UR-014: WebhookSubscriptionManager (create, renew, delete lifecycle) [WS2] [M]
+- [x] UR-014: APScheduler job for subscription renewal (every 2 days) [WS2] [S]
+- [x] UR-014: Redis-based debounce (10-second window) [WS2] [S]
+- [x] UR-014: Tests -- handshake, valid notification, invalid clientState, debounce [WS2] [M]
 
-### Epic 3.2: Ungrouped File Extraction [WS4]
+### Epic 3.2: Ungrouped File Extraction [WS4] (deferred — operational, needs live data)
 - [ ] UR-021: Form natural clusters by sheet count (28/32/33/29-sheet groups) [WS4] [S]
 - [ ] UR-021: Run fingerprinting and reference mapping for each new group [WS4] [M]
 - [ ] UR-021: Review Tier 2/3 matches, spot-check fields per group [WS4] [M]
@@ -87,30 +87,30 @@
 - [ ] UR-021: Handle 3 singleton files (Tides, Plaza 550, Kingsview) individually [WS4] [M]
 - [ ] UR-021: Sync extracted properties to properties table [WS4] [S]
 
-### Epic 3.3: Logging Unification [WS1]
-- [ ] UR-011: Migrate extraction core (13 structlog files) to loguru [WS1] [M]
-- [ ] UR-011: Migrate extraction services, data extraction, construction API (14 files) [WS1] [M]
-- [ ] UR-011: Migrate middleware/db (2 files) [WS1] [S]
-- [ ] UR-011: Remove setup_structlog() and structlog dependency [WS1] [S]
-- [ ] UR-012: Set correlation IDs for background tasks (report worker, scheduler, cache) [WS1] [S]
-- [ ] UR-011: Run full test suite to verify no logging regressions [WS1] [S]
+### Epic 3.3: Logging Unification [WS1] ✅ (2026-03-26)
+- [x] UR-011: Migrate extraction core (13 structlog files) to loguru [WS1] [M]
+- [x] UR-011: Migrate extraction services, data extraction, construction API (14 files) [WS1] [M]
+- [x] UR-011: Migrate middleware/db (2 files) [WS1] [S]
+- [x] UR-011: Remove setup_structlog() and structlog dependency [WS1] [S]
+- [x] UR-012: Set correlation IDs for background tasks (report worker, scheduler, cache) [WS1] [S]
+- [x] UR-011: Run full test suite to verify no logging regressions [WS1] [S]
 
-### Epic 3.4: Stage Change Notifications [WS3]
-- [ ] UR-018: Emit notify_deal_update() from _sync_deal_stages() [WS3] [S]
-- [ ] UR-018: Emit batch event for bulk moves (>5 deals) [WS3] [S]
-- [ ] UR-019: Implement deletion policy -- mark DEAD when all files removed [WS3] [S]
-- [ ] UR-019: Config -- STAGE_SYNC_DELETE_POLICY, STAGE_SYNC_PROTECT_CLOSED [WS3] [XS]
-- [ ] UR-018: Frontend -- handle stage_changed events in Kanban WebSocket listener [WS3] [S]
-- [ ] UR-018: Tests -- notification emission, deletion policy, CLOSED protection [WS3] [M]
+### Epic 3.4: Stage Change Notifications [WS3] ✅ (2026-03-26)
+- [x] UR-018: Emit notify_deal_update() from _sync_deal_stages() [WS3] [S]
+- [x] UR-018: Emit batch event for bulk moves (>5 deals) [WS3] [S]
+- [x] UR-019: Implement deletion policy -- mark DEAD when all files removed [WS3] [S]
+- [x] UR-019: Config -- STAGE_SYNC_DELETE_POLICY, STAGE_SYNC_PROTECT_CLOSED [WS3] [XS]
+- [x] UR-018: Frontend -- handle stage_changed events in Kanban WebSocket listener [WS3] [S]
+- [x] UR-018: Tests -- notification emission, deletion policy, CLOSED protection [WS3] [M]
 
-### Epic 3.5: Supporting P1 Items [WS1, WS2, WS3, WS4]
-- [ ] UR-024: Create field_synonyms.json with ~20-30 synonym pairs [WS4] [S]
-- [ ] UR-024: Update run_reference_mapping() to auto-load synonyms [WS4] [S]
-- [ ] UR-025: Correct discovery document tier descriptions [WS4] [S]
-- [ ] UR-017: Auth failure alerting -- SharePoint auth status in health check [WS2] [S]
-- [ ] UR-020: Batch query optimization for _sync_deal_stages() [WS3] [S]
-- [ ] UR-016: Reconciliation report service + daily scheduler [WS2] [M]
-- [ ] UR-016: Reconciliation API -- latest, history, manual trigger [WS2] [S]
+### Epic 3.5: Supporting P1 Items [WS1, WS2, WS3, WS4] ✅ (2026-03-26)
+- [x] UR-024: Create field_synonyms.json with ~20-30 synonym pairs [WS4] [S]
+- [x] UR-024: Update run_reference_mapping() to auto-load synonyms [WS4] [S]
+- [x] UR-025: Correct discovery document tier descriptions [WS4] [S]
+- [x] UR-017: Auth failure alerting -- SharePoint auth status in health check [WS2] [S]
+- [x] UR-020: Batch query optimization for _sync_deal_stages() [WS3] [S]
+- [x] UR-016: Reconciliation report service + daily scheduler [WS2] [M]
+- [x] UR-016: Reconciliation API -- latest, history, manual trigger [WS2] [S]
 
 ---
 

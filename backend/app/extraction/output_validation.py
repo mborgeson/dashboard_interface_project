@@ -20,9 +20,9 @@ from enum import StrEnum
 from typing import Any
 
 import numpy as np
-import structlog
+from loguru import logger as _base_logger
 
-logger = structlog.get_logger().bind(component="output_validation")
+logger = _base_logger.bind(component="output_validation")
 
 
 class ValidationStatus(StrEnum):

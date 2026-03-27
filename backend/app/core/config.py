@@ -302,9 +302,20 @@ class ExtractionSettings(BaseSettings):
     AUTO_EXTRACT_ON_CHANGE: bool = True
     MONITOR_CHECK_CRON: str = "*/30 * * * *"
 
+    # Stage Sync Policies
+    STAGE_SYNC_DELETE_POLICY: str = "mark_dead"  # "mark_dead" or "ignore"
+    STAGE_SYNC_PROTECT_CLOSED: bool = True
+    STAGE_SYNC_BATCH_THRESHOLD: int = 5
+
     # Delta Query (incremental sync via Microsoft Graph delta API)
     DELTA_QUERY_ENABLED: bool = False
     DELTA_RECONCILIATION_CRON: str = "0 3 * * *"
+
+    # Webhook (Microsoft Graph push notifications)
+    WEBHOOK_ENABLED: bool = False
+    WEBHOOK_CLIENT_STATE: str = ""
+    WEBHOOK_NOTIFICATION_URL: str = ""
+    WEBHOOK_DEBOUNCE_SECONDS: int = 10
 
 
 # ── Construction Pipeline Settings ───────────────────────────────────────────

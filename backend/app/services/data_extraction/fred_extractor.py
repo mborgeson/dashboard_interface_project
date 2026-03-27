@@ -17,10 +17,8 @@ from datetime import date
 from typing import Any
 
 import httpx
-import structlog
+from loguru import logger
 from sqlalchemy import create_engine, text
-
-logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants

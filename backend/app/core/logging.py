@@ -1,12 +1,11 @@
 """
-Logging configuration using Loguru and structlog.
+Logging configuration using Loguru.
 
-Loguru handles traditional log output (console, file rotation, coloring).
-structlog provides structured, machine-parseable logging for key operations
-(API requests, CRUD mutations, auth events, extraction pipeline).
-
-Both systems coexist: loguru for human-readable output during development,
-structlog for JSON-structured events that can be ingested by log aggregators.
+Loguru provides unified logging for all application components with:
+- Colored console output during development
+- Rotating file output in production
+- Request ID injection via contextvars
+- Stdlib logging interception for third-party libraries
 
 Request ID integration:
     The ``request_id`` field is automatically included in every log line
@@ -20,7 +19,6 @@ import logging
 import sys
 from types import FrameType
 
-import structlog
 from loguru import logger
 
 from .config import settings
@@ -31,53 +29,6 @@ def _request_id_patcher(record: dict) -> None:
     from app.middleware.request_id import get_request_id
 
     record["extra"]["request_id"] = get_request_id() or "-"
-
-
-def _add_request_id(
-    _logger: structlog.types.WrappedLogger,
-    _method_name: str,
-    event_dict: structlog.types.EventDict,
-) -> structlog.types.EventDict:
-    """structlog processor: inject the current request ID into every event."""
-    from app.middleware.request_id import get_request_id
-
-    event_dict.setdefault("request_id", get_request_id() or "-")
-    return event_dict
-
-
-def setup_structlog() -> None:
-    """Configure structlog for structured, machine-parseable logging.
-
-    In production, outputs JSON lines suitable for log aggregation.
-    In development, outputs coloured console-friendly output.
-    """
-    shared_processors: list[structlog.types.Processor] = [
-        structlog.contextvars.merge_contextvars,
-        _add_request_id,
-        structlog.stdlib.add_log_level,
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.UnicodeDecoder(),
-    ]
-
-    if settings.ENVIRONMENT == "production":
-        renderer: structlog.types.Processor = structlog.processors.JSONRenderer()
-    else:
-        renderer = structlog.dev.ConsoleRenderer()
-
-    structlog.configure(
-        processors=[
-            *shared_processors,
-            structlog.processors.format_exc_info,
-            renderer,
-        ],
-        wrapper_class=structlog.make_filtering_bound_logger(
-            logging.getLevelName(settings.LOG_LEVEL.upper()),
-        ),
-        context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
-        cache_logger_on_first_use=True,
-    )
 
 
 class _InterceptHandler(logging.Handler):
@@ -111,7 +62,7 @@ class _InterceptHandler(logging.Handler):
 
 
 def setup_logging() -> None:
-    """Configure application logging (both loguru and structlog).
+    """Configure application logging with loguru.
 
     Intercepts stdlib ``logging`` so that any remaining ``logging.getLogger()``
     callers (third-party libraries, legacy code) are routed through loguru
@@ -165,9 +116,6 @@ def setup_logging() -> None:
     # through loguru with consistent formatting and request-ID injection.
     logging.basicConfig(handlers=[_InterceptHandler()], level=0, force=True)
 
-    # ── structlog setup ───────────────────────────────────────────
-    setup_structlog()
-
 
 # Export configured logger
-__all__ = ["logger", "setup_logging", "setup_structlog"]
+__all__ = ["logger", "setup_logging"]

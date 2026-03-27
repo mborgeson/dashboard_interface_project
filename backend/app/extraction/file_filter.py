@@ -17,7 +17,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-import structlog
+from loguru import logger
 
 if TYPE_CHECKING:
     from app.core.config import Settings
@@ -73,7 +73,7 @@ class FileFilter:
         Args:
             settings: Application settings containing filter configuration
         """
-        self.logger = structlog.get_logger().bind(component="FileFilter")
+        self.logger = logger.bind(component="FileFilter")
 
         # Compile file pattern regex
         self.file_pattern = self._compile_pattern(settings.FILE_PATTERN)
@@ -340,7 +340,7 @@ class CandidateFileFilter:
             production_filter: Optional — kept for backward compatibility
                 but no longer used. Criteria are now self-contained.
         """
-        self.logger = structlog.get_logger().bind(component="CandidateFileFilter")
+        self.logger = logger.bind(component="CandidateFileFilter")
 
     def should_process(
         self,
