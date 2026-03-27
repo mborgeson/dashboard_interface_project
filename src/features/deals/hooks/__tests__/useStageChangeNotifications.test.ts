@@ -4,7 +4,7 @@
  * Verifies that WebSocket stage_changed and batch_stage_changed events
  * trigger React Query cache invalidation for the Kanban board.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
 import { dealKeys } from '@/hooks/api/useDeals';
