@@ -265,12 +265,8 @@ class TestSharePointHealthCheck:
 
         health_mod._sharepoint_auth_cache = None
 
-        with patch("app.core.config.settings") as mock_settings:
+        with patch.object(health_mod, "settings") as mock_settings:
             mock_settings.sharepoint_configured = True
-            mock_settings.AZURE_TENANT_ID = "test"
-            mock_settings.AZURE_CLIENT_ID = "test"
-            mock_settings.AZURE_CLIENT_SECRET = "test"
-            mock_settings.SHAREPOINT_SITE_URL = "test"
 
             with patch(
                 "app.extraction.sharepoint.SharePointClient._get_access_token",
@@ -288,7 +284,7 @@ class TestSharePointHealthCheck:
 
         health_mod._sharepoint_auth_cache = None
 
-        with patch("app.core.config.settings") as mock_settings:
+        with patch.object(health_mod, "settings") as mock_settings:
             mock_settings.sharepoint_configured = True
 
             with patch(
