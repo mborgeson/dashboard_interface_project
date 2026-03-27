@@ -1,219 +1,68 @@
 {
-  "memories": [
-    {
-      "type": "completed_features",
-      "content": "Waves 1-10 CRUD (2026-01-14). Market Data Pipeline 253K (2026-02-05). ReportSettings + Zod (2026-02-07). Sales Analysis (2026-02-10). Construction Pipeline (2026-02-11). UW Model Grouping Phase 3-4 (2026-03-03). Activity logging, Docker, Tech Debt, Extraction Hardening (2026-02-12→03-03). Login Flow + Auth Guards (2026-03-03). Local OneDrive Extraction (2026-03-03). Deals Overhaul + v5 (2026-03-04). Group Pipeline Frontend, Vite opt (2026-03-05). Cap Rate TC T3 re-run + 49 regression tests (2026-03-05). UW Grouping Expansion: 9 groups, 66 files (2026-03-06). Proforma Returns UI Option C (2026-03-06). Phase 2-3 Dashboard Integrity (2026-03-06). Architecture review v2: 71/71 findings (2026-03-09). Tech Debt ALL 76/76 COMPLETE (2026-03-11). 2026-03-20: Deal stage auto-sync from SharePoint folder moves, pagination 200→500, event loop fix (asyncio.to_thread), XLSB corrupt file handling, npm security patched (jsPDF+flatted). pip-audit: 24 vulns found (pyjwt, python-multipart, cryptography priority).",
-      "added_at": "2026-03-20T08:30:00.000000",
-      "source": "consolidated"
-    },
-    {
-      "type": "user_preferences",
-      "content": "conda env: dashboard-backend. Dev: npm run dev:all. Git: stash apply over pop, don't push unless asked. NO mock/fake data. User: matt@bandrcapital.com / Wildcats777!! / admin. User expects Agent Team approach — execute full parallel agent plans, auto-chain waves without waiting for confirmation. Data observations (items 8-12) are NOT issues. Option C for old UW model attributes. Auth login uses form data (not JSON). docs/multifamily_data_guide.docx should NOT be deleted. User wants all tracking table rows to have commit hashes. Settings.local.json: avoid ':*' mid-string in Bash rules.",
-      "added_at": "2026-03-20T08:30:00.000000",
-      "source": "consolidated"
-    },
-    {
-      "type": "tech_decisions",
-      "content": "Zod: .nullable().optional() + ?? undefined (NOT ?? 0). TWO API CLIENTS: src/lib/api.ts (axios) + src/lib/api/client.ts (fetch). shadcn needs CSS vars in :root + tailwind mappings. SQLite tests: no server_default, datetime.now(UTC), StaticPool. CRUD uses flush() not commit() — get_db() auto-commits. deals.py is a package: deals/__init__.py assembles sub-routers, fixed-path before parameterized. Filter utils use Any not Column for mypy compat. Settings split into 7 groups via multiple inheritance. staleTime constants in src/lib/constants/query.ts. Reporting types in src/types/reporting.ts. fetchProperties defaults limit=500. New imports default to DealStage.DEAD (not INITIAL_REVIEW). File monitor uses asyncio.to_thread() for sync CRUD. XLSB/XLSX: BadZipFile caught, raises FileAccessError, pipeline skips and continues.",
-      "added_at": "2026-03-20T08:30:00.000000",
-      "source": "consolidated"
-    },
-    {
-      "type": "extraction_config",
-      "content": "LOCAL_DEALS_ROOT=/mnt/c/Users/MattBorgeson/OneDrive - B&R Capital/B&R Capital - Real Estate/Deals. Quick Extraction and Group Pipeline are INDEPENDENT systems writing to same extracted_values table. All 9 deferred groups extracted (66 files, 2,970 values). 28 ungrouped files remain (24 exact matches + 4 near-matches). Event loop and XLSB blockers now fixed (2026-03-20). 3 XLSB files (Charleston Row, Zen on 50, Villas at Vesta View) will be gracefully skipped.",
-      "added_at": "2026-03-20T08:30:00.000000",
-      "source": "consolidated"
-    },
-    {
-      "type": "remaining_tasks",
-      "content": "Branch: main at 5bfc8d4. Tests: ~4,650+ total. Alembic head: 152c800e6789. Tech-debt branch fully merged to main. Architecture Review v3 IN PROGRESS (2026-03-24): Plan at docs/architecture-review/PLAN.md, 4 exploration agents completed, user answered 11 clarifying questions. Execution order confirmed: WS4 (data integrity) → WS1 (general cleanup) → WS2 (automated extraction) → WS3 (deal stage sync). Pending: (1) extract 28 ungrouped files, (2) pip-audit priority fixes, (3) production hosting — user leaning Hetzner CX22, (4) security hardening, (5) mobile/iOS (post-deployment).",
-      "added_at": "2026-03-24T17:00:00.000000",
-      "source": "consolidated"
-    },
-    {
-      "type": "arch_review_decisions",
-      "content": "2026-03-24 Architecture Review clarifications: Graph API is PRIMARY extraction method, local OneDrive is dev fallback only. Azure AD uses client_secret auth (not cert), Sites.Read.All scope. Keep deal stage sync UNIDIRECTIONAL (SharePoint→DB) for now. 28 ungrouped files included in WS4 — use Underwriting_Dashboard_Cell_References.xlsx as canonical mapping. Active UW template in folder 1 (Initial UW) and some folder 0 (Dead). No Redis for initial prod deploy (single worker + in-memory sufficient). SharePoint folder mapping confirmed: 0)Dead→dead, 1)Initial→initial_review, 2)Active→active_review, 3)Contract→under_contract, 4)Closed→closed, 5)Realized→realized.",
-      "added_at": "2026-03-24T17:00:00.000000",
-      "source": "consolidated"
-    }
-  ],
+  "memories": [],
   "manual_memories": [],
   "realtime_memories": [
     {
-      "type": "claude_response",
-      "content": "Memory consolidated: 11 → 6 memories. Removed all realtime noise (task notifications, \"exitg\", \"cat\" commands, truncated responses). Added new `arch_review_decisions` memory capturing today's clarific",
-      "added_at": "2026-03-25T14:05:20.209116",
-      "source": "realtime_capture"
+      "type": "system_config",
+      "content": "Conda env: always use conda install (not pip) in base env. Obsidian MCP: Vault at ~/obsidian-vault (bind-mount from /mnt/c/.../Programming Vault). Folder: ' Claude Notes (MCP Server)' (leading space). CLAUDE.md architecture: ~/CLAUDE.md universal, project-specific CLAUDE.md in each root. Custom skills: /resume, /pipeline, /checkpoint. Alias: cq='claude -p'. LF line endings for shell scripts in WSL2.",
+      "added_at": "2026-03-09T12:00:00.000000",
+      "source": "consolidated"
     },
     {
-      "type": "message",
-      "content": "- \"Q1: Production File Access (Graph API vs Local)\" -- Let's go with your recommendation - \"Q2/Q3: Azure AD Config\" -- Can we utilize both the Azure and webhooks options together? I want it work while",
-      "added_at": "2026-03-25T14:05:20.209309",
-      "source": "realtime_capture"
+      "type": "project_info",
+      "content": "dashboard_interface_project: ~/projects/dashboard_interface_project/. FastAPI + SQLAlchemy async + React/TS/Vite. Conda env: dashboard-backend. Domain: B&R Capital multifamily RE (Cabana on 99th + Tempe Metro = owned properties, 15 CoStar Submarket Clusters). Proforma files at /mnt/c/Users/MattBorgeson/B&R Capital/... (WSL2). Dev command: npm run dev:all. Login: matt@bandrcapital.com / Wildcats777!!. Auth: JWT via authStore (fetch client), backend RBAC guards (require_viewer/analyst/manager/admin). Tests: vitest (frontend) + pytest with SQLite in-memory (backend). auto_auth fixture in conftest.py for auth-protected endpoint tests. Axios fully removed (1f3fad1). DB: postgresql://postgres:postgres123@localhost:5432/dashboard_interface_data.",
+      "added_at": "2026-03-26T00:00:00.000000",
+      "source": "consolidated"
     },
     {
-      "type": "claude_response",
-      "content": "\n\n6 discovery agents launched in parallel:\n- **01**: Project structure, entry points, scheduled jobs\n- **02**: Extraction layer (SharePoint, pipeline, auto-mapping)\n- **03**: Database schema (all mode",
-      "added_at": "2026-03-25T14:09:37.522998",
-      "source": "realtime_capture"
+      "type": "key_patterns",
+      "content": "Key codebase patterns: (1) Zod schemas parse snake_case to camelCase. (2) _enrich_deals_with_extraction() adds ~26 fields from ExtractedValue table. (3) SQLite tests need explicit created_at/updated_at (no server_default). (4) All datetime: datetime.now(UTC). (5) StrEnum + SQLAlchemy: use values_callable AND native_enum=False for varchar columns. (6) Zod: .nullable().optional() + ?? undefined (NOT ?? 0). (7) ONE API client: src/lib/api/client.ts (fetch). (8) Mock extract_from_file with **kw to accept validate kwarg. (9) Token blacklist uses async Redis with lazy _ensure_redis() init. (10) asyncpg is STRICT about types. (11) Redis state persists between test runs. (12) Frontend pageSize must not exceed backend Query(le=N) constraints. (13) Pydantic serializes Decimal as string — Zod price fields use z.union. (14) Always use safeParse (not parse) when mapping arrays. (15) /deals/kanban endpoint is separate from /deals list.",
+      "added_at": "2026-03-26T00:00:00.000000",
+      "source": "consolidated"
     },
     {
-      "type": "message",
-      "content": "<task-notification> <task-id>a20cffe290a3708ec</task-id> <tool-use-id>toolu_01L9qxah4AYoZivJCHecC735</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T14:09:37.524184",
-      "source": "realtime_capture"
+      "type": "project_status",
+      "content": "Dashboard status (2026-03-26): HEAD at b68edee on main. 3,433 backend + 1,312 frontend = 4,745 total tests. Architecture Review v3 Sprint 1 COMPLETE (5 epics, 24 stories, 109 new tests). Sprint 2 IN PROGRESS: Team C (dead-letter) done (37 tests), Teams A+B running. Next after Sprint 2: extract 28 ungrouped files, production hosting.",
+      "added_at": "2026-03-26T15:58:00.000000",
+      "source": "consolidated"
     },
     {
-      "type": "message",
-      "content": "Which command, skill, agent, etc. would be the best at explaining why multicollinearity is problematic",
-      "added_at": "2026-03-25T14:30:15.982315",
-      "source": "realtime_capture"
+      "type": "other_project",
+      "content": "MF Market Ranking: ~/projects/mf_market_ranking. Phase 1 enhancement IN PROGRESS (2026-03-18). Conda env: mf_market_rankings. 556 tests passing. Next: Phase 2 (Class B differentiation), Phase 3 (Monte Carlo). DO NOT TOUCH: ensemble weights, training pipeline.",
+      "added_at": "2026-03-18T18:00:00.000000",
+      "source": "consolidated"
     },
     {
-      "type": "claude_response",
-      "content": "Architecture Review v3 is complete. Here's the final inventory:\n\n## Document Inventory\n\n### Phase 1: Discovery (7 docs)\n| File | Content |\n|------|---------|\n| `discovery/01-project-structure.md` | St",
-      "added_at": "2026-03-25T15:06:16.088702",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "How do I save this progress and return to this exact point in the conversation later?",
-      "added_at": "2026-03-25T15:06:16.088744",
-      "source": "realtime_capture"
+      "type": "preference",
+      "content": "User prefers: transparent honest feedback over diplomatic hedging. Commit style: conventional commits with scope. USE AGENT TEAMS for parallel debugging.",
+      "added_at": "2026-03-11T02:50:00.000000",
+      "source": "consolidated"
     },
     {
       "type": "claude_response",
-      "content": "\n\nTwo options:\n\n### Option 1: Checkpoint (recommended)\n\nRun `/checkpoint` — it saves conversation state, git status, and a resume marker so `/resume` can pick up later.\n\n### Option 2: Manual\n\n1. **Com",
-      "added_at": "2026-03-25T15:06:32.142193",
+      "content": "Consolidated back to 6 — removed noise (truncated responses, task notifications, ephemeral messages), updated project_status to reflect Sprint 2 progress. Teams A and B still running.",
+      "added_at": "2026-03-26T15:59:52.864909",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "<task-notification> <task-id>a3730ae1c9d8a795d</task-id> <tool-use-id>toolu_01Jxdz3TaeaNBeffnDKUqpgN</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:32.143026",
+      "content": "<task-notification> <task-id>a72d4e13b5b600e28</task-id> <tool-use-id>toolu_01E9gghoek1NXfLftzqeyEwy</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/96ef2c",
+      "added_at": "2026-03-26T15:59:52.864977",
+      "source": "realtime_capture"
+    },
+    {
+      "type": "claude_response",
+      "content": "\n\n**Team A complete** — Download Retry + Security Verification (UR-009, UR-026):\n- 3 new files, 2 modified\n- **78 tests** added (46 download retry + 32 security)\n- Retry with exponential backoff, 403 ",
+      "added_at": "2026-03-26T16:00:38.068063",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "<task-notification> <task-id>a3c80d97e2f84a06d</task-id> <tool-use-id>toolu_01JDEnUyh493qrE1pZa6mQwe</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:32.342483",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>afaf245487ec8109b</task-id> <tool-use-id>toolu_01WrkmTeWEx1z8d35VRjTXn8</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:32.529265",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ae314c1b23a9dcfe9</task-id> <tool-use-id>toolu_01Hobrig7iXMPp7UxmVUuYud</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:32.698903",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ac5d1e214ab7767c5</task-id> <tool-use-id>toolu_01AjSCWVAzjnpDYdehHAch7x</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:32.873878",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a81023cc11d537f29</task-id> <tool-use-id>toolu_01RHUL9GKiPGNQnkSVJW2uLY</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:33.068062",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a5854823e5bd87467</task-id> <tool-use-id>toolu_013m9K1Z4oyyw5ya6zAutkkK</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:33.271563",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ad33d24fad86b5fd9</task-id> <tool-use-id>toolu_01PG35JjuKCQAdNNKkjQeoN7</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:33.453502",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a994ac9314f70d525</task-id> <tool-use-id>toolu_01ArnCNNb46e5yKFFdakwsvn</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:33.631344",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ae5c1e2abc8d04850</task-id> <tool-use-id>toolu_01GUqrxZX5j79hGR7vqZFHB3</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:33.806336",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>b4277xf26</task-id> <tool-use-id>toolu_01LQnsBVoHLg4Tu9MMRwWY91</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a324-58f9-",
-      "added_at": "2026-03-25T15:06:33.987569",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a002f3b6eb330075b</task-id> <tool-use-id>toolu_01AHL4Tpi7sNF3P7td68hBUW</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:32.667415",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a8961e81c9ad68bc0</task-id> <tool-use-id>toolu_01D3uMzRiRRotvUSpc2ijyMh</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:32.863483",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a79b6b88dc626982e</task-id> <tool-use-id>toolu_01BRHGwcBR4wGAP7TsQJtFLk</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:33.053577",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ae685e0b7086012ea</task-id> <tool-use-id>toolu_01KPT9gYXEcF6UG8aBDPSbnC</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:33.238063",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a30b1ac3961f38621</task-id> <tool-use-id>toolu_01RLnd2ezD1ygNFJaVgt4HqL</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:33.420530",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a975006913fe04ebb</task-id> <tool-use-id>toolu_01UHtMtoY2Qq3tdsyW34dTSY</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:33.583599",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a05b38e1cc26ba546</task-id> <tool-use-id>toolu_01KS7Udibz9CDYnAK4EEbmNV</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:33.750920",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ab4c9384ef5907013</task-id> <tool-use-id>toolu_01Co2SJFFcwSCt2idugjWR7u</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:33.928593",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>aa02d396af87a7233</task-id> <tool-use-id>toolu_01QPpypAnuJLFDhwyA5AAA7F</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:34.111591",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a00f5120b6da4ad09</task-id> <tool-use-id>toolu_012RARDNSANaV4p77VrqhsZ5</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/c684a3",
-      "added_at": "2026-03-25T15:06:34.300187",
+      "content": "<task-notification> <task-id>ad887ecf70715f860</task-id> <tool-use-id>toolu_01U8GbCtAos2FXT6diFB6Hgx</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/96ef2c",
+      "added_at": "2026-03-26T16:00:38.068115",
       "source": "realtime_capture"
     }
   ],
-  "created_at": "2026-01-07T02:10:53.387854",
-  "updated_at": "2026-03-25T15:06:34.300215"
+  "created_at": "2026-01-07T01:40:02.767672",
+  "updated_at": "2026-03-26T16:00:38.068116"
 }

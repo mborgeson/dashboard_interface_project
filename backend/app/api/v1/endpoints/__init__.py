@@ -3,6 +3,7 @@
 from . import (
     analytics,
     auth,
+    dead_letter,
     deals,
     documents,
     exports,
@@ -17,6 +18,7 @@ from . import (
 __all__ = [
     "analytics",
     "auth",
+    "dead_letter",
     "deals",
     "documents",
     "exports",

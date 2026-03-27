@@ -1,423 +1,56 @@
 {
-  "memories": [
-    {
-      "type": "project_config",
-      "content": "Pre-commit hooks: ruff, ruff-format, mypy. TYPE_CHECKING imports for forward refs. Dev: npm run dev:all. Venv: backend/venv/. DB: postgresql://postgres:postgres123@localhost:5432/dashboard_interface_data.",
-      "added_at": "2026-03-04T13:08:00.000000",
-      "source": "consolidated"
-    },
-    {
-      "type": "extraction_pipeline",
-      "content": "CellMappingParser loads ~1,169 mappings from Underwriting_Dashboard_Cell_References.xlsx. Supplemental mappings in common.py override incorrect sheet names and add missing fields. Key correction: LEVERED/UNLEVERED returns (E39-E44) are on 'Returns Metrics (Summary)' NOT 'Assumptions (Summary)' as the reference file says. LP_RETURNS (E102-E103) correctly on 'Returns Metrics (Summary)'. T3_RETURN_ON_COST (G27, 'Assumptions (Summary)') added as supplemental. All 6 return fields + T3 cap rate now in needed_fields and enrichment code in deals.py.",
-      "added_at": "2026-03-04T14:40:00.000000",
-      "source": "consolidated"
-    },
-    {
-      "type": "api_patterns",
-      "content": "Activity feed: backend returns {items}, frontend maps to {activities} with field translation. API client: src/lib/api/client.ts. Auth: JWT via authStore.ts, backend require_analyst/require_manager guards.",
-      "added_at": "2026-03-04T13:08:00.000000",
-      "source": "consolidated"
-    },
-    {
-      "type": "deals_page_v5",
-      "content": "v5 (2026-03-04): Renamed to Total Loss Factor (T12). Removed UW Model button. Full-width stage header. Compare Deals aesthetic overhaul (removed Card/transparent bg, explicit bg-white + shadow-card, full-width centered deal name headers). Fixed leveredIrr/leveredMoic Zod transform (was ?? 0, now ?? undefined for 'N/A'). ComparisonCharts uses real UW metrics (Cap Rate, NOI Margin, returns). LP IRR/MOIC row in ComparisonTable. Returns metrics corrected: supplemental mapping sheet overrides for LEVERED/UNLEVERED (Returns Metrics Summary, not Assumptions Summary), enrichment code for all 6 return fields. shadcn CSS variables added to index.css :root + tailwind.config.js color mappings.",
-      "added_at": "2026-03-04T14:40:00.000000",
-      "source": "consolidated"
-    },
-    {
-      "type": "shadcn_css_fix",
-      "content": "shadcn UI components (Card, Dialog, Table, Button) use CSS variable classes (bg-background, bg-card, text-muted-foreground, bg-muted). Added CSS variables to index.css :root and color mappings to tailwind.config.js. Without these, all shadcn components render transparent. Key vars: --background (white), --card (white), --muted (neutral-50), --muted-foreground (neutral-500), --border (neutral-200).",
-      "added_at": "2026-03-04T14:40:00.000000",
-      "source": "consolidated"
-    },
-    {
-      "type": "known_issues",
-      "content": "test_parallel_fingerprint_fixtures times out (pre-existing). Vite chunks: exceljs 937KB, vendor-charts 455KB. Redis not configured locally. Zod: .nullable().optional() for DB fields — always use ?? undefined (not ?? 0) to get 'N/A' display.",
-      "added_at": "2026-03-04T13:30:00.000000",
-      "source": "consolidated"
-    }
-  ],
+  "memories": [],
   "manual_memories": [],
   "realtime_memories": [
     {
-      "type": "claude_response",
-      "content": "Memory cleaned — 28 realtime → 0, 6 consolidated entries preserved. Agents still running in the background.",
-      "added_at": "2026-03-10T04:41:29.306974",
-      "source": "realtime_capture"
+      "type": "system_config",
+      "content": "Conda env: always use conda install (not pip) in base env. Obsidian MCP: Vault at ~/obsidian-vault (bind-mount from /mnt/c/.../Programming Vault). Folder: ' Claude Notes (MCP Server)' (leading space). CLAUDE.md architecture: ~/CLAUDE.md universal, project-specific CLAUDE.md in each root. Custom skills: /resume, /pipeline, /checkpoint. Alias: cq='claude -p'. LF line endings for shell scripts in WSL2.",
+      "added_at": "2026-03-09T12:00:00.000000",
+      "source": "consolidated"
     },
     {
-      "type": "message",
-      "content": "<task-notification> <task-id>aca1f653433a3fda0</task-id> <tool-use-id>toolu_015BJeE5UqxRoDJQBYGCBVwt</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T04:41:29.307069",
-      "source": "realtime_capture"
+      "type": "project_info",
+      "content": "dashboard_interface_project: ~/projects/dashboard_interface_project/. FastAPI + SQLAlchemy async + React/TS/Vite. Conda env: dashboard-backend. Domain: B&R Capital multifamily RE (Cabana on 99th + Tempe Metro = owned properties, 15 CoStar Submarket Clusters). Proforma files at /mnt/c/Users/MattBorgeson/B&R Capital/... (WSL2). Dev command: npm run dev:all. Login: matt@bandrcapital.com / Wildcats777!!. Auth: JWT via authStore (fetch client), backend RBAC guards (require_viewer/analyst/manager/admin). Tests: vitest (frontend) + pytest with SQLite in-memory (backend). auto_auth fixture in conftest.py for auth-protected endpoint tests. Axios fully removed (1f3fad1). DB: postgresql://postgres:postgres123@localhost:5432/dashboard_interface_data.",
+      "added_at": "2026-03-26T00:00:00.000000",
+      "source": "consolidated"
     },
     {
-      "type": "message",
-      "content": "<task-notification> <task-id>a8829b122b202de89</task-id> <tool-use-id>toolu_01VScDtQ4qkzhXcYHLYo1D5x</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T04:41:29.552506",
-      "source": "realtime_capture"
+      "type": "key_patterns",
+      "content": "Key codebase patterns: (1) Zod schemas parse snake_case → camelCase (backendDealSchema in src/lib/api/schemas/deal.ts). (2) _enrich_deals_with_extraction() adds ~26 fields from ExtractedValue table. (3) SQLite tests need explicit created_at/updated_at (no server_default). (4) All datetime: datetime.now(UTC). (5) StrEnum + SQLAlchemy: use values_callable AND native_enum=False when DB column is varchar (not PG enum). (6) Zod: .nullable().optional() + ?? undefined (NOT ?? 0). (7) ONE API client: src/lib/api/client.ts (fetch). Convenience wrappers in src/lib/api/index.ts. (8) Mock extract_from_file with **kw to accept validate kwarg. (9) QueryClient singleton in src/lib/queryClient.ts, provided in main.tsx. (10) Token blacklist uses async Redis with lazy _ensure_redis() init. (11) asyncpg is STRICT about types — passing string to INTEGER column causes DataError. (12) Redis state persists between test runs — auth tests need autouse fixture to flush rl:*, blacklist:*, user_revoked:* keys. Token blacklist unit tests must monkeypatch REDIS_URL='' to force memory-only mode. (13) Frontend pageSize must not exceed backend Query(le=N) constraints. (14) Pydantic serializes Decimal as string — Zod price fields use z.union([z.string(), z.number()]).nullable(). (15) Always use safeParse (not parse) when mapping arrays. (16) Sidebar uses /properties/dashboard (not /deals). (17) /deals/kanban endpoint is separate from /deals list.",
+      "added_at": "2026-03-26T00:00:00.000000",
+      "source": "consolidated"
     },
     {
-      "type": "message",
-      "content": "<task-notification> <task-id>a4989a2ea3bb17cbf</task-id> <tool-use-id>toolu_018vxNFkkSMVNjLCTL4SoctM</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T04:41:29.774703",
-      "source": "realtime_capture"
+      "type": "project_status",
+      "content": "Dashboard status (2026-03-26): HEAD at 79b002f on main. ~3,325 backend + ~1,312 frontend = ~4,637 total tests. Architecture Review v3 complete (41 recommendations). Tech debt remediation merged to main (62/76 items, 5 waves). Recent work: security vuln patches (jsPDF, flatted), corrupt XLSB/XLSX handling, SharePoint auto-sync deal stages, UI fixes (submarket count, React Query refetch, Zod None coercion, yearBuilt N/A, portfolio KPI zero filtering). Next: Sprint 1 — UR-001 (Redis) and UR-007 (unified stage mapping), then extract 28 ungrouped files, production hosting.",
+      "added_at": "2026-03-26T00:00:00.000000",
+      "source": "consolidated"
     },
     {
-      "type": "message",
-      "content": "<task-notification> <task-id>a1b19f33f6d3c1458</task-id> <tool-use-id>toolu_01HSTrExadSWtMX7pz4TSpxU</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T04:41:30.048479",
-      "source": "realtime_capture"
+      "type": "other_project",
+      "content": "MF Market Ranking: ~/projects/mf_market_ranking. Phase 1 enhancement IN PROGRESS (2026-03-18). Conda env: mf_market_rankings (recreated, pandas 2.2.x required — 3.x breaks freq aliases). 556 tests passing. Added: FEMA NRI loader, Tax Foundation loader. Next: Phase 2 (Class B differentiation), Phase 3 (Monte Carlo). DO NOT TOUCH: ensemble weights, training pipeline.",
+      "added_at": "2026-03-18T18:00:00.000000",
+      "source": "consolidated"
     },
     {
-      "type": "message",
-      "content": "<task-notification> <task-id>afb234cd4d9393858</task-id> <tool-use-id>toolu_01WmR9ZUnC19xSBW14zq8dpZ</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T04:41:30.355734",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "All agents are actively producing output. Here's the current status for you:\n\n| Agent | Findings | Focus | Status |\n|-------|----------|-------|--------|\n| **H-A** | F-014 | Analytics export mock data",
-      "added_at": "2026-03-10T04:56:28.494824",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a5c093bb58b1ba29d</task-id> <tool-use-id>toolu_01Nc8AjLbvhY4AVAVYrtRQLh</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T04:56:28.494922",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>b7uqtaybf</task-id> <tool-use-id>toolu_01CGXLCJ9aJk21GyA2KxtzBR</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/b7uqtayb",
-      "added_at": "2026-03-10T04:56:28.705819",
-      "source": "realtime_capture"
+      "type": "preference",
+      "content": "User prefers: transparent honest feedback over diplomatic hedging, understanding optimal tools before adding complexity. Commit style: conventional commits (feat/fix/refactor/test/chore with scope). USE AGENT TEAMS for parallel debugging — user explicitly and repeatedly requests this approach.",
+      "added_at": "2026-03-11T02:50:00.000000",
+      "source": "consolidated"
     },
     {
       "type": "claude_response",
-      "content": "All still growing. Updated status:\n\n| Agent | Findings | Status |\n|-------|----------|--------|\n| **H-A** | F-014 (analytics mock data) | Running — two instances working |\n| **H-B** | F-015 (growth ra",
-      "added_at": "2026-03-10T04:57:50.543618",
+      "content": "Done. Team A almost finished.",
+      "added_at": "2026-03-26T13:22:03.149120",
       "source": "realtime_capture"
     },
     {
       "type": "message",
-      "content": "Are the agents running?",
-      "added_at": "2026-03-10T04:57:50.543663",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "All 3 remaining agents are actively running tests. M-C agents are both running backend test suites right now. H-A and H-C are also active.\n\n| Agent | Findings | Status |\n|-------|----------|--------|\n",
-      "added_at": "2026-03-10T04:59:51.331565",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a02c7186bf9a89588</task-id> <tool-use-id>toolu_015tT3k3wbveMTRzQt1bYigC</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T04:59:51.331979",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Both M-C agents are running long test suites (timestamps from ~6 minutes ago). They're likely blocked waiting for the backend test suite to complete — which takes 5-8 minutes. Still active, just slow.",
-      "added_at": "2026-03-10T05:03:00.166443",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ab0a856f417c02b32</task-id> <tool-use-id>toolu_01G2KbmsuR7DspoQdnWs83u5</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T05:03:00.166500",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Both H-A instances still growing (176→180, 150→156). Still working on replacing the mock analytics data with real DB queries. I'll report when it finishes.",
-      "added_at": "2026-03-10T05:03:49.369605",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a6260b6c418ac40c0</task-id> <tool-use-id>toolu_01NwM5tm17JabDSypYv3JwPN</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T05:03:49.369731",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Already at 6 memories, all signal. No cleanup needed — the stop hook's count of 17 appears incorrect (possibly counting other memory sources). File is clean.",
-      "added_at": "2026-03-10T19:01:54.182167",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "What are we doing now?",
-      "added_at": "2026-03-10T19:01:54.182198",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "\n\nWe're debugging why the dashboard only shows **1 deal (80 units)** instead of the expected **307 deals** in the database.\n\n**What's been fixed so far (uncommitted):**\n- Deals `pageSize` 500→100 (was",
-      "added_at": "2026-03-10T19:02:43.284885",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Just started the server. Go for it.",
-      "added_at": "2026-03-10T19:02:43.284927",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "The snapshot reveals the issue clearly:\n\n- **Sidebar says**: \"**1** Properties - **80** Units\" (uid=1_86 and uid=1_88)\n- **Deal Pipeline says**: \"Showing **81** of **100** deals\" (uid=1_171 and uid=1_",
-      "added_at": "2026-03-10T19:16:07.724176",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "First, No I nagivatd through the webpage and the issue persisted, so I didn't just look at one part of one page and then make a determination. Second, Are you using an Agent Team/Agent Teams for this?",
-      "added_at": "2026-03-10T19:16:07.724215",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "3 Agent Teams launched in parallel:\n\n1. **Team 50 — Backend API Response Audit** (backend-architect): Investigating deals endpoint, CRUD operations, Pydantic serialization, and enrichment pipeline\n2. ",
-      "added_at": "2026-03-10T19:21:12.930960",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Are the agents running right now?",
-      "added_at": "2026-03-10T19:21:12.931025",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Two of the three are actively producing output:\n\n- **Team 50 (Backend API Audit)**: Output file not yet created — still initializing\n- **Team 51 (Frontend Rendering)**: 180 lines of output — actively ",
-      "added_at": "2026-03-10T19:22:05.729165",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>acee717aa1aaacdb8</task-id> <tool-use-id>toolu_01M35BukmBZVR8BUGQuJZysu</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T19:22:05.729392",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "**Team 50 (Backend API Audit) just completed.** Key finding:\n\n### Root Cause Identified: Zod Schema Type Mismatch\n\n**`src/lib/api/schemas/deal.ts`** — The Zod schema declares price fields as `z.string",
-      "added_at": "2026-03-10T19:24:24.509667",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Are these agents making progress on this task?",
-      "added_at": "2026-03-10T19:24:24.509707",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Yes, both are still actively working:\n\n- **Team 51 (Frontend Rendering)**: 203 lines — still investigating React components and hooks\n- **Team 48 (Data Flow Tracer)**: 330 lines — still tracing the fu",
-      "added_at": "2026-03-10T19:25:18.469507",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a929ddf36a58616a9</task-id> <tool-use-id>toolu_01BeVa3ZmVen1o5W5vtqvvZx</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T19:25:18.469715",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Memory updated. 6 entries, all signal.",
-      "added_at": "2026-03-10T20:26:49.568442",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a693b4894608d9405</task-id> <tool-use-id>toolu_017UfGnPhkKa6ZDqHm4xVSL8</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T20:26:49.568508",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ae04451476446f490</task-id> <tool-use-id>toolu_011vV3DQZUPz9ruRcvW8ukNQ</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T20:26:49.714162",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ace09cf2df28907d4</task-id> <tool-use-id>toolu_01CLMxMp6VMkP2MTMkJpXn1F</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T20:26:49.833056",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Looks like the servers are already stopped. The kanban and properties endpoints need the server restart to pick up the new code. \n\n**Here's the status — all code changes are in, all 3,804 tests pass:*",
-      "added_at": "2026-03-10T20:47:43.472505",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "I just restarted the servers with npm run dev:all",
-      "added_at": "2026-03-10T20:47:43.472545",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "\n\nGot it. Agents are running — I'll report when they complete.",
-      "added_at": "2026-03-10T21:00:37.484610",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "How do I set fast mode to \"on\" and effort to the highest level?",
-      "added_at": "2026-03-10T21:00:37.484699",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>af0f66074209f1cf9</task-id> <tool-use-id>toolu_01Gmi8jtudc9hNDNLKjgB9qz</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T21:03:55.193864",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Understood — I've launched two parallel agents to investigate the remaining issues:\n\n1. **Agent 1**: Fixing the properties cache bug (in-memory cache not cleared alongside Redis)\n2. **Agent 2**: Debug",
-      "added_at": "2026-03-10T21:21:46.493229",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a0eef81e28391547b</task-id> <tool-use-id>toolu_0138AwDq69xjWHJkXQ6GdB28</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T21:21:46.493288",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Noted — that was a previously-launched agent completing (not new work). I'm holding and not doing anything further until you give the go-ahead.",
-      "added_at": "2026-03-10T21:22:41.096966",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Are you and the agents currently holding and not performing any work currently?",
-      "added_at": "2026-03-10T21:22:41.097013",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "The two agents I just launched (cache fix + kanban debug) are still running in the background — I can't stop them mid-execution. But **I** am holding and not doing any additional work myself.\n\nOnce th",
-      "added_at": "2026-03-10T21:23:40.849829",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Just let them contiue until they finish with their initial plan. Once they are done, then please don't initiate anymore, at least until I reconfirm for you to.",
-      "added_at": "2026-03-10T21:23:40.849910",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Got it — the two agents will finish their current tasks, and after that I won't initiate anything new until you confirm.",
-      "added_at": "2026-03-10T21:26:52.742690",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Are they still working?",
-      "added_at": "2026-03-10T21:26:52.742764",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Both agents appear to still be running — no output files yet. I'll let you know when they complete.",
-      "added_at": "2026-03-10T21:29:16.722934",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>a274d515f41f73838</task-id> <tool-use-id>toolu_016z18cuJwj7TVFTyDDCCPwU</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T21:29:16.723018",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "**Kanban agent finished.** It identified two likely causes for the kanban 500:\n\n1. **Primary**: `Deal.stage` in `backend/app/models/deal.py` is missing `native_enum=False` — same pattern already fixed",
-      "added_at": "2026-03-10T21:30:01.316880",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "<task-notification> <task-id>ab96412a5c0557ad6</task-id> <tool-use-id>toolu_01ScvrBc8gVS7GQv1SiuQWWV</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/tasks/",
-      "added_at": "2026-03-10T21:30:01.316959",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "**Cache agent also finished.** Here's the summary of both findings:\n\n---\n\n### Agent Results\n\n**1. Properties Cache Bug** — `backend/app/core/cache.py`\n- `delete()` and `invalidate_pattern()` only clea",
-      "added_at": "2026-03-10T21:30:39.481188",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "I'm not sure if any aspect of tghe below has/will have an impact on the this cumbersome dashboard issue, but when I was logging to Claude Code from the bash terminal I got a weird new setting issues a",
-      "added_at": "2026-03-10T21:30:39.481269",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "\n\nHere are your stored memories:\n\n### System Config\n- Conda env: always use conda install (not pip) in base env\n- Obsidian MCP: Vault at ~/obsidian-vault, folder ' Claude Notes (MCP Server)'\n- CLAUDE.",
-      "added_at": "2026-03-11T05:13:35.485246",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Please look through all of your memories/checkpoints to find the most recent memory of working on the items within the table below: - \"## Deferred Items (Future Sprint) | ID | Severity | Hours | Reaso",
-      "added_at": "2026-03-11T05:13:35.485327",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "The memory file already has only 6 well-consolidated entries (not 54 — the hook count may be stale). I tried to update the outdated `project_status` entry but Write/Edit are blocked in don't-ask mode.",
-      "added_at": "2026-03-11T05:13:53.735255",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Memory cleaned: removed 7 realtime noise entries, kept 5 consolidated signal memories. Down from 12 to 5.\n\nWhat would you like to work on?",
-      "added_at": "2026-03-11T07:23:41.688968",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Based upon the most recent work completed on this git branch and within this project. what are the next steps based upon that fact pattern?",
-      "added_at": "2026-03-11T07:23:41.689010",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "Here's the picture:\n\n## Current State\n\n**Branch:** `tech-debt/remediation-phase1` — 21 commits ahead of `main`, 5 not pushed to remote\n\n**Uncommitted work:** 6 modified files (router.py, pytest.ini, t",
-      "added_at": "2026-03-11T07:26:55.382884",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Are you frozen?",
-      "added_at": "2026-03-11T07:26:55.382970",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "claude_response",
-      "content": "\n\nNope, I'm here. Waiting on your direction for what to do next — specifically whether to dig into those uncommitted changes (step 1) or jump straight to something else.\n\nWhat would you like to do?",
-      "added_at": "2026-03-11T07:27:42.615224",
-      "source": "realtime_capture"
-    },
-    {
-      "type": "message",
-      "content": "Yeah, check the uncommitted changes and then commit them if they look good.",
-      "added_at": "2026-03-11T07:27:42.615263",
+      "content": "<task-notification> <task-id>ae8bfc029c46b2f66</task-id> <tool-use-id>toolu_01NtNfB17CreTyjAHd3YnbRL</tool-use-id> <output-file>/tmp/claude-1000/-home-mattb-projects-dashboard-interface-project/96ef2c",
+      "added_at": "2026-03-26T13:22:03.149181",
       "source": "realtime_capture"
     }
   ],
-  "created_at": "2026-01-07T02:50:12.455355",
-  "updated_at": "2026-03-11T07:27:42.615264"
+  "created_at": "2026-01-07T01:40:02.767672",
+  "updated_at": "2026-03-26T13:22:03.149183"
 }

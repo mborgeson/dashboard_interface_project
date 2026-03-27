@@ -6,15 +6,18 @@ Provides SharePoint integration for:
 - Deal folder discovery
 - UW model file download
 - Configurable file filtering
+- Delta query support for incremental sync
 
 Uses Microsoft Graph API for SharePoint access.
 """
+
+from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import aiohttp
 import msal
@@ -49,6 +52,28 @@ class SkippedFile:
     modified_date: datetime
     skip_reason: str
     deal_name: str
+
+
+@dataclass
+class DeltaChange:
+    """Represents a single change item from a delta query response."""
+
+    item_id: str
+    name: str
+    path: str
+    change_type: Literal["created", "modified", "deleted"]
+    size: int | None = None
+    modified_date: datetime | None = None
+    is_folder: bool = False
+
+
+@dataclass
+class DeltaQueryResult:
+    """Result of a Microsoft Graph delta query."""
+
+    changes: list[DeltaChange] = field(default_factory=list)
+    new_delta_token: str | None = None
+    is_full_sync: bool = False
 
 
 @dataclass
@@ -93,7 +118,7 @@ class SharePointClient:
         site_url: str | None = None,
         library_name: str | None = None,
         deals_folder: str | None = None,
-        file_filter: "FileFilter | None" = None,
+        file_filter: FileFilter | None = None,
     ):
         self.tenant_id = tenant_id or settings.AZURE_TENANT_ID
         self.client_id = client_id or settings.AZURE_CLIENT_ID
@@ -122,7 +147,7 @@ class SharePointClient:
         self._session: aiohttp.ClientSession | None = None
 
     @property
-    def file_filter(self) -> "FileFilter":
+    def file_filter(self) -> FileFilter:
         """Get or create file filter instance."""
         if self._file_filter is None:
             from .file_filter import get_file_filter
@@ -130,7 +155,7 @@ class SharePointClient:
             self._file_filter = get_file_filter()
         return self._file_filter
 
-    async def __aenter__(self) -> "SharePointClient":
+    async def __aenter__(self) -> SharePointClient:
         """Enter async context — creates a shared HTTP session."""
         self._session = aiohttp.ClientSession()
         return self
@@ -157,7 +182,7 @@ class SharePointClient:
         # Fallback: create a new session (caller is responsible for closing)
         return aiohttp.ClientSession()
 
-    def set_file_filter(self, file_filter: "FileFilter") -> None:
+    def set_file_filter(self, file_filter: FileFilter) -> None:
         """Set custom file filter instance."""
         self._file_filter = file_filter
 
@@ -658,6 +683,180 @@ class SharePointClient:
                 self.logger.error("download_failed", file=file.name, error=str(e))
 
         return downloaded, discovery_result
+
+    async def get_delta_changes(
+        self,
+        drive_id: str | None = None,
+        delta_token: str | None = None,
+    ) -> DeltaQueryResult:
+        """Query Microsoft Graph delta endpoint for incremental changes.
+
+        Uses the delta query API to get only files that changed since the
+        last sync. If no delta_token is provided, performs an initial full
+        enumeration and returns a token for future incremental queries.
+
+        Args:
+            drive_id: The drive ID to query. If None, uses the cached drive ID.
+            delta_token: Previous delta token for incremental sync. If None,
+                performs a full initial sync.
+
+        Returns:
+            DeltaQueryResult containing changed items and the new delta token.
+
+        Raises:
+            aiohttp.ClientResponseError: If the API returns 410 Gone (token
+                expired), the caller should clear the token and retry.
+        """
+        if drive_id is None:
+            drive_id = await self._get_drive_id()
+
+        # Build the delta endpoint URL
+        endpoint = f"/drives/{drive_id}/root/delta"
+        if delta_token:
+            # Append token as query parameter
+            endpoint = f"{endpoint}?token={delta_token}"
+
+        is_full_sync = delta_token is None
+        changes: list[DeltaChange] = []
+        new_token: str | None = None
+
+        # Handle pagination — follow @odata.nextLink until we get @odata.deltaLink
+        current_endpoint = endpoint
+        while current_endpoint:
+            # For nextLink URLs, they are full URLs — extract the path
+            if current_endpoint.startswith("https://"):
+                # Use the full URL directly via _make_request override
+                token = await self._get_access_token()
+                session = self._get_session()
+                owns_session = session is not self._session
+
+                try:
+                    async with session.get(
+                        current_endpoint,
+                        headers={
+                            "Authorization": f"Bearer {token}",
+                            "Content-Type": "application/json",
+                        },
+                    ) as response:
+                        response.raise_for_status()
+                        result = await response.json()
+                finally:
+                    if owns_session:
+                        await session.close()
+            else:
+                result = await self._make_request("GET", current_endpoint)
+
+            # Parse changed items
+            for item in result.get("value", []):
+                change = self._parse_delta_item(item)
+                if change is not None:
+                    changes.append(change)
+
+            # Check for next page or final delta link
+            next_link = result.get("@odata.nextLink")
+            delta_link = result.get("@odata.deltaLink")
+
+            if next_link:
+                current_endpoint = next_link
+            elif delta_link:
+                # Extract token from deltaLink URL
+                new_token = self._extract_token_from_delta_link(delta_link)
+                current_endpoint = ""  # Done
+            else:
+                current_endpoint = ""  # No more pages
+
+        self.logger.info(
+            "delta_query_completed",
+            changes_count=len(changes),
+            is_full_sync=is_full_sync,
+            has_new_token=new_token is not None,
+        )
+
+        return DeltaQueryResult(
+            changes=changes,
+            new_delta_token=new_token,
+            is_full_sync=is_full_sync,
+        )
+
+    def _parse_delta_item(self, item: dict[str, Any]) -> DeltaChange | None:
+        """Parse a single item from the delta query response.
+
+        Args:
+            item: A single item dict from the Graph API delta response.
+
+        Returns:
+            DeltaChange object, or None if the item should be skipped.
+        """
+        item_id = item.get("id", "")
+        name = item.get("name", "")
+
+        # Determine change type
+        if item.get("deleted"):
+            return DeltaChange(
+                item_id=item_id,
+                name=name,
+                path=self._extract_item_path(item),
+                change_type="deleted",
+                is_folder="folder" in item,
+            )
+
+        # Skip folders — we only track file changes
+        if "folder" in item:
+            return None
+
+        # Skip items without file info
+        if "file" not in item:
+            return None
+
+        modified_str = item.get("lastModifiedDateTime", "")
+        modified_date = None
+        if modified_str:
+            modified_date = datetime.fromisoformat(modified_str.replace("Z", "+00:00"))
+
+        # Determine if created or modified based on creation time
+        created_str = item.get("createdDateTime", "")
+        change_type: Literal["created", "modified"] = "modified"
+        if created_str and modified_str and created_str == modified_str:
+            change_type = "created"
+
+        return DeltaChange(
+            item_id=item_id,
+            name=name,
+            path=self._extract_item_path(item),
+            change_type=change_type,
+            size=item.get("size"),
+            modified_date=modified_date,
+            is_folder=False,
+        )
+
+    @staticmethod
+    def _extract_item_path(item: dict[str, Any]) -> str:
+        """Extract the file path from a delta item's parentReference."""
+        parent_ref = item.get("parentReference", {})
+        parent_path = parent_ref.get("path", "")
+        name = item.get("name", "")
+
+        # parentReference.path is like "/drives/{id}/root:/path/to/folder"
+        # We want just "path/to/folder/filename"
+        if ":/" in parent_path:
+            folder_path = parent_path.split(":/", 1)[1]
+        else:
+            folder_path = parent_path
+
+        if folder_path and name:
+            return f"{folder_path}/{name}"
+        return name
+
+    @staticmethod
+    def _extract_token_from_delta_link(delta_link: str) -> str | None:
+        """Extract the token value from a deltaLink URL.
+
+        The deltaLink looks like:
+        https://graph.microsoft.com/v1.0/drives/{id}/root/delta?token=abc123
+        """
+        if "token=" in delta_link:
+            return delta_link.split("token=", 1)[1]
+        return None
 
     def _infer_deal_stage(self, folder_path: str) -> str | None:
         """Infer deal stage from folder path structure.

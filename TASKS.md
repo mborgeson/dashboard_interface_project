@@ -40,33 +40,33 @@
 
 ## Sprint 2: Extraction Resilience + Security (Week 3-4)
 
-### Epic 2.1: Download Retry Logic [WS2]
-- [ ] UR-009: Add download_file_with_retry() with exponential backoff [WS2] [S]
-- [ ] UR-009: Add _is_transient_error() helper (429, 5xx) [WS2] [XS]
-- [ ] UR-009: Refresh download URL on 403 (expired pre-auth URL) [WS2] [S]
-- [ ] UR-009: Parse Retry-After header on 429 responses [WS2] [XS]
-- [ ] UR-009: Config: DOWNLOAD_MAX_RETRIES, DOWNLOAD_BACKOFF_BASE_SECONDS [WS2] [XS]
-- [ ] UR-009: Tests -- retry on 503, no retry on 404, backoff, URL refresh on 403 [WS2] [S]
+### Epic 2.1: Download Retry Logic [WS2] ✅ (2026-03-26)
+- [x] UR-009: Add download_file_with_retry() with exponential backoff [WS2] [S]
+- [x] UR-009: Add _is_transient_error() helper (429, 5xx) [WS2] [XS]
+- [x] UR-009: Refresh download URL on 403 (expired pre-auth URL) [WS2] [S]
+- [x] UR-009: Parse Retry-After header on 429 responses [WS2] [XS]
+- [x] UR-009: Config: DOWNLOAD_MAX_RETRIES, DOWNLOAD_BACKOFF_BASE_SECONDS [WS2] [XS]
+- [x] UR-009: Tests -- retry on 503, no retry on 404, backoff, URL refresh on 403 [WS2] [S]
 
-### Epic 2.2: Delta Query Support [WS2]
-- [ ] UR-010: Add get_delta_changes() method to SharePointClient [WS2] [M]
-- [ ] UR-010: Create DeltaToken model and Alembic migration [WS2] [S]
-- [ ] UR-010: CRUD -- get_by_drive_id(), upsert_token(), clear_token() [WS2] [S]
-- [ ] UR-010: Add check_for_changes_delta() to FileMonitor with 410 fallback [WS2] [M]
-- [ ] UR-010: Config -- DELTA_QUERY_ENABLED, DELTA_RECONCILIATION_CRON [WS2] [XS]
-- [ ] UR-010: Tests -- initial sync, incremental, token expiry fallback, deleted files [WS2] [M]
+### Epic 2.2: Delta Query Support [WS2] ✅ (2026-03-26)
+- [x] UR-010: Add get_delta_changes() method to SharePointClient [WS2] [M]
+- [x] UR-010: Create DeltaToken model and Alembic migration [WS2] [S]
+- [x] UR-010: CRUD -- get_by_drive_id(), upsert_token(), clear_token() [WS2] [S]
+- [x] UR-010: Add check_for_changes_delta() to FileMonitor with 410 fallback [WS2] [M]
+- [x] UR-010: Config -- DELTA_QUERY_ENABLED, DELTA_RECONCILIATION_CRON [WS2] [XS]
+- [x] UR-010: Tests -- initial sync, incremental, token expiry fallback, deleted files [WS2] [M]
 
-### Epic 2.3: Dead-Letter Tracking [WS2]
-- [ ] UR-015: Add failure tracking columns to MonitoredFile + Alembic migration [WS2] [S]
-- [ ] UR-015: Quarantine after 3 consecutive failures; reset on success [WS2] [S]
-- [ ] UR-015: Exclude quarantined files from auto-extraction [WS2] [S]
-- [ ] UR-015: API -- GET /dead-letter, POST /dead-letter/{id}/retry [WS2] [S]
-- [ ] UR-015: Tests -- quarantine lifecycle, API endpoints [WS2] [S]
+### Epic 2.3: Dead-Letter Tracking [WS2] ✅ (2026-03-26)
+- [x] UR-015: Add failure tracking columns to MonitoredFile + Alembic migration [WS2] [S]
+- [x] UR-015: Quarantine after 3 consecutive failures; reset on success [WS2] [S]
+- [x] UR-015: Exclude quarantined files from auto-extraction [WS2] [S]
+- [x] UR-015: API -- GET /dead-letter, POST /dead-letter/{id}/retry [WS2] [S]
+- [x] UR-015: Tests -- quarantine lifecycle, API endpoints [WS2] [S]
 
-### Epic 2.4: Security Verification [WS1]
-- [ ] UR-026: Manual test -- login, token expiry, auto-refresh, concurrent dedup [WS1] [S]
-- [ ] UR-026: Verify access/refresh token separation (REFRESH_TOKEN_SECRET) [WS1] [S]
-- [ ] UR-026: Create .env.example with documented variables (no secrets) [WS1] [S]
+### Epic 2.4: Security Verification [WS1] ✅ (2026-03-26)
+- [x] UR-026: Manual test -- login, token expiry, auto-refresh, concurrent dedup [WS1] [S]
+- [x] UR-026: Verify access/refresh token separation (REFRESH_TOKEN_SECRET) [WS1] [S]
+- [x] UR-026: Create .env.example with documented variables (no secrets) [WS1] [S]
 
 ---
 

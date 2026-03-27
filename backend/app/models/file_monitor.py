@@ -17,7 +17,9 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
+    Text,
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -87,6 +89,19 @@ class MonitoredFile(Base, TimestampMixin):
     # Additional file metadata
     deal_stage: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
+    # Dead-letter / quarantine tracking
+    consecutive_failures: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    last_failure_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    quarantined: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    quarantined_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Relationships
     extraction_run: Mapped["ExtractionRun"] = relationship(
         "ExtractionRun", foreign_keys=[extraction_run_id]
@@ -97,6 +112,8 @@ class MonitoredFile(Base, TimestampMixin):
         Index("idx_monitored_files_deal", "deal_name", "is_active"),
         # Index for finding pending extractions
         Index("idx_monitored_files_pending", "extraction_pending", "is_active"),
+        # Index for finding quarantined files (dead-letter queue)
+        Index("idx_monitored_files_quarantined", "quarantined", "is_active"),
     )
 
     def __repr__(self) -> str:
@@ -106,6 +123,8 @@ class MonitoredFile(Base, TimestampMixin):
     def needs_extraction(self) -> bool:
         """Check if file needs extraction based on tracking state."""
         if not self.is_active:
+            return False
+        if self.quarantined:
             return False
         if self.extraction_pending:
             return True

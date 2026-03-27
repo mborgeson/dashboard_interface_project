@@ -6,14 +6,17 @@ Provides polling-based monitoring of SharePoint for file changes:
 - Detects modifications to existing UW model files
 - Detects deleted files
 - Optionally triggers extraction when changes are detected
+- Delta query support for incremental sync (when enabled)
 
 Uses a database-backed state store to track file metadata between checks.
 """
 
+from __future__ import annotations
+
 import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
 import structlog
@@ -28,6 +31,9 @@ from app.extraction.sharepoint import (
     SharePointFile,
 )
 from app.models.file_monitor import FileChangeLog, MonitoredFile
+
+if TYPE_CHECKING:
+    from app.extraction.sharepoint import DeltaChange
 
 
 def _ensure_aware(dt: datetime) -> datetime:
@@ -218,6 +224,163 @@ class SharePointFileMonitor:
         except Exception as e:
             self.logger.exception("file_monitor_check_failed", error=str(e))
             raise
+
+    async def check_for_changes_delta(
+        self,
+        auto_trigger_extraction: bool = True,
+    ) -> MonitorCheckResult:
+        """Check for file changes using Microsoft Graph delta queries.
+
+        Uses delta tokens for incremental sync instead of full folder
+        listing. Falls back to a full scan if the token has expired
+        (HTTP 410 Gone) or if no token exists yet.
+
+        Args:
+            auto_trigger_extraction: Whether to automatically trigger
+                extraction for changed files (if enabled in settings).
+
+        Returns:
+            MonitorCheckResult with detected changes and statistics.
+        """
+        import time
+
+        from app.crud.delta_token import DeltaTokenCRUD
+
+        start_time = time.time()
+        changes: list[FileChange] = []
+
+        self.logger.info("delta_check_started")
+
+        try:
+            drive_id = await self.client._get_drive_id()
+
+            # Look up existing delta token
+            existing_token = await DeltaTokenCRUD.get_by_drive_id(self.db, drive_id)
+            token_value = existing_token.delta_token if existing_token else None
+
+            try:
+                delta_result = await self.client.get_delta_changes(
+                    drive_id=drive_id,
+                    delta_token=token_value,
+                )
+            except Exception as exc:
+                # Check for HTTP 410 Gone — token expired
+                status_code = getattr(exc, "status", None)
+                if status_code == 410:
+                    self.logger.warning(
+                        "delta_token_expired",
+                        drive_id=drive_id,
+                    )
+                    await DeltaTokenCRUD.clear_token(self.db, drive_id)
+                    await self.db.commit()
+                    # Fall back to full scan
+                    return await self.check_for_changes(
+                        auto_trigger_extraction=auto_trigger_extraction,
+                    )
+                raise
+
+            # Convert delta changes to FileChange objects
+            for delta_change in delta_result.changes:
+                file_change = self._delta_change_to_file_change(delta_change)
+                if file_change is not None:
+                    changes.append(file_change)
+
+            # Persist the new delta token
+            if delta_result.new_delta_token:
+                await DeltaTokenCRUD.upsert_token(
+                    self.db, drive_id, delta_result.new_delta_token
+                )
+                await self.db.commit()
+
+            # Trigger extraction BEFORE logging so we can record the run_id
+            extraction_run_id = None
+            extraction_triggered = False
+            if (
+                changes
+                and auto_trigger_extraction
+                and getattr(settings, "AUTO_EXTRACT_ON_CHANGE", True)
+            ):
+                extraction_run_id = await self._trigger_extraction(changes)
+                extraction_triggered = extraction_run_id is not None
+
+            # Log changes to audit trail
+            await self._log_changes(
+                changes,
+                extraction_triggered=extraction_triggered,
+                extraction_run_id=extraction_run_id,
+            )
+
+            duration = time.time() - start_time
+
+            result = MonitorCheckResult(
+                changes=changes,
+                files_checked=len(delta_result.changes),
+                folders_scanned=0,
+                check_duration_seconds=round(duration, 2),
+                extraction_triggered=extraction_triggered,
+                extraction_run_id=extraction_run_id,
+            )
+
+            self.logger.info(
+                "delta_check_completed",
+                changes_detected=len(changes),
+                is_full_sync=delta_result.is_full_sync,
+                duration_seconds=result.check_duration_seconds,
+                extraction_triggered=result.extraction_triggered,
+            )
+
+            return result
+
+        except SharePointAuthError as e:
+            self.logger.error("sharepoint_auth_failed", error=str(e))
+            raise
+        except Exception as e:
+            self.logger.exception("delta_check_failed", error=str(e))
+            raise
+
+    @staticmethod
+    def _delta_change_to_file_change(
+        delta_change: DeltaChange,
+    ) -> FileChange | None:
+        """Convert a DeltaChange from the Graph API to a FileChange.
+
+        Args:
+            delta_change: A change item from the delta query.
+
+        Returns:
+            FileChange if the item is a file change we care about,
+            None if it should be skipped (e.g., folder changes).
+        """
+
+        # Skip folder-level changes
+        if delta_change.is_folder:
+            return None
+
+        # Map delta change types to FileChange types
+        change_type_map: dict[str, Literal["added", "modified", "deleted"]] = {
+            "created": "added",
+            "modified": "modified",
+            "deleted": "deleted",
+        }
+
+        change_type = change_type_map.get(delta_change.change_type)
+        if change_type is None:
+            return None
+
+        # Infer deal name from path (e.g., "Deals/Stage/DealName/file.xlsb")
+        parts = delta_change.path.split("/")
+        deal_name = parts[2] if len(parts) > 2 else "Unknown"
+
+        return FileChange(
+            file_path=delta_change.path,
+            file_name=delta_change.name,
+            change_type=change_type,
+            deal_name=deal_name,
+            old_modified_date=None,
+            new_modified_date=delta_change.modified_date,
+            old_size_bytes=None,
+            new_size_bytes=delta_change.size,
+        )
 
     async def _get_stored_state(self) -> dict[str, MonitoredFile]:
         """
@@ -606,12 +769,16 @@ class SharePointFileMonitor:
         """
         Get files that are pending extraction.
 
+        Excludes quarantined files — those must be retried explicitly
+        via the dead-letter API.
+
         Returns:
             List of MonitoredFile objects with extraction_pending=True
         """
         stmt = select(MonitoredFile).where(
             MonitoredFile.extraction_pending.is_(True),
             MonitoredFile.is_active.is_(True),
+            MonitoredFile.quarantined.is_(False),
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())

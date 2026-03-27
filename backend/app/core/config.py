@@ -249,6 +249,10 @@ class ExternalServiceSettings(BaseSettings):
     DEALS_FOLDER: str = "Real Estate/Deals"  # Legacy alias
     LOCAL_DEALS_ROOT: str = ""
 
+    # Download Retry Settings
+    DOWNLOAD_MAX_RETRIES: int = 3
+    DOWNLOAD_BACKOFF_BASE_SECONDS: float = 1.0
+
     # External APIs
     FRED_API_KEY: str | None = None
     CENSUS_API_KEY: str | None = None
@@ -297,6 +301,10 @@ class ExtractionSettings(BaseSettings):
     FILE_MONITOR_INTERVAL_MINUTES: int = 30
     AUTO_EXTRACT_ON_CHANGE: bool = True
     MONITOR_CHECK_CRON: str = "*/30 * * * *"
+
+    # Delta Query (incremental sync via Microsoft Graph delta API)
+    DELTA_QUERY_ENABLED: bool = False
+    DELTA_RECONCILIATION_CRON: str = "0 3 * * *"
 
 
 # ── Construction Pipeline Settings ───────────────────────────────────────────

@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     analytics,
     auth,
     construction_pipeline,
+    dead_letter,
     deals,
     documents,
     exports,
@@ -48,6 +49,9 @@ api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(exports.router, prefix="/exports", tags=["exports"])
 api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
 api_router.include_router(extraction.router, prefix="/extraction", tags=["extraction"])
+api_router.include_router(
+    dead_letter.router, prefix="/extraction", tags=["dead-letter"]
+)
 api_router.include_router(
     interest_rates.router, prefix="/interest-rates", tags=["interest-rates"]
 )

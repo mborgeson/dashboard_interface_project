@@ -87,12 +87,13 @@ class MonitoredFileCRUD:
 
     @staticmethod
     async def get_pending_extraction(db: AsyncSession) -> list[MonitoredFile]:
-        """Get files that need extraction."""
+        """Get files that need extraction (excludes quarantined files)."""
         stmt = (
             select(MonitoredFile)
             .where(
                 MonitoredFile.extraction_pending.is_(True),
                 MonitoredFile.is_active.is_(True),
+                MonitoredFile.quarantined.is_(False),
             )
             .order_by(MonitoredFile.deal_name, MonitoredFile.file_name)
         )

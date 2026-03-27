@@ -38,6 +38,7 @@ from app.models.construction import (  # noqa: E402, F401
     ConstructionSourceLog,
 )
 from app.models.deal import Deal  # noqa: E402, F401
+from app.models.delta_token import DeltaToken  # noqa: E402, F401
 from app.models.document import Document  # noqa: E402, F401
 
 # Extraction Models (SharePoint UW Model Integration)
