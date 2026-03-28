@@ -40,6 +40,9 @@ from .report_template import (
 )
 from .sales_data import SalesData
 
+# Schema Drift Alert Model
+from .schema_drift_alert import SchemaDriftAlert
+
 # Stage Change Audit Log
 from .stage_change_log import StageChangeLog, StageChangeSource
 
@@ -120,4 +123,6 @@ __all__ = [
     "ConstructionBrokerageMetrics",
     "PipelineStatus",
     "ProjectClassification",
+    # Schema Drift Alert
+    "SchemaDriftAlert",
 ]

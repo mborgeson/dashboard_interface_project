@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { type ReactNode } from 'react';
 
 // Mock the API module
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/api/client', () => ({
   get: vi.fn(),
   post: vi.fn(),
   put: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('@/lib/api', () => ({
   del: vi.fn(),
 }));
 
-import { get, post, put, patch, del } from '@/lib/api';
+import { get, post, put, patch, del } from '@/lib/api/client';
 import {
   dealKeys,
   useDealsWithMockFallback,

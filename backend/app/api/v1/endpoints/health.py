@@ -119,6 +119,8 @@ async def _check_sharepoint_auth() -> dict[str, Any]:
         return result
 
     try:
+        import aiohttp
+
         from app.extraction.sharepoint import SharePointClient
 
         client = SharePointClient()
@@ -126,17 +128,42 @@ async def _check_sharepoint_auth() -> dict[str, Any]:
             client._get_access_token(),
             timeout=5.0,
         )
-        if token:
-            result = {
-                "status": "connected",
-                "last_checked": datetime.now(UTC).isoformat(),
-            }
-        else:
+        if not token:
             result = {
                 "status": "disconnected",
                 "last_checked": datetime.now(UTC).isoformat(),
                 "error": "empty_token",
             }
+            _sharepoint_auth_cache = result
+            _sharepoint_auth_cache_time = now
+            return result
+
+        # Make a lightweight Graph API call to verify the token is valid
+        graph_url = "https://graph.microsoft.com/v1.0/me"
+        async with (
+            aiohttp.ClientSession() as session,
+            session.get(
+                graph_url,
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=aiohttp.ClientTimeout(total=5),
+            ) as resp,
+        ):
+            if resp.status == 200:
+                result = {
+                    "status": "connected",
+                    "last_checked": datetime.now(UTC).isoformat(),
+                }
+            else:
+                body = await resp.text()
+                error_msg = f"graph_api_status_{resp.status}"
+                if len(body) > 100:
+                    body = body[:100] + "..."
+                result = {
+                    "status": "degraded",
+                    "last_checked": datetime.now(UTC).isoformat(),
+                    "error": error_msg,
+                    "detail": body,
+                }
     except TimeoutError:
         result = {
             "status": "disconnected",

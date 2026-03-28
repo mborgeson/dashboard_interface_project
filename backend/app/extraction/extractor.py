@@ -275,8 +275,8 @@ class ExcelDataExtractor:
             if progress_callback and (i + 1) % 100 == 0:
                 progress_callback(i + 1, total)
 
-        # Close workbook if needed
-        if not is_xlsb and hasattr(workbook, "close"):
+        # UR-037: Close workbooks properly to prevent file handle leaks
+        if hasattr(workbook, "close"):
             workbook.close()
 
         # Add extraction metadata

@@ -56,6 +56,7 @@ from app.models.property import Property  # noqa: E402, F401
 from app.models.reminder_dismissal import ReminderDismissal  # noqa: E402, F401
 from app.models.report_settings import ReportSettings  # noqa: E402, F401
 from app.models.sales_data import SalesData  # noqa: E402, F401
+from app.models.schema_drift_alert import SchemaDriftAlert  # noqa: E402, F401
 from app.models.stage_change_log import StageChangeLog  # noqa: E402, F401
 
 # Wave 1: Transaction and Document Models

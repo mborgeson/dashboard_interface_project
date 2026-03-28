@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { get } from '@/lib/api';
+import { get } from '@/lib/api/client';
 import { STALE_TIMES } from '@/lib/constants/query';
 import type {
   MarketOverviewApiResponse,

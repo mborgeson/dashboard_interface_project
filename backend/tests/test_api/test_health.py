@@ -148,7 +148,13 @@ async def test_health_status_sharepoint_check(client):
     data = response.json()
 
     sp = data["checks"]["sharepoint"]
-    assert sp["status"] in ["connected", "disconnected", "not_configured", "error"]
+    assert sp["status"] in [
+        "connected",
+        "disconnected",
+        "not_configured",
+        "error",
+        "degraded",
+    ]
     assert "last_checked" in sp
 
 

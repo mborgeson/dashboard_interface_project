@@ -6,7 +6,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
-import { get, post } from '@/lib/api';
+import { get, post } from '@/lib/api/client';
 import { STALE_TIMES } from '@/lib/constants/query';
 import { propertyKeys } from './useProperties';
 

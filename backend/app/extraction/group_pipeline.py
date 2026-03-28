@@ -780,14 +780,92 @@ class GroupExtractionPipeline:
             }
             db.commit()
 
+        # Pre-extraction drift check (Story 4)
+        from app.extraction.fingerprint import fingerprint_file
+        from app.extraction.schema_drift import (
+            SchemaDriftDetector,
+            save_baseline_fingerprint,
+        )
+
+        detector = SchemaDriftDetector(self.data_dir)
+        drift_results: list[dict[str, Any]] = []
+
+        file_paths_raw = [f.get("path", f.get("file_path", "")) for f in group_files]
+        deal_names_raw = [
+            f.get("deal_name", Path(f.get("name", "")).stem) for f in group_files
+        ]
+
+        # Filter files through drift check
+        approved_file_paths: list[str] = []
+        approved_deal_names: list[str] = []
+
+        for fp, dn in zip(file_paths_raw, deal_names_raw, strict=False):
+            try:
+                file_fp = fingerprint_file(fp)
+                drift_result = detector.check_drift(group_name, file_fp)
+                drift_results.append(drift_result.to_dict())
+
+                if drift_result.severity == "error":
+                    logger.warning(
+                        "drift_check_skip_file",
+                        group=group_name,
+                        file=fp,
+                        similarity=drift_result.similarity_score,
+                        severity=drift_result.severity,
+                    )
+                    report["per_file"][fp] = {
+                        "status": "skipped",
+                        "reason": "schema_drift_error",
+                        "similarity_score": drift_result.similarity_score,
+                    }
+                    report["files_failed"] += 1
+                    continue
+
+                if drift_result.severity in ("warning", "info"):
+                    logger.info(
+                        "drift_check_proceed_with_alert",
+                        group=group_name,
+                        file=fp,
+                        similarity=drift_result.similarity_score,
+                        severity=drift_result.severity,
+                    )
+
+                approved_file_paths.append(fp)
+                approved_deal_names.append(dn)
+            except Exception as e:
+                logger.warning(
+                    "drift_check_error",
+                    group=group_name,
+                    file=fp,
+                    error=str(e),
+                )
+                # On drift check error, still allow extraction
+                approved_file_paths.append(fp)
+                approved_deal_names.append(dn)
+
+        report["drift_results"] = drift_results
+
+        # Save baseline from first file if none exists
+        if approved_file_paths:
+            from app.extraction.schema_drift import load_baseline_fingerprint
+
+            if load_baseline_fingerprint(self.data_dir, group_name) is None:
+                try:
+                    first_fp = fingerprint_file(approved_file_paths[0])
+                    save_baseline_fingerprint(self.data_dir, group_name, first_fp)
+                except Exception as e:
+                    logger.warning(
+                        "baseline_save_error",
+                        group=group_name,
+                        error=str(e),
+                    )
+
         # Extract files using ThreadPoolExecutor for parallel Excel parsing
         from app.api.v1.endpoints.extraction.common import _extract_single_file
 
         extraction_results = []
-        file_paths = [f.get("path", f.get("file_path", "")) for f in group_files]
-        deal_names = [
-            f.get("deal_name", Path(f.get("name", "")).stem) for f in group_files
-        ]
+        file_paths = approved_file_paths
+        deal_names = approved_deal_names
 
         if len(file_paths) > 1:
             with ThreadPoolExecutor(

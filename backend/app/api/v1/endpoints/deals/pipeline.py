@@ -21,12 +21,32 @@ from app.schemas.deal import (
     RecentActivityItem,
     StageChangeLogResponse,
     StageHistoryResponse,
+    StageMappingResponse,
 )
 from app.services import get_websocket_manager
 
 from .enrichment import enrich_deals_with_extraction
 
 router = APIRouter()
+
+
+@router.get(
+    "/stage-mapping",
+    response_model=StageMappingResponse,
+    summary="Get stage mapping reference data",
+    description="Returns canonical deal stages and the folder-to-stage mapping "
+    "used by SharePoint sync. No authentication required (reference data).",
+)
+async def get_stage_mapping():
+    """
+    Return canonical stages and folder-to-stage mapping.
+    """
+    from app.services.stage_mapping import FOLDER_TO_STAGE
+
+    return StageMappingResponse(
+        stages=[s.value for s in DealStage],
+        folder_to_stage={k: v.value for k, v in FOLDER_TO_STAGE.items()},
+    )
 
 
 @router.get(

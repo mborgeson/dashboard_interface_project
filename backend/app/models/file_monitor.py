@@ -61,6 +61,9 @@ class MonitoredFile(Base, TimestampMixin):
         String(64), nullable=True
     )  # SHA-256 hash for content-based change detection
 
+    # ETag from SharePoint for change detection (UR-030)
+    etag: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     # Tracking timestamps
     first_seen: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)

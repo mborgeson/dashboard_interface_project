@@ -12,6 +12,8 @@ import { useDealWithMockFallback, useDealProformaReturns } from '@/hooks/api/use
 import type { ProformaField } from '@/hooks/api/useDeals';
 import { ActivityFeed } from './ActivityFeed';
 import { DealAerialMap } from './DealAerialMap';
+import { StageHistoryTimeline } from './StageHistoryTimeline';
+import { StageOverrideForm } from './StageOverrideForm';
 import { getSharePointDealFolderUrl } from '../utils/sharepoint';
 import { MapPin, ExternalLink, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -346,6 +348,16 @@ export function DealDetailModal({ dealId, open, onOpenChange }: DealDetailModalP
                 {deal.exitMonths != null ? `Month ${Math.round(deal.exitMonths)}` : 'N/A'} / {fmtPct(deal.exitCapRate)}
               </MetricRow>
             </div>
+
+            {/* Manual Stage Override */}
+            <StageOverrideForm
+              dealId={deal.id}
+              currentStage={deal.stage as DealStage}
+              onSuccess={() => refetch()}
+            />
+
+            {/* Stage History Timeline */}
+            <StageHistoryTimeline dealId={deal.id} />
 
             {/* Proforma Returns (year-specific fields from extraction) */}
             <ProformaReturnsSection dealId={deal.id} />

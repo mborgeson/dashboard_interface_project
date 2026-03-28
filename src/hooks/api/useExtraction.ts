@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
-import { get, post, del } from '@/lib/api';
+import { get, post, del } from '@/lib/api/client';
 import type {
   ExtractionRun,
   ExtractionHistoryFilters,

@@ -258,3 +258,32 @@ export const apiClient = {
   delete: <T>(endpoint: string, options?: RequestOptions): Promise<T> =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),
 };
+
+/**
+ * Convenience wrappers matching the legacy `import { get, post, ... } from '@/lib/api'`
+ * call signatures. These are the preferred imports for hook files migrating away from
+ * the legacy api module.
+ *
+ * Usage:  import { get, post, put, patch, del } from '@/lib/api/client';
+ */
+export function get<T>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
+  return apiClient.get<T>(endpoint, { params: params as Record<string, string | number | boolean | undefined> });
+}
+
+export function post<T>(endpoint: string, data?: unknown, options?: { params?: Record<string, unknown> }): Promise<T> {
+  return apiClient.post<T>(endpoint, data, {
+    params: options?.params as Record<string, string | number | boolean | undefined>,
+  });
+}
+
+export function put<T>(endpoint: string, data?: unknown): Promise<T> {
+  return apiClient.put<T>(endpoint, data);
+}
+
+export function patch<T>(endpoint: string, data?: unknown): Promise<T> {
+  return apiClient.patch<T>(endpoint, data);
+}
+
+export function del<T>(endpoint: string): Promise<T> {
+  return apiClient.delete<T>(endpoint);
+}

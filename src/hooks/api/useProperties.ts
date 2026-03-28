@@ -10,7 +10,7 @@ import {
   fetchPortfolioSummary,
   type PropertyFiltersParams,
 } from '@/lib/api/properties';
-import { get, post, put, del } from '@/lib/api';
+import { get, post, put, del } from '@/lib/api/client';
 import { STALE_TIMES } from '@/lib/constants/query';
 import type { Property, PropertySummaryStats } from '@/types';
 import type {

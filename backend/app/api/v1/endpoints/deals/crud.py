@@ -17,6 +17,8 @@ from app.schemas.deal import (
     DealListResponse,
     DealResponse,
     DealUpdate,
+    ManualStageOverride,
+    StageChangeLogResponse,
 )
 from app.schemas.pagination import CursorPaginationParams
 from app.services import get_websocket_manager
@@ -462,3 +464,76 @@ async def restore_deal(
         f"user_id={current_user.id} user_email={current_user.email}"
     )
     return DealResponse.model_validate(restored)
+
+
+@router.post(
+    "/{deal_id}/stage",
+    response_model=StageChangeLogResponse,
+    summary="Manual stage override",
+    description="Manually set a deal's stage with an optional reason. Creates an audit "
+    "trail entry with source='manual_override'. Requires manager role.",
+    responses={
+        200: {"description": "Stage changed successfully"},
+        400: {"description": "Invalid stage value"},
+        404: {"description": "Deal not found"},
+    },
+)
+async def manual_stage_override(
+    deal_id: int,
+    body: ManualStageOverride,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_manager),
+):
+    """
+    Manually override a deal's stage with an optional reason.
+    """
+    from app.models.deal import DealStage
+    from app.models.stage_change_log import StageChangeSource
+    from app.services.stage_mapping import change_deal_stage
+
+    existing = await deal_crud.get(db, deal_id)
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Deal {deal_id} not found",
+        )
+
+    try:
+        new_stage = DealStage(body.stage)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid stage: {body.stage}",
+        ) from e
+
+    log_entry = await change_deal_stage(
+        db,
+        deal=existing,
+        new_stage=new_stage,
+        source=StageChangeSource.MANUAL_OVERRIDE,
+        changed_by_user_id=current_user.id,
+        reason=body.reason,
+    )
+    await db.commit()
+
+    # Notify via WebSocket
+    ws_manager = get_websocket_manager()
+    await ws_manager.notify_deal_update(
+        deal_id=deal_id,
+        action="stage_changed",
+        data={
+            "deal_id": deal_id,
+            "old_stage": log_entry.old_stage,
+            "new_stage": log_entry.new_stage,
+            "source": "manual_override",
+        },
+    )
+
+    logger.info(
+        f"deal_stage_manual_override deal_id={deal_id} "
+        f"new_stage={body.stage} reason={body.reason!r} "
+        f"user_id={current_user.id} user_email={current_user.email}"
+    )
+
+    await cache.invalidate_deals()
+    return StageChangeLogResponse.model_validate(log_entry)

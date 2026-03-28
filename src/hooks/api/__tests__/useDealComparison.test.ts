@@ -6,10 +6,10 @@ import {
   useDealComparisonWithMockFallback,
   dealComparisonKeys,
 } from '../useDealComparison';
-import * as api from '@/lib/api';
+import * as api from '@/lib/api/client';
 
 // Mock the API module
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/api/client', () => ({
   get: vi.fn(),
 }));
 

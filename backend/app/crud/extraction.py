@@ -20,6 +20,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.extraction.domain_validators import validate_domain_range
 from app.extraction.error_handler import NullValue
 from app.models.deal import Deal, DealStage
 from app.models.extraction import ExtractedValue, ExtractionRun
@@ -199,6 +200,7 @@ class ExtractedValueCRUD:
         property_name: str,
         source_file: str | None = None,
         error_categories: dict[str, str] | None = None,
+        confidence_scores: dict[str, float] | None = None,
     ) -> int:
         """
         Bulk insert extracted values from a single file extraction.
@@ -211,6 +213,7 @@ class ExtractedValueCRUD:
             property_name: Name of the property extracted
             source_file: Path to source file
             error_categories: Optional dict of field_name -> error category string
+            confidence_scores: Optional dict of field_name -> confidence float (UR-041)
 
         Returns:
             Number of values inserted
@@ -269,6 +272,25 @@ class ExtractedValueCRUD:
             if error_cat is None and is_error and error_categories:
                 error_cat = error_categories.get(field_name)
 
+            # UR-041: Attach confidence score from reference mapper
+            conf_score = None
+            if confidence_scores:
+                conf_score = confidence_scores.get(field_name)
+
+            # UR-022: Domain validation — flag implausible values
+            domain_warn_msg: str | None = None
+            if value_numeric is not None and not is_error:
+                dv_warning = validate_domain_range(field_name, value_numeric)
+                if dv_warning is not None:
+                    domain_warn_msg = dv_warning.reason[:500]
+                    logger.info(
+                        "domain_validation_warning",
+                        property=property_name,
+                        field=field_name,
+                        value=value_numeric,
+                        warning=domain_warn_msg,
+                    )
+
             values_to_insert.append(
                 {
                     "extraction_run_id": extraction_run_id,
@@ -284,6 +306,8 @@ class ExtractedValueCRUD:
                     "is_error": is_error,
                     "error_category": error_cat,
                     "source_file": source_file,
+                    "confidence_score": conf_score,
+                    "domain_warning": domain_warn_msg,
                 }
             )
 
@@ -300,6 +324,8 @@ class ExtractedValueCRUD:
                     "value_date": stmt.excluded.value_date,
                     "is_error": stmt.excluded.is_error,
                     "error_category": stmt.excluded.error_category,
+                    "confidence_score": stmt.excluded.confidence_score,
+                    "domain_warning": stmt.excluded.domain_warning,
                     "updated_at": datetime.now(UTC),
                 },
             )

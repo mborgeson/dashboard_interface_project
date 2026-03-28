@@ -155,6 +155,12 @@ class ExtractedValue(Base, TimestampMixin):
     is_error: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     error_category: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
+    # Mapping confidence (UR-041): 0.0-1.0 from reference_mapper match tiers
+    confidence_score: Mapped[float | None] = mapped_column(Numeric(5, 4), nullable=True)
+
+    # Domain validation warning (populated by domain_validators.py)
+    domain_warning: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     # Source file path
     source_file: Mapped[str | None] = mapped_column(String(500), nullable=True)
 

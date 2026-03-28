@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { type ReactNode } from 'react';
 
 // Mock the API modules
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/api/client', () => ({
   get: vi.fn(),
   post: vi.fn(),
   put: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock('@/lib/api/properties', () => ({
   fetchPortfolioSummary: vi.fn(),
 }));
 
-import { get, post, put, del } from '@/lib/api';
+import { get, post, put, del } from '@/lib/api/client';
 import { fetchProperties, fetchPropertyById, fetchPortfolioSummary } from '@/lib/api/properties';
 import {
   propertyKeys,

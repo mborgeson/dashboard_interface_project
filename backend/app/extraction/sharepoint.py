@@ -13,6 +13,8 @@ Uses Microsoft Graph API for SharePoint access.
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -27,6 +29,57 @@ from app.core.config import settings
 
 if TYPE_CHECKING:
     from .file_filter import FileFilter
+
+
+def is_file_locked(file_metadata: dict[str, Any]) -> bool:
+    """Check if a SharePoint file is locked (checked-out) via publication.level.
+
+    SharePoint files under active editing have a ``publication`` object whose
+    ``level`` field is set to ``"checkout"``.  When a file is published (not
+    locked), the level is typically ``"published"`` or absent.
+
+    Args:
+        file_metadata: Item dict from the Microsoft Graph API.
+
+    Returns:
+        True if the file is currently checked-out / locked.
+    """
+    publication = file_metadata.get("publication")
+    if not publication or not isinstance(publication, dict):
+        return False
+    return publication.get("level", "").lower() == "checkout"
+
+
+def compute_content_hash(file_path: Path) -> str:
+    """Compute SHA-256 hash of a file's contents.
+
+    Args:
+        file_path: Path to the file on disk.
+
+    Returns:
+        Hex-encoded SHA-256 digest.
+    """
+    sha = hashlib.sha256()
+    with open(file_path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(65_536), b""):
+            sha.update(chunk)
+    return sha.hexdigest()
+
+
+def compute_content_hash_bytes(data: bytes) -> str:
+    """Compute SHA-256 hash of in-memory bytes.
+
+    Args:
+        data: Raw file content bytes.
+
+    Returns:
+        Hex-encoded SHA-256 digest.
+    """
+    return hashlib.sha256(data).hexdigest()
+
+
+# Module-level semaphore limits concurrent Graph API requests (UR-032)
+_GRAPH_API_SEMAPHORE = asyncio.Semaphore(10)
 
 
 @dataclass
@@ -234,7 +287,11 @@ class SharePointClient:
     async def _make_request(
         self, method: str, endpoint: str, **kwargs
     ) -> dict[str, Any]:
-        """Make authenticated request to Graph API"""
+        """Make authenticated request to Graph API.
+
+        Applies concurrency limiting via a module-level semaphore (UR-032)
+        and respects ``Retry-After`` headers on 429 responses.
+        """
         token = await self._get_access_token()
 
         headers = {
@@ -249,14 +306,30 @@ class SharePointClient:
         owns_session = session is not self._session
 
         try:
-            async with session.request(
-                method, url, headers=headers, **kwargs
-            ) as response:
+            async with (
+                _GRAPH_API_SEMAPHORE,
+                session.request(method, url, headers=headers, **kwargs) as response,
+            ):
                 if response.status == 401:
                     # Token may have expired, clear cache and retry once
                     self._access_token = None
                     token = await self._get_access_token()
                     headers["Authorization"] = f"Bearer {token}"
+                    async with session.request(
+                        method, url, headers=headers, **kwargs
+                    ) as retry_response:
+                        retry_response.raise_for_status()
+                        return await retry_response.json()
+
+                if response.status == 429:
+                    retry_after = int(response.headers.get("Retry-After", "5"))
+                    self.logger.warning(
+                        "rate_limited",
+                        endpoint=endpoint,
+                        retry_after=retry_after,
+                    )
+                    await asyncio.sleep(retry_after)
+                    # Retry once after waiting
                     async with session.request(
                         method, url, headers=headers, **kwargs
                     ) as retry_response:
@@ -546,6 +619,25 @@ class SharePointClient:
 
         result.total_scanned += 1
 
+        # UR-029: Skip files that are checked-out / locked
+        if is_file_locked(item):
+            result.skipped.append(
+                SkippedFile(
+                    name=filename,
+                    path=f"{folder_path}/{filename}",
+                    size=file_size,
+                    modified_date=modified_date,
+                    skip_reason="file_locked_checkout",
+                    deal_name=deal_name,
+                )
+            )
+            self.logger.warning(
+                "file_locked_skipped",
+                filename=filename,
+                deal=deal_name,
+            )
+            return
+
         if use_filter:
             # Apply configurable file filter
             filter_result = self.file_filter.should_process(
@@ -617,9 +709,44 @@ class SharePointClient:
         result = await self.find_uw_models(deal_folder_path, use_filter=True)
         return result.files
 
+    async def get_file_etag(self, file_path: str) -> str | None:
+        """Fetch the current ETag for a file from SharePoint.
+
+        Args:
+            file_path: SharePoint file path (relative to drive root).
+
+        Returns:
+            The ETag string, or None if unavailable.
+        """
+        drive_id = await self._get_drive_id()
+        clean_path = file_path.strip("/")
+        endpoint = f"/drives/{drive_id}/root:/{clean_path}"
+        result = await self._make_request("GET", endpoint)
+        return result.get("eTag")
+
+    async def should_download(self, file_path: str, stored_etag: str | None) -> bool:
+        """Check if a file needs to be re-downloaded by comparing ETags (UR-030).
+
+        Args:
+            file_path: SharePoint file path.
+            stored_etag: Previously stored ETag from MonitoredFile.
+
+        Returns:
+            True if the file should be downloaded (ETags differ or no stored ETag).
+        """
+        if stored_etag is None:
+            return True
+        remote_etag = await self.get_file_etag(file_path)
+        if remote_etag is None:
+            return True  # Cannot compare — download to be safe
+        return remote_etag != stored_etag
+
     async def download_file(self, file: SharePointFile) -> bytes:
         """
         Download a file from SharePoint.
+
+        After download, computes and attaches a SHA-256 content hash
+        to the file object as ``_content_hash`` for callers to persist.
 
         Args:
             file: SharePointFile object with download URL
@@ -650,7 +777,15 @@ class SharePointClient:
             if owns_session:
                 await session.close()
 
-        self.logger.info("file_downloaded", name=file.name, size=len(content))
+        # UR-031: Compute SHA-256 content hash after download
+        content_hash = compute_content_hash_bytes(content)
+
+        self.logger.info(
+            "file_downloaded",
+            name=file.name,
+            size=len(content),
+            content_hash=content_hash[:16],
+        )
         return content
 
     async def download_all_uw_models(

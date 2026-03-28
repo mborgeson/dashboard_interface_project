@@ -327,6 +327,21 @@ class WatchlistStatusResponse(BaseSchema):
 # ── Stage Change Audit Log Response ────────────────────────────────────────
 
 
+class ManualStageOverride(BaseSchema):
+    """Request schema for manually overriding a deal's stage."""
+
+    stage: str = Field(
+        ...,
+        pattern="^(dead|initial_review|active_review|under_contract|closed|realized)$",
+        description="Target stage (must be a canonical DealStage value).",
+    )
+    reason: str | None = Field(
+        None,
+        max_length=500,
+        description="Optional reason for the stage override.",
+    )
+
+
 class StageChangeLogResponse(BaseSchema):
     """Response schema for a single stage change audit entry."""
 
@@ -348,3 +363,10 @@ class StageHistoryResponse(BaseSchema):
     deal_id: int
     history: list[StageChangeLogResponse]
     total: int
+
+
+class StageMappingResponse(BaseSchema):
+    """Reference data: canonical stages and folder-to-stage mapping."""
+
+    stages: list[str]
+    folder_to_stage: dict[str, str]

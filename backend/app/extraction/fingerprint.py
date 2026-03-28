@@ -205,8 +205,8 @@ def _fingerprint_xlsb(file_path: str, file_content: bytes) -> list[SheetFingerpr
                                     if col_idx == 0:
                                         col_a_labels.append(val_str)
 
-                        # Stop scanning after 200 rows for performance
-                        if row_idx > 200:
+                        # Stop scanning after 500 rows (UR-038: increased from 200)
+                        if row_idx > 500:
                             break
 
                     sheets.append(
@@ -263,8 +263,8 @@ def _fingerprint_xlsx(file_path: str, file_content: bytes) -> list[SheetFingerpr
                             if cell.column == 1:
                                 col_a_labels.append(val_str)
 
-                    # Stop scanning after 200 rows for performance
-                    if row_idx > 200:
+                    # Stop scanning after 500 rows (UR-038: increased from 200)
+                    if row_idx > 500:
                         break
 
                 sheets.append(

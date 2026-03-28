@@ -8,7 +8,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { get } from '@/lib/api';
+import { get } from '@/lib/api/client';
 import { STALE_TIMES } from '@/lib/constants/query';
 import { marketDataKeys, type MarketOverviewApiResponse } from './api/useMarketData';
 import { interestRateKeys } from './api/useInterestRates';

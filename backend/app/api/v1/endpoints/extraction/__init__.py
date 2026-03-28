@@ -28,6 +28,7 @@ Endpoints:
 - POST /extraction/monitor/enable - Enable monitoring
 - POST /extraction/monitor/disable - Disable monitoring
 - PUT /extraction/monitor/config - Update monitor configuration
+- GET /extraction/domain-warnings - List domain validation warnings
 """
 
 from fastapi import APIRouter
@@ -39,11 +40,13 @@ from app.services.extraction.scheduler import get_extraction_scheduler  # noqa: 
 # Re-export commonly used items for backward compatibility
 # These are needed for test mocking and external imports
 from .common import run_extraction_task  # noqa: F401
+from .domain_validation import router as domain_validation_router
 from .extract import router as extract_router
 from .filters import router as filters_router
 from .grouping import router as grouping_router
 from .monitor import router as monitor_router
 from .scheduler import router as scheduler_router
+from .schema_drift import router as schema_drift_router
 from .status import router as status_router
 
 # Create main router that combines all sub-routers
@@ -58,6 +61,8 @@ router.include_router(scheduler_router)
 router.include_router(filters_router)
 router.include_router(monitor_router)
 router.include_router(grouping_router)
+router.include_router(schema_drift_router)
+router.include_router(domain_validation_router)
 
 __all__ = [
     "router",

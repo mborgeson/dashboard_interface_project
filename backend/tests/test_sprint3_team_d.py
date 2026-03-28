@@ -35,20 +35,16 @@ class TestFieldSynonyms:
     def test_synonyms_file_exists(self) -> None:
         """Verify field_synonyms.json exists in the extraction package."""
         synonyms_path = (
-            Path(__file__).parent.parent
-            / "app"
-            / "extraction"
-            / "field_synonyms.json"
+            Path(__file__).parent.parent / "app" / "extraction" / "field_synonyms.json"
         )
-        assert synonyms_path.exists(), f"field_synonyms.json not found at {synonyms_path}"
+        assert synonyms_path.exists(), (
+            f"field_synonyms.json not found at {synonyms_path}"
+        )
 
     def test_synonyms_file_valid_json(self) -> None:
         """Verify field_synonyms.json is valid JSON with correct structure."""
         synonyms_path = (
-            Path(__file__).parent.parent
-            / "app"
-            / "extraction"
-            / "field_synonyms.json"
+            Path(__file__).parent.parent / "app" / "extraction" / "field_synonyms.json"
         )
         raw = json.loads(synonyms_path.read_text(encoding="utf-8"))
         assert "synonym_groups" in raw
@@ -60,10 +56,7 @@ class TestFieldSynonyms:
     def test_synonyms_all_groups_have_at_least_two_entries(self) -> None:
         """Every synonym group must have at least 2 entries."""
         synonyms_path = (
-            Path(__file__).parent.parent
-            / "app"
-            / "extraction"
-            / "field_synonyms.json"
+            Path(__file__).parent.parent / "app" / "extraction" / "field_synonyms.json"
         )
         raw = json.loads(synonyms_path.read_text(encoding="utf-8"))
         for i, group in enumerate(raw["synonym_groups"]):
@@ -123,9 +116,9 @@ class TestFieldSynonyms:
 
     def test_synonym_reverse_lookup_in_auto_map(self) -> None:
         """Synonym lookup builds correct reverse index for Tier 4 matching."""
-        from app.extraction.reference_mapper import auto_map_group
-
         from dataclasses import dataclass
+
+        from app.extraction.reference_mapper import auto_map_group
 
         @dataclass
         class FakeCellMapping:
@@ -172,14 +165,13 @@ class TestFieldSynonyms:
     def test_no_duplicate_canonical_names(self) -> None:
         """Each synonym group should have a unique canonical name (first element)."""
         synonyms_path = (
-            Path(__file__).parent.parent
-            / "app"
-            / "extraction"
-            / "field_synonyms.json"
+            Path(__file__).parent.parent / "app" / "extraction" / "field_synonyms.json"
         )
         raw = json.loads(synonyms_path.read_text(encoding="utf-8"))
         canonicals = [g[0] for g in raw["synonym_groups"] if g]
-        assert len(canonicals) == len(set(canonicals)), "Duplicate canonical names found"
+        assert len(canonicals) == len(set(canonicals)), (
+            "Duplicate canonical names found"
+        )
 
 
 # =============================================================================
@@ -207,16 +199,12 @@ class TestSharePointHealthCheck:
         assert "status" in sp
         assert "last_checked" in sp
 
-    async def test_sharepoint_not_configured_status(
-        self, client: AsyncClient
-    ) -> None:
+    async def test_sharepoint_not_configured_status(self, client: AsyncClient) -> None:
         """When SharePoint is not configured, status is 'not_configured'."""
         import app.api.v1.endpoints.health as health_mod
 
         # Directly test the function with sharepoint_configured=False
-        with patch(
-            "app.api.v1.endpoints.health.settings"
-        ) as mock_settings:
+        with patch("app.api.v1.endpoints.health.settings") as mock_settings:
             mock_settings.sharepoint_configured = False
             result = await health_mod._check_sharepoint_auth()
             assert result["status"] == "not_configured"
@@ -260,25 +248,40 @@ class TestSharePointHealthCheck:
     async def test_sharepoint_connected_when_token_available(
         self, client: AsyncClient
     ) -> None:
-        """When SharePoint auth succeeds, status is 'connected'."""
+        """When SharePoint auth succeeds and Graph API returns 200, status is 'connected'."""
         import app.api.v1.endpoints.health as health_mod
 
         health_mod._sharepoint_auth_cache = None
 
+        # Mock aiohttp Graph API response
+        mock_resp = AsyncMock()
+        mock_resp.status = 200
+        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+        mock_resp.__aexit__ = AsyncMock(return_value=False)
+
+        mock_session = AsyncMock()
+        mock_session.get = MagicMock(return_value=mock_resp)
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+
         with patch.object(health_mod, "settings") as mock_settings:
             mock_settings.sharepoint_configured = True
 
-            with patch(
-                "app.extraction.sharepoint.SharePointClient._get_access_token",
-                new_callable=AsyncMock,
-                return_value="fake-token",
+            with (
+                patch(
+                    "app.extraction.sharepoint.SharePointClient._get_access_token",
+                    new_callable=AsyncMock,
+                    return_value="fake-token",
+                ),
+                patch(
+                    "aiohttp.ClientSession",
+                    return_value=mock_session,
+                ),
             ):
                 result = await health_mod._check_sharepoint_auth()
                 assert result["status"] == "connected"
 
-    async def test_sharepoint_error_on_auth_failure(
-        self, client: AsyncClient
-    ) -> None:
+    async def test_sharepoint_error_on_auth_failure(self, client: AsyncClient) -> None:
         """When SharePoint auth fails, status is 'error'."""
         import app.api.v1.endpoints.health as health_mod
 
@@ -338,9 +341,11 @@ class TestBatchSyncDealStages:
         from app.services.extraction.file_monitor import SharePointFileMonitor
 
         monitor = SharePointFileMonitor(db=db_session)
-        result = await monitor._sync_deal_stages([
-            ("Test Deal", "invalid_stage_value"),
-        ])
+        result = await monitor._sync_deal_stages(
+            [
+                ("Test Deal", "invalid_stage_value"),
+            ]
+        )
         assert result == 0
 
     async def test_sync_all_invalid_returns_zero(
@@ -350,10 +355,12 @@ class TestBatchSyncDealStages:
         from app.services.extraction.file_monitor import SharePointFileMonitor
 
         monitor = SharePointFileMonitor(db=db_session)
-        result = await monitor._sync_deal_stages([
-            ("Deal A", "not_a_real_stage"),
-            ("Deal B", "also_invalid"),
-        ])
+        result = await monitor._sync_deal_stages(
+            [
+                ("Deal A", "not_a_real_stage"),
+                ("Deal B", "also_invalid"),
+            ]
+        )
         assert result == 0
 
     async def test_sync_deal_not_found(self, db_session: AsyncSession) -> None:
@@ -362,9 +369,11 @@ class TestBatchSyncDealStages:
 
         monitor = SharePointFileMonitor(db=db_session)
         # "dead" is a valid DealStage value
-        result = await monitor._sync_deal_stages([
-            ("Nonexistent Deal XYZ", "dead"),
-        ])
+        result = await monitor._sync_deal_stages(
+            [
+                ("Nonexistent Deal XYZ", "dead"),
+            ]
+        )
         assert result == 0
 
     async def test_sync_batch_fetches_multiple_deals(
@@ -400,11 +409,15 @@ class TestBatchSyncDealStages:
         monitor = SharePointFileMonitor(db=db_session)
 
         # Mock the websocket notifications
-        with patch.object(monitor, "_emit_stage_change_notifications", new_callable=AsyncMock):
-            result = await monitor._sync_deal_stages([
-                ("Batch Deal Alpha", "dead"),
-                ("Batch Deal Beta", "dead"),
-            ])
+        with patch.object(
+            monitor, "_emit_stage_change_notifications", new_callable=AsyncMock
+        ):
+            result = await monitor._sync_deal_stages(
+                [
+                    ("Batch Deal Alpha", "dead"),
+                    ("Batch Deal Beta", "dead"),
+                ]
+            )
 
         assert result == 2
 
@@ -430,9 +443,11 @@ class TestBatchSyncDealStages:
         from app.services.extraction.file_monitor import SharePointFileMonitor
 
         monitor = SharePointFileMonitor(db=db_session)
-        result = await monitor._sync_deal_stages([
-            ("Already Dead Deal", "dead"),
-        ])
+        result = await monitor._sync_deal_stages(
+            [
+                ("Already Dead Deal", "dead"),
+            ]
+        )
         assert result == 0
 
 
@@ -500,9 +515,7 @@ class TestReconciliationService:
 
         assert get_latest_report() is None
 
-    async def test_get_latest_report_after_run(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_get_latest_report_after_run(self, db_session: AsyncSession) -> None:
         """Returns the most recent report."""
         from app.services.reconciliation import (
             get_latest_report,
@@ -514,9 +527,7 @@ class TestReconciliationService:
         assert latest is not None
         assert latest.report_id
 
-    async def test_history_limit_and_offset(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_history_limit_and_offset(self, db_session: AsyncSession) -> None:
         """History pagination with limit and offset works."""
         from app.services.reconciliation import (
             get_report_history,
@@ -657,9 +668,7 @@ class TestReconciliationAPI:
         self, client: AsyncClient, auth_headers: dict
     ) -> None:
         """After triggering, GET /latest returns the report."""
-        await client.post(
-            "/api/v1/reconciliation/trigger", headers=auth_headers
-        )
+        await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
 
         response = await client.get(
             "/api/v1/reconciliation/latest", headers=auth_headers
@@ -673,12 +682,8 @@ class TestReconciliationAPI:
         self, client: AsyncClient, auth_headers: dict
     ) -> None:
         """After triggering twice, history shows both reports."""
-        await client.post(
-            "/api/v1/reconciliation/trigger", headers=auth_headers
-        )
-        await client.post(
-            "/api/v1/reconciliation/trigger", headers=auth_headers
-        )
+        await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
+        await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
 
         response = await client.get(
             "/api/v1/reconciliation/history", headers=auth_headers
@@ -692,9 +697,7 @@ class TestReconciliationAPI:
     ) -> None:
         """History endpoint respects limit and offset parameters."""
         for _ in range(3):
-            await client.post(
-                "/api/v1/reconciliation/trigger", headers=auth_headers
-            )
+            await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
 
         response = await client.get(
             "/api/v1/reconciliation/history?limit=1&offset=0",

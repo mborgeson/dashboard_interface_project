@@ -19,13 +19,13 @@ from app.models.deal import Deal, DealStage
 from app.models.stage_change_log import StageChangeLog, StageChangeSource
 from app.services.stage_mapping import (
     FOLDER_TO_STAGE,
+    STAGE_ALIASES,
     STAGE_FOLDER_MAP,
     STAGE_TO_FOLDER,
     change_deal_stage,
     change_deal_stage_sync,
     resolve_stage,
 )
-
 
 # ── resolve_stage() tests ──────────────────────────────────────────────────
 
@@ -80,24 +80,137 @@ class TestResolveStage:
         This was the key bug with the old substring matching — now we match
         on full path components, so deal names don't trigger false matches.
         """
-        result = resolve_stage(
-            "Deals/2) Active UW and Review/Dead Creek Apartments"
-        )
+        result = resolve_stage("Deals/2) Active UW and Review/Dead Creek Apartments")
         assert result == DealStage.ACTIVE_REVIEW
 
     def test_windows_backslash_paths(self):
         """Windows-style backslash paths are normalised."""
-        result = resolve_stage(
-            "Deals\\1) Initial UW and Review\\The Clubhouse"
-        )
+        result = resolve_stage("Deals\\1) Initial UW and Review\\The Clubhouse")
         assert result == DealStage.INITIAL_REVIEW
 
     def test_non_canonical_folders_return_none(self):
-        """Folder names like 'Archive', 'Pipeline', 'LOI' are not canonical."""
+        """Folder names like 'Archive', 'Pipeline' are not canonical or aliased."""
         assert resolve_stage("Deals/Archive/OldDeal") is None
         assert resolve_stage("Deals/Pipeline/NewDeal") is None
-        assert resolve_stage("Deals/LOI/DealInLOI") is None
-        assert resolve_stage("Deals/Due Diligence/DDDeal") is None
+
+    def test_alias_folders_resolve_via_alias(self):
+        """Non-canonical folder names that match aliases still resolve."""
+        assert resolve_stage("Deals/LOI/DealInLOI") == DealStage.ACTIVE_REVIEW
+        assert resolve_stage("Deals/Due Diligence/DDDeal") == DealStage.UNDER_CONTRACT
+
+
+class TestStageAliases:
+    """Tests for STAGE_ALIASES and alias resolution in resolve_stage()."""
+
+    def test_all_aliases_map_to_valid_stages(self):
+        """Every alias value is a valid DealStage member."""
+        for alias, stage in STAGE_ALIASES.items():
+            assert isinstance(stage, DealStage), (
+                f"Alias '{alias}' maps to non-DealStage: {stage}"
+            )
+
+    def test_all_stages_have_at_least_one_alias(self):
+        """Every DealStage has at least one alias entry."""
+        aliased_stages = set(STAGE_ALIASES.values())
+        for stage in DealStage:
+            assert stage in aliased_stages, f"DealStage.{stage.name} has no alias"
+
+    def test_alias_keys_are_lowercase(self):
+        """All alias keys should be lowercase for case-insensitive lookup."""
+        for alias in STAGE_ALIASES:
+            assert alias == alias.lower(), f"Alias key '{alias}' is not lowercase"
+
+    def test_dead_aliases(self):
+        """Dead stage aliases resolve correctly."""
+        for alias in ["dead", "dead deal", "dead deals", "passed", "declined"]:
+            result = resolve_stage(f"Deals/{alias}/SomeDeal")
+            assert result == DealStage.DEAD, f"Alias '{alias}' did not resolve to DEAD"
+
+    def test_initial_review_aliases(self):
+        """Initial review aliases resolve correctly."""
+        for alias in [
+            "initial review",
+            "initial uw",
+            "initial underwriting",
+            "new",
+            "screening",
+        ]:
+            result = resolve_stage(f"Deals/{alias}/SomeDeal")
+            assert result == DealStage.INITIAL_REVIEW, (
+                f"Alias '{alias}' did not resolve to INITIAL_REVIEW"
+            )
+
+    def test_active_review_aliases(self):
+        """Active review aliases resolve correctly."""
+        for alias in [
+            "active review",
+            "active uw",
+            "loi",
+            "loi submitted",
+            "best and final",
+        ]:
+            result = resolve_stage(f"Deals/{alias}/SomeDeal")
+            assert result == DealStage.ACTIVE_REVIEW, (
+                f"Alias '{alias}' did not resolve to ACTIVE_REVIEW"
+            )
+
+    def test_under_contract_aliases(self):
+        """Under contract aliases resolve correctly."""
+        for alias in ["under contract", "contracted", "psa", "due diligence"]:
+            result = resolve_stage(f"Deals/{alias}/SomeDeal")
+            assert result == DealStage.UNDER_CONTRACT, (
+                f"Alias '{alias}' did not resolve to UNDER_CONTRACT"
+            )
+
+    def test_closed_aliases(self):
+        """Closed stage aliases resolve correctly."""
+        for alias in ["closed", "closed deal", "closed deals", "acquired"]:
+            result = resolve_stage(f"Deals/{alias}/SomeDeal")
+            assert result == DealStage.CLOSED, (
+                f"Alias '{alias}' did not resolve to CLOSED"
+            )
+
+    def test_realized_aliases(self):
+        """Realized stage aliases resolve correctly."""
+        for alias in [
+            "realized",
+            "realized deal",
+            "realized deals",
+            "exited",
+            "disposed",
+        ]:
+            result = resolve_stage(f"Deals/{alias}/SomeDeal")
+            assert result == DealStage.REALIZED, (
+                f"Alias '{alias}' did not resolve to REALIZED"
+            )
+
+    def test_alias_case_insensitive(self):
+        """Alias matching is case-insensitive."""
+        assert resolve_stage("Deals/LOI/SomeDeal") == DealStage.ACTIVE_REVIEW
+        assert resolve_stage("Deals/Loi/SomeDeal") == DealStage.ACTIVE_REVIEW
+        assert resolve_stage("Deals/PSA/SomeDeal") == DealStage.UNDER_CONTRACT
+        assert resolve_stage("Deals/Dead Deal/SomeDeal") == DealStage.DEAD
+
+    def test_canonical_folder_takes_priority_over_alias(self):
+        """When a path has both a canonical folder and an alias, canonical wins."""
+        # "dead" is an alias but "0) Dead Deals" is canonical — canonical should win
+        result = resolve_stage("Deals/0) Dead Deals/dead/SubFolder")
+        assert result == DealStage.DEAD
+
+    def test_canonical_preferred_over_alias_different_stages(self):
+        """Canonical folder match in pass 1 takes priority over alias in pass 2.
+
+        The path contains canonical folder "2) Active UW and Review" and also
+        a component "closed" which is an alias for CLOSED. The canonical match
+        should take precedence.
+        """
+        result = resolve_stage("Deals/2) Active UW and Review/closed deal notes")
+        assert result == DealStage.ACTIVE_REVIEW
+
+    def test_alias_no_false_positive_on_deal_names(self):
+        """A deal named 'LOI' inside a canonical folder should not override the folder."""
+        result = resolve_stage("Deals/4) Closed Deals/LOI Phase 2")
+        assert result == DealStage.CLOSED
 
 
 class TestStageFolderMapConsistency:
@@ -118,7 +231,9 @@ class TestStageFolderMapConsistency:
         """Every DealStage member has a folder mapping."""
         mapped_stages = set(FOLDER_TO_STAGE.values())
         for stage in DealStage:
-            assert stage in mapped_stages, f"DealStage.{stage.name} has no folder mapping"
+            assert stage in mapped_stages, (
+                f"DealStage.{stage.name} has no folder mapping"
+            )
 
 
 # ── StageChangeLog model + audit tests ─────────────────────────────────────
@@ -149,7 +264,9 @@ async def test_change_deal_stage_creates_log(db_session: AsyncSession, test_deal
 
 
 @pytest.mark.asyncio
-async def test_change_deal_stage_updates_deal(db_session: AsyncSession, test_deal: Deal):
+async def test_change_deal_stage_updates_deal(
+    db_session: AsyncSession, test_deal: Deal
+):
     """change_deal_stage() sets deal.stage and deal.stage_updated_at."""
     assert test_deal.stage == DealStage.ACTIVE_REVIEW
     assert test_deal.stage_updated_at is None  # not set in fixture
@@ -166,7 +283,9 @@ async def test_change_deal_stage_updates_deal(db_session: AsyncSession, test_dea
 
 
 @pytest.mark.asyncio
-async def test_change_deal_stage_sharepoint_source(db_session: AsyncSession, test_deal: Deal):
+async def test_change_deal_stage_sharepoint_source(
+    db_session: AsyncSession, test_deal: Deal
+):
     """StageChangeLog with SHAREPOINT_SYNC source."""
     log = await change_deal_stage(
         db=db_session,
@@ -180,7 +299,9 @@ async def test_change_deal_stage_sharepoint_source(db_session: AsyncSession, tes
 
 
 @pytest.mark.asyncio
-async def test_change_deal_stage_extraction_source(db_session: AsyncSession, test_deal: Deal):
+async def test_change_deal_stage_extraction_source(
+    db_session: AsyncSession, test_deal: Deal
+):
     """StageChangeLog with EXTRACTION_SYNC source."""
     log = await change_deal_stage(
         db=db_session,
@@ -193,7 +314,9 @@ async def test_change_deal_stage_extraction_source(db_session: AsyncSession, tes
 
 
 @pytest.mark.asyncio
-async def test_change_deal_stage_manual_override(db_session: AsyncSession, test_deal: Deal):
+async def test_change_deal_stage_manual_override(
+    db_session: AsyncSession, test_deal: Deal
+):
     """StageChangeLog with MANUAL_OVERRIDE source."""
     log = await change_deal_stage(
         db=db_session,
@@ -307,7 +430,9 @@ async def test_stage_history_endpoint(client, db_session, test_deal, auth_header
 
 
 @pytest.mark.asyncio
-async def test_stage_history_endpoint_empty(client, db_session, test_deal, auth_headers):
+async def test_stage_history_endpoint_empty(
+    client, db_session, test_deal, auth_headers
+):
     """Stage history returns empty list when no changes recorded."""
     resp = await client.get(
         f"/api/v1/deals/{test_deal.id}/stage-history",
@@ -362,7 +487,9 @@ async def test_kanban_stage_update_creates_audit_log(
 
 
 @pytest.mark.asyncio
-async def test_stage_history_response_fields(client, db_session, test_deal, auth_headers):
+async def test_stage_history_response_fields(
+    client, db_session, test_deal, auth_headers
+):
     """Verify all expected fields are present in stage history response."""
     await change_deal_stage(
         db=db_session,

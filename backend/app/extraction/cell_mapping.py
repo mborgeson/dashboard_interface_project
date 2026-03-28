@@ -120,12 +120,13 @@ class CellMappingParser:
                     str(row[sheet_col]) if pd.notna(row[sheet_col]) else "Unknown"
                 )
 
-                # Make field name unique if there are duplicates
+                cell_address = str(row[cell_col]).strip().upper().replace("$", "")
+
+                # UR-040: Make field name unique using cell address for stability
                 if field_name_counts[base_name] > 1:
                     seen_counts[base_name] += 1
-                    # Append sheet abbreviation and occurrence number
-                    sheet_abbrev = self._abbreviate_sheet_name(sheet_name)
-                    field_name = f"{base_name}_{sheet_abbrev}_{seen_counts[base_name]}"
+                    # Use cell address for stable suffixes across re-extractions
+                    field_name = f"{base_name}_{cell_address}"
                     self._duplicate_tracker.add(base_name)
                 else:
                     field_name = base_name
@@ -138,7 +139,7 @@ class CellMappingParser:
                     ),
                     description=str(row[description_col]),
                     sheet_name=sheet_name,
-                    cell_address=str(row[cell_col]).strip().upper().replace("$", ""),
+                    cell_address=cell_address,
                     field_name=field_name,
                 )
 

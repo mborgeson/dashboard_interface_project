@@ -37,13 +37,54 @@ STAGE_TO_FOLDER: dict[DealStage, str] = {v: k for k, v in FOLDER_TO_STAGE.items(
 # Flat string mapping for backward compatibility (folder name -> stage value string)
 STAGE_FOLDER_MAP: dict[str, str] = {k: v.value for k, v in FOLDER_TO_STAGE.items()}
 
+# ── Stage aliases: common variations -> canonical DealStage ────────────
+# Maps shorthand or common names (case-insensitive) to the canonical stage.
+STAGE_ALIASES: dict[str, DealStage] = {
+    # Dead
+    "dead": DealStage.DEAD,
+    "dead deal": DealStage.DEAD,
+    "dead deals": DealStage.DEAD,
+    "passed": DealStage.DEAD,
+    "declined": DealStage.DEAD,
+    # Initial Review
+    "initial review": DealStage.INITIAL_REVIEW,
+    "initial uw": DealStage.INITIAL_REVIEW,
+    "initial underwriting": DealStage.INITIAL_REVIEW,
+    "new": DealStage.INITIAL_REVIEW,
+    "screening": DealStage.INITIAL_REVIEW,
+    # Active Review
+    "active review": DealStage.ACTIVE_REVIEW,
+    "active uw": DealStage.ACTIVE_REVIEW,
+    "active underwriting": DealStage.ACTIVE_REVIEW,
+    "loi": DealStage.ACTIVE_REVIEW,
+    "loi submitted": DealStage.ACTIVE_REVIEW,
+    "best and final": DealStage.ACTIVE_REVIEW,
+    # Under Contract
+    "under contract": DealStage.UNDER_CONTRACT,
+    "contracted": DealStage.UNDER_CONTRACT,
+    "psa": DealStage.UNDER_CONTRACT,
+    "due diligence": DealStage.UNDER_CONTRACT,
+    # Closed
+    "closed": DealStage.CLOSED,
+    "closed deal": DealStage.CLOSED,
+    "closed deals": DealStage.CLOSED,
+    "acquired": DealStage.CLOSED,
+    # Realized
+    "realized": DealStage.REALIZED,
+    "realized deal": DealStage.REALIZED,
+    "realized deals": DealStage.REALIZED,
+    "exited": DealStage.REALIZED,
+    "disposed": DealStage.REALIZED,
+}
+
 
 def resolve_stage(folder_path: str) -> DealStage | None:
     """Resolve a folder path to a DealStage using path-component matching.
 
     Splits the path on '/' and checks each component against the canonical
-    folder names. This avoids substring-match ambiguity (e.g., a deal named
-    "Dead Creek Apartments" won't match the "dead" stage).
+    folder names first, then falls back to alias matching. This avoids
+    substring-match ambiguity (e.g., a deal named "Dead Creek Apartments"
+    won't match the "dead" stage).
 
     Args:
         folder_path: Full or partial folder path, e.g.
@@ -56,11 +97,17 @@ def resolve_stage(folder_path: str) -> DealStage | None:
     normalised = folder_path.replace("\\", "/")
     components = [c.strip() for c in normalised.split("/") if c.strip()]
 
+    # Pass 1: exact match against canonical folder names (case-insensitive)
     for component in components:
-        # Exact match against canonical folder names (case-insensitive)
         for folder_name, stage in FOLDER_TO_STAGE.items():
             if component.lower() == folder_name.lower():
                 return stage
+
+    # Pass 2: check aliases (case-insensitive) — only if no canonical match
+    for component in components:
+        alias_match = STAGE_ALIASES.get(component.lower())
+        if alias_match is not None:
+            return alias_match
 
     return None
 

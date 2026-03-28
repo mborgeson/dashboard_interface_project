@@ -32,6 +32,11 @@ from .file_filter import (
 from .fingerprint import FileFingerprint, SheetFingerprint, fingerprint_file
 from .group_pipeline import GroupExtractionPipeline
 from .grouping import FileGroup, GroupingResult, compute_structural_overlap
+from .reconciliation_checks import (
+    ReconciliationResult,
+    check_noi_reconciliation,
+    run_reconciliation_checks,
+)
 from .reference_mapper import (
     GroupReferenceMapping,
     MappingMatch,
@@ -45,7 +50,10 @@ from .sharepoint import (
     SharePointClient,
     SharePointFile,
     SkippedFile,
+    compute_content_hash,
+    compute_content_hash_bytes,
     get_sharepoint_client,
+    is_file_locked,
 )
 
 __all__ = [
@@ -84,10 +92,17 @@ __all__ = [
     "validate_domain_ranges",
     # Pipeline
     "GroupExtractionPipeline",
+    # Reconciliation
+    "ReconciliationResult",
+    "check_noi_reconciliation",
+    "run_reconciliation_checks",
     # SharePoint
     "SharePointClient",
     "SharePointFile",
     "SkippedFile",
     "DiscoveryResult",
     "get_sharepoint_client",
+    "is_file_locked",
+    "compute_content_hash",
+    "compute_content_hash_bytes",
 ]
