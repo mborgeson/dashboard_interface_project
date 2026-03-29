@@ -1,6 +1,6 @@
 """add confidence_score and etag columns
 
-Revision ID: b2c3d4e5f6a7
+Revision ID: 910fe9a245a6
 Revises: a2b3c4d5e6f7
 Create Date: 2026-03-27 16:00:00.000000
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b2c3d4e5f6a7'
+revision: str = '910fe9a245a6'
 down_revision: Union[str, None] = 'a2b3c4d5e6f7'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

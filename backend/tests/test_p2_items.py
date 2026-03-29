@@ -721,5 +721,5 @@ class TestAlembicMigration:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
-        assert module.revision == "b2c3d4e5f6a7"
+        assert module.revision == "910fe9a245a6"
         assert module.down_revision == "a2b3c4d5e6f7"
