@@ -2,7 +2,7 @@
 # This config matches the CI pipeline settings
 
 # Target Python version
-target-version = "py311"
+target-version = "py312"
 
 # Fix issues automatically when running `ruff check --fix`
 fix = true

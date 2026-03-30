@@ -1,51 +1,10 @@
 {
   "hooks": {
     "PreToolUse": [],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/mattb/.claude-mem/hooks/post-tool-use.js",
-            "timeout": 180
-          }
-        ],
-        "matcher": "*"
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/mattb/.claude-mem/hooks/stop.js",
-            "timeout": 60
-          }
-        ]
-      }
-    ],
+    "PostToolUse": [],
+    "Stop": [],
     "SubagentStop": [],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/mattb/.claude-mem/hooks/session-start.js",
-            "timeout": 180
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/mattb/.claude-mem/hooks/user-prompt-submit.js",
-            "timeout": 60
-          }
-        ]
-      }
-    ]
+    "SessionStart": [],
+    "UserPromptSubmit": []
   }
 }
