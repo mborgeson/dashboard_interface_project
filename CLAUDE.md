@@ -13,10 +13,11 @@
 - `backend/app/models/` — SQLAlchemy models (2.0 style: `Mapped[type]`, `mapped_column()`, async sessions)
 - `backend/app/schemas/` — Pydantic request/response schemas
 - `backend/app/crud/` — Database operations
-- `backend/app/services/` — Business logic (subdirs: `batch/`, `construction_api/`, `data_extraction/`, `extraction/`, `ml/`, `monitoring/`; plus 15+ top-level service modules)
+- `backend/app/services/` — Business logic (subdirs: `batch/`, `construction_api/`, `data_extraction/`, `extraction/`, `ml/`, `monitoring/`, `workflow/`; plus 19 top-level service modules)
 - `backend/app/extraction/` — Proforma parsing (see Extraction Stack below)
 - `backend/app/core/` — Config, security, logging, permissions
 - `backend/app/db/` — Database abstraction (base.py, session.py, query_logger.py)
+- `backend/app/database/` — Data seeding and schema utilities
 - `backend/app/middleware/` — HTTP middleware (error_handler, etag, rate_limiter, request_id)
 - `backend/app/events/` — Event handlers
 - `backend/app/tasks/` — Background tasks
@@ -25,11 +26,15 @@
 ### Frontend
 - `src/features/` — Feature modules
 - `src/lib/api/` — API clients + Zod schemas
+- `src/lib/calculations/` — Financial calculation utilities
+- `src/lib/constants/` — App constants
+- `src/lib/utils/` — Shared utility functions
 - `src/components/` — Shared UI (shadcn/ui)
 - `src/hooks/` — React hooks
 - `src/stores/` — Feature stores (auth, notification, search via Zustand)
 - `src/store/` — App-level Zustand store (`useAppStore.ts`)
 - `src/app/` — App shell, router, routes
+- `src/assets/` — Static assets
 - `src/contexts/` — React Context providers (Loading, QuickActions, Toast)
 - `src/services/` — Frontend services (error tracking)
 - `src/types/` — Centralized TypeScript type definitions (api, deal, property, extraction, etc.)
@@ -55,7 +60,7 @@
 - Zod schemas validate and transform API responses: snake_case backend → camelCase frontend (`src/lib/api/schemas/`).
 - Zod pattern: `.nullable().optional()` with `?? undefined` (NOT `?? 0`).
 - **API client:** `src/lib/api/client.ts` (fetch-based). Exported via `src/lib/api/index.ts` with `get`/`post`/`put`/`patch`/`del` convenience wrappers.
-- ESLint react-compiler rules: no setState in useEffect, no ref.current in render.
+- React conventions: no setState in useEffect, no ref.current in render paths.
 - `src/store/useAppStore.ts` (app-level Zustand store) is separate from `src/stores/` (feature stores).
 - Known chunk warnings (deferred): exceljs 937KB, vendor-charts 455KB.
 
@@ -64,6 +69,9 @@
 ### Backend (pytest)
 - Tests in `backend/tests/`. SQLite in-memory for DB tests (need explicit `created_at`/`updated_at`, no `server_default`).
 - Run: `cd backend && python -m pytest` (in `dashboard-backend` conda env)
+- Parallel: `python -m pytest -n auto` (pytest-xdist, uses all available cores)
+- Coverage: `python -m pytest --cov=app --cov-report=term-missing` (not in default addopts — pass explicitly)
+- CI uses `-n auto` with coverage flags; see `backend-ci.yml` for the full invocation.
 
 ### Frontend (vitest)
 - Tests colocated with features or in `src/test/`.
@@ -95,7 +103,7 @@
 
 `backend/app/extraction/` — openpyxl for .xlsx/.xlsm parsing, pandas for cell mapping/transforms.
 
-**Pipeline:** `file_filter.py` (classify files) → `fingerprint.py` (identify UW model type) → `extractor.py` (pull cell values via `reference_mapper.py`) → `ExtractedValue` table. `group_pipeline.py` orchestrates batch runs. `validation.py` checks extracted values. `domain_validators.py` (domain-specific value validation), `schema_drift.py` (detects schema changes across runs), `reconciliation_checks.py` (cross-checks extracted values), `output_validation.py` (validates output quality), `field_synonyms.json` (maps alternate field names).
+**Pipeline:** `file_filter.py` (classify files) → `fingerprint.py` (identify UW model type) → `extractor.py` (pull cell values via `reference_mapper.py`) → `ExtractedValue` table. `group_pipeline.py` orchestrates batch runs. `validation.py` checks extracted values. `domain_validators.py` (domain-specific value validation), `schema_drift.py` (detects schema changes across runs), `reconciliation_checks.py` (cross-checks extracted values), `output_validation.py` (validates output quality), `field_synonyms.json` (maps alternate field names). Supporting: `sharepoint.py` (SharePoint download integration), `error_handler.py` (extraction error handling), `grouping.py` (file grouping utilities).
 
 Fragile module — cell references are template-specific.
 
