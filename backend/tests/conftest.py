@@ -110,6 +110,25 @@ def cleanup_engine():
 
 
 @pytest.fixture(autouse=True)
+def _clear_memory_cache():
+    """
+    Clear the in-memory cache between tests.
+
+    The cache module uses a module-level dict (_memory_cache) as fallback
+    when Redis is unavailable (always the case in tests). Without cleanup,
+    a cached dashboard response from one test leaks into the next, causing
+    flaky assertions on data counts.
+    """
+    from app.core.cache import _memory_cache
+
+    _memory_cache.clear()
+
+    yield
+
+    _memory_cache.clear()
+
+
+@pytest.fixture(autouse=True)
 def reset_rate_limiter():
     """
     Reset rate limiter state between tests.
