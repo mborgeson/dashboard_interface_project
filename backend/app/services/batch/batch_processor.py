@@ -9,13 +9,10 @@ from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, Generic, TypeVar
+from typing import Any
 from uuid import uuid4
 
 from loguru import logger
-
-T = TypeVar("T")
-R = TypeVar("R")
 
 
 class BatchStatus(StrEnum):
@@ -86,7 +83,7 @@ class BatchProgress:
 
 
 @dataclass
-class BatchResult(Generic[R]):
+class BatchResult[R]:
     """Result of a batch operation."""
 
     batch_id: str
@@ -95,7 +92,7 @@ class BatchResult(Generic[R]):
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-class BatchProcessor(Generic[T, R]):
+class BatchProcessor[T, R]:
     """
     Processes data in batches with progress tracking.
 

@@ -9,12 +9,9 @@ results when rows are inserted or deleted between requests.
 
 import base64
 import json
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
-
-T = TypeVar("T")
-
 
 # ---------------------------------------------------------------------------
 # Request parameters
@@ -59,7 +56,7 @@ class CursorPaginationParams(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class CursorPaginatedResponse(BaseModel, Generic[T]):
+class CursorPaginatedResponse[T](BaseModel):
     """Generic wrapper for cursor-paginated list responses.
 
     Attributes:

@@ -7,7 +7,7 @@ from __future__ import annotations
 import math
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -20,12 +20,8 @@ from app.schemas.pagination import (
     encode_cursor,
 )
 
-ModelType = TypeVar("ModelType", bound=Base)
-CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
-UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
-
-class PaginatedResult(Generic[ModelType]):
+class PaginatedResult[ModelType: Base]:
     """Container for paginated query results.
 
     Attributes:
@@ -68,7 +64,7 @@ class PaginatedResult(Generic[ModelType]):
         }
 
 
-class CursorPaginatedResult(Generic[ModelType]):
+class CursorPaginatedResult[ModelType: Base]:
     """Container for cursor-paginated query results.
 
     Attributes:
@@ -111,7 +107,11 @@ def _has_soft_delete(model: type) -> bool:
     return hasattr(model, "is_deleted") and hasattr(model, "deleted_at")
 
 
-class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
+class CRUDBase[
+    ModelType: Base,
+    CreateSchemaType: BaseModel,
+    UpdateSchemaType: BaseModel,
+]:
     """
     Base class for CRUD operations.
 
