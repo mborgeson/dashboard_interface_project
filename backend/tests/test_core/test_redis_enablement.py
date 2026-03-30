@@ -24,7 +24,6 @@ from app.middleware.rate_limiter import (
     RedisRateLimitBackend,
 )
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -149,48 +148,46 @@ class TestStartupRedisRequired:
         """When REDIS_REQUIRED=True and Redis is unreachable, startup should fail."""
         from app.core.config import settings
 
-        with patch.object(settings, "REDIS_REQUIRED", True):
-            with patch(
-                "app.services.redis_service.get_redis_service",
-                new_callable=AsyncMock,
-                side_effect=ConnectionError("Redis refused"),
-            ):
-                # Simulate the startup logic from main.py lifespan
-                with pytest.raises(RuntimeError, match="Redis is required"):
-                    try:
-                        from app.services.redis_service import get_redis_service
+        with patch.object(settings, "REDIS_REQUIRED", True), patch(
+            "app.services.redis_service.get_redis_service",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("Redis refused"),
+        ):
+            # Simulate the startup logic from main.py lifespan
+            with pytest.raises(RuntimeError, match="Redis is required"):
+                try:
+                    from app.services.redis_service import get_redis_service
 
-                        await get_redis_service()
-                    except Exception as e:
-                        if settings.REDIS_REQUIRED:
-                            raise RuntimeError(
-                                f"Redis is required but unavailable: {e}. "
-                                "Set REDIS_REQUIRED=False to allow in-memory fallback."
-                            ) from e
+                    await get_redis_service()
+                except Exception as e:
+                    if settings.REDIS_REQUIRED:
+                        raise RuntimeError(
+                            f"Redis is required but unavailable: {e}. "
+                            "Set REDIS_REQUIRED=False to allow in-memory fallback."
+                        ) from e
 
     @pytest.mark.asyncio
     async def test_startup_continues_when_redis_not_required_and_down(self):
         """When REDIS_REQUIRED=False and Redis is unreachable, startup should continue."""
         from app.core.config import settings
 
-        with patch.object(settings, "REDIS_REQUIRED", False):
-            with patch(
-                "app.services.redis_service.get_redis_service",
-                new_callable=AsyncMock,
-                side_effect=ConnectionError("Redis refused"),
-            ):
-                # Simulate the startup logic from main.py lifespan
-                fell_through = False
-                try:
-                    from app.services.redis_service import get_redis_service
+        with patch.object(settings, "REDIS_REQUIRED", False), patch(
+            "app.services.redis_service.get_redis_service",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("Redis refused"),
+        ):
+            # Simulate the startup logic from main.py lifespan
+            fell_through = False
+            try:
+                from app.services.redis_service import get_redis_service
 
-                    await get_redis_service()
-                except Exception:
-                    if settings.REDIS_REQUIRED:
-                        raise RuntimeError("Should not reach here")
-                    fell_through = True
+                await get_redis_service()
+            except Exception:
+                if settings.REDIS_REQUIRED:
+                    raise RuntimeError("Should not reach here")
+                fell_through = True
 
-                assert fell_through is True
+            assert fell_through is True
 
     @pytest.mark.asyncio
     async def test_startup_succeeds_when_redis_required_and_available(self):
@@ -198,17 +195,16 @@ class TestStartupRedisRequired:
         from app.core.config import settings
 
         mock_service = MagicMock()
-        with patch.object(settings, "REDIS_REQUIRED", True):
-            with patch(
-                "app.services.redis_service.get_redis_service",
-                new_callable=AsyncMock,
-                return_value=mock_service,
-            ):
-                # Should not raise
-                from app.services.redis_service import get_redis_service
+        with patch.object(settings, "REDIS_REQUIRED", True), patch(
+            "app.services.redis_service.get_redis_service",
+            new_callable=AsyncMock,
+            return_value=mock_service,
+        ):
+            # Should not raise
+            from app.services.redis_service import get_redis_service
 
-                service = await get_redis_service()
-                assert service is mock_service
+            service = await get_redis_service()
+            assert service is mock_service
 
 
 # =============================================================================
