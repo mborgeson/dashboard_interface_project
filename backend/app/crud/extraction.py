@@ -769,17 +769,17 @@ def _apply_hydration(
             changed = True
 
     yb = _safe_float(field_values.get("YEAR_BUILT"))
-    if yb is not None and not prop.year_built:
+    if yb is not None and 1800 <= int(yb) <= 2100 and not prop.year_built:
         prop.year_built = int(yb)
         changed = True
 
     sf = _safe_float(field_values.get("TOTAL_SF"))
-    if sf is not None and not prop.total_sf:
+    if sf is not None and int(sf) > 0 and not prop.total_sf:
         prop.total_sf = int(sf)
         changed = True
 
     cap = _safe_float(field_values.get("GOING_IN_CAP_RATE"))
-    if cap is not None and not prop.cap_rate:
+    if cap is not None and 0 <= cap <= 100 and not prop.cap_rate:
         prop.cap_rate = _dec(cap, 6)
         changed = True
 
@@ -799,7 +799,7 @@ def _apply_hydration(
         changed = True
 
     occ = _safe_float(field_values.get("OCCUPANCY_PERCENT"))
-    if occ and not prop.occupancy_rate:
+    if occ and 0 <= occ <= 100 and not prop.occupancy_rate:
         prop.occupancy_rate = _dec(occ, 4)
         changed = True
 

@@ -206,17 +206,17 @@ def update_property_columns(
         changed = True
 
     yb = safe_float(field_values.get("YEAR_BUILT"))
-    if yb is not None and not prop.year_built:
+    if yb is not None and 1800 <= int(yb) <= 2100 and not prop.year_built:
         prop.year_built = int(yb)
         changed = True
 
     sf = safe_float(field_values.get("TOTAL_SF"))
-    if sf is not None and not prop.total_sf:
+    if sf is not None and int(sf) > 0 and not prop.total_sf:
         prop.total_sf = int(sf)
         changed = True
 
     cap = safe_float(field_values.get("GOING_IN_CAP_RATE"))
-    if cap is not None and not prop.cap_rate:
+    if cap is not None and 0 <= cap <= 100 and not prop.cap_rate:
         prop.cap_rate = to_decimal(cap, 6)
         changed = True
 

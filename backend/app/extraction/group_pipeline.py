@@ -945,17 +945,23 @@ class GroupExtractionPipeline:
                 },
             )
 
+            # Commit extraction values + run completion before sync/hydration
+            # so that extraction data is preserved even if sync fails.
+            db.commit()
+
             # Sync extracted values to properties/deals tables
             from app.crud.extraction import sync_extracted_to_properties
 
             try:
                 sync_result = sync_extracted_to_properties(db, run_id)
+                db.commit()
                 logger.info(
                     "group_extraction_sync_complete",
                     group=group_name,
                     **sync_result,
                 )
             except Exception:
+                db.rollback()
                 logger.exception(
                     "group_extraction_sync_failed",
                     group=group_name,
@@ -967,12 +973,14 @@ class GroupExtractionPipeline:
 
             try:
                 hydrate_result = hydrate_properties_from_extracted(db)
+                db.commit()
                 logger.info(
                     "group_extraction_hydrate_complete",
                     group=group_name,
                     **hydrate_result,
                 )
             except Exception:
+                db.rollback()
                 logger.exception(
                     "group_extraction_hydrate_failed",
                     group=group_name,
