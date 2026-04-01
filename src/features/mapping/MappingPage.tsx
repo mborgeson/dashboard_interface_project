@@ -293,7 +293,7 @@ export function MappingPage() {
   }
 
   return (
-    <div className="relative h-[calc(100vh-64px)]">
+    <div className="relative h-[calc(100vh-64px)] overflow-hidden">
       {/* Map Container */}
       <div ref={mapContainerRef} className="w-full h-full" />
 

@@ -23,7 +23,6 @@ import {
   Search,
   Database,
   HardHat,
-  ArrowLeftRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo } from 'react';
@@ -31,7 +30,6 @@ import { useEffect, useMemo } from 'react';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Investments', href: '/investments', icon: Building2 },
-  { name: 'Transactions', href: '/transactions', icon: ArrowLeftRight },
   { name: 'Deals', href: '/deals', icon: Briefcase },
   { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'UW Extraction', href: '/extraction', icon: Database },

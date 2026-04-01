@@ -48,10 +48,6 @@ export const SalesAnalysisPage = lazy(() =>
 export const ConstructionPipelinePage = lazy(() =>
   import('@/features/construction-pipeline').then(m => ({ default: m.ConstructionPipelinePage }))
 );
-export const TransactionsPage = lazy(() =>
-  import('@/features/transactions').then(m => ({ default: m.TransactionsPage }))
-);
-
 // Router configuration options
 export const routerOptions = {
   future: {
@@ -82,7 +78,6 @@ export const ROUTES = {
   EXTRACTION_PROPERTY: '/extraction/:propertyName',
   SALES_ANALYSIS: '/sales-analysis',
   CONSTRUCTION_PIPELINE: '/construction-pipeline',
-  TRANSACTIONS: '/transactions',
 } as const;
 
 export type RoutePath = typeof ROUTES[keyof typeof ROUTES];

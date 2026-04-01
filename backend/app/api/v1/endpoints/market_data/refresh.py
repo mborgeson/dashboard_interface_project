@@ -1,5 +1,5 @@
 """
-Market data refresh endpoint — admin-only FRED extraction trigger.
+Market data refresh endpoint — analyst+ FRED extraction trigger.
 
 Note: market_data_service is accessed via sys.modules to support test mocking.
 Tests patch ``app.api.v1.endpoints.market_data.market_data_service``, so all
@@ -11,7 +11,7 @@ import sys
 from fastapi import APIRouter, Depends
 from loguru import logger
 
-from app.core.permissions import CurrentUser, require_admin
+from app.core.permissions import CurrentUser, require_analyst
 
 router = APIRouter()
 
@@ -23,7 +23,7 @@ def _svc():
 
 @router.post("/refresh")
 async def refresh_market_data(
-    _current_user: CurrentUser = Depends(require_admin),
+    _current_user: CurrentUser = Depends(require_analyst),
 ):
     """
     Trigger an incremental FRED extraction to refresh market data.

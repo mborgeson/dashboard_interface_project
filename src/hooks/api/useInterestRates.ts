@@ -323,16 +323,17 @@ function transformLendingContextFromApi(
  * Errors propagate to React Query error state
  */
 export function useKeyRatesWithMockFallback(
-  options?: Omit<UseQueryOptions<KeyRatesWithFallbackResponse>, 'queryKey' | 'queryFn'>
+  options?: Omit<UseQueryOptions<KeyRatesWithFallbackResponse>, 'queryKey' | 'queryFn'> & { forceRefresh?: boolean }
 ) {
+  const { forceRefresh, ...queryOptions } = options ?? {};
   return useQuery({
     queryKey: interestRateKeys.current(),
     queryFn: async (): Promise<KeyRatesWithFallbackResponse> => {
-      const response = await get<KeyRatesApiResponse>('/interest-rates/current');
+      const response = await get<KeyRatesApiResponse>('/interest-rates/current', forceRefresh ? { force_refresh: true } : undefined);
       return transformKeyRatesFromApi(response);
     },
     staleTime: STALE_TIMES.MEDIUM,
-    ...options,
+    ...queryOptions,
   });
 }
 
@@ -340,16 +341,17 @@ export function useKeyRatesWithMockFallback(
  * Hook to fetch Treasury yield curve
  */
 export function useYieldCurveWithMockFallback(
-  options?: Omit<UseQueryOptions<YieldCurveWithFallbackResponse>, 'queryKey' | 'queryFn'>
+  options?: Omit<UseQueryOptions<YieldCurveWithFallbackResponse>, 'queryKey' | 'queryFn'> & { forceRefresh?: boolean }
 ) {
+  const { forceRefresh, ...queryOptions } = options ?? {};
   return useQuery({
     queryKey: interestRateKeys.yieldCurve(),
     queryFn: async (): Promise<YieldCurveWithFallbackResponse> => {
-      const response = await get<YieldCurveApiResponse>('/interest-rates/yield-curve');
+      const response = await get<YieldCurveApiResponse>('/interest-rates/yield-curve', forceRefresh ? { force_refresh: true } : undefined);
       return transformYieldCurveFromApi(response);
     },
     staleTime: STALE_TIMES.MEDIUM,
-    ...options,
+    ...queryOptions,
   });
 }
 
@@ -358,18 +360,20 @@ export function useYieldCurveWithMockFallback(
  */
 export function useHistoricalRatesWithMockFallback(
   months: number = 12,
-  options?: Omit<UseQueryOptions<HistoricalRatesWithFallbackResponse>, 'queryKey' | 'queryFn'>
+  options?: Omit<UseQueryOptions<HistoricalRatesWithFallbackResponse>, 'queryKey' | 'queryFn'> & { forceRefresh?: boolean }
 ) {
+  const { forceRefresh, ...queryOptions } = options ?? {};
   return useQuery({
     queryKey: interestRateKeys.historical(months),
     queryFn: async (): Promise<HistoricalRatesWithFallbackResponse> => {
       const response = await get<HistoricalRatesApiResponse>('/interest-rates/historical', {
         months,
+        ...(forceRefresh ? { force_refresh: true } : {}),
       });
       return transformHistoricalRatesFromApi(response);
     },
     staleTime: STALE_TIMES.MEDIUM,
-    ...options,
+    ...queryOptions,
   });
 }
 

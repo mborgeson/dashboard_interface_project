@@ -177,9 +177,12 @@ describe('MarketPage', () => {
 
   // ------ Error state ------
 
-  it('shows error state when hook returns an error', () => {
+  it('shows error state when all queries fail and no data available', () => {
     mockedUseMarketData.mockReturnValue({
       ...defaultHookReturn,
+      msaOverview: null,
+      submarketMetrics: [],
+      marketTrends: [],
       error: new Error('Network error'),
       isLoading: false,
     });
@@ -192,9 +195,26 @@ describe('MarketPage', () => {
     expect(screen.getByText('Try Again')).toBeInTheDocument();
   });
 
+  it('renders partial data when some queries fail', () => {
+    mockedUseMarketData.mockReturnValue({
+      ...defaultHookReturn,
+      error: new Error('One query failed'),
+      isLoading: false,
+    });
+
+    render(<MarketPage />);
+    // Should NOT show error state since we have partial data
+    expect(screen.queryByText('Failed to load market data')).not.toBeInTheDocument();
+    // Should still render the page with available data
+    expect(screen.getByText('Market Data')).toBeInTheDocument();
+  });
+
   it('still shows header and sub-nav in error state', () => {
     mockedUseMarketData.mockReturnValue({
       ...defaultHookReturn,
+      msaOverview: null,
+      submarketMetrics: [],
+      marketTrends: [],
       error: new Error('Server error'),
       isLoading: false,
     });

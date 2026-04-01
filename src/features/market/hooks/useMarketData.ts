@@ -107,9 +107,14 @@ export function useMarketData() {
    * all market data queries so React Query re-fetches fresh data.
    */
   const refreshAll = useCallback(async () => {
-    await apiClient.post<{ status: string; records_upserted: number }>(
-      '/market/refresh'
-    );
+    try {
+      await apiClient.post<{ status: string; records_upserted: number }>(
+        '/market/refresh'
+      );
+    } catch {
+      // Refresh endpoint may fail (e.g. DB not configured) — still invalidate
+      // cache so React Query re-fetches from backend fallback data.
+    }
     await queryClient.invalidateQueries({ queryKey: marketDataKeys.all });
   }, [queryClient]);
 

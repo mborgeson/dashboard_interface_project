@@ -19,7 +19,6 @@ import {
   DealComparisonPage,
   SalesAnalysisPage,
   ConstructionPipelinePage,
-  TransactionsPage,
   LoginPage,
   routerOptions,
 } from './routes';
@@ -231,16 +230,6 @@ const router = createBrowserRouter(
                 <FeatureErrorBoundary featureName="Construction Pipeline">
                   <LazyRoute>
                     <ConstructionPipelinePage />
-                  </LazyRoute>
-                </FeatureErrorBoundary>
-              ),
-            },
-            {
-              path: 'transactions',
-              element: (
-                <FeatureErrorBoundary featureName="Transactions">
-                  <LazyRoute>
-                    <TransactionsPage />
                   </LazyRoute>
                 </FeatureErrorBoundary>
               ),

@@ -15,6 +15,7 @@ import {
   useHistoricalRatesWithMockFallback,
   interestRateKeys,
 } from "@/hooks/api/useInterestRates";
+import { get } from "@/lib/api/client";
 import { STALE_TIMES } from "@/lib/constants/query";
 
 interface UseInterestRatesOptions {
@@ -71,8 +72,15 @@ export function useInterestRates(options: UseInterestRatesOptions = {}) {
     historicalRatesQuery.error?.message ??
     null;
 
-  // Manual refresh function - invalidates all interest rate queries
-  const refresh = useCallback(() => {
+  // Manual refresh — hit FRED API directly via force_refresh, then invalidate cache
+  const refresh = useCallback(async () => {
+    // Fire force_refresh requests to pull fresh data from FRED into the DB
+    await Promise.allSettled([
+      get('/interest-rates/current', { force_refresh: true }),
+      get('/interest-rates/yield-curve', { force_refresh: true }),
+      get('/interest-rates/historical', { months: 12, force_refresh: true }),
+    ]);
+    // Invalidate React Query cache so hooks re-fetch with the fresh DB data
     queryClient.invalidateQueries({ queryKey: interestRateKeys.all });
   }, [queryClient]);
 

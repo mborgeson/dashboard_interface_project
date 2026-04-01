@@ -77,8 +77,8 @@ export function MarketPage() {
     }
   }
 
-  // Show error state
-  if (error) {
+  // Show error state only if ALL queries failed (partial data still renders)
+  if (error && !msaOverview && submarketMetrics.length === 0 && marketTrends.length === 0) {
     return (
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
