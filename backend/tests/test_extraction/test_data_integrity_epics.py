@@ -666,12 +666,10 @@ class TestNullTypeDifferentiation:
             "EMPTY": NullValue(is_error=False, raw_value=None),
             "PLACEHOLDER": NullValue(is_error=False, raw_value="TBD"),
             "FORMULA_ERR": NullValue(
-                is_error=True, raw_value="#REF!",
-                error_category="formula_error"
+                is_error=True, raw_value="#REF!", error_category="formula_error"
             ),
             "MISSING_SHEET": NullValue(
-                is_error=True, raw_value=None,
-                error_category="missing_sheet"
+                is_error=True, raw_value=None, error_category="missing_sheet"
             ),
             "GOOD_VALUE": 100.0,
         }

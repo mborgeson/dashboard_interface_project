@@ -158,7 +158,9 @@ def run_extraction(
 
     print(f"\n{'=' * 60}")
     print(f"  Extract New Files — {'DRY RUN' if dry_run else 'LIVE'}")
-    print(f"  Groups: {len(groups_to_process)}  |  Files: {summary['total_files_targeted']}")
+    print(
+        f"  Groups: {len(groups_to_process)}  |  Files: {summary['total_files_targeted']}"
+    )
     print(f"{'=' * 60}\n")
 
     for group_name, deal_names in groups_to_process.items():
@@ -272,7 +274,9 @@ def run_extraction(
     print(f"{'=' * 60}")
     print(f"  Mode:            {'DRY RUN' if dry_run else 'LIVE'}")
     print(f"  Groups processed: {summary['groups_processed']}/{len(groups_to_process)}")
-    print(f"  Files processed:  {summary['total_files_processed']}/{summary['total_files_targeted']}")
+    print(
+        f"  Files processed:  {summary['total_files_processed']}/{summary['total_files_targeted']}"
+    )
     print(f"  Files failed:     {summary['total_files_failed']}")
     print(f"  Values extracted: {summary['total_values_extracted']}")
     print(f"{'=' * 60}\n")
@@ -308,7 +312,9 @@ def main() -> None:
     result = run_extraction(dry_run=args.dry_run, target_group=args.group)
 
     # Write summary to a report file
-    report_path = Path(settings.GROUP_EXTRACTION_DATA_DIR) / "new_files_extraction_report.json"
+    report_path = (
+        Path(settings.GROUP_EXTRACTION_DATA_DIR) / "new_files_extraction_report.json"
+    )
     report_path.write_text(json.dumps(result, indent=2, default=str))
     print(f"Report saved to: {report_path}")
 

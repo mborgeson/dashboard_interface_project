@@ -101,6 +101,25 @@ PROFORMA_FIELDS = {
     "PROFORMA_DEBT_YIELD_YR3",
 }
 
+# ── Proforma field aliases ───────────────────────────────────────────
+# Maps DB field names (from Proforma extraction) → dashboard field names.
+# Proforma files store year-specific returns as IRR_YR2/MOIC_YR2/etc., but
+# the dashboard expects LEVERED_RETURNS_IRR_YR2/LEVERED_RETURNS_MOIC_YR2/etc.
+# Similarly, NOI_PER_UNIT_YR2 in the DB maps to PROFORMA_NOI_YR2 on the dashboard.
+PROFORMA_FIELD_ALIASES: dict[str, str] = {
+    "IRR_YR2": "LEVERED_RETURNS_IRR_YR2",
+    "IRR_YR3": "LEVERED_RETURNS_IRR_YR3",
+    "IRR_YR7": "LEVERED_RETURNS_IRR_YR7",
+    "MOIC_YR2": "LEVERED_RETURNS_MOIC_YR2",
+    "MOIC_YR3": "LEVERED_RETURNS_MOIC_YR3",
+    "MOIC_YR7": "LEVERED_RETURNS_MOIC_YR7",
+    "NOI_PER_UNIT_YR2": "PROFORMA_NOI_YR2",
+}
+
+# All field names to query: the canonical dashboard names plus the DB alias sources.
+# Used to expand the WHERE ... IN (...) filter so both names are fetched.
+_PROFORMA_QUERY_FIELDS = PROFORMA_FIELDS | set(PROFORMA_FIELD_ALIASES.keys())
+
 
 async def enrich_deals_with_extraction(
     db: AsyncSession, deal_responses: list[DealResponse]

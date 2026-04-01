@@ -124,9 +124,7 @@ class TestDeltaTokenModel:
         ):
             await db_session.commit()
 
-    async def test_delta_token_timestamps(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_delta_token_timestamps(self, db_session: AsyncSession) -> None:
         """Verify created_at and updated_at are set correctly."""
         now = datetime.now(UTC)
         token = DeltaToken(
@@ -154,25 +152,17 @@ class TestDeltaTokenCRUD:
         self, db_session: AsyncSession, delta_token: DeltaToken
     ) -> None:
         """Verify get_by_drive_id returns existing token."""
-        result = await DeltaTokenCRUD.get_by_drive_id(
-            db_session, "test-drive-001"
-        )
+        result = await DeltaTokenCRUD.get_by_drive_id(db_session, "test-drive-001")
         assert result is not None
         assert result.drive_id == "test-drive-001"
         assert result.delta_token == "initial-token-abc123"
 
-    async def test_get_by_drive_id_not_found(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_get_by_drive_id_not_found(self, db_session: AsyncSession) -> None:
         """Verify get_by_drive_id returns None for missing drive."""
-        result = await DeltaTokenCRUD.get_by_drive_id(
-            db_session, "nonexistent-drive"
-        )
+        result = await DeltaTokenCRUD.get_by_drive_id(db_session, "nonexistent-drive")
         assert result is None
 
-    async def test_upsert_token_create(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_upsert_token_create(self, db_session: AsyncSession) -> None:
         """Verify upsert_token creates a new record when none exists."""
         result = await DeltaTokenCRUD.upsert_token(
             db_session, "new-drive-999", "brand-new-token"
@@ -184,9 +174,7 @@ class TestDeltaTokenCRUD:
         assert result.last_sync_at is not None
 
         # Verify in database
-        fetched = await DeltaTokenCRUD.get_by_drive_id(
-            db_session, "new-drive-999"
-        )
+        fetched = await DeltaTokenCRUD.get_by_drive_id(db_session, "new-drive-999")
         assert fetched is not None
         assert fetched.delta_token == "brand-new-token"
 
@@ -218,34 +206,24 @@ class TestDeltaTokenCRUD:
         # last_sync_at should be updated (or at least not earlier)
         assert result.last_sync_at is not None
         # In SQLite test, timestamps lose tzinfo — compare naively
-        assert result.last_sync_at.replace(tzinfo=None) >= old_sync.replace(
-            tzinfo=None
-        )
+        assert result.last_sync_at.replace(tzinfo=None) >= old_sync.replace(tzinfo=None)
 
     async def test_clear_token_existing(
         self, db_session: AsyncSession, delta_token: DeltaToken
     ) -> None:
         """Verify clear_token deletes an existing token."""
-        result = await DeltaTokenCRUD.clear_token(
-            db_session, "test-drive-001"
-        )
+        result = await DeltaTokenCRUD.clear_token(db_session, "test-drive-001")
         await db_session.commit()
 
         assert result is True
 
         # Verify deleted
-        fetched = await DeltaTokenCRUD.get_by_drive_id(
-            db_session, "test-drive-001"
-        )
+        fetched = await DeltaTokenCRUD.get_by_drive_id(db_session, "test-drive-001")
         assert fetched is None
 
-    async def test_clear_token_nonexistent(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_clear_token_nonexistent(self, db_session: AsyncSession) -> None:
         """Verify clear_token returns False for missing drive."""
-        result = await DeltaTokenCRUD.clear_token(
-            db_session, "no-such-drive"
-        )
+        result = await DeltaTokenCRUD.clear_token(db_session, "no-such-drive")
         await db_session.commit()
         assert result is False
 
@@ -254,15 +232,11 @@ class TestDeltaTokenCRUD:
     ) -> None:
         """Verify full lifecycle: create -> clear -> recreate."""
         # Create
-        await DeltaTokenCRUD.upsert_token(
-            db_session, "lifecycle-drive", "token-v1"
-        )
+        await DeltaTokenCRUD.upsert_token(db_session, "lifecycle-drive", "token-v1")
         await db_session.commit()
 
         # Clear
-        cleared = await DeltaTokenCRUD.clear_token(
-            db_session, "lifecycle-drive"
-        )
+        cleared = await DeltaTokenCRUD.clear_token(db_session, "lifecycle-drive")
         await db_session.commit()
         assert cleared is True
 
@@ -421,9 +395,7 @@ class TestSharePointDeltaChanges:
                     "size": 1000,
                     "lastModifiedDateTime": "2025-01-01T10:00:00Z",
                     "createdDateTime": "2025-01-01T10:00:00Z",
-                    "parentReference": {
-                        "path": "/drives/drv-1/root:/Deals/S/D"
-                    },
+                    "parentReference": {"path": "/drives/drv-1/root:/Deals/S/D"},
                 },
             ],
             "@odata.nextLink": "https://graph.microsoft.com/v1.0/drives/drv-1/root/delta?$skiptoken=page2",
@@ -437,9 +409,7 @@ class TestSharePointDeltaChanges:
                     "size": 2000,
                     "lastModifiedDateTime": "2025-01-02T10:00:00Z",
                     "createdDateTime": "2025-01-02T10:00:00Z",
-                    "parentReference": {
-                        "path": "/drives/drv-1/root:/Deals/S/D"
-                    },
+                    "parentReference": {"path": "/drives/drv-1/root:/Deals/S/D"},
                 },
             ],
             "@odata.deltaLink": "https://graph.microsoft.com/v1.0/drives/drv-1/root/delta?token=final-token",
@@ -490,9 +460,7 @@ class TestSharePointDeltaChanges:
         ):
             # Set _session to None so owns_session is True for cleanup
             mock_sharepoint_client._session = None
-            result = await mock_sharepoint_client.get_delta_changes(
-                drive_id="drv-1"
-            )
+            result = await mock_sharepoint_client.get_delta_changes(drive_id="drv-1")
 
         assert len(result.changes) == 2
         assert result.new_delta_token == "final-token"
@@ -509,9 +477,7 @@ class TestSharePointDeltaChanges:
                     "id": "folder-1",
                     "name": "SomeFolder",
                     "folder": {"childCount": 5},
-                    "parentReference": {
-                        "path": "/drives/drv-1/root:/Deals"
-                    },
+                    "parentReference": {"path": "/drives/drv-1/root:/Deals"},
                 },
                 {
                     "id": "file-1",
@@ -520,9 +486,7 @@ class TestSharePointDeltaChanges:
                     "size": 3000,
                     "lastModifiedDateTime": "2025-03-01T10:00:00Z",
                     "createdDateTime": "2025-03-01T10:00:00Z",
-                    "parentReference": {
-                        "path": "/drives/drv-1/root:/Deals/S/D"
-                    },
+                    "parentReference": {"path": "/drives/drv-1/root:/Deals/S/D"},
                 },
             ],
             "@odata.deltaLink": "https://graph.microsoft.com/v1.0/drives/drv-1/root/delta?token=skip-folders",
@@ -540,9 +504,7 @@ class TestSharePointDeltaChanges:
                 return_value=mock_response,
             ),
         ):
-            result = await mock_sharepoint_client.get_delta_changes(
-                drive_id="drv-1"
-            )
+            result = await mock_sharepoint_client.get_delta_changes(drive_id="drv-1")
 
         # Only the file should be in changes, not the folder
         assert len(result.changes) == 1
@@ -585,7 +547,9 @@ class TestSharePointDeltaHelpers:
 
     def test_extract_token_from_delta_link(self) -> None:
         """Verify token extraction from deltaLink URL."""
-        link = "https://graph.microsoft.com/v1.0/drives/drv-1/root/delta?token=abc123xyz"
+        link = (
+            "https://graph.microsoft.com/v1.0/drives/drv-1/root/delta?token=abc123xyz"
+        )
         token = SharePointClient._extract_token_from_delta_link(link)
         assert token == "abc123xyz"
 
@@ -599,9 +563,7 @@ class TestSharePointDeltaHelpers:
         """Verify path extraction from item with parentReference."""
         item = {
             "name": "Model.xlsb",
-            "parentReference": {
-                "path": "/drives/drv-1/root:/Deals/Stage/DealName"
-            },
+            "parentReference": {"path": "/drives/drv-1/root:/Deals/Stage/DealName"},
         }
         path = SharePointClient._extract_item_path(item)
         assert path == "Deals/Stage/DealName/Model.xlsb"
@@ -681,9 +643,7 @@ class TestSharePointDeltaHelpers:
 class TestFileMonitorDelta:
     """Tests for FileMonitor.check_for_changes_delta()."""
 
-    async def test_initial_sync_full_scan(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_initial_sync_full_scan(self, db_session: AsyncSession) -> None:
         """Verify initial delta check (no token) does full enumeration and stores token."""
         mock_client = AsyncMock(spec=SharePointClient)
         mock_client._get_drive_id = AsyncMock(return_value="drv-test")
@@ -725,9 +685,7 @@ class TestFileMonitorDelta:
     ) -> None:
         """Verify delta check uses existing token for incremental query."""
         mock_client = AsyncMock(spec=SharePointClient)
-        mock_client._get_drive_id = AsyncMock(
-            return_value="test-drive-001"
-        )
+        mock_client._get_drive_id = AsyncMock(return_value="test-drive-001")
         mock_client.get_delta_changes = AsyncMock(
             return_value=DeltaQueryResult(
                 changes=[
@@ -762,9 +720,7 @@ class TestFileMonitorDelta:
         assert result.changes[0].change_type == "modified"
 
         # Verify token was updated
-        stored = await DeltaTokenCRUD.get_by_drive_id(
-            db_session, "test-drive-001"
-        )
+        stored = await DeltaTokenCRUD.get_by_drive_id(db_session, "test-drive-001")
         assert stored is not None
         assert stored.delta_token == "updated-token"
 
@@ -773,9 +729,7 @@ class TestFileMonitorDelta:
     ) -> None:
         """Verify HTTP 410 (Gone) clears token and falls back to full scan."""
         mock_client = AsyncMock(spec=SharePointClient)
-        mock_client._get_drive_id = AsyncMock(
-            return_value="test-drive-001"
-        )
+        mock_client._get_drive_id = AsyncMock(return_value="test-drive-001")
 
         # Simulate 410 Gone error
         gone_error = Exception("Gone")
@@ -804,14 +758,10 @@ class TestFileMonitorDelta:
         assert fallback_result is mock_full_result
 
         # Token should be cleared
-        stored = await DeltaTokenCRUD.get_by_drive_id(
-            db_session, "test-drive-001"
-        )
+        stored = await DeltaTokenCRUD.get_by_drive_id(db_session, "test-drive-001")
         assert stored is None
 
-    async def test_deleted_files_in_delta(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_deleted_files_in_delta(self, db_session: AsyncSession) -> None:
         """Verify deleted files from delta query are tracked."""
         mock_client = AsyncMock(spec=SharePointClient)
         mock_client._get_drive_id = AsyncMock(return_value="drv-del")
@@ -841,9 +791,7 @@ class TestFileMonitorDelta:
         assert result.changes[0].change_type == "deleted"
         assert result.changes[0].file_name == "Removed.xlsb"
 
-    async def test_no_changes_delta(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_no_changes_delta(self, db_session: AsyncSession) -> None:
         """Verify empty delta result produces no changes."""
         mock_client = AsyncMock(spec=SharePointClient)
         mock_client._get_drive_id = AsyncMock(return_value="drv-empty")
@@ -970,9 +918,7 @@ class TestDeltaQueryConfig:
 
     def test_delta_query_can_be_enabled(self) -> None:
         """Verify DELTA_QUERY_ENABLED can be set to True."""
-        with patch.dict(
-            "os.environ", {"DELTA_QUERY_ENABLED": "true"}, clear=False
-        ):
+        with patch.dict("os.environ", {"DELTA_QUERY_ENABLED": "true"}, clear=False):
             extraction = ExtractionSettings()
             assert extraction.DELTA_QUERY_ENABLED is True
 

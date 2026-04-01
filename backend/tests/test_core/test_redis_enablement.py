@@ -148,10 +148,13 @@ class TestStartupRedisRequired:
         """When REDIS_REQUIRED=True and Redis is unreachable, startup should fail."""
         from app.core.config import settings
 
-        with patch.object(settings, "REDIS_REQUIRED", True), patch(
-            "app.services.redis_service.get_redis_service",
-            new_callable=AsyncMock,
-            side_effect=ConnectionError("Redis refused"),
+        with (
+            patch.object(settings, "REDIS_REQUIRED", True),
+            patch(
+                "app.services.redis_service.get_redis_service",
+                new_callable=AsyncMock,
+                side_effect=ConnectionError("Redis refused"),
+            ),
         ):
             # Simulate the startup logic from main.py lifespan
             with pytest.raises(RuntimeError, match="Redis is required"):
@@ -171,10 +174,13 @@ class TestStartupRedisRequired:
         """When REDIS_REQUIRED=False and Redis is unreachable, startup should continue."""
         from app.core.config import settings
 
-        with patch.object(settings, "REDIS_REQUIRED", False), patch(
-            "app.services.redis_service.get_redis_service",
-            new_callable=AsyncMock,
-            side_effect=ConnectionError("Redis refused"),
+        with (
+            patch.object(settings, "REDIS_REQUIRED", False),
+            patch(
+                "app.services.redis_service.get_redis_service",
+                new_callable=AsyncMock,
+                side_effect=ConnectionError("Redis refused"),
+            ),
         ):
             # Simulate the startup logic from main.py lifespan
             fell_through = False
@@ -195,10 +201,13 @@ class TestStartupRedisRequired:
         from app.core.config import settings
 
         mock_service = MagicMock()
-        with patch.object(settings, "REDIS_REQUIRED", True), patch(
-            "app.services.redis_service.get_redis_service",
-            new_callable=AsyncMock,
-            return_value=mock_service,
+        with (
+            patch.object(settings, "REDIS_REQUIRED", True),
+            patch(
+                "app.services.redis_service.get_redis_service",
+                new_callable=AsyncMock,
+                return_value=mock_service,
+            ),
         ):
             # Should not raise
             from app.services.redis_service import get_redis_service
@@ -240,9 +249,7 @@ class TestTokenBlacklistRedis:
         mock_redis.setex.assert_awaited_once_with("blacklist:token-123", 300, "1")
 
     @pytest.mark.asyncio
-    async def test_is_blacklisted_checks_redis(
-        self, blacklist_with_redis, mock_redis
-    ):
+    async def test_is_blacklisted_checks_redis(self, blacklist_with_redis, mock_redis):
         """Blacklist check should query Redis when available."""
         mock_redis.exists = AsyncMock(return_value=1)
         result = await blacklist_with_redis.is_blacklisted("token-123")
@@ -250,26 +257,20 @@ class TestTokenBlacklistRedis:
         mock_redis.exists.assert_awaited_once_with("blacklist:token-123")
 
     @pytest.mark.asyncio
-    async def test_is_blacklisted_miss_in_redis(
-        self, blacklist_with_redis, mock_redis
-    ):
+    async def test_is_blacklisted_miss_in_redis(self, blacklist_with_redis, mock_redis):
         """Token not in Redis should return False."""
         mock_redis.exists = AsyncMock(return_value=0)
         result = await blacklist_with_redis.is_blacklisted("unknown-token")
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_remove_deletes_from_redis(
-        self, blacklist_with_redis, mock_redis
-    ):
+    async def test_remove_deletes_from_redis(self, blacklist_with_redis, mock_redis):
         """Removing a token should delete it from Redis."""
         await blacklist_with_redis.remove("token-123")
         mock_redis.delete.assert_awaited_once_with("blacklist:token-123")
 
     @pytest.mark.asyncio
-    async def test_revoke_user_tokens_in_redis(
-        self, blacklist_with_redis, mock_redis
-    ):
+    async def test_revoke_user_tokens_in_redis(self, blacklist_with_redis, mock_redis):
         """User revocation should be stored in Redis."""
         await blacklist_with_redis.revoke_user_tokens("user-42", expires_in=600)
         mock_redis.setex.assert_awaited_once()
@@ -278,9 +279,7 @@ class TestTokenBlacklistRedis:
         assert call_args[1] == 600
 
     @pytest.mark.asyncio
-    async def test_is_user_revoked_checks_redis(
-        self, blacklist_with_redis, mock_redis
-    ):
+    async def test_is_user_revoked_checks_redis(self, blacklist_with_redis, mock_redis):
         """User revocation check should query Redis."""
         mock_redis.exists = AsyncMock(return_value=1)
         result = await blacklist_with_redis.is_user_revoked("user-42")
@@ -399,9 +398,7 @@ class TestCacheServiceRedis:
         assert cache_with_redis.is_redis_available is True
 
     @pytest.mark.asyncio
-    async def test_redis_error_falls_back_to_memory_on_set(
-        self, mock_redis
-    ):
+    async def test_redis_error_falls_back_to_memory_on_set(self, mock_redis):
         """On Redis set error, should fall back to memory."""
         svc = CacheService()
         svc._init_attempted = True
@@ -415,9 +412,7 @@ class TestCacheServiceRedis:
         assert full_key in _memory_cache
 
     @pytest.mark.asyncio
-    async def test_redis_error_falls_back_to_memory_on_get(
-        self, mock_redis
-    ):
+    async def test_redis_error_falls_back_to_memory_on_get(self, mock_redis):
         """On Redis get error, should fall back to memory."""
         svc = CacheService()
         svc._init_attempted = True
@@ -436,17 +431,13 @@ class TestCacheServiceRedis:
     @pytest.mark.asyncio
     async def test_stats_with_redis(self, cache_with_redis, mock_redis):
         """Stats should include redis_entries when Redis is available."""
-        mock_redis.scan = AsyncMock(
-            return_value=(0, ["dashboard:a", "dashboard:b"])
-        )
+        mock_redis.scan = AsyncMock(return_value=(0, ["dashboard:a", "dashboard:b"]))
         stats = await cache_with_redis.get_stats()
         assert stats["backend"] == "redis"
         assert stats["redis_entries"] == 2
 
     @pytest.mark.asyncio
-    async def test_invalidate_pattern_with_redis(
-        self, cache_with_redis, mock_redis
-    ):
+    async def test_invalidate_pattern_with_redis(self, cache_with_redis, mock_redis):
         """invalidate_pattern should scan and delete matching Redis keys."""
         mock_redis.scan = AsyncMock(
             return_value=(0, ["dashboard:property_1", "dashboard:property_2"])
@@ -499,9 +490,7 @@ class TestRateLimiterRedis:
         mock_pipe.execute = AsyncMock(return_value=[0, 5, 1, True])
         mock_redis.pipeline = MagicMock(return_value=mock_pipe)
         mock_redis.zrem = AsyncMock()
-        mock_redis.zrange = AsyncMock(
-            return_value=[(b"member", time.time() - 30)]
-        )
+        mock_redis.zrange = AsyncMock(return_value=[(b"member", time.time() - 30)])
 
         backend = RedisRateLimitBackend(redis_client=mock_redis)
         is_limited, remaining, retry_after = await backend.is_rate_limited(
@@ -517,9 +506,7 @@ class TestRateLimiterRedis:
         """Redis backend should fail open (allow request) on error."""
         mock_redis = AsyncMock()
         mock_pipe = AsyncMock()
-        mock_pipe.execute = AsyncMock(
-            side_effect=Exception("Redis connection lost")
-        )
+        mock_pipe.execute = AsyncMock(side_effect=Exception("Redis connection lost"))
         mock_redis.pipeline = MagicMock(return_value=mock_pipe)
 
         backend = RedisRateLimitBackend(redis_client=mock_redis)

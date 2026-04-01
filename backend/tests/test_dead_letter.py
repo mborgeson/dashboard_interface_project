@@ -205,9 +205,7 @@ class TestRecordFileFailure:
         self, db_session: AsyncSession
     ):
         """Recording failure for a nonexistent file returns None."""
-        result = await record_file_failure(
-            db_session, uuid4(), "Some error"
-        )
+        result = await record_file_failure(db_session, uuid4(), "Some error")
         assert result is None
 
     async def test_quarantine_threshold_is_three(self):
@@ -219,25 +217,19 @@ class TestRecordFileFailure:
     ):
         """Walk through the full lifecycle: 0 -> 1 -> 2 -> 3 (quarantined)."""
         # Failure 1
-        result = await record_file_failure(
-            db_session, healthy_file.id, "Error 1"
-        )
+        result = await record_file_failure(db_session, healthy_file.id, "Error 1")
         assert result is not None
         assert result.consecutive_failures == 1
         assert result.quarantined is False
 
         # Failure 2
-        result = await record_file_failure(
-            db_session, healthy_file.id, "Error 2"
-        )
+        result = await record_file_failure(db_session, healthy_file.id, "Error 2")
         assert result is not None
         assert result.consecutive_failures == 2
         assert result.quarantined is False
 
         # Failure 3 -> quarantined
-        result = await record_file_failure(
-            db_session, healthy_file.id, "Error 3"
-        )
+        result = await record_file_failure(db_session, healthy_file.id, "Error 3")
         assert result is not None
         assert result.consecutive_failures == 3
         assert result.quarantined is True
@@ -361,9 +353,7 @@ class TestRetryQuarantinedFile:
         assert result.quarantined is False
         assert result.extraction_pending is True
 
-    async def test_retry_nonexistent_returns_none(
-        self, db_session: AsyncSession
-    ):
+    async def test_retry_nonexistent_returns_none(self, db_session: AsyncSession):
         """Retry on nonexistent file returns None."""
         result = await retry_quarantined_file(db_session, uuid4())
         assert result is None
@@ -384,9 +374,7 @@ class TestNeedsExtractionProperty:
         assert quarantined_file.quarantined is True
         assert quarantined_file.needs_extraction is False
 
-    async def test_active_pending_file_needs_extraction(
-        self, db_session: AsyncSession
-    ):
+    async def test_active_pending_file_needs_extraction(self, db_session: AsyncSession):
         """Active, pending, non-quarantined file needs extraction."""
         file = _make_monitored_file(
             deal_name="Pending Deal",
@@ -479,9 +467,7 @@ class TestQuarantinedExcludedFromPending:
 class TestDeadLetterListEndpoint:
     """Tests for GET /api/v1/extraction/dead-letter."""
 
-    async def test_list_requires_auth(
-        self, client: AsyncClient
-    ):
+    async def test_list_requires_auth(self, client: AsyncClient):
         """Unauthenticated request returns 401."""
         response = await client.get("/api/v1/extraction/dead-letter")
         assert response.status_code == 401

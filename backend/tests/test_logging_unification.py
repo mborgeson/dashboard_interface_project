@@ -56,9 +56,13 @@ class TestNoStructlogImports:
                             violations.append(
                                 f"{rel}:{node.lineno} -> import {alias.name}"
                             )
-                elif isinstance(node, ast.ImportFrom) and node.module and (
-                    node.module == "structlog"
-                    or node.module.startswith("structlog.")
+                elif (
+                    isinstance(node, ast.ImportFrom)
+                    and node.module
+                    and (
+                        node.module == "structlog"
+                        or node.module.startswith("structlog.")
+                    )
                 ):
                     rel = py_file.relative_to(APP_DIR.parent)
                     violations.append(
@@ -187,7 +191,9 @@ class TestCorrelationIds:
             f"monitor-check-{uuid.uuid4().hex[:8]}",
         ]
         for sample in samples:
-            assert pattern.match(sample), f"Correlation ID '{sample}' doesn't match expected format"
+            assert pattern.match(sample), (
+                f"Correlation ID '{sample}' doesn't match expected format"
+            )
 
     def test_contextualize_injects_into_log_record(self) -> None:
         """logger.contextualize should inject correlation_id into extra."""
@@ -227,7 +233,9 @@ class TestLoguruConfiguration:
         from app.core.logging import _request_id_patcher
 
         record: dict = {"extra": {}}
-        with patch("app.middleware.request_id.get_request_id", return_value="test-req-123"):
+        with patch(
+            "app.middleware.request_id.get_request_id", return_value="test-req-123"
+        ):
             _request_id_patcher(record)
 
         assert record["extra"]["request_id"] == "test-req-123"

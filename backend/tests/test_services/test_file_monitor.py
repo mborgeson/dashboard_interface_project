@@ -1080,9 +1080,7 @@ class TestSyncDealStages:
         await db_session.refresh(deal)
 
         # Simulate folder move: deal_stage changes from initial_review to dead
-        updated = await file_monitor._sync_deal_stages(
-            [("Test Deal", "dead")]
-        )
+        updated = await file_monitor._sync_deal_stages([("Test Deal", "dead")])
 
         assert updated == 1
         await db_session.refresh(deal)
@@ -1105,9 +1103,7 @@ class TestSyncDealStages:
         db_session.add(deal)
         await db_session.commit()
 
-        updated = await file_monitor._sync_deal_stages(
-            [("Already Dead", "dead")]
-        )
+        updated = await file_monitor._sync_deal_stages([("Already Dead", "dead")])
 
         assert updated == 0
 
@@ -1116,9 +1112,7 @@ class TestSyncDealStages:
         self, db_session: AsyncSession, file_monitor
     ):
         """Invalid stage strings are skipped without error."""
-        updated = await file_monitor._sync_deal_stages(
-            [("Some Deal", "invalid_stage")]
-        )
+        updated = await file_monitor._sync_deal_stages([("Some Deal", "invalid_stage")])
         assert updated == 0
 
     @pytest.mark.asyncio

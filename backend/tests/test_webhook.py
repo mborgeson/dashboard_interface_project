@@ -27,9 +27,7 @@ import pytest
 
 async def test_validation_handshake_returns_token(client):
     """POST with validationToken query param echoes it as text/plain 200."""
-    response = await client.post(
-        "/api/v1/webhook?validationToken=abc123-test-token"
-    )
+    response = await client.post("/api/v1/webhook?validationToken=abc123-test-token")
     assert response.status_code == 200
     assert response.text == "abc123-test-token"
     assert "text/plain" in response.headers.get("content-type", "")
@@ -41,9 +39,7 @@ async def test_validation_handshake_preserves_special_characters(client):
 
     token = "token+with/special=chars&more"
     encoded = quote(token, safe="")
-    response = await client.post(
-        f"/api/v1/webhook?validationToken={encoded}"
-    )
+    response = await client.post(f"/api/v1/webhook?validationToken={encoded}")
     assert response.status_code == 200
     assert response.text == token
 
@@ -62,7 +58,11 @@ async def test_validation_handshake_empty_token(client):
 
 @patch("app.api.v1.endpoints.webhook._queue_file_change", new_callable=AsyncMock)
 @patch("app.api.v1.endpoints.webhook._set_debounce", new_callable=AsyncMock)
-@patch("app.api.v1.endpoints.webhook._is_debounced", new_callable=AsyncMock, return_value=False)
+@patch(
+    "app.api.v1.endpoints.webhook._is_debounced",
+    new_callable=AsyncMock,
+    return_value=False,
+)
 async def test_valid_notification_processed(
     mock_debounced, mock_set, mock_queue, client
 ):
@@ -94,7 +94,11 @@ async def test_valid_notification_processed(
 
 @patch("app.api.v1.endpoints.webhook._queue_file_change", new_callable=AsyncMock)
 @patch("app.api.v1.endpoints.webhook._set_debounce", new_callable=AsyncMock)
-@patch("app.api.v1.endpoints.webhook._is_debounced", new_callable=AsyncMock, return_value=False)
+@patch(
+    "app.api.v1.endpoints.webhook._is_debounced",
+    new_callable=AsyncMock,
+    return_value=False,
+)
 async def test_multiple_notifications_in_single_payload(
     mock_debounced, mock_set, mock_queue, client
 ):
@@ -131,7 +135,11 @@ async def test_multiple_notifications_in_single_payload(
 
 @patch("app.api.v1.endpoints.webhook._queue_file_change", new_callable=AsyncMock)
 @patch("app.api.v1.endpoints.webhook._set_debounce", new_callable=AsyncMock)
-@patch("app.api.v1.endpoints.webhook._is_debounced", new_callable=AsyncMock, return_value=False)
+@patch(
+    "app.api.v1.endpoints.webhook._is_debounced",
+    new_callable=AsyncMock,
+    return_value=False,
+)
 async def test_empty_client_state_config_allows_all(
     mock_debounced, mock_set, mock_queue, client
 ):
@@ -162,7 +170,11 @@ async def test_empty_client_state_config_allows_all(
 
 @patch("app.api.v1.endpoints.webhook._queue_file_change", new_callable=AsyncMock)
 @patch("app.api.v1.endpoints.webhook._set_debounce", new_callable=AsyncMock)
-@patch("app.api.v1.endpoints.webhook._is_debounced", new_callable=AsyncMock, return_value=False)
+@patch(
+    "app.api.v1.endpoints.webhook._is_debounced",
+    new_callable=AsyncMock,
+    return_value=False,
+)
 async def test_invalid_client_state_rejected(
     mock_debounced, mock_set, mock_queue, client
 ):
@@ -191,7 +203,11 @@ async def test_invalid_client_state_rejected(
 
 @patch("app.api.v1.endpoints.webhook._queue_file_change", new_callable=AsyncMock)
 @patch("app.api.v1.endpoints.webhook._set_debounce", new_callable=AsyncMock)
-@patch("app.api.v1.endpoints.webhook._is_debounced", new_callable=AsyncMock, return_value=False)
+@patch(
+    "app.api.v1.endpoints.webhook._is_debounced",
+    new_callable=AsyncMock,
+    return_value=False,
+)
 async def test_mixed_valid_and_invalid_client_state(
     mock_debounced, mock_set, mock_queue, client
 ):
@@ -230,10 +246,12 @@ async def test_mixed_valid_and_invalid_client_state(
 
 @patch("app.api.v1.endpoints.webhook._queue_file_change", new_callable=AsyncMock)
 @patch("app.api.v1.endpoints.webhook._set_debounce", new_callable=AsyncMock)
-@patch("app.api.v1.endpoints.webhook._is_debounced", new_callable=AsyncMock, return_value=True)
-async def test_debounce_skips_duplicate(
-    mock_debounced, mock_set, mock_queue, client
-):
+@patch(
+    "app.api.v1.endpoints.webhook._is_debounced",
+    new_callable=AsyncMock,
+    return_value=True,
+)
+async def test_debounce_skips_duplicate(mock_debounced, mock_set, mock_queue, client):
     """Duplicate notification within debounce window is skipped."""
     with patch("app.api.v1.endpoints.webhook.settings") as mock_settings:
         mock_settings.WEBHOOK_CLIENT_STATE = "secret"
@@ -258,9 +276,7 @@ async def test_debounce_skips_duplicate(
 
 @patch("app.api.v1.endpoints.webhook._queue_file_change", new_callable=AsyncMock)
 @patch("app.api.v1.endpoints.webhook._set_debounce", new_callable=AsyncMock)
-async def test_debounce_expiry_allows_reprocessing(
-    mock_set, mock_queue, client
-):
+async def test_debounce_expiry_allows_reprocessing(mock_set, mock_queue, client):
     """After debounce window expires, notification is processed again."""
     with patch("app.api.v1.endpoints.webhook.settings") as mock_settings:
         mock_settings.WEBHOOK_CLIENT_STATE = "secret"
@@ -413,15 +429,17 @@ async def test_notification_with_missing_fields(client):
         mock_settings.WEBHOOK_CLIENT_STATE = ""
         mock_settings.WEBHOOK_DEBOUNCE_SECONDS = 10
 
-        with patch(
-            "app.api.v1.endpoints.webhook._is_debounced",
-            new_callable=AsyncMock,
-            return_value=False,
-        ), patch(
-            "app.api.v1.endpoints.webhook._set_debounce", new_callable=AsyncMock
-        ), patch(
-            "app.api.v1.endpoints.webhook._queue_file_change",
-            new_callable=AsyncMock,
+        with (
+            patch(
+                "app.api.v1.endpoints.webhook._is_debounced",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch("app.api.v1.endpoints.webhook._set_debounce", new_callable=AsyncMock),
+            patch(
+                "app.api.v1.endpoints.webhook._queue_file_change",
+                new_callable=AsyncMock,
+            ),
         ):
             payload = {"value": [{"changeType": "updated"}]}
             response = await client.post("/api/v1/webhook", json=payload)
@@ -501,7 +519,12 @@ async def test_subscription_info_to_dict():
     assert "created_at" in d
 
 
-def _make_mock_aiohttp_session(method_name: str, response_status: int, response_json: dict | None = None, response_text: str | None = None):
+def _make_mock_aiohttp_session(
+    method_name: str,
+    response_status: int,
+    response_json: dict | None = None,
+    response_text: str | None = None,
+):
     """Helper to create a properly-structured mock aiohttp session.
 
     aiohttp uses ``async with session.post(...) as resp:`` which requires
@@ -540,8 +563,13 @@ async def test_create_subscription_calls_graph():
         "post", 201, response_json={"id": "new-sub-id", "resource": "drives/abc/root"}
     )
 
-    with patch.object(manager, "_get_access_token", new_callable=AsyncMock, return_value="fake-token"):
-        with patch("app.services.webhook_manager.aiohttp.ClientSession", return_value=session_cm):
+    with patch.object(
+        manager, "_get_access_token", new_callable=AsyncMock, return_value="fake-token"
+    ):
+        with patch(
+            "app.services.webhook_manager.aiohttp.ClientSession",
+            return_value=session_cm,
+        ):
             sub = await manager.create_subscription(
                 resource="drives/abc/root",
                 change_types=["created", "updated"],
@@ -572,8 +600,13 @@ async def test_renew_subscription_patches_graph():
     session_cm = _make_mock_aiohttp_session("patch", 200)
     new_exp = datetime.now(UTC) + timedelta(days=3)
 
-    with patch.object(manager, "_get_access_token", new_callable=AsyncMock, return_value="fake-token"):
-        with patch("app.services.webhook_manager.aiohttp.ClientSession", return_value=session_cm):
+    with patch.object(
+        manager, "_get_access_token", new_callable=AsyncMock, return_value="fake-token"
+    ):
+        with patch(
+            "app.services.webhook_manager.aiohttp.ClientSession",
+            return_value=session_cm,
+        ):
             sub = await manager.renew_subscription("sub-1", expiration=new_exp)
 
     assert sub.expiration == new_exp
@@ -597,8 +630,13 @@ async def test_delete_subscription_removes_from_graph():
 
     session_cm = _make_mock_aiohttp_session("delete", 204)
 
-    with patch.object(manager, "_get_access_token", new_callable=AsyncMock, return_value="fake-token"):
-        with patch("app.services.webhook_manager.aiohttp.ClientSession", return_value=session_cm):
+    with patch.object(
+        manager, "_get_access_token", new_callable=AsyncMock, return_value="fake-token"
+    ):
+        with patch(
+            "app.services.webhook_manager.aiohttp.ClientSession",
+            return_value=session_cm,
+        ):
             result = await manager.delete_subscription("sub-1")
 
     assert result is True
@@ -613,8 +651,13 @@ async def test_delete_subscription_failure_returns_false():
 
     session_cm = _make_mock_aiohttp_session("delete", 404, response_text="Not found")
 
-    with patch.object(manager, "_get_access_token", new_callable=AsyncMock, return_value="fake-token"):
-        with patch("app.services.webhook_manager.aiohttp.ClientSession", return_value=session_cm):
+    with patch.object(
+        manager, "_get_access_token", new_callable=AsyncMock, return_value="fake-token"
+    ):
+        with patch(
+            "app.services.webhook_manager.aiohttp.ClientSession",
+            return_value=session_cm,
+        ):
             result = await manager.delete_subscription("nonexistent")
 
     assert result is False
@@ -648,7 +691,9 @@ async def test_renew_all_subscriptions_renews_each():
         expiration=datetime.now(UTC) + timedelta(hours=12),
     )
 
-    with patch.object(manager, "renew_subscription", new_callable=AsyncMock) as mock_renew:
+    with patch.object(
+        manager, "renew_subscription", new_callable=AsyncMock
+    ) as mock_renew:
         await manager._renew_all_subscriptions()
 
     assert mock_renew.call_count == 2
@@ -700,7 +745,9 @@ async def test_renew_all_subscriptions_empty_no_op():
 
     manager = WebhookSubscriptionManager()
 
-    with patch.object(manager, "renew_subscription", new_callable=AsyncMock) as mock_renew:
+    with patch.object(
+        manager, "renew_subscription", new_callable=AsyncMock
+    ) as mock_renew:
         await manager._renew_all_subscriptions()
 
     mock_renew.assert_not_called()

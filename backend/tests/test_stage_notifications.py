@@ -131,9 +131,11 @@ class TestIndividualStageNotification:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            await monitor._sync_deal_stages([
-                ("The Clubhouse", "under_contract"),
-            ])
+            await monitor._sync_deal_stages(
+                [
+                    ("The Clubhouse", "under_contract"),
+                ]
+            )
 
         mock_manager.notify_deal_update.assert_called_once()
         call_kwargs = mock_manager.notify_deal_update.call_args
@@ -162,9 +164,9 @@ class TestIndividualStageNotification:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            count = await monitor._sync_deal_stages([
-                (f"Small Batch {i}", "active_review") for i in range(3)
-            ])
+            count = await monitor._sync_deal_stages(
+                [(f"Small Batch {i}", "active_review") for i in range(3)]
+            )
 
         assert count == 3
         assert mock_manager.notify_deal_update.call_count == 3
@@ -184,9 +186,11 @@ class TestIndividualStageNotification:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            await monitor._sync_deal_stages([
-                ("The Clubhouse", "dead"),
-            ])
+            await monitor._sync_deal_stages(
+                [
+                    ("The Clubhouse", "dead"),
+                ]
+            )
 
         data = mock_manager.notify_deal_update.call_args.kwargs["data"]
         assert data["deal_name"] == "The Clubhouse"
@@ -204,9 +208,11 @@ class TestIndividualStageNotification:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            count = await monitor._sync_deal_stages([
-                ("The Clubhouse", "active_review"),  # Already ACTIVE_REVIEW
-            ])
+            count = await monitor._sync_deal_stages(
+                [
+                    ("The Clubhouse", "active_review"),  # Already ACTIVE_REVIEW
+                ]
+            )
 
         assert count == 0
         mock_manager.notify_deal_update.assert_not_called()
@@ -225,9 +231,11 @@ class TestIndividualStageNotification:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            count = await monitor._sync_deal_stages([
-                ("The Clubhouse", "nonexistent_stage"),
-            ])
+            count = await monitor._sync_deal_stages(
+                [
+                    ("The Clubhouse", "nonexistent_stage"),
+                ]
+            )
 
         assert count == 0
         mock_manager.notify_deal_update.assert_not_called()
@@ -246,9 +254,11 @@ class TestIndividualStageNotification:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            count = await monitor._sync_deal_stages([
-                ("The Clubhouse", "under_contract"),
-            ])
+            count = await monitor._sync_deal_stages(
+                [
+                    ("The Clubhouse", "under_contract"),
+                ]
+            )
 
         # Stage change still happened
         assert count == 1
@@ -276,9 +286,9 @@ class TestBatchStageNotification:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            count = await monitor._sync_deal_stages([
-                (f"Batch Deal {i}", "active_review") for i in range(7)
-            ])
+            count = await monitor._sync_deal_stages(
+                [(f"Batch Deal {i}", "active_review") for i in range(7)]
+            )
 
         assert count == 7
         # Individual notifications should NOT have been sent
@@ -306,9 +316,9 @@ class TestBatchStageNotification:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            await monitor._sync_deal_stages([
-                (f"Batch Deal {i}", "dead") for i in range(7)
-            ])
+            await monitor._sync_deal_stages(
+                [(f"Batch Deal {i}", "dead") for i in range(7)]
+            )
 
         payload = mock_manager.send_to_channel.call_args.args[1]
         for deal_summary in payload["deals"]:
@@ -336,9 +346,9 @@ class TestBatchStageNotification:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            count = await monitor._sync_deal_stages([
-                (f"Threshold Deal {i}", "active_review") for i in range(5)
-            ])
+            count = await monitor._sync_deal_stages(
+                [(f"Threshold Deal {i}", "active_review") for i in range(5)]
+            )
 
         assert count == 5
         assert mock_manager.notify_deal_update.call_count == 5
@@ -359,16 +369,17 @@ class TestBatchStageNotification:
         await db_session.commit()
 
         mock_manager = AsyncMock()
-        with patch(
-            "app.services.websocket_manager.get_connection_manager",
-            return_value=mock_manager,
-        ), patch(
-            "app.services.extraction.file_monitor.settings"
-        ) as mock_settings:
+        with (
+            patch(
+                "app.services.websocket_manager.get_connection_manager",
+                return_value=mock_manager,
+            ),
+            patch("app.services.extraction.file_monitor.settings") as mock_settings,
+        ):
             mock_settings.STAGE_SYNC_BATCH_THRESHOLD = 2  # Lower threshold
-            await monitor._sync_deal_stages([
-                (f"CustomThresh Deal {i}", "dead") for i in range(3)
-            ])
+            await monitor._sync_deal_stages(
+                [(f"CustomThresh Deal {i}", "dead") for i in range(3)]
+            )
 
         # 3 > 2, so batch notification should fire
         mock_manager.send_to_channel.assert_called_once()
@@ -387,9 +398,9 @@ class TestBatchStageNotification:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            await monitor._sync_deal_stages([
-                (f"Batch Deal {i}", "active_review") for i in range(7)
-            ])
+            await monitor._sync_deal_stages(
+                [(f"Batch Deal {i}", "active_review") for i in range(7)]
+            )
 
         payload = mock_manager.send_to_channel.call_args.args[1]
         assert "timestamp" in payload
@@ -418,14 +429,10 @@ class TestDeletionPolicy:
         class FakeFile:
             deal_name = "Other Deal"
 
-        with patch(
-            "app.services.extraction.file_monitor.settings"
-        ) as mock_settings:
+        with patch("app.services.extraction.file_monitor.settings") as mock_settings:
             mock_settings.STAGE_SYNC_DELETE_POLICY = "mark_dead"
             mock_settings.STAGE_SYNC_PROTECT_CLOSED = True
-            await monitor._apply_deletion_policy(
-                deleted_deal_names, current_paths, []
-            )
+            await monitor._apply_deletion_policy(deleted_deal_names, current_paths, [])
 
         assert deal_active.stage == DealStage.DEAD
 
@@ -444,13 +451,13 @@ class TestDeletionPolicy:
         class FakeFile:
             deal_name = "The Clubhouse"
 
-        with patch(
-            "app.services.extraction.file_monitor.settings"
-        ) as mock_settings:
+        with patch("app.services.extraction.file_monitor.settings") as mock_settings:
             mock_settings.STAGE_SYNC_DELETE_POLICY = "mark_dead"
             mock_settings.STAGE_SYNC_PROTECT_CLOSED = True
             await monitor._apply_deletion_policy(
-                deleted_deal_names, current_paths, [FakeFile()]  # type: ignore[arg-type]
+                deleted_deal_names,
+                current_paths,
+                [FakeFile()],  # type: ignore[arg-type]
             )
 
         # Should remain ACTIVE_REVIEW
@@ -466,14 +473,10 @@ class TestDeletionPolicy:
         """CLOSED deals are NOT changed to DEAD when STAGE_SYNC_PROTECT_CLOSED is True."""
         deleted_deal_names = {"Villas at Scottsdale"}
 
-        with patch(
-            "app.services.extraction.file_monitor.settings"
-        ) as mock_settings:
+        with patch("app.services.extraction.file_monitor.settings") as mock_settings:
             mock_settings.STAGE_SYNC_DELETE_POLICY = "mark_dead"
             mock_settings.STAGE_SYNC_PROTECT_CLOSED = True
-            await monitor._apply_deletion_policy(
-                deleted_deal_names, set(), []
-            )
+            await monitor._apply_deletion_policy(deleted_deal_names, set(), [])
 
         assert deal_closed.stage == DealStage.CLOSED
 
@@ -487,14 +490,10 @@ class TestDeletionPolicy:
         """CLOSED deals ARE changed to DEAD when STAGE_SYNC_PROTECT_CLOSED is False."""
         deleted_deal_names = {"Villas at Scottsdale"}
 
-        with patch(
-            "app.services.extraction.file_monitor.settings"
-        ) as mock_settings:
+        with patch("app.services.extraction.file_monitor.settings") as mock_settings:
             mock_settings.STAGE_SYNC_DELETE_POLICY = "mark_dead"
             mock_settings.STAGE_SYNC_PROTECT_CLOSED = False
-            await monitor._apply_deletion_policy(
-                deleted_deal_names, set(), []
-            )
+            await monitor._apply_deletion_policy(deleted_deal_names, set(), [])
 
         assert deal_closed.stage == DealStage.DEAD
 
@@ -508,13 +507,9 @@ class TestDeletionPolicy:
         """'ignore' deletion policy does not change deal stage."""
         deleted_deal_names = {"The Clubhouse"}
 
-        with patch(
-            "app.services.extraction.file_monitor.settings"
-        ) as mock_settings:
+        with patch("app.services.extraction.file_monitor.settings") as mock_settings:
             mock_settings.STAGE_SYNC_DELETE_POLICY = "ignore"
-            await monitor._apply_deletion_policy(
-                deleted_deal_names, set(), []
-            )
+            await monitor._apply_deletion_policy(deleted_deal_names, set(), [])
 
         assert deal_active.stage == DealStage.ACTIVE_REVIEW
 
@@ -528,14 +523,10 @@ class TestDeletionPolicy:
         """Deals already in DEAD stage are not changed again."""
         deleted_deal_names = {"Dead Creek Apartments"}
 
-        with patch(
-            "app.services.extraction.file_monitor.settings"
-        ) as mock_settings:
+        with patch("app.services.extraction.file_monitor.settings") as mock_settings:
             mock_settings.STAGE_SYNC_DELETE_POLICY = "mark_dead"
             mock_settings.STAGE_SYNC_PROTECT_CLOSED = True
-            await monitor._apply_deletion_policy(
-                deleted_deal_names, set(), []
-            )
+            await monitor._apply_deletion_policy(deleted_deal_names, set(), [])
 
         # Still DEAD, and no StageChangeLog should be created
         assert deal_dead.stage == DealStage.DEAD
@@ -555,19 +546,13 @@ class TestDeletionPolicy:
         """Marking a deal DEAD via deletion policy creates a StageChangeLog."""
         deleted_deal_names = {"The Clubhouse"}
 
-        with patch(
-            "app.services.extraction.file_monitor.settings"
-        ) as mock_settings:
+        with patch("app.services.extraction.file_monitor.settings") as mock_settings:
             mock_settings.STAGE_SYNC_DELETE_POLICY = "mark_dead"
             mock_settings.STAGE_SYNC_PROTECT_CLOSED = True
-            await monitor._apply_deletion_policy(
-                deleted_deal_names, set(), []
-            )
+            await monitor._apply_deletion_policy(deleted_deal_names, set(), [])
 
         result = await db_session.execute(
-            select(StageChangeLog).where(
-                StageChangeLog.deal_id == deal_active.id
-            )
+            select(StageChangeLog).where(StageChangeLog.deal_id == deal_active.id)
         )
         logs = list(result.scalars().all())
         assert len(logs) == 1
@@ -590,9 +575,7 @@ class TestDeletionPolicy:
         await db_session.refresh(d1)
         await db_session.refresh(d2)
 
-        with patch(
-            "app.services.extraction.file_monitor.settings"
-        ) as mock_settings:
+        with patch("app.services.extraction.file_monitor.settings") as mock_settings:
             mock_settings.STAGE_SYNC_DELETE_POLICY = "mark_dead"
             mock_settings.STAGE_SYNC_PROTECT_CLOSED = True
             await monitor._apply_deletion_policy(
@@ -651,17 +634,17 @@ class TestSyncDealStagesIntegration:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            count = await monitor._sync_deal_stages([
-                ("The Clubhouse", "under_contract"),
-            ])
+            count = await monitor._sync_deal_stages(
+                [
+                    ("The Clubhouse", "under_contract"),
+                ]
+            )
 
         assert count == 1
 
         # Audit log created
         result = await db_session.execute(
-            select(StageChangeLog).where(
-                StageChangeLog.deal_id == deal_active.id
-            )
+            select(StageChangeLog).where(StageChangeLog.deal_id == deal_active.id)
         )
         logs = list(result.scalars().all())
         assert len(logs) == 1
@@ -682,9 +665,11 @@ class TestSyncDealStagesIntegration:
             "app.services.websocket_manager.get_connection_manager",
             return_value=mock_manager,
         ):
-            count = await monitor._sync_deal_stages([
-                ("Nonexistent Property", "dead"),
-            ])
+            count = await monitor._sync_deal_stages(
+                [
+                    ("Nonexistent Property", "dead"),
+                ]
+            )
 
         assert count == 0
         mock_manager.notify_deal_update.assert_not_called()

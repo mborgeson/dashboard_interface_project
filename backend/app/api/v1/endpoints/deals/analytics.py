@@ -14,7 +14,7 @@ from app.db.session import get_db
 from app.models.extraction import ExtractedValue
 from app.schemas.deal import ProformaReturnsResponse
 
-from .enrichment import PROFORMA_FIELDS
+from .enrichment import _PROFORMA_QUERY_FIELDS, PROFORMA_FIELD_ALIASES
 
 router = APIRouter()
 
@@ -66,7 +66,7 @@ async def get_deal_proforma_returns(
             )
             .where(
                 ExtractedValue.property_id == deal.property_id,
-                ExtractedValue.field_name.in_(PROFORMA_FIELDS),
+                ExtractedValue.field_name.in_(_PROFORMA_QUERY_FIELDS),
                 ExtractedValue.is_error.is_(False),
             )
             .order_by(ExtractedValue.field_category, ExtractedValue.field_name)
@@ -95,7 +95,7 @@ async def get_deal_proforma_returns(
             )
             .where(
                 or_(*[ExtractedValue.property_name == n for n in names_to_search]),
-                ExtractedValue.field_name.in_(PROFORMA_FIELDS),
+                ExtractedValue.field_name.in_(_PROFORMA_QUERY_FIELDS),
                 ExtractedValue.is_error.is_(False),
             )
             .order_by(ExtractedValue.field_category, ExtractedValue.field_name)
@@ -106,15 +106,25 @@ async def get_deal_proforma_returns(
     if not rows:
         return {"deal_id": deal_id, "deal_name": deal_name, "groups": [], "total": 0}
 
-    # Group by category
+    # Group by category, remapping aliased field names to dashboard names
     groups: dict[str, list[dict]] = {}
+    seen_fields: set[str] = set()
     for row in rows:
+        # Remap DB field names (e.g. IRR_YR2) to dashboard names (LEVERED_RETURNS_IRR_YR2)
+        field_name = PROFORMA_FIELD_ALIASES.get(row.field_name, row.field_name)
+
+        # Skip if we already have this field under its canonical name
+        # (avoids duplicates when both IRR_YR2 and LEVERED_RETURNS_IRR_YR2 exist)
+        if field_name in seen_fields:
+            continue
+        seen_fields.add(field_name)
+
         cat = row.field_category or "Proforma"
         if cat not in groups:
             groups[cat] = []
         groups[cat].append(
             {
-                "field_name": row.field_name,
+                "field_name": field_name,
                 "value_numeric": float(row.value_numeric)
                 if row.value_numeric is not None
                 else None,
@@ -128,5 +138,5 @@ async def get_deal_proforma_returns(
         "groups": [
             {"category": cat, "fields": fields} for cat, fields in groups.items()
         ],
-        "total": len(rows),
+        "total": sum(len(fields) for fields in groups.values()),
     }

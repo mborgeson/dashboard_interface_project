@@ -263,7 +263,13 @@ class TestDataAccuracy:
         handler = ErrorHandler()
 
         # Placeholder text — preserved as raw_value, not errors
-        placeholders = {"N/A": "N/A", "n/a": "n/a", "NA": "NA", "TBD": "TBD", "TBA": "TBA"}
+        placeholders = {
+            "N/A": "N/A",
+            "n/a": "n/a",
+            "NA": "NA",
+            "TBD": "TBD",
+            "TBA": "TBA",
+        }
         for indicator, expected_raw in placeholders.items():
             result = handler.process_cell_value(indicator, "field", "Sheet", "A1")
             assert isinstance(result, NullValue), (
@@ -513,9 +519,7 @@ class TestEdgeCases:
 
         for inf_val in [np.inf, -np.inf, float("inf"), float("-inf")]:
             result = handler.process_cell_value(inf_val, "field", "Sheet", "A1")
-            assert is_null_value(result), (
-                f"Infinity {inf_val} should return NullValue"
-            )
+            assert is_null_value(result), f"Infinity {inf_val} should return NullValue"
             assert isinstance(result, NullValue)
             assert result.is_error is False
 

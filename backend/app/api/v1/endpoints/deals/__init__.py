@@ -18,6 +18,7 @@ from .comparison import router as comparison_router
 from .crud import router as crud_router
 from .enrichment import (
     EXTRACTION_CACHE_PREFIX,
+    PROFORMA_FIELD_ALIASES,
     PROFORMA_FIELDS,
     enrich_deals_with_extraction,
     invalidate_extraction_enrichment_cache,
@@ -47,5 +48,6 @@ __all__ = [
     "enrich_deals_with_extraction",
     "invalidate_extraction_enrichment_cache",
     "EXTRACTION_CACHE_PREFIX",
+    "PROFORMA_FIELD_ALIASES",
     "PROFORMA_FIELDS",
 ]
