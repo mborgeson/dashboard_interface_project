@@ -36,7 +36,7 @@ def _run_to_item(run: ExtractionRun) -> dict:
 
 
 @router.get("/status")
-async def get_extraction_status(
+def get_extraction_status(
     run_id: UUID | None = None,
     db: Session = Depends(get_sync_db),
     current_user: CurrentUser = Depends(require_analyst),
@@ -109,7 +109,7 @@ async def get_extraction_status(
 
 
 @router.get("/history")
-async def get_extraction_history(
+def get_extraction_history(
     limit: int = 10,
     offset: int = 0,
     page: int | None = None,
@@ -155,7 +155,7 @@ async def get_extraction_history(
 
 
 @router.get("/properties")
-async def list_extracted_properties(
+def list_extracted_properties(
     run_id: UUID | None = None,
     search: str | None = None,
     has_errors: bool | None = None,
@@ -239,7 +239,7 @@ async def list_extracted_properties(
 
 
 @router.get("/properties/{property_name}")
-async def get_property_data(
+def get_property_data(
     property_name: str,
     run_id: UUID | None = None,
     db: Session = Depends(get_sync_db),
