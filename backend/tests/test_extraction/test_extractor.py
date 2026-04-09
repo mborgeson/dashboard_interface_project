@@ -346,9 +346,7 @@ class TestCorruptFileHandling:
         """FileAccessError message includes the file name for diagnostics."""
         corrupt_content = b"nope"
         with pytest.raises(FileAccessError) as exc_info:
-            simple_extractor._load_xlsb(
-                "C:/Users/data/Zen_on_50.xlsb", corrupt_content
-            )
+            simple_extractor._load_xlsb("C:/Users/data/Zen_on_50.xlsb", corrupt_content)
         assert "Zen_on_50.xlsb" in str(exc_info.value)
 
     def test_file_access_error_is_extraction_error_subclass(self) -> None:

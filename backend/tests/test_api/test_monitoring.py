@@ -23,7 +23,9 @@ async def test_liveness_probe(client, db_session):
     """Test liveness probe returns alive status."""
     response = await client.get("/api/v1/monitoring/health/live", follow_redirects=True)
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
     data = response.json()
 
     assert data["status"] == "alive"
@@ -64,7 +66,9 @@ async def test_detailed_health_check(client, db_session):
         "/api/v1/monitoring/health/detailed", follow_redirects=True
     )
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
     data = response.json()
 
     assert "status" in data
@@ -80,7 +84,9 @@ async def test_detailed_health_application_info(client, db_session):
         "/api/v1/monitoring/health/detailed", follow_redirects=True
     )
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
     data = response.json()
 
     app_info = data.get("application", {})
@@ -99,7 +105,9 @@ async def test_prometheus_metrics(client, db_session):
     """Test Prometheus metrics endpoint returns metrics."""
     response = await client.get("/api/v1/monitoring/metrics", follow_redirects=True)
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
 
     # Should return text/plain or Prometheus format
     content_type = response.headers.get("content-type", "")
@@ -111,7 +119,9 @@ async def test_prometheus_metrics_content(client, db_session):
     """Test Prometheus metrics contain expected format."""
     response = await client.get("/api/v1/monitoring/metrics", follow_redirects=True)
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
 
     # Content should not be empty
     content = response.text
@@ -128,7 +138,9 @@ async def test_pool_stats(client, db_session):
     """Test connection pool stats endpoint returns pool metrics."""
     response = await client.get("/api/v1/monitoring/pool-stats", follow_redirects=True)
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
     data = response.json()
 
     assert "timestamp" in data
@@ -142,7 +154,9 @@ async def test_pool_stats_summary_structure(client, db_session):
     """Test pool stats summary contains expected fields."""
     response = await client.get("/api/v1/monitoring/pool-stats", follow_redirects=True)
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
     data = response.json()
 
     summary = data.get("summary", {})
@@ -163,7 +177,9 @@ async def test_performance_stats(client, db_session):
     """Test performance statistics endpoint."""
     response = await client.get("/api/v1/monitoring/stats", follow_redirects=True)
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
     data = response.json()
 
     assert "timestamp" in data
@@ -174,7 +190,9 @@ async def test_performance_stats_system_metrics(client, db_session):
     """Test performance stats include system metrics."""
     response = await client.get("/api/v1/monitoring/stats", follow_redirects=True)
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
     data = response.json()
 
     # Should have system metrics
@@ -191,7 +209,9 @@ async def test_application_info(client, db_session):
     """Test application info endpoint."""
     response = await client.get("/api/v1/monitoring/info", follow_redirects=True)
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
     data = response.json()
 
     assert "name" in data
@@ -204,7 +224,9 @@ async def test_application_info_structure(client, db_session):
     """Test application info contains expected structure."""
     response = await client.get("/api/v1/monitoring/info", follow_redirects=True)
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
     data = response.json()
 
     # Should have server and features info
@@ -216,7 +238,9 @@ async def test_application_info_no_secrets(client, db_session):
     """Test application info does not expose secrets."""
     response = await client.get("/api/v1/monitoring/info", follow_redirects=True)
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text[:200]}"
+    )
     data = response.json()
 
     # Convert to string to check for sensitive patterns

@@ -742,7 +742,9 @@ class TestReconciliationAPI:
             side_effect=ConnectionError("SharePoint unavailable"),
         ):
             for _ in range(3):
-                await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
+                await client.post(
+                    "/api/v1/reconciliation/trigger", headers=auth_headers
+                )
 
         response = await client.get(
             "/api/v1/reconciliation/history?limit=1&offset=0",
