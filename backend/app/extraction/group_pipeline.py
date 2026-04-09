@@ -808,6 +808,24 @@ class GroupExtractionPipeline:
                 drift_result = detector.check_drift(group_name, file_fp)
                 drift_results.append(drift_result.to_dict())
 
+                # Persist drift alert to extraction_warnings table
+                if drift_result.severity != "ok":
+                    warning = ExtractionWarning(
+                        extraction_run_id=str(run_id) if run_id else None,
+                        property_name=str(dn),
+                        source_file=fp,
+                        warning_type="drift",
+                        severity=drift_result.severity,
+                        message=f"Schema drift detected: similarity={drift_result.similarity_score:.2f}",
+                        details=json.dumps({
+                            "similarity_score": drift_result.similarity_score,
+                            "changed_sheets": drift_result.changed_sheets,
+                            "missing_sheets": drift_result.missing_sheets,
+                            "new_sheets": drift_result.new_sheets,
+                        }),
+                    )
+                    db.add(warning)
+
                 if drift_result.severity == "error":
                     logger.warning(
                         "drift_check_skip_file",
