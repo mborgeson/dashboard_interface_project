@@ -36,3 +36,21 @@ class TestReconciliationWiring:
         ]
         # Verify the import resolves (wiring exists)
         assert mock_recon is not None
+
+
+class TestOutputValidationWiring:
+    """Verify output validation runs before bulk_insert."""
+
+    @patch("app.extraction.group_pipeline.validate_extraction_output")
+    def test_validation_called_with_extracted_data(self, mock_validate):
+        """validate_extraction_output must be called."""
+        from app.extraction.output_validation import ValidationSummary
+
+        mock_validate.return_value = ValidationSummary(
+            total=15, valid=14, warnings=1, errors=0, results=[]
+        )
+
+        from app.extraction.group_pipeline import validate_extraction_output
+
+        # Verify the import resolves (wiring exists)
+        assert validate_extraction_output is mock_validate

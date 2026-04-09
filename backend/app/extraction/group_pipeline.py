@@ -26,6 +26,7 @@ from loguru import logger as _base_logger
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.extraction.output_validation import validate_extraction_output
 from app.extraction.reconciliation_checks import run_reconciliation_checks
 from app.models.extraction_warning import ExtractionWarning
 
@@ -924,6 +925,31 @@ class GroupExtractionPipeline:
                             f"Reconciliation warning for {property_name}: "
                             f"expected={r.expected_value}, actual={r.actual_value}"
                         )
+
+                # Run output validation (range checks, sanity bounds)
+                validation_summary = validate_extraction_output(result)
+                for vr in validation_summary.results:
+                    if vr.status in ("error", "warning"):
+                        warning = ExtractionWarning(
+                            extraction_run_id=str(run_id) if run_id else None,
+                            property_name=str(property_name),
+                            source_file=file_path,
+                            warning_type="validation",
+                            severity=str(vr.status),
+                            field_name=vr.field_name,
+                            message=vr.message,
+                            details=json.dumps({
+                                "value": vr.value,
+                                "rule": vr.rule_name,
+                            }),
+                        )
+                        db.add(warning)
+
+                if validation_summary.errors > 0:
+                    logger.error(
+                        f"Output validation ERRORS for {property_name}: "
+                        f"{validation_summary.errors} fields failed"
+                    )
 
                 if not dry_run and run_id:
                     try:
