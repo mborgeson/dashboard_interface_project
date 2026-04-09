@@ -1,0 +1,1309 @@
+{
+  "group_5": {
+    "file": "La Quinta Model vCurrent.xlsb",
+    "remaps": {
+      "SALES_COMP_14_PROPERTY_NAME": {
+        "prod_cell": "D21",
+        "group_cell": "D23",
+        "offset": 2,
+        "type": "section_shift",
+        "reason": "TOP COMPS section offset +2"
+      },
+      "SALES_COMP_14_CITY": {
+        "prod_cell": "F21",
+        "group_cell": "F23",
+        "offset": 2,
+        "type": "section_shift",
+        "reason": "TOP COMPS section offset +2"
+      },
+      "SALES_COMP_14_LATITUDE": {
+        "prod_cell": "I21",
+        "group_cell": "I23",
+        "offset": 2,
+        "type": "section_shift",
+        "reason": "TOP COMPS section offset +2"
+      },
+      "SALES_COMP_14_LONGITUDE": {
+        "prod_cell": "J21",
+        "group_cell": "J23",
+        "offset": 2,
+        "type": "section_shift",
+        "reason": "TOP COMPS section offset +2"
+      },
+      "SALES_COMP_14_DISTANCE_TO_SUBJECT": {
+        "prod_cell": "K21",
+        "group_cell": "K23",
+        "offset": 2,
+        "type": "section_shift",
+        "reason": "TOP COMPS section offset +2"
+      },
+      "SALES_COMP_14_BUILDING_TYPE": {
+        "prod_cell": "N21",
+        "group_cell": "N23",
+        "offset": 2,
+        "type": "section_shift",
+        "reason": "TOP COMPS section offset +2"
+      },
+      "SALES_COMP_14_YEAR_BUILT": {
+        "prod_cell": "O21",
+        "group_cell": "O23",
+        "offset": 2,
+        "type": "section_shift",
+        "reason": "TOP COMPS section offset +2"
+      },
+      "SALES_COMP_14_STORIES": {
+        "prod_cell": "R21",
+        "group_cell": "R23",
+        "offset": 2,
+        "type": "section_shift",
+        "reason": "TOP COMPS section offset +2"
+      },
+      "SALES_COMP_14_UNITS": {
+        "prod_cell": "S21",
+        "group_cell": "S23",
+        "offset": 2,
+        "type": "section_shift",
+        "reason": "TOP COMPS section offset +2"
+      },
+      "SALES_COMP_14_AVG_NRSF": {
+        "prod_cell": "T21",
+        "group_cell": "T23",
+        "offset": 2,
+        "type": "section_shift",
+        "reason": "TOP COMPS section offset +2"
+      },
+      "SALES_COMP_14_SALES_PRICE": {
+        "prod_cell": "AA21",
+        "group_cell": "AA23",
+        "offset": 2,
+        "type": "section_shift",
+        "reason": "TOP COMPS section offset +2"
+      },
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D272",
+        "offset": -206,
+        "type": "section_shift",
+        "reason": "Refinance Senior Debt variant: Purchase Price at row 272"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D207",
+        "offset": -152,
+        "type": "section_shift",
+        "reason": "Refinance Senior Debt variant: Loan Amount at row 207"
+      }
+    },
+    "unfilled_count": 29,
+    "real_shift_count": 11,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [
+      "YEAR_RENOVATED",
+      "NUMBER_OF_PARKING_SPACES_COVERED",
+      "NUMBER_OF_PARKING_SPACES_UNCOVERED",
+      "INDIVIDUALLY_METERED",
+      "LAST_SALE_DATE",
+      "LAST_SALE_PRICE",
+      "BUILDING_ZONING",
+      "SALES_COMP_1_SALE_DATE",
+      "SALES_COMP_1_PROPERTY_NAME",
+      "SALES_COMP_1_CITY",
+      "SALES_COMP_1_LATITUDE",
+      "SALES_COMP_1_LONGITUDE",
+      "SALES_COMP_1_BUILDING_TYPE",
+      "SALES_COMP_1_STORIES",
+      "SALES_COMP_1_UNITS",
+      "SALES_COMP_3_SALE_DATE",
+      "SALES_COMP_3_PROPERTY_NAME",
+      "SALES_COMP_3_CITY",
+      "SALES_COMP_3_LATITUDE",
+      "SALES_COMP_3_LONGITUDE",
+      "SALES_COMP_3_BUILDING_TYPE",
+      "SALES_COMP_3_STORIES",
+      "SALES_COMP_3_UNITS",
+      "SALES_COMP_4_SALE_DATE",
+      "SALES_COMP_4_PROPERTY_NAME",
+      "SALES_COMP_4_CITY",
+      "SALES_COMP_4_BUILDING_TYPE",
+      "SALES_COMP_4_STORIES",
+      "SALES_COMP_4_UNITS"
+    ],
+    "real_shift_fields": [
+      "SALES_COMP_14_PROPERTY_NAME",
+      "SALES_COMP_14_CITY",
+      "SALES_COMP_14_LATITUDE",
+      "SALES_COMP_14_LONGITUDE",
+      "SALES_COMP_14_DISTANCE_TO_SUBJECT",
+      "SALES_COMP_14_BUILDING_TYPE",
+      "SALES_COMP_14_YEAR_BUILT",
+      "SALES_COMP_14_STORIES",
+      "SALES_COMP_14_UNITS",
+      "SALES_COMP_14_AVG_NRSF",
+      "SALES_COMP_14_SALES_PRICE"
+    ],
+    "cross_contamination_fields": []
+  },
+  "group_10": {
+    "file": "Apex on Central Model vCurrent.xlsb",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D267",
+        "offset": -211,
+        "type": "section_shift",
+        "reason": "Refinance Yes/No variant: Purchase Price at row 267"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D202",
+        "offset": -157,
+        "type": "section_shift",
+        "reason": "Refinance Yes/No variant: Loan Amount at row 202"
+      }
+    },
+    "unfilled_count": 14,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [
+      "YEAR_BUILT",
+      "YEAR_RENOVATED",
+      "LOCATION_QUALITY",
+      "INDIVIDUALLY_METERED",
+      "CURRENT_OWNER",
+      "LAST_SALE_DATE",
+      "LAST_SALE_PRICE",
+      "LAST_SALE_PRICE_PER_UNIT",
+      "BUILDING_TYPE",
+      "PARCEL_NUMBER",
+      "RENT_COMP_14_PROPERTY_NAME",
+      "SALES_COMP_12_CAP_RATE",
+      "SALES_COMP_14_CAP_RATE",
+      "SALES_COMP_15_CAP_RATE"
+    ],
+    "real_shift_fields": [],
+    "cross_contamination_fields": [],
+    "note": "REVERTED: Deep spot-check identified cross-contamination at label level, but 24/26 files use PRODUCTION layout (labels at rows 11-14). 2 files (Apex on Central, Octillo) use old layout but have empty data cells. Production reference works for ALL files in this group.",
+    "remaps_reverted": {
+      "BUILDING_HEIGHT": {
+        "prod_cell": "I12",
+        "group_cell": "I11",
+        "offset": -1,
+        "type": "cross_contamination",
+        "reason": "Label 'Building Height' at row 11 in old (prod row 12). Old has 'Building Zoning' at prod row."
+      },
+      "NUMBER_OF_BUILDINGS": {
+        "prod_cell": "I11",
+        "group_cell": "I10",
+        "offset": -1,
+        "type": "cross_contamination",
+        "reason": "Label 'Number of Buildings' at row 10 in old (prod row 11). Old has 'Building Height' at prod row."
+      },
+      "BUILDING_ZONING": {
+        "prod_cell": "I13",
+        "group_cell": "I12",
+        "offset": -1,
+        "type": "cross_contamination",
+        "reason": "Label 'Building Zoning' at row 12 in old (prod row 13). Old has 'Land Area (Acres)' at prod row."
+      },
+      "LAND_AREA": {
+        "prod_cell": "I14",
+        "group_cell": "I13",
+        "offset": -1,
+        "type": "cross_contamination",
+        "reason": "Label 'Land Area (Acres)' at row 13 in old (prod row 14). Old has 'Map Link' at prod row."
+      }
+    }
+  },
+  "group_12": {
+    "file": "Seventh Apartments UW Model vCurrent.xlsb",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D386",
+        "offset": -92,
+        "type": "section_shift",
+        "reason": "Operating Cashflow sub-variant: Purchase Price at row 386"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow sub-variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 2,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [
+      "INDIVIDUALLY_METERED",
+      "PROJECT_TYPE"
+    ],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_13": {
+    "file": "UW Model Avenel on 16th vCurrent.xlsb",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D384",
+        "offset": -94,
+        "type": "section_shift",
+        "reason": "Operating Cashflow sub-variant B: Purchase Price at row 384"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D266",
+        "offset": -93,
+        "type": "section_shift",
+        "reason": "Operating Cashflow sub-variant B: Loan Amount at row 266"
+      }
+    },
+    "unfilled_count": 69,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [
+      "SALES_COMP_1_SALE_DATE",
+      "SALES_COMP_1_PROPERTY_NAME",
+      "SALES_COMP_1_CITY",
+      "SALES_COMP_1_LATITUDE",
+      "SALES_COMP_1_LONGITUDE",
+      "SALES_COMP_1_DISTANCE_TO_SUBJECT",
+      "SALES_COMP_1_BUILDING_TYPE",
+      "SALES_COMP_1_YEAR_BUILT",
+      "SALES_COMP_1_STORIES",
+      "SALES_COMP_1_UNITS",
+      "SALES_COMP_1_AVG_NRSF",
+      "SALES_COMP_1_SALES_PRICE",
+      "SALES_COMP_2_SALE_DATE",
+      "SALES_COMP_2_PROPERTY_NAME",
+      "SALES_COMP_2_CITY",
+      "SALES_COMP_2_LATITUDE",
+      "SALES_COMP_2_LONGITUDE",
+      "SALES_COMP_2_DISTANCE_TO_SUBJECT",
+      "SALES_COMP_2_BUILDING_TYPE",
+      "SALES_COMP_2_YEAR_BUILT",
+      "SALES_COMP_2_STORIES",
+      "SALES_COMP_2_UNITS",
+      "SALES_COMP_2_AVG_NRSF",
+      "SALES_COMP_2_SALES_PRICE",
+      "SALES_COMP_3_SALE_DATE",
+      "SALES_COMP_3_PROPERTY_NAME",
+      "SALES_COMP_3_CITY",
+      "SALES_COMP_3_LATITUDE",
+      "SALES_COMP_3_LONGITUDE",
+      "SALES_COMP_3_DISTANCE_TO_SUBJECT",
+      "SALES_COMP_3_BUILDING_TYPE",
+      "SALES_COMP_3_YEAR_BUILT",
+      "SALES_COMP_3_STORIES",
+      "SALES_COMP_3_UNITS",
+      "SALES_COMP_3_AVG_NRSF",
+      "SALES_COMP_3_SALES_PRICE",
+      "SALES_COMP_4_SALE_DATE",
+      "SALES_COMP_4_PROPERTY_NAME",
+      "SALES_COMP_4_CITY",
+      "SALES_COMP_4_LATITUDE",
+      "SALES_COMP_4_LONGITUDE",
+      "SALES_COMP_4_DISTANCE_TO_SUBJECT",
+      "SALES_COMP_4_BUILDING_TYPE",
+      "SALES_COMP_4_STORIES",
+      "SALES_COMP_4_UNITS",
+      "SALES_COMP_4_AVG_NRSF",
+      "SALES_COMP_4_SALES_PRICE",
+      "SALES_COMP_5_SALE_DATE",
+      "SALES_COMP_5_PROPERTY_NAME",
+      "SALES_COMP_5_CITY",
+      "SALES_COMP_5_LATITUDE",
+      "SALES_COMP_5_LONGITUDE",
+      "SALES_COMP_5_DISTANCE_TO_SUBJECT",
+      "SALES_COMP_5_BUILDING_TYPE",
+      "SALES_COMP_5_YEAR_BUILT",
+      "SALES_COMP_5_STORIES",
+      "SALES_COMP_5_UNITS",
+      "SALES_COMP_5_AVG_NRSF",
+      "SALES_COMP_5_SALES_PRICE",
+      "SALES_COMP_6_SALE_DATE",
+      "SALES_COMP_6_PROPERTY_NAME",
+      "SALES_COMP_6_YEAR_BUILT",
+      "SALES_COMP_6_UNITS",
+      "SALES_COMP_6_AVG_NRSF",
+      "SALES_COMP_7_SALE_DATE",
+      "SALES_COMP_7_PROPERTY_NAME",
+      "SALES_COMP_7_YEAR_BUILT",
+      "SALES_COMP_7_UNITS",
+      "SALES_COMP_7_AVG_NRSF"
+    ],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_34": {
+    "file": "Carmel Creek UW Model vCurrent.xlsb",
+    "remaps": {
+      "5_BED_BED_TYPE": {
+        "prod_cell": "E547",
+        "group_cell": "E553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_BATHROOMS": {
+        "prod_cell": "F547",
+        "group_cell": "F553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_UNIT_SF": {
+        "prod_cell": "G547",
+        "group_cell": "G553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_TOTAL_BEDS": {
+        "prod_cell": "H547",
+        "group_cell": "H553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_RENOVATED_Y_N": {
+        "prod_cell": "I547",
+        "group_cell": "I553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_RENT_PER_UNIT_INPLACE": {
+        "prod_cell": "X547",
+        "group_cell": "X553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_RENT_PER_SF_INPLACE": {
+        "prod_cell": "Y547",
+        "group_cell": "Y553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_TOTAL_MONTHLY_RENT_INPLACE": {
+        "prod_cell": "Z547",
+        "group_cell": "Z553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_TOTAL_ANNUAL_RENT_INPLACE": {
+        "prod_cell": "AA547",
+        "group_cell": "AA553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_RENT_PER_UNIT_MARKET": {
+        "prod_cell": "AC547",
+        "group_cell": "AC553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_RENT_PER_SF_MARKET": {
+        "prod_cell": "AD547",
+        "group_cell": "AD553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_TOTAL_MONTHLY_RENT_MARKET": {
+        "prod_cell": "AE547",
+        "group_cell": "AE553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "5_BED_TOTAL_ANNUAL_RENT_MARKET": {
+        "prod_cell": "AF547",
+        "group_cell": "AF553",
+        "offset": 6,
+        "type": "cross_contamination",
+        "reason": "Label '5.0' at row 553 in old (prod row 547). Old has 'Unit Type - Summary' at prod row."
+      },
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 13,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": [
+      "5_BED_BED_TYPE",
+      "5_BED_BATHROOMS",
+      "5_BED_UNIT_SF",
+      "5_BED_TOTAL_BEDS",
+      "5_BED_RENOVATED_Y_N",
+      "5_BED_RENT_PER_UNIT_INPLACE",
+      "5_BED_RENT_PER_SF_INPLACE",
+      "5_BED_TOTAL_MONTHLY_RENT_INPLACE",
+      "5_BED_TOTAL_ANNUAL_RENT_INPLACE",
+      "5_BED_RENT_PER_UNIT_MARKET",
+      "5_BED_RENT_PER_SF_MARKET",
+      "5_BED_TOTAL_MONTHLY_RENT_MARKET",
+      "5_BED_TOTAL_ANNUAL_RENT_MARKET"
+    ]
+  },
+  "group_38": {
+    "file": "Albany Village UW Model vCurrent.xlsb",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D386",
+        "offset": -92,
+        "type": "section_shift",
+        "reason": "Operating Cashflow sub-variant: Purchase Price at row 386"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow sub-variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 3,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [
+      "COUNTY",
+      "TOTAL_SOFT_COSTS",
+      "EQUITY_DD_TITLE_INSURANCE_ALTA_SURVEY"
+    ],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_19": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_26": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_27": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_28": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_29": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_30": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_31": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_32": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_33": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_37": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_39": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_40": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_41": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_42": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_43": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_44": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_45": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_46": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_47": {
+    "file": "(auto-remapped for oc_majority)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_22": {
+    "file": "(auto-remapped for oc_sub_a)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D386",
+        "offset": -92,
+        "type": "section_shift",
+        "reason": "Operating Cashflow sub-variant: Purchase Price at row 386"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Operating Cashflow sub-variant: Loan Amount at row 268"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_16": {
+    "file": "(auto-remapped for refi_senior)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D272",
+        "offset": -206,
+        "type": "section_shift",
+        "reason": "Refinance Senior Debt variant: Purchase Price at row 272"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D207",
+        "offset": -152,
+        "type": "section_shift",
+        "reason": "Refinance Senior Debt variant: Loan Amount at row 207"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_18": {
+    "file": "(auto-remapped for refi_senior)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D272",
+        "offset": -206,
+        "type": "section_shift",
+        "reason": "Refinance Senior Debt variant: Purchase Price at row 272"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D207",
+        "offset": -152,
+        "type": "section_shift",
+        "reason": "Refinance Senior Debt variant: Loan Amount at row 207"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_35": {
+    "file": "(auto-remapped for sweep_payroll)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D316",
+        "offset": -162,
+        "type": "section_shift",
+        "reason": "Sweep Payroll variant: Purchase Price at row 316"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D249",
+        "offset": -110,
+        "type": "section_shift",
+        "reason": "Sweep Payroll variant: Loan Amount at row 249"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  },
+  "group_36": {
+    "file": "(auto-remapped for sweep_payroll)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Non-production template: Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D316",
+        "offset": -162,
+        "type": "section_shift",
+        "reason": "Sweep Payroll variant: Purchase Price at row 316"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D249",
+        "offset": -110,
+        "type": "section_shift",
+        "reason": "Sweep Payroll variant: Loan Amount at row 249"
+      }
+    },
+    "unfilled_count": 0,
+    "real_shift_count": 0,
+    "cross_contamination_count": 0,
+    "unfilled_fields": [],
+    "real_shift_fields": [],
+    "cross_contamination_fields": []
+  }
+}
