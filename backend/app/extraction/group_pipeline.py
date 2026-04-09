@@ -26,6 +26,8 @@ from loguru import logger as _base_logger
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.extraction.reconciliation_checks import run_reconciliation_checks
+from app.models.extraction_warning import ExtractionWarning
 
 logger = _base_logger.bind(component="GroupExtractionPipeline")
 
@@ -895,6 +897,33 @@ class GroupExtractionPipeline:
                     result.get("PROPERTY_NAME", deal_name) or Path(file_path).stem
                 )
                 value_count = sum(1 for k in result if not k.startswith("_"))
+
+                # --- Safety checks before persisting ---
+                # Run reconciliation (NOI vs Revenue-Expenses consistency)
+                recon_results = run_reconciliation_checks(
+                    result, str(property_name)
+                )
+                for r in recon_results:
+                    if not r.passed:
+                        warning = ExtractionWarning(
+                            extraction_run_id=str(run_id) if run_id else None,
+                            property_name=str(property_name),
+                            source_file=file_path,
+                            warning_type="reconciliation",
+                            severity="warning",
+                            field_name=r.check_name,
+                            message=f"Reconciliation failed: expected={r.expected_value}, actual={r.actual_value}, diff={r.difference}",
+                            details=json.dumps({
+                                "expected": r.expected_value,
+                                "actual": r.actual_value,
+                                "difference": r.difference,
+                            }),
+                        )
+                        db.add(warning)
+                        logger.warning(
+                            f"Reconciliation warning for {property_name}: "
+                            f"expected={r.expected_value}, actual={r.actual_value}"
+                        )
 
                 if not dry_run and run_id:
                     try:
