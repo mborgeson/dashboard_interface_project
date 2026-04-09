@@ -79,10 +79,10 @@ export function AnalyticsPage() {
     const equity = (p: { acquisition: { totalInvested: number }; financing: { loanAmount: number } }) =>
       p.acquisition.totalInvested - p.financing.loanAmount;
 
-    // Filter out properties with safeNum-coerced zeros (missing data)
-    const withIRR = properties.filter(p => p.performance.leveredIrr !== 0);
-    const withMOIC = properties.filter(p => p.performance.leveredMoic !== 0);
-    const withCashFlow = properties.filter(p => p.operations.noi !== 0);
+    // Filter out properties with missing data (undefined from safeOptionalNum)
+    const withIRR = properties.filter(p => p.performance.leveredIrr != null);
+    const withMOIC = properties.filter(p => p.performance.leveredMoic != null);
+    const withCashFlow = properties.filter(p => p.operations.noi != null);
 
     const weightedIRR = weightedAvg(withIRR, p => p.performance.leveredIrr, equity);
     const weightedCashOnCash = weightedAvg(withCashFlow, calcCashOnCash, equity);
@@ -111,11 +111,11 @@ export function AnalyticsPage() {
     return properties.reduce((sum, p) => sum + p.operations.noi, 0);
   }, [properties]);
 
-  // Current average occupancy — exclude properties with 0 occupancy (missing data)
+  // Current average occupancy — exclude properties with missing occupancy
   const avgOccupancy = useMemo(() => {
-    const withOccupancy = properties.filter(p => p.operations.occupancy > 0);
+    const withOccupancy = properties.filter(p => p.operations.occupancy != null);
     if (withOccupancy.length === 0) return 0;
-    return withOccupancy.reduce((sum, p) => sum + p.operations.occupancy, 0) / withOccupancy.length;
+    return withOccupancy.reduce((sum, p) => sum + (p.operations.occupancy ?? 0), 0) / withOccupancy.length;
   }, [properties]);
 
 
@@ -132,13 +132,13 @@ export function AnalyticsPage() {
       .sort((a, b) => a.class.localeCompare(b.class));
   }, [properties]);
 
-  // NOI by submarket — exclude properties with 0 NOI (missing data)
+  // NOI by submarket — exclude properties with missing NOI
   const noiBySubmarket = useMemo(() => {
     const submarketMap = properties
-      .filter(p => p.operations.noi > 0)
+      .filter(p => p.operations.noi != null && p.operations.noi > 0)
       .reduce((acc, p) => {
         const submarket = p.address.submarket;
-        acc[submarket] = (acc[submarket] || 0) + p.operations.noi;
+        acc[submarket] = (acc[submarket] || 0) + (p.operations.noi ?? 0);
         return acc;
       }, {} as Record<string, number>);
 
@@ -150,12 +150,12 @@ export function AnalyticsPage() {
   // Property performance comparison — exclude properties with no financial data
   const propertyPerformance = useMemo(() => {
     return properties
-      .filter(p => p.performance.leveredIrr !== 0 || p.valuation.capRate !== 0 || calcCashOnCash(p) !== 0)
+      .filter(p => p.performance.leveredIrr != null || p.valuation.capRate != null || calcCashOnCash(p) !== 0)
       .map(p => ({
         name: p.name,
-        irr: p.performance.leveredIrr,
+        irr: p.performance.leveredIrr ?? 0,
         cashOnCash: calcCashOnCash(p),
-        capRate: p.valuation.capRate,
+        capRate: p.valuation.capRate ?? 0,
       }));
   }, [properties]);
 

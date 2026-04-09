@@ -82,7 +82,7 @@ export async function fetchProperties(filters?: PropertyFiltersParams): Promise<
  */
 export async function fetchPropertyById(id: string): Promise<Property> {
   const raw = await apiClient.get<unknown>(`/properties/dashboard/${id}`);
-  return propertySchema.parse(raw);
+  return propertySchema.parse(raw) as Property;
 }
 
 /**
@@ -90,5 +90,5 @@ export async function fetchPropertyById(id: string): Promise<Property> {
  */
 export async function fetchPortfolioSummary(): Promise<PropertySummaryStats> {
   const raw = await apiClient.get<unknown>('/properties/summary');
-  return propertySummaryStatsSchema.parse(raw);
+  return propertySummaryStatsSchema.parse(raw) as PropertySummaryStats;
 }

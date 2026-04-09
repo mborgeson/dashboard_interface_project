@@ -208,7 +208,7 @@ describe('propertySchema', () => {
 
   // ---- safeNum: coerces null/undefined/NaN to 0 ----
 
-  it('coerces null numeric fields to 0 via safeNum', () => {
+  it('coerces null numeric fields to undefined via safeOptionalNum', () => {
     const raw = makeProperty({
       operations: {
         ...makeProperty().operations,
@@ -218,12 +218,12 @@ describe('propertySchema', () => {
       },
     });
     const result = propertySchema.parse(raw);
-    expect(result.operations.occupancy).toBe(0);
-    expect(result.operations.noi).toBe(0);
-    expect(result.operations.averageRent).toBe(0);
+    expect(result.operations.occupancy).toBeUndefined();
+    expect(result.operations.noi).toBeUndefined();
+    expect(result.operations.averageRent).toBeUndefined();
   });
 
-  it('coerces undefined numeric fields to 0 via safeNum', () => {
+  it('coerces undefined numeric fields to undefined via safeOptionalNum', () => {
     const raw = makeProperty({
       valuation: {
         currentValue: undefined,
@@ -231,11 +231,11 @@ describe('propertySchema', () => {
       },
     });
     const result = propertySchema.parse(raw);
-    expect(result.valuation.currentValue).toBe(0);
-    expect(result.valuation.capRate).toBe(0);
+    expect(result.valuation.currentValue).toBeUndefined();
+    expect(result.valuation.capRate).toBeUndefined();
   });
 
-  it('coerces NaN string to 0 via safeNum', () => {
+  it('coerces NaN string to undefined via safeOptionalNum', () => {
     const raw = makeProperty({
       operations: {
         ...makeProperty().operations,
@@ -243,7 +243,7 @@ describe('propertySchema', () => {
       },
     });
     const result = propertySchema.parse(raw);
-    expect(result.operations.noi).toBe(0);
+    expect(result.operations.noi).toBeUndefined();
   });
 
   it('coerces numeric string to number via safeNum', () => {
@@ -336,7 +336,7 @@ describe('propertySchema', () => {
     const raw = makeProperty();
     delete (raw as Record<string, unknown>).propertyDetails;
     const result = propertySchema.parse(raw);
-    expect(result.propertyDetails.units).toBe(0);
+    expect(result.propertyDetails.units).toBeUndefined();
     expect(result.propertyDetails.propertyClass).toBe('C');
     expect(result.propertyDetails.amenities).toEqual([]);
   });
@@ -345,18 +345,18 @@ describe('propertySchema', () => {
     const raw = makeProperty();
     delete (raw as Record<string, unknown>).operations;
     const result = propertySchema.parse(raw);
-    expect(result.operations.occupancy).toBe(0);
-    expect(result.operations.noi).toBe(0);
-    expect(result.operations.expenses.total).toBe(0);
+    expect(result.operations.occupancy).toBeUndefined();
+    expect(result.operations.noi).toBeUndefined();
+    expect(result.operations.expenses.total).toBeUndefined();
   });
 
   it('uses default performance when missing', () => {
     const raw = makeProperty();
     delete (raw as Record<string, unknown>).performance;
     const result = propertySchema.parse(raw);
-    expect(result.performance.leveredIrr).toBe(0);
+    expect(result.performance.leveredIrr).toBeUndefined();
     expect(result.performance.unleveredIrr).toBeNull();
-    expect(result.performance.holdPeriodYears).toBe(0);
+    expect(result.performance.holdPeriodYears).toBeUndefined();
   });
 
   it('uses default images when missing', () => {
@@ -502,10 +502,10 @@ describe('propertySummaryStatsSchema', () => {
     expect(result.portfolioIRR).toBe(0.18);
   });
 
-  it('handles missing fields by defaulting to zero', () => {
+  it('handles missing fields by defaulting to undefined', () => {
     const raw = { totalProperties: 10 };
     const result = propertySummaryStatsSchema.parse(raw);
     expect(result.totalProperties).toBe(10);
-    expect(result.totalUnits).toBe(0);
+    expect(result.totalUnits).toBeUndefined();
   });
 });

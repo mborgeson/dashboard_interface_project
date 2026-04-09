@@ -202,10 +202,10 @@ describe('AnalyticsPage', () => {
   });
 
   describe('Data filtering for missing values', () => {
-    it('excludes properties with 0 occupancy from average occupancy calculation', () => {
+    it('excludes properties with missing occupancy from average occupancy calculation', () => {
       const propsWithMissing = [
         makeProperty({ id: 'p1', name: 'Good Data', operations: { ...makeProperty().operations, occupancy: 0.90, noi: 1000000 } }),
-        makeProperty({ id: 'p2', name: 'Missing Data', operations: { ...makeProperty().operations, occupancy: 0, noi: 500000 } }),
+        makeProperty({ id: 'p2', name: 'Missing Data', operations: { ...makeProperty().operations, occupancy: undefined as unknown as number, noi: 500000 } }),
       ];
       mockUseProperties.mockReturnValue({
         data: { properties: propsWithMissing, total: 2 },
