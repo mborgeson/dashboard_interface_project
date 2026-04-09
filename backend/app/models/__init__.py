@@ -20,6 +20,9 @@ from .deal import Deal, DealStage
 from .delta_token import DeltaToken
 from .document import Document, DocumentType
 
+# Extraction Warning Model
+from .extraction_warning import ExtractionWarning
+
 # File Monitoring Models - imported after underwriting to avoid circular imports
 from .file_monitor import FileChangeLog, MonitoredFile
 from .property import Property
@@ -125,4 +128,6 @@ __all__ = [
     "ProjectClassification",
     # Schema Drift Alert
     "SchemaDriftAlert",
+    # Extraction Warning
+    "ExtractionWarning",
 ]
