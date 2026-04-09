@@ -18,12 +18,18 @@ repos:
     hooks:
       - id: mypy-check
         name: Mypy type check
-        entry: /home/mattb/miniconda3/envs/dashboard-backend/bin/mypy --ignore-missing-imports
+        entry: mypy --ignore-missing-imports
         language: system
         types: [python]
         files: ^backend/app/
         pass_filenames: false
         args: [backend/app/]
+
+  # Gitleaks — prevent secrets from being committed
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
 
   # Frontend checks
   - repo: local

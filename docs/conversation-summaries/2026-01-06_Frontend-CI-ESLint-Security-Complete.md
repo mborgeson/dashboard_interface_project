@@ -214,7 +214,7 @@ fix: resolve all 58 ESLint errors for clean CI pipeline
 
 **1. Navigate to Project:**
 ```bash
-cd /home/mattb/projects/dashboard_interface_project
+cd C:/Users/MattBorgeson/projects/dashboard_interface_project
 ```
 
 **2. Verify Git Status:**
@@ -242,7 +242,7 @@ mcp-cli call memory-keeper/context_restore_checkpoint '{"checkpointId": "CHECKPO
 
 **Backend:**
 ```bash
-cd /home/mattb/projects/dashboard_interface_project/backend
+cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
 conda activate dashboard-backend
 pip install -r requirements.txt
 
@@ -253,7 +253,7 @@ python -m pytest tests/ -m "not slow" --cov=app -q
 
 **Frontend:**
 ```bash
-cd /home/mattb/projects/dashboard_interface_project
+cd C:/Users/MattBorgeson/projects/dashboard_interface_project
 
 # Install dependencies
 npm ci

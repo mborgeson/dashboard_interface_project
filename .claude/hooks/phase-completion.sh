@@ -11,7 +11,7 @@ set -e
 
 PHASE_NAME="${1:-Unnamed Phase}"
 SUMMARY_DESC="${2:-Phase completion}"
-PROJECT_DIR="/home/mattb/projects/dashboard_interface_project"
+PROJECT_DIR="C:/Users/MattBorgeson/Projects/dashboard_interface_project"
 DOCS_DIR="$PROJECT_DIR/docs/phase-summaries"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 DATE_READABLE=$(date +"%Y-%m-%d %H:%M:%S")

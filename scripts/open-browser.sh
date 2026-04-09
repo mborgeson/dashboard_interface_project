@@ -4,7 +4,7 @@
 
 FRONTEND_URL="http://localhost:5173"
 BACKEND_URL="http://localhost:8000/api/v1/health"
-EDGE="/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
+EDGE="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
 MAX_WAIT=30
 
 waited=0

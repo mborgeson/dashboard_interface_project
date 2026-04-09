@@ -72,7 +72,7 @@ class TestModelManagerInit:
             mock_settings.ML_MODEL_PATH = "/tmp/test_models"
             with patch.object(Path, "mkdir"):
                 manager = ModelManager()
-                assert str(manager.model_path) == "/tmp/test_models"
+                assert manager.model_path == Path("/tmp/test_models")
 
     def test_init_empty_cache(self, model_manager):
         """Test that init starts with empty caches."""

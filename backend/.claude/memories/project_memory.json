@@ -4,13 +4,13 @@
   "realtime_memories": [
     {
       "type": "system_config",
-      "content": "Conda env: always use conda install (not pip) in base env. Obsidian MCP: Vault at ~/obsidian-vault (bind-mount from /mnt/c/.../Programming Vault). Folder: ' Claude Notes (MCP Server)' (leading space). CLAUDE.md architecture: ~/CLAUDE.md universal, project-specific CLAUDE.md in each root. Custom skills: /resume, /pipeline, /checkpoint. Alias: cq='claude -p'. LF line endings for shell scripts in WSL2.",
+      "content": "Conda env: always use conda install (not pip) in base env. Obsidian MCP: Vault at ~/obsidian-vault (bind-mount from C:/.../Programming Vault). Folder: ' Claude Notes (MCP Server)' (leading space). CLAUDE.md architecture: ~/CLAUDE.md universal, project-specific CLAUDE.md in each root. Custom skills: /resume, /pipeline, /checkpoint. Alias: cq='claude -p'. LF line endings for shell scripts in WSL2.",
       "added_at": "2026-03-09T12:00:00.000000",
       "source": "consolidated"
     },
     {
       "type": "project_info",
-      "content": "dashboard_interface_project: ~/projects/dashboard_interface_project/. FastAPI + SQLAlchemy async + React/TS/Vite. Conda env: dashboard-backend. Domain: B&R Capital multifamily RE (Cabana on 99th + Tempe Metro = owned properties, 15 CoStar Submarket Clusters). Proforma files at /mnt/c/Users/MattBorgeson/B&R Capital/... (WSL2). Dev command: npm run dev:all. Login: matt@bandrcapital.com / Wildcats777!!. Auth: JWT via authStore (fetch client), backend RBAC guards (require_viewer/analyst/manager/admin). Tests: vitest (frontend) + pytest with SQLite in-memory (backend). auto_auth fixture in conftest.py for auth-protected endpoint tests. Axios fully removed (1f3fad1). DB: postgresql://postgres:postgres123@localhost:5432/dashboard_interface_data.",
+      "content": "dashboard_interface_project: ~/projects/dashboard_interface_project/. FastAPI + SQLAlchemy async + React/TS/Vite. Conda env: dashboard-backend. Domain: B&R Capital multifamily RE (Cabana on 99th + Tempe Metro = owned properties, 15 CoStar Submarket Clusters). Proforma files at C:/Users/MattBorgeson/B&R Capital/... (WSL2). Dev command: npm run dev:all. Login: matt@bandrcapital.com / Wildcats777!!. Auth: JWT via authStore (fetch client), backend RBAC guards (require_viewer/analyst/manager/admin). Tests: vitest (frontend) + pytest with SQLite in-memory (backend). auto_auth fixture in conftest.py for auth-protected endpoint tests. Axios fully removed (1f3fad1). DB: postgresql://postgres:postgres123@localhost:5432/dashboard_interface_data.",
       "added_at": "2026-03-26T00:00:00.000000",
       "source": "consolidated"
     },

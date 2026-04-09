@@ -471,7 +471,12 @@ class TestReconciliationService:
         """Reconciliation works when SharePoint is unavailable."""
         from app.services.reconciliation import run_reconciliation
 
-        report = await run_reconciliation(db_session)
+        with patch(
+            "app.services.reconciliation._get_sharepoint_files",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("SharePoint unavailable"),
+        ):
+            report = await run_reconciliation(db_session)
         assert report.report_id
         assert report.generated_at is not None
         assert report.sharepoint_available is False
@@ -483,7 +488,12 @@ class TestReconciliationService:
         """Report has all expected fields populated."""
         from app.services.reconciliation import run_reconciliation
 
-        report = await run_reconciliation(db_session)
+        with patch(
+            "app.services.reconciliation._get_sharepoint_files",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("SharePoint unavailable"),
+        ):
+            report = await run_reconciliation(db_session)
         assert report.total_database_files >= 0
         assert report.total_sharepoint_files >= 0
         assert report.files_in_sync >= 0
@@ -501,8 +511,13 @@ class TestReconciliationService:
             run_reconciliation,
         )
 
-        await run_reconciliation(db_session)
-        await run_reconciliation(db_session)
+        with patch(
+            "app.services.reconciliation._get_sharepoint_files",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("SharePoint unavailable"),
+        ):
+            await run_reconciliation(db_session)
+            await run_reconciliation(db_session)
 
         history = get_report_history()
         assert len(history) == 2
@@ -522,7 +537,12 @@ class TestReconciliationService:
             run_reconciliation,
         )
 
-        await run_reconciliation(db_session)
+        with patch(
+            "app.services.reconciliation._get_sharepoint_files",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("SharePoint unavailable"),
+        ):
+            await run_reconciliation(db_session)
         latest = get_latest_report()
         assert latest is not None
         assert latest.report_id
@@ -534,8 +554,13 @@ class TestReconciliationService:
             run_reconciliation,
         )
 
-        for _ in range(5):
-            await run_reconciliation(db_session)
+        with patch(
+            "app.services.reconciliation._get_sharepoint_files",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("SharePoint unavailable"),
+        ):
+            for _ in range(5):
+                await run_reconciliation(db_session)
 
         page1 = get_report_history(limit=2, offset=0)
         page2 = get_report_history(limit=2, offset=2)
@@ -651,9 +676,14 @@ class TestReconciliationAPI:
         self, client: AsyncClient, auth_headers: dict
     ) -> None:
         """POST /reconciliation/trigger runs reconciliation and returns report."""
-        response = await client.post(
-            "/api/v1/reconciliation/trigger", headers=auth_headers
-        )
+        with patch(
+            "app.services.reconciliation._get_sharepoint_files",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("SharePoint unavailable"),
+        ):
+            response = await client.post(
+                "/api/v1/reconciliation/trigger", headers=auth_headers
+            )
         assert response.status_code == 200
         data = response.json()
         assert data["message"] == "Reconciliation completed"
@@ -668,7 +698,12 @@ class TestReconciliationAPI:
         self, client: AsyncClient, auth_headers: dict
     ) -> None:
         """After triggering, GET /latest returns the report."""
-        await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
+        with patch(
+            "app.services.reconciliation._get_sharepoint_files",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("SharePoint unavailable"),
+        ):
+            await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
 
         response = await client.get(
             "/api/v1/reconciliation/latest", headers=auth_headers
@@ -682,8 +717,13 @@ class TestReconciliationAPI:
         self, client: AsyncClient, auth_headers: dict
     ) -> None:
         """After triggering twice, history shows both reports."""
-        await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
-        await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
+        with patch(
+            "app.services.reconciliation._get_sharepoint_files",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("SharePoint unavailable"),
+        ):
+            await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
+            await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
 
         response = await client.get(
             "/api/v1/reconciliation/history", headers=auth_headers
@@ -696,8 +736,13 @@ class TestReconciliationAPI:
         self, client: AsyncClient, auth_headers: dict
     ) -> None:
         """History endpoint respects limit and offset parameters."""
-        for _ in range(3):
-            await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
+        with patch(
+            "app.services.reconciliation._get_sharepoint_files",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("SharePoint unavailable"),
+        ):
+            for _ in range(3):
+                await client.post("/api/v1/reconciliation/trigger", headers=auth_headers)
 
         response = await client.get(
             "/api/v1/reconciliation/history?limit=1&offset=0",

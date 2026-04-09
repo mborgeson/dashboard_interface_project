@@ -529,7 +529,7 @@ Prerequisites:
 
 Development:
 ```bash
-cd /home/mattb/projects/dashboard_interface_project
+cd C:/Users/MattBorgeson/projects/dashboard_interface_project
 npm install
 npm run dev
 ```

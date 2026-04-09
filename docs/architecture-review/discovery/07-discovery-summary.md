@@ -13,7 +13,7 @@
 graph TB
     subgraph "Data Sources"
         SP[SharePoint Online<br/>Graph API + MSAL]
-        LOCAL[Local OneDrive<br/>WSL2 /mnt/c/...]
+        LOCAL[Local OneDrive<br/>WSL2 C:/...]
         COSTAR[CoStar Data<br/>Market Analytics]
         FRED[FRED API<br/>Interest Rates]
     end

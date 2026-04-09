@@ -55,6 +55,7 @@ ALLOWED_MIME_TYPES: dict[str, set[str]] = {
         "text/plain",
         "application/csv",
         "application/octet-stream",
+        "application/vnd.ms-excel",  # Windows registry maps .csv to Excel MIME
     },
     ".docx": {
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

@@ -339,7 +339,7 @@ METHOD 3: Manual Context Loading
 If starting fresh, provide Claude with:
 
 1. This changelog file
-2. The project path: /home/mattb/projects/dashboard_interface_project
+2. The project path: C:/Users/MattBorgeson/projects/dashboard_interface_project
 3. Key context: "B&R Capital Real Estate Analytics Dashboard, Phase 1 complete,
    React 19 + TypeScript + Vite + Tailwind, 4 pages implemented"
 

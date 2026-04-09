@@ -170,7 +170,7 @@ Please indicate which direction you'd like to take for Wave 5.
 
 ```bash
 # Navigate to project
-cd /home/mattb/projects/dashboard_interface_project
+cd C:/Users/MattBorgeson/projects/dashboard_interface_project
 
 # Verify current state
 git log --oneline -3

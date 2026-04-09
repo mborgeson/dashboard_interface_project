@@ -97,7 +97,7 @@ Sample extracted values:
 ```bash
 # Open VS Code in Remote-WSL mode
 # Ctrl+Shift+P -> "Remote-WSL: Open Folder in WSL..."
-# Navigate to /home/mattb/projects/dashboard_interface_project
+# Navigate to C:/Users/MattBorgeson/projects/dashboard_interface_project
 
 cd backend
 source venv/bin/activate

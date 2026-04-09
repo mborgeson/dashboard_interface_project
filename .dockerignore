@@ -1,0 +1,93 @@
+# =============================================================================
+# Docker Ignore File - B&R Capital Dashboard (Root / Frontend)
+# =============================================================================
+# Prevents secrets, backend code, and project noise from being copied into
+# the frontend Docker image via `COPY . .` in Dockerfile.frontend
+# =============================================================================
+
+# Secrets — NEVER include in images
+.env
+.env.*
+!.env.example
+.env.backup.*
+secrets/
+credentials/
+*.pem
+*.key
+*.crt
+
+# Backend (frontend image doesn't need it)
+backend/
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Documentation and reviews
+docs/
+*.md
+!README.md
+
+# CI/CD
+.github/
+
+# Docker (avoid recursive includes)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Agent and orchestration scratch
+antigravity/
+.checkpoints/
+.claude/
+.claude-flow/
+.remember/
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Node modules (installed fresh in Dockerfile)
+node_modules/
+
+# Build output (built fresh in Dockerfile)
+dist/
+
+# Testing
+e2e/
+playwright.config.ts
+playwright-report/
+test-results/
+coverage/
+.nyc_output/
+
+# Scripts and config not needed in image
+scripts/
+nginx/
+*.log
+*.logs
+logs/
+tmp/
+temp/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Python artifacts (shouldn't be at root, but just in case)
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+
+# Misc
+*.bak
+*.tmp
+*.old
+*.orig

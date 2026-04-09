@@ -152,7 +152,7 @@ The following components were already in place:
 
 ```bash
 # 1. Navigate to project
-cd /home/mattb/projects/dashboard_interface_project
+cd C:/Users/MattBorgeson/projects/dashboard_interface_project
 
 # 2. Verify git state
 git status

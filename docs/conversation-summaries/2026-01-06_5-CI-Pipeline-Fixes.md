@@ -156,7 +156,7 @@ The IDE shows warnings for `.github/workflows/deploy.yml` that are **not actual 
 
 ### Step 1: Set Project Directory
 ```bash
-cd /home/mattb/projects/dashboard_interface_project
+cd C:/Users/MattBorgeson/projects/dashboard_interface_project
 ```
 
 ### Step 2: Verify Git State

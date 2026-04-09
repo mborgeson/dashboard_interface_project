@@ -184,7 +184,7 @@ mcp-cli call memory-keeper/context_restore_checkpoint '{
 
 #### 2. Git State Verification
 ```bash
-cd /home/mattb/projects/dashboard_interface_project
+cd C:/Users/MattBorgeson/projects/dashboard_interface_project
 git status
 git log --oneline -5
 git pull origin main
@@ -192,7 +192,7 @@ git pull origin main
 
 #### 3. Environment Setup
 ```bash
-cd /home/mattb/projects/dashboard_interface_project/backend
+cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
 
 # Activate virtual environment
 source venv/bin/activate

@@ -89,7 +89,7 @@ Review the dashboard at http://localhost:5173/ and implement all optional improv
 
 ```bash
 # From WSL Ubuntu terminal
-cd /home/mattb/projects/dashboard_interface_project
+cd C:/Users/MattBorgeson/projects/dashboard_interface_project
 
 # OR from Windows PowerShell
 cd \\wsl.localhost\Ubuntu\home\mattb\projects\dashboard_interface_project

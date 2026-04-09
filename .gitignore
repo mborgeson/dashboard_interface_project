@@ -111,3 +111,9 @@ backend/.github/
 !.claude-flow/workflows/
 !dashboard_interface_project.code-workspace
 generated_reports/
+
+# Antigravity (no longer used)
+antigravity/
+
+# Local checkpoints (session state)
+.checkpoints/

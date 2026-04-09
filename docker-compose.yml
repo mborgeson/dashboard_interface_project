@@ -61,7 +61,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/dashboard_interface_data
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=dev-secret-key-change-in-production
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required - set in .env}
       - ENVIRONMENT=development
       - DEBUG=true
       - LOG_LEVEL=debug

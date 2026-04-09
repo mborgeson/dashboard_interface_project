@@ -347,7 +347,7 @@ class TestCorruptFileHandling:
         corrupt_content = b"nope"
         with pytest.raises(FileAccessError) as exc_info:
             simple_extractor._load_xlsb(
-                "/mnt/c/Users/data/Zen_on_50.xlsb", corrupt_content
+                "C:/Users/data/Zen_on_50.xlsb", corrupt_content
             )
         assert "Zen_on_50.xlsb" in str(exc_info.value)
 

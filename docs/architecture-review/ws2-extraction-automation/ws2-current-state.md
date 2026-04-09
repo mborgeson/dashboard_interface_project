@@ -231,7 +231,7 @@ Both schedulers are initialized at application startup in `main.py`. They start 
 
 | Setting | Type | Default | Purpose |
 |---------|------|---------|---------|
-| `LOCAL_DEALS_ROOT` | `str` | `""` | Local OneDrive sync path for dev (e.g., `/mnt/c/Users/MattBorgeson/B&R Capital/...`) |
+| `LOCAL_DEALS_ROOT` | `str` | `""` | Local OneDrive sync path for dev (e.g., `C:/Users/MattBorgeson/B&R Capital/...`) |
 
 ### File Monitor (ExtractionSettings, line 294)
 

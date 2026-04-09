@@ -86,7 +86,7 @@ mcp-cli call memory-keeper/context_restore_checkpoint '{"checkpointId": "72f7f56
 ### Git Restore
 ```bash
 # Navigate to project
-cd /home/mattb/projects/dashboard_interface_project
+cd C:/Users/MattBorgeson/projects/dashboard_interface_project
 
 # Ensure on main branch
 git checkout main
@@ -101,7 +101,7 @@ git checkout -b restore-70-percent-coverage 4bcef32
 ### Full Environment Restore
 ```bash
 # 1. Clone/navigate to project
-cd /home/mattb/projects/dashboard_interface_project/backend
+cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
 
 # 2. Activate conda environment
 conda activate dashboard-backend

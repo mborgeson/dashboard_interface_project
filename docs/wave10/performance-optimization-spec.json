@@ -19,7 +19,7 @@
     {
       "id": "OPT-001",
       "component": "PropertyHero.tsx",
-      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/property-detail/components/PropertyHero.tsx",
+      "file_path": "C:/Users/MattBorgeson/Projects/dashboard_interface_project/src/features/property-detail/components/PropertyHero.tsx",
       "current_implementation": "Uses basic <img> tag without lazy loading, srcset, or optimized image handling. Error handling hides image on failure but does not provide fallback.",
       "optimization_opportunity": "Implement lazy loading with native loading='lazy' attribute, add srcset for responsive images, use picture element for format optimization (WebP/AVIF with fallback), add blur placeholder for better perceived performance",
       "priority": "high",
@@ -34,7 +34,7 @@
     {
       "id": "OPT-002",
       "component": "PropertyCard.tsx",
-      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/investments/components/PropertyCard.tsx",
+      "file_path": "C:/Users/MattBorgeson/Projects/dashboard_interface_project/src/features/investments/components/PropertyCard.tsx",
       "current_implementation": "No images currently loaded - uses placeholder colored divs. No memoization on the component despite being rendered in lists.",
       "optimization_opportunity": "Add React.memo() wrapper to prevent unnecessary re-renders when parent state changes but property data hasn't. When images are added, implement lazy loading and optimized formats.",
       "priority": "medium",
@@ -48,7 +48,7 @@
     {
       "id": "OPT-003",
       "component": "PropertyTable.tsx",
-      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/investments/components/PropertyTable.tsx",
+      "file_path": "C:/Users/MattBorgeson/Projects/dashboard_interface_project/src/features/investments/components/PropertyTable.tsx",
       "current_implementation": "Table rows re-render on every state change including expand/collapse. SortIcon component is correctly extracted. Missing key on React.Fragment (<>).",
       "optimization_opportunity": "Extract table row into memoized component, fix missing key warning on Fragment, implement virtualization for large property lists (50+ items).",
       "priority": "high",
@@ -63,7 +63,7 @@
     {
       "id": "OPT-004",
       "component": "TransactionTable.tsx",
-      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/transactions/components/TransactionTable.tsx",
+      "file_path": "C:/Users/MattBorgeson/Projects/dashboard_interface_project/src/features/transactions/components/TransactionTable.tsx",
       "current_implementation": "Creates new Date object and formats it on every render. No memoization on table rows.",
       "optimization_opportunity": "Memoize formatted date values, extract transaction row into memoized component, consider virtualization for large datasets.",
       "priority": "medium",
@@ -77,7 +77,7 @@
     {
       "id": "OPT-005",
       "component": "ComparisonTable.tsx",
-      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/deals/components/comparison/ComparisonTable.tsx",
+      "file_path": "C:/Users/MattBorgeson/Projects/dashboard_interface_project/src/features/deals/components/comparison/ComparisonTable.tsx",
       "current_implementation": "Has good useMemo usage for activeMetrics and metricStats. Creates new Intl.NumberFormat instance on each formatCurrency call.",
       "optimization_opportunity": "Cache Intl.NumberFormat instance outside component or in useMemo. Already has reasonable optimization.",
       "priority": "low",
@@ -90,7 +90,7 @@
     {
       "id": "OPT-006",
       "component": "routes.ts / router.tsx",
-      "file_path": "/home/mattb/projects/dashboard_interface_project/src/app/routes.ts",
+      "file_path": "C:/Users/MattBorgeson/Projects/dashboard_interface_project/src/app/routes.ts",
       "current_implementation": "Good lazy loading implementation with React.lazy() for all routes except DashboardMain. Uses PageSuspenseWrapper for loading states.",
       "optimization_opportunity": "Add route prefetching for likely navigation paths. Implement preload hints for common routes. Consider adding route-based code splitting with granular chunks.",
       "priority": "medium",
@@ -104,7 +104,7 @@
     {
       "id": "OPT-007",
       "component": "DashboardMain.tsx",
-      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/dashboard-main/DashboardMain.tsx",
+      "file_path": "C:/Users/MattBorgeson/Projects/dashboard_interface_project/src/features/dashboard-main/DashboardMain.tsx",
       "current_implementation": "Calculates portfolio metrics (totalProperties, totalUnits, totalValue, totalNOI, avgOccupancy, avgCapRate) on every render. Sorts and slices transactions/properties on every render.",
       "optimization_opportunity": "Memoize all calculated metrics with useMemo. Memoize sorted/filtered lists. Extract child sections into separate memoized components.",
       "priority": "high",
@@ -118,7 +118,7 @@
     {
       "id": "OPT-008",
       "component": "KanbanBoard.tsx",
-      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/deals/components/KanbanBoard.tsx",
+      "file_path": "C:/Users/MattBorgeson/Projects/dashboard_interface_project/src/features/deals/components/KanbanBoard.tsx",
       "current_implementation": "Good useCallback usage for handlers. Creates new Intl.NumberFormat on each formatCurrency call. getStageTotal and getTotalPipelineValue recalculate on each render.",
       "optimization_opportunity": "Cache formatter, memoize stage totals calculation, consider memoizing KanbanColumn renders when stage data hasn't changed.",
       "priority": "medium",
@@ -132,7 +132,7 @@
     {
       "id": "OPT-009",
       "component": "PropertyDetailPanel.tsx",
-      "file_path": "/home/mattb/projects/dashboard_interface_project/src/features/mapping/components/PropertyDetailPanel.tsx",
+      "file_path": "C:/Users/MattBorgeson/Projects/dashboard_interface_project/src/features/mapping/components/PropertyDetailPanel.tsx",
       "current_implementation": "Simple component with no obvious performance issues. Could benefit from React.memo for map popup use case.",
       "optimization_opportunity": "Wrap in React.memo to prevent re-renders when map state changes but selected property hasn't.",
       "priority": "low",
@@ -190,7 +190,7 @@
     {
       "id": "OPT-013",
       "component": "Route Prefetching",
-      "file_path": "/home/mattb/projects/dashboard_interface_project/src/app/layout/Sidebar.tsx",
+      "file_path": "C:/Users/MattBorgeson/Projects/dashboard_interface_project/src/app/layout/Sidebar.tsx",
       "current_implementation": "Standard navigation links without prefetching. Routes are lazy-loaded on demand.",
       "optimization_opportunity": "Add prefetch on link hover or IntersectionObserver for visible navigation items. Preload common routes based on user behavior.",
       "priority": "medium",
@@ -204,7 +204,7 @@
     {
       "id": "OPT-014",
       "component": "React Query Optimization",
-      "file_path": "/home/mattb/projects/dashboard_interface_project/src/app/App.tsx",
+      "file_path": "C:/Users/MattBorgeson/Projects/dashboard_interface_project/src/app/App.tsx",
       "current_implementation": "Good setup with 5-minute staleTime. usePrefetchDashboard hook exists for preloading.",
       "optimization_opportunity": "Add cache-first strategy for static data, implement optimistic updates for mutations, add query invalidation strategy documentation.",
       "priority": "low",

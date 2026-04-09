@@ -4,7 +4,7 @@
 - **Backend:** FastAPI + SQLAlchemy async (Python 3.12)
 - **Frontend:** React + TypeScript + Vite
 - **Database:** PostgreSQL. Alembic for migrations (`backend/alembic/`).
-- **Conda env:** `dashboard-backend`
+- **Python env:** venv at `backend/venv/` (Python 3.12). Activate: `backend\venv\Scripts\activate`
 
 ## Directory Structure
 
@@ -68,7 +68,7 @@
 
 ### Backend (pytest)
 - Tests in `backend/tests/`. SQLite in-memory for DB tests (need explicit `created_at`/`updated_at`, no `server_default`).
-- Run: `cd backend && python -m pytest` (in `dashboard-backend` conda env)
+- Run: `cd backend && venv\Scripts\activate && python -m pytest`
 - Parallel: `python -m pytest -n auto` (pytest-xdist, uses all available cores)
 - Coverage: `python -m pytest --cov=app --cov-report=term-missing` (not in default addopts — pass explicitly)
 - CI uses `-n auto` with coverage flags; see `backend-ci.yml` for the full invocation.
@@ -110,7 +110,7 @@ Fragile module — cell references are template-specific.
 ## Data Sources
 
 - CoStar submarket data (15 clusters)
-- Proforma Excel files from SharePoint/OneDrive (`/mnt/c/Users/MattBorgeson/B&R Capital/...`)
+- Proforma Excel files from SharePoint/OneDrive (`C:/Users/MattBorgeson/B&R Capital/...`)
 - Construction pipeline
 - Sales comps
 

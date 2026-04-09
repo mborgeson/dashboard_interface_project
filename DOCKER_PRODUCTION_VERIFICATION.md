@@ -17,7 +17,7 @@ The Docker Compose production configuration (`docker-compose.prod.yml`) is **COM
 ## 1. Required Dockerfiles - STATUS: VERIFIED ✅
 
 ### Backend Dockerfile
-- **Location**: `/home/mattb/projects/dashboard_interface_project/backend/Dockerfile`
+- **Location**: `C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend/Dockerfile`
 - **Status**: ✅ **EXISTS and VALIDATED**
 - **Features**:
   - Multi-stage build (builder → production → development)
@@ -29,7 +29,7 @@ The Docker Compose production configuration (`docker-compose.prod.yml`) is **COM
   - HEALTHCHECK command: `curl -f http://localhost:${PORT}/health`
 
 ### Frontend Dockerfile
-- **Location**: `/home/mattb/projects/dashboard_interface_project/Dockerfile.frontend`
+- **Location**: `C:/Users/MattBorgeson/Projects/dashboard_interface_project/Dockerfile.frontend`
 - **Status**: ✅ **EXISTS and VALIDATED**
 - **Features**:
   - Multi-stage build (builder → production)
@@ -44,7 +44,7 @@ The Docker Compose production configuration (`docker-compose.prod.yml`) is **COM
 ## 2. Environment Configuration - STATUS: VERIFIED ✅
 
 ### Updated .env.example
-- **Location**: `/home/mattb/projects/dashboard_interface_project/.env.example`
+- **Location**: `C:/Users/MattBorgeson/Projects/dashboard_interface_project/.env.example`
 - **Status**: ✅ **CREATED and COMPREHENSIVE**
 - **Includes All Required Variables**:
   - ✅ POSTGRES_USER
@@ -56,11 +56,11 @@ The Docker Compose production configuration (`docker-compose.prod.yml`) is **COM
   - ✅ FRONTEND_PORT (with default)
 
 ### Additional Existing .env Files
-- **Backend .env.example**: `/home/mattb/projects/dashboard_interface_project/backend/.env.example`
+- **Backend .env.example**: `C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend/.env.example`
   - Status: ✅ Comprehensive backend configuration
   - 200+ lines documenting all application settings
 
-- **Frontend .env.example**: `/home/mattb/projects/dashboard_interface_project/.env.example` (root)
+- **Frontend .env.example**: `C:/Users/MattBorgeson/Projects/dashboard_interface_project/.env.example` (root)
   - Status: ✅ Frontend-specific Vite configuration
 
 ---
@@ -166,7 +166,7 @@ The Docker Compose production configuration (`docker-compose.prod.yml`) is **COM
 
 ## 5. Nginx Configuration - STATUS: EXCELLENT ✅
 
-**Location**: `/home/mattb/projects/dashboard_interface_project/nginx.conf`
+**Location**: `C:/Users/MattBorgeson/Projects/dashboard_interface_project/nginx.conf`
 
 ### Features Verified
 - ✅ SPA routing (try_files for React routing)
@@ -228,7 +228,7 @@ interval: 30s, timeout: 5s, retries: 3, start_period: 10s
 ## 8. Deployment Scripts - STATUS: VERIFIED ✅
 
 ### Available Production Scripts
-- **Location**: `/home/mattb/projects/dashboard_interface_project/scripts/deployment/`
+- **Location**: `C:/Users/MattBorgeson/Projects/dashboard_interface_project/scripts/deployment/`
 - **Files**:
   1. `deploy.sh` - Zero-downtime deployment with rollback capability
   2. `setup-server.sh` - Server environment initialization
@@ -440,14 +440,14 @@ Before deploying to production, complete these steps:
 
 | Component | Location | Status |
 |-----------|----------|--------|
-| Docker Compose (prod) | `/home/mattb/projects/dashboard_interface_project/docker-compose.prod.yml` | ✅ EXISTS |
-| Backend Dockerfile | `/home/mattb/projects/dashboard_interface_project/backend/Dockerfile` | ✅ EXISTS |
-| Frontend Dockerfile | `/home/mattb/projects/dashboard_interface_project/Dockerfile.frontend` | ✅ EXISTS |
-| Nginx Config | `/home/mattb/projects/dashboard_interface_project/nginx.conf` | ✅ EXISTS |
-| .env.example (root) | `/home/mattb/projects/dashboard_interface_project/.env.example` | ✅ UPDATED |
-| .env.example (backend) | `/home/mattb/projects/dashboard_interface_project/backend/.env.example` | ✅ EXISTS |
-| Deploy Script | `/home/mattb/projects/dashboard_interface_project/scripts/deployment/deploy.sh` | ✅ EXISTS |
-| Setup Script | `/home/mattb/projects/dashboard_interface_project/scripts/deployment/setup-server.sh` | ✅ EXISTS |
+| Docker Compose (prod) | `C:/Users/MattBorgeson/Projects/dashboard_interface_project/docker-compose.prod.yml` | ✅ EXISTS |
+| Backend Dockerfile | `C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend/Dockerfile` | ✅ EXISTS |
+| Frontend Dockerfile | `C:/Users/MattBorgeson/Projects/dashboard_interface_project/Dockerfile.frontend` | ✅ EXISTS |
+| Nginx Config | `C:/Users/MattBorgeson/Projects/dashboard_interface_project/nginx.conf` | ✅ EXISTS |
+| .env.example (root) | `C:/Users/MattBorgeson/Projects/dashboard_interface_project/.env.example` | ✅ UPDATED |
+| .env.example (backend) | `C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend/.env.example` | ✅ EXISTS |
+| Deploy Script | `C:/Users/MattBorgeson/Projects/dashboard_interface_project/scripts/deployment/deploy.sh` | ✅ EXISTS |
+| Setup Script | `C:/Users/MattBorgeson/Projects/dashboard_interface_project/scripts/deployment/setup-server.sh` | ✅ EXISTS |
 
 ---
 

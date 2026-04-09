@@ -286,14 +286,14 @@ Deals/
 
 1. **Python Environment:**
    ```bash
-   cd /home/mattb/projects/dashboard_interface_project/backend
+   cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
    source venv/bin/activate
    pip install apscheduler>=3.10.0 pytest-timeout
    ```
 
 2. **Node Dependencies:**
    ```bash
-   cd /home/mattb/projects/dashboard_interface_project
+   cd C:/Users/MattBorgeson/projects/dashboard_interface_project
    npm install
    ```
 
@@ -314,7 +314,7 @@ env -i HOME="$HOME" PATH="$PATH" venv/bin/python ...
 ### Verify SharePoint Connection
 
 ```bash
-cd /home/mattb/projects/dashboard_interface_project/backend
+cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
 source venv/bin/activate
 env -i HOME="$HOME" PATH="$PATH" venv/bin/python -c "
 import asyncio
@@ -335,7 +335,7 @@ Expected output: "Files found: 30" and "Total size: 255.3 MB"
 ### Run Database Migration
 
 ```bash
-cd /home/mattb/projects/dashboard_interface_project/backend
+cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
 source venv/bin/activate
 alembic upgrade head
 ```
@@ -343,7 +343,7 @@ alembic upgrade head
 ### Start Backend Server
 
 ```bash
-cd /home/mattb/projects/dashboard_interface_project/backend
+cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
 source venv/bin/activate
 uvicorn app.main:app --reload --port 8000
 ```
@@ -351,7 +351,7 @@ uvicorn app.main:app --reload --port 8000
 ### Start Frontend Dev Server
 
 ```bash
-cd /home/mattb/projects/dashboard_interface_project
+cd C:/Users/MattBorgeson/projects/dashboard_interface_project
 npm run dev
 ```
 

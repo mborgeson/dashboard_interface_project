@@ -27,7 +27,7 @@ else:
 
 Run test:
 ```bash
-cd /home/mattb/projects/dashboard_interface_project/backend
+cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
 python tests/test_extraction/test_extractor.py
 ```
 
@@ -78,7 +78,7 @@ if is_xlsb:
 
 ```bash
 # Run test and compare times
-cd /home/mattb/projects/dashboard_interface_project/backend
+cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
 time python tests/test_extraction/test_extractor.py
 
 # Before fix: Duration ~111s per file

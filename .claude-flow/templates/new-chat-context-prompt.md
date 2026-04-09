@@ -11,7 +11,7 @@ Use this prompt when starting a new Claude Code chat session to bring it fully u
 # B&R Capital Dashboard - Project Context & Continuation
 
 ## Project Location
-/home/mattb/projects/dashboard_interface_project
+C:/Users/MattBorgeson/projects/dashboard_interface_project
 
 ## Restore Context First
 Run this command to restore the project checkpoint:
@@ -176,7 +176,7 @@ Please read the key files and restore the checkpoint context before proceeding.
 For simpler tasks, use this shorter version:
 
 ```
-Project: /home/mattb/projects/dashboard_interface_project
+Project: C:/Users/MattBorgeson/projects/dashboard_interface_project
 Stack: React 19 + TypeScript + Vite | FastAPI + SQLAlchemy
 Status: Phase 1 complete, backend testing infrastructure done (33 tests, 31% coverage)
 Checkpoint: mcp__memory-keeper__context_restore_checkpoint --name "backend-testing-cicd-final"

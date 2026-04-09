@@ -108,7 +108,7 @@ def _build_xlsb_sheet_cache(self, workbook, sheet_name: str) -> dict[tuple[int, 
 | `.xlsm` | openpyxl | YES | Works fine |
 
 ### Cell Mapping Reference File
-- **Path:** `/home/mattb/projects/dashboard_interface_project/Underwriting_Dashboard_Cell_References.xlsx`
+- **Path:** `C:/Users/MattBorgeson/Projects/dashboard_interface_project/Underwriting_Dashboard_Cell_References.xlsx`
 - **Size:** 6 MB
 - **Mappings:** ~1,179 fields across multiple sheets
 - **Sheet Name:** "UW Model - Cell Reference Table"
@@ -274,7 +274,7 @@ Location: `backend/tests/fixtures/uw_models/*.xlsb`
 
 Test commands:
 ```bash
-cd /home/mattb/projects/dashboard_interface_project/backend
+cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
 source venv/bin/activate
 
 # Run extraction tests (includes performance measurement)
@@ -293,7 +293,7 @@ python -m cProfile -s cumtime tests/test_extraction/test_extractor.py
 
 ```bash
 # Navigate to project
-cd /home/mattb/projects/dashboard_interface_project/backend
+cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
 
 # Activate virtual environment
 source venv/bin/activate
@@ -303,7 +303,7 @@ pip install pyxlsb openpyxl pandas structlog
 
 # Set environment (avoid stale shell vars)
 unset SHAREPOINT_SITE_URL
-export PYTHONPATH=/home/mattb/projects/dashboard_interface_project/backend
+export PYTHONPATH=C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
 
 # Verify setup
 python -c "from app.extraction import ExcelDataExtractor; print('OK')"

@@ -243,7 +243,7 @@ backend/
 
 1. **Navigate to Project**:
    ```bash
-   cd /home/mattb/projects/dashboard_interface_project/backend
+   cd C:/Users/MattBorgeson/Projects/dashboard_interface_project/backend
    ```
 
 2. **Verify Git Status**:
@@ -282,7 +282,7 @@ backend/
 - **Session ID**: `207d7169-176e-4742-8853-4f21ca52b855`
 - **Session Name**: `ci-pipeline-fix-session`
 - **Channel**: `ci-pipeline-fix-sess`
-- **Project Dir**: `/home/mattb/projects/dashboard_interface_project`
+- **Project Dir**: `C:/Users/MattBorgeson/projects/dashboard_interface_project`
 
 ---
 

@@ -273,7 +273,7 @@ Schedulers are initialized at application startup in `main.py` using APScheduler
 
 | Setting | Purpose |
 |---------|---------|
-| `LOCAL_DEALS_ROOT` | Local OneDrive sync path (e.g., `/mnt/c/Users/MattBorgeson/B&R Capital/...`); used when SharePoint API is unavailable during local development |
+| `LOCAL_DEALS_ROOT` | Local OneDrive sync path (e.g., `C:/Users/MattBorgeson/B&R Capital/...`); used when SharePoint API is unavailable during local development |
 
 ### File Monitor Settings
 
