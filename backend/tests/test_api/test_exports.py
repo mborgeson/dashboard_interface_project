@@ -22,19 +22,11 @@ async def test_export_properties_excel(client, db_session):
         "/api/v1/exports/properties/excel", follow_redirects=True
     )
 
-    if response.status_code == 404:
-        pytest.skip("Properties Excel export endpoint not implemented")
+    assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
 
-    if response.status_code == 501:
-        pytest.skip("Excel export service not available")
-
-    # Accept 200 (success) or 500 (service error)
-    assert response.status_code in [200, 500]
-
-    if response.status_code == 200:
-        # Verify it returns an Excel file
-        content_type = response.headers.get("content-type", "")
-        assert "spreadsheet" in content_type or "octet-stream" in content_type
+    # Verify it returns an Excel file
+    content_type = response.headers.get("content-type", "")
+    assert "spreadsheet" in content_type or "octet-stream" in content_type
 
 
 @pytest.mark.asyncio
@@ -46,14 +38,7 @@ async def test_export_properties_excel_with_filters(client, db_session):
         follow_redirects=True,
     )
 
-    if response.status_code == 404:
-        pytest.skip("Properties Excel export endpoint not implemented")
-
-    if response.status_code == 501:
-        pytest.skip("Excel export service not available")
-
-    # Should succeed or return 404 if no matching properties
-    assert response.status_code in [200, 404, 500]
+    assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
 
 
 @pytest.mark.asyncio
@@ -65,13 +50,7 @@ async def test_export_properties_excel_no_analytics(client, db_session):
         follow_redirects=True,
     )
 
-    if response.status_code == 404:
-        pytest.skip("Properties Excel export endpoint not implemented")
-
-    if response.status_code == 501:
-        pytest.skip("Excel export service not available")
-
-    assert response.status_code in [200, 500]
+    assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
 
 
 # =============================================================================
@@ -84,14 +63,7 @@ async def test_export_deals_excel(client, db_session):
     """Test exporting deals to Excel format."""
     response = await client.get("/api/v1/exports/deals/excel", follow_redirects=True)
 
-    if response.status_code == 404:
-        pytest.skip("Deals Excel export endpoint not implemented")
-
-    if response.status_code == 501:
-        pytest.skip("Excel export service not available")
-
-    # Accept 200 or 404 (no deals exist)
-    assert response.status_code in [200, 404, 500]
+    assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
 
 
 @pytest.mark.asyncio
@@ -103,13 +75,7 @@ async def test_export_deals_excel_by_stage(client, db_session):
         follow_redirects=True,
     )
 
-    if response.status_code == 404:
-        pytest.skip("Deals Excel export not available or no deals exist")
-
-    if response.status_code == 501:
-        pytest.skip("Excel export service not available")
-
-    assert response.status_code in [200, 404, 500]
+    assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
 
 
 # =============================================================================
@@ -124,13 +90,7 @@ async def test_export_analytics_excel(client, db_session):
         "/api/v1/exports/analytics/excel", follow_redirects=True
     )
 
-    if response.status_code == 404:
-        pytest.skip("Analytics Excel export endpoint not implemented")
-
-    if response.status_code == 501:
-        pytest.skip("Excel export service not available")
-
-    assert response.status_code in [200, 500]
+    assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
 
 
 @pytest.mark.asyncio
@@ -145,15 +105,7 @@ async def test_export_analytics_excel_time_periods(client, db_session):
             follow_redirects=True,
         )
 
-        if response.status_code == 404:
-            pytest.skip("Analytics Excel export not implemented")
-            return
-
-        if response.status_code == 501:
-            pytest.skip("Excel export service not available")
-            return
-
-        assert response.status_code in [200, 500]
+        assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
 
 
 @pytest.mark.asyncio
@@ -164,9 +116,6 @@ async def test_export_analytics_excel_invalid_period(client, db_session):
         params={"time_period": "invalid"},
         follow_redirects=True,
     )
-
-    if response.status_code == 404:
-        pytest.skip("Analytics Excel export not implemented")
 
     # Should fail validation
     assert response.status_code == 422
@@ -184,17 +133,10 @@ async def test_export_property_pdf(client, db_session):
         "/api/v1/exports/properties/1/pdf", follow_redirects=True
     )
 
-    if response.status_code == 404:
-        pytest.skip("Property PDF export not implemented or property not found")
+    assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
 
-    if response.status_code == 501:
-        pytest.skip("PDF service not available")
-
-    assert response.status_code in [200, 500]
-
-    if response.status_code == 200:
-        content_type = response.headers.get("content-type", "")
-        assert "pdf" in content_type or "octet-stream" in content_type
+    content_type = response.headers.get("content-type", "")
+    assert "pdf" in content_type or "octet-stream" in content_type
 
 
 @pytest.mark.asyncio
@@ -217,13 +159,7 @@ async def test_export_property_pdf_no_analytics(client, db_session):
         follow_redirects=True,
     )
 
-    if response.status_code == 404:
-        pytest.skip("Property PDF export not implemented")
-
-    if response.status_code == 501:
-        pytest.skip("PDF service not available")
-
-    assert response.status_code in [200, 500]
+    assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
 
 
 # =============================================================================
@@ -236,13 +172,7 @@ async def test_export_deal_pdf(client, db_session):
     """Test exporting a deal report to PDF."""
     response = await client.get("/api/v1/exports/deals/1/pdf", follow_redirects=True)
 
-    if response.status_code == 404:
-        pytest.skip("Deal PDF export not implemented or deal not found")
-
-    if response.status_code == 501:
-        pytest.skip("PDF service not available")
-
-    assert response.status_code in [200, 500]
+    assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
 
 
 @pytest.mark.asyncio
@@ -266,13 +196,7 @@ async def test_export_portfolio_pdf(client, db_session):
     """Test exporting portfolio report to PDF."""
     response = await client.get("/api/v1/exports/portfolio/pdf", follow_redirects=True)
 
-    if response.status_code == 404:
-        pytest.skip("Portfolio PDF export not implemented")
-
-    if response.status_code == 501:
-        pytest.skip("PDF service not available")
-
-    assert response.status_code in [200, 500]
+    assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
 
 
 @pytest.mark.asyncio
@@ -285,12 +209,4 @@ async def test_export_portfolio_pdf_time_periods(client, db_session):
             follow_redirects=True,
         )
 
-        if response.status_code == 404:
-            pytest.skip("Portfolio PDF export not implemented")
-            return
-
-        if response.status_code == 501:
-            pytest.skip("PDF service not available")
-            return
-
-        assert response.status_code in [200, 500]
+        assert response.status_code == 200, f"Export failed with {response.status_code}: {response.text[:200]}"
