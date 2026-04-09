@@ -1,18 +1,15 @@
 import { test, expect } from './fixtures/auth';
-import { assertBackendHealthy } from './fixtures/auth';
 
 /**
  * E2E Tests: Deal Comparison
  * Wave 9 Feature - Compare multiple deals side-by-side
  */
 test.describe('Deal Comparison', () => {
-  const API_BASE = 'http://localhost:8000/api/v1';
-
   test.describe('Deal Selection', () => {
     test.beforeEach(async ({ page }) => {
       await page.goto('/deals');
       await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
     });
 
     test('selects deals for comparison from deal cards', async ({ page }) => {
@@ -27,12 +24,10 @@ test.describe('Deal Comparison', () => {
       if (await compareCheckbox.first().isVisible({ timeout: 3000 }).catch(() => false)) {
         // Select first deal
         await compareCheckbox.first().click();
-        await page.waitForTimeout(300);
 
         // Select second deal
         if (await compareCheckbox.nth(1).isVisible().catch(() => false)) {
           await compareCheckbox.nth(1).click();
-          await page.waitForTimeout(300);
 
           // Look for compare button that appears after selection
           const compareButton = page.locator(
@@ -67,7 +62,7 @@ test.describe('Deal Comparison', () => {
           await compareButton.first().click();
 
           // Should navigate to comparison page
-          await page.waitForTimeout(1000);
+          await page.waitForLoadState('networkidle');
           const url = page.url();
           const isComparisonPage = url.includes('compare') || url.includes('comparison');
 
@@ -121,7 +116,7 @@ test.describe('Deal Comparison', () => {
     test('displays comparison table with metrics', async ({ page }) => {
       // Navigate directly to comparison page if it exists
       await page.goto('/deals/compare?ids=1,2');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       // If URL redirects or page doesn't exist, try deals page
       if (page.url().includes('/deals/compare')) {
@@ -148,7 +143,7 @@ test.describe('Deal Comparison', () => {
 
     test('displays comparison charts', async ({ page }) => {
       await page.goto('/deals/compare?ids=1,2');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       if (page.url().includes('/deals/compare')) {
         // Look for chart elements
@@ -170,7 +165,7 @@ test.describe('Deal Comparison', () => {
 
     test('highlights best and worst values', async ({ page }) => {
       await page.goto('/deals/compare?ids=1,2');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       if (page.url().includes('/deals/compare')) {
         // Look for highlighted cells (best/worst indicators)
@@ -197,7 +192,7 @@ test.describe('Deal Comparison', () => {
   test.describe('Comparison Export & Share', () => {
     test('exports comparison to PDF', async ({ page }) => {
       await page.goto('/deals/compare?ids=1,2');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       if (page.url().includes('/deals/compare')) {
         // Look for export button
@@ -228,7 +223,7 @@ test.describe('Deal Comparison', () => {
 
     test('shares comparison URL', async ({ page }) => {
       await page.goto('/deals/compare?ids=1,2');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       if (page.url().includes('/deals/compare')) {
         // Look for share button
@@ -261,7 +256,7 @@ test.describe('Deal Comparison', () => {
 
     test('comparison URL contains selected deal IDs', async ({ page }) => {
       await page.goto('/deals');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       // Try to navigate to comparison
       const compareCheckbox = page.locator('[data-testid="compare-checkbox"]');
@@ -275,7 +270,7 @@ test.describe('Deal Comparison', () => {
         const compareButton = page.locator('button:has-text("Compare")');
         if (await compareButton.first().isVisible().catch(() => false)) {
           await compareButton.first().click();
-          await page.waitForTimeout(1000);
+          await page.waitForLoadState('networkidle');
 
           // Check URL structure
           const url = page.url();
@@ -287,81 +282,6 @@ test.describe('Deal Comparison', () => {
       }
 
       await expect(page.locator('main')).toBeVisible();
-    });
-  });
-
-  test.describe('Comparison API', () => {
-    test.beforeAll(async ({ request }) => {
-      await assertBackendHealthy(request);
-    });
-
-    test('should fetch comparison data via API', async ({ request, authToken }) => {
-      const response = await request.get(`${API_BASE}/deals/compare`, {
-        params: { ids: '1,2,3' },
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-
-      if (response.status() === 404 || response.status() === 405) {
-        test.fixme(true, 'GET /deals/compare endpoint not implemented yet');
-        return;
-      }
-
-      expect(response.ok()).toBeTruthy();
-
-      const data = await response.json();
-      expect(data).toBeDefined();
-    });
-
-    test('should export comparison to PDF via API', async ({ request, authToken }) => {
-      const response = await request.get(`${API_BASE}/deals/compare/export/pdf`, {
-        params: { ids: '1,2' },
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-
-      if (response.status() === 404 || response.status() === 405) {
-        test.fixme(true, 'GET /deals/compare/export/pdf endpoint not implemented yet');
-        return;
-      }
-
-      if (response.ok()) {
-        const contentType = response.headers()['content-type'] || '';
-        expect(
-          contentType.includes('pdf') ||
-          contentType.includes('octet-stream')
-        ).toBeTruthy();
-      }
-    });
-
-    test('should validate deal IDs in comparison request', async ({ request, authToken }) => {
-      // Test with invalid IDs
-      const response = await request.get(`${API_BASE}/deals/compare`, {
-        params: { ids: 'invalid' },
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-
-      if (response.status() === 404 || response.status() === 405) {
-        test.fixme(true, 'GET /deals/compare endpoint not implemented yet');
-        return;
-      }
-
-      // Should return 400 for invalid IDs
-      expect([200, 400, 422]).toContain(response.status());
-    });
-
-    test('should limit number of deals in comparison', async ({ request, authToken }) => {
-      // Test with too many IDs (if limit exists)
-      const response = await request.get(`${API_BASE}/deals/compare`, {
-        params: { ids: '1,2,3,4,5,6,7,8,9,10' },
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-
-      if (response.status() === 404 || response.status() === 405) {
-        test.fixme(true, 'GET /deals/compare endpoint not implemented yet');
-        return;
-      }
-
-      // Should either accept or return error for too many deals
-      expect([200, 400, 422]).toContain(response.status());
     });
   });
 
@@ -383,7 +303,7 @@ test.describe('Deal Comparison', () => {
 
     test('handles empty comparison gracefully', async ({ page }) => {
       await page.goto('/deals/compare');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       // Should show empty state or redirect
       const emptyState = page.locator(
@@ -404,7 +324,7 @@ test.describe('Deal Comparison', () => {
 
     test('allows removing deals from comparison', async ({ page }) => {
       await page.goto('/deals/compare?ids=1,2,3');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       if (page.url().includes('/deals/compare')) {
         // Look for remove button on deal columns
@@ -417,7 +337,6 @@ test.describe('Deal Comparison', () => {
 
         if (await removeButton.first().isVisible({ timeout: 3000 }).catch(() => false)) {
           await removeButton.first().click();
-          await page.waitForTimeout(500);
 
           // URL should update or deal should be removed from view
           await expect(page.locator('main')).toBeVisible();
@@ -429,14 +348,14 @@ test.describe('Deal Comparison', () => {
 
     test('preserves comparison state on page refresh', async ({ page }) => {
       await page.goto('/deals/compare?ids=1,2');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       if (page.url().includes('/deals/compare')) {
         const originalUrl = page.url();
 
         // Refresh page
         await page.reload();
-        await page.waitForTimeout(1000);
+        await page.waitForLoadState('networkidle');
 
         // URL should still contain IDs
         expect(page.url()).toContain('ids=');

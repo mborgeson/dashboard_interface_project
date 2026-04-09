@@ -36,7 +36,7 @@ test.describe('Deals Page', () => {
 
     test('should display deal cards or table', async ({ page }) => {
       // Wait for content to load
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       // Should have some deal-related content (cards, table, or text)
       const hasCards = await page.locator('[class*="Card"]').first().isVisible()
@@ -120,37 +120,13 @@ test.describe('Deals Page', () => {
     });
   });
 
-  test.describe('Deal Stage Transitions', () => {
-    const API_BASE = 'http://localhost:8000/api/v1';
-
-    test.beforeAll(async ({ request }) => {
-      await assertBackendHealthy(request);
-    });
-
-    test('should update deal stage via API', async ({ request, authToken }) => {
-      const response = await request.patch(`${API_BASE}/deals/1/stage`, {
-        data: { stage: 'underwriting' },
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-
-      if (response.status() === 404) {
-        // Deal ID 1 may not exist
-        return;
-      }
-
-      if (response.status() === 405) {
-        test.fixme(true, 'PATCH /deals/{id}/stage endpoint not implemented yet');
-        return;
-      }
-
-      expect(response.ok()).toBeTruthy();
-    });
-  });
+  // NOTE: Deal stage transition test (PATCH /deals/{id}/stage) was removed
+  // because the endpoint is not implemented. Re-add when the endpoint exists.
 
   test.describe('Deal Pipeline View', () => {
     test('should display pipeline stages', async ({ page }) => {
       await page.goto('/deals');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       // Look for pipeline-related elements (Kanban columns, stage labels)
       const pipelineContent = await page.locator('main').textContent();
@@ -162,7 +138,7 @@ test.describe('Deals Page', () => {
 
     test('should navigate between list and pipeline views', async ({ page }) => {
       await page.goto('/deals');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       // Check for view toggle buttons (if implemented)
       const viewToggle = page.locator('[role="tablist"], [class*="toggle"], button:has-text("Pipeline"), button:has-text("List")');
@@ -170,7 +146,7 @@ test.describe('Deals Page', () => {
       if (await viewToggle.first().isVisible().catch(() => false)) {
         // Try to toggle views
         await viewToggle.first().click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('networkidle');
 
         // Verify page still works
         await expect(page.locator('main')).toBeVisible();
