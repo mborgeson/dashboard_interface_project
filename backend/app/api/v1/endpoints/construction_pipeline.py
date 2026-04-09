@@ -6,6 +6,7 @@ multifamily construction pipeline data. Permit/employment time-series use
 ConstructionPermitData and ConstructionEmploymentData.
 """
 
+import asyncio
 import math
 import os
 from datetime import UTC, date, datetime
@@ -926,7 +927,7 @@ async def data_quality(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/import", response_model=ImportResponse)
-async def trigger_import(db_sync=Depends(get_sync_db)):
+def trigger_import(db_sync=Depends(get_sync_db)):
     """Import any unimported CoStar construction Excel files."""
     from app.services.construction_import import (
         get_unimported_files,
@@ -967,7 +968,7 @@ async def trigger_import(db_sync=Depends(get_sync_db)):
 
 
 @router.get("/import/status", response_model=ImportStatusResponse)
-async def import_status(db_sync=Depends(get_sync_db)):
+def import_status(db_sync=Depends(get_sync_db)):
     """Check for unimported files and last import info."""
     from app.services.construction_import import get_unimported_files
 
@@ -1027,13 +1028,16 @@ async def fetch_all_apis() -> FetchAllResponse:
             if result["records"]:
                 from app.db.session import SessionLocal
 
-                with SessionLocal() as db:
-                    save_census_bps_records(
-                        db,
-                        result["records"],
-                        result.get("api_response_code"),
-                        result.get("errors"),
-                    )
+                def _save_census_sync(records, api_code, errs):
+                    with SessionLocal() as db:
+                        save_census_bps_records(db, records, api_code, errs)
+
+                await asyncio.to_thread(
+                    _save_census_sync,
+                    result["records"],
+                    result.get("api_response_code"),
+                    result.get("errors"),
+                )
             results["census_bps"] = len(result["records"])
         else:
             errors.append("Census API key not configured")
@@ -1053,13 +1057,16 @@ async def fetch_all_apis() -> FetchAllResponse:
             if result["records"]:
                 from app.db.session import SessionLocal
 
-                with SessionLocal() as db:
-                    save_fred_records(
-                        db,
-                        result["records"],
-                        result.get("api_response_code"),
-                        result.get("errors"),
-                    )
+                def _save_fred_sync(records, api_code, errs):
+                    with SessionLocal() as db:
+                        save_fred_records(db, records, api_code, errs)
+
+                await asyncio.to_thread(
+                    _save_fred_sync,
+                    result["records"],
+                    result.get("api_response_code"),
+                    result.get("errors"),
+                )
             results["fred_permits"] = len(result["records"])
         else:
             errors.append("FRED API key not configured")
@@ -1080,13 +1087,16 @@ async def fetch_all_apis() -> FetchAllResponse:
         if result["records"]:
             from app.db.session import SessionLocal
 
-            with SessionLocal() as db:
-                save_bls_records(
-                    db,
-                    result["records"],
-                    result.get("api_response_code"),
-                    result.get("errors"),
-                )
+            def _save_bls_sync(records, api_code, errs):
+                with SessionLocal() as db:
+                    save_bls_records(db, records, api_code, errs)
+
+            await asyncio.to_thread(
+                _save_bls_sync,
+                result["records"],
+                result.get("api_response_code"),
+                result.get("errors"),
+            )
         results["bls_employment"] = len(result["records"])
     except Exception as e:
         logger.exception("bls_manual_fetch_error")
@@ -1121,8 +1131,13 @@ async def fetch_all_apis() -> FetchAllResponse:
             if result["records"]:
                 from app.db.session import SessionLocal
 
-                with SessionLocal() as db:
-                    save_fn(db, result["records"])
+                def _save_municipal_sync(sv_fn, records):
+                    with SessionLocal() as db:
+                        sv_fn(db, records)
+
+                await asyncio.to_thread(
+                    _save_municipal_sync, save_fn, result["records"]
+                )
             results[name] = len(result["records"])
         except Exception as e:
             logger.exception(f"{name}_manual_fetch_error")
