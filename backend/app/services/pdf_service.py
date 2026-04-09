@@ -217,8 +217,10 @@ class PDFReportService:
             ]
         )
 
-    def _format_currency(self, value: float) -> str:
+    def _format_currency(self, value: float | None) -> str:
         """Format a number as currency."""
+        if value is None:
+            return "N/A"
         if value >= 1_000_000:
             return f"${value / 1_000_000:.1f}M"
         elif value >= 1_000:
@@ -226,8 +228,10 @@ class PDFReportService:
         else:
             return f"${value:,.2f}"
 
-    def _format_percent(self, value: float) -> str:
+    def _format_percent(self, value: float | None) -> str:
         """Format a number as percentage."""
+        if value is None:
+            return "N/A"
         if value > 1:
             return f"{value:.1f}%"
         else:

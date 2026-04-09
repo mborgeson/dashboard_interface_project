@@ -252,30 +252,20 @@ async def test_export_deal_pdf_not_found(client, db_session):
 @pytest.mark.skipif(not HAS_REPORTLAB, reason="reportlab not installed")
 @pytest.mark.asyncio
 async def test_export_portfolio_pdf(client, db_session):
-    """Test exporting portfolio report to PDF.
-
-    Known issue: PDF generator has a NoneType comparison bug when the DB
-    has no properties (exports:export_portfolio_pdf:623). Returns 500 with
-    empty test DB. Tracked for fix in Phase 2.
-    """
+    """Test exporting portfolio report to PDF."""
     response = await client.get("/api/v1/exports/portfolio/pdf", follow_redirects=True)
 
-    if response.status_code == 200:
-        content_type = response.headers.get("content-type", "")
-        assert "pdf" in content_type or "octet-stream" in content_type
-    else:
-        # Empty DB triggers NoneType bug in PDF aggregation — 500 is the known failure
-        assert response.status_code == 500
-        assert "failed to generate" in response.json()["detail"].lower()
+    assert response.status_code == 200, (
+        f"Export failed with {response.status_code}: {response.text[:200]}"
+    )
+    content_type = response.headers.get("content-type", "")
+    assert "pdf" in content_type or "octet-stream" in content_type
 
 
 @pytest.mark.skipif(not HAS_REPORTLAB, reason="reportlab not installed")
 @pytest.mark.asyncio
 async def test_export_portfolio_pdf_time_periods(client, db_session):
-    """Test portfolio PDF with different time periods.
-
-    Same NoneType bug as test_export_portfolio_pdf — see that test's docstring.
-    """
+    """Test portfolio PDF with different time periods."""
     for period in ["mtd", "ytd", "1y"]:
         response = await client.get(
             "/api/v1/exports/portfolio/pdf",
@@ -283,9 +273,6 @@ async def test_export_portfolio_pdf_time_periods(client, db_session):
             follow_redirects=True,
         )
 
-        if response.status_code == 200:
-            content_type = response.headers.get("content-type", "")
-            assert "pdf" in content_type or "octet-stream" in content_type
-        else:
-            assert response.status_code == 500
-            assert "failed to generate" in response.json()["detail"].lower()
+        assert response.status_code == 200, (
+            f"Export failed with {response.status_code}: {response.text[:200]}"
+        )
