@@ -817,12 +817,14 @@ class GroupExtractionPipeline:
                         warning_type="drift",
                         severity=drift_result.severity,
                         message=f"Schema drift detected: similarity={drift_result.similarity_score:.2f}",
-                        details=json.dumps({
-                            "similarity_score": drift_result.similarity_score,
-                            "changed_sheets": drift_result.changed_sheets,
-                            "missing_sheets": drift_result.missing_sheets,
-                            "new_sheets": drift_result.new_sheets,
-                        }),
+                        details=json.dumps(
+                            {
+                                "similarity_score": drift_result.similarity_score,
+                                "changed_sheets": drift_result.changed_sheets,
+                                "missing_sheets": drift_result.missing_sheets,
+                                "new_sheets": drift_result.new_sheets,
+                            }
+                        ),
                     )
                     db.add(warning)
 
@@ -919,9 +921,7 @@ class GroupExtractionPipeline:
 
                 # --- Safety checks before persisting ---
                 # Run reconciliation (NOI vs Revenue-Expenses consistency)
-                recon_results = run_reconciliation_checks(
-                    result, str(property_name)
-                )
+                recon_results = run_reconciliation_checks(result, str(property_name))
                 for r in recon_results:
                     if not r.passed:
                         warning = ExtractionWarning(
@@ -932,11 +932,13 @@ class GroupExtractionPipeline:
                             severity="warning",
                             field_name=r.check_name,
                             message=f"Reconciliation failed: expected={r.expected_value}, actual={r.actual_value}, diff={r.difference}",
-                            details=json.dumps({
-                                "expected": r.expected_value,
-                                "actual": r.actual_value,
-                                "difference": r.difference,
-                            }),
+                            details=json.dumps(
+                                {
+                                    "expected": r.expected_value,
+                                    "actual": r.actual_value,
+                                    "difference": r.difference,
+                                }
+                            ),
                         )
                         db.add(warning)
                         logger.warning(
@@ -956,10 +958,12 @@ class GroupExtractionPipeline:
                             severity=str(vr.status),
                             field_name=vr.field_name,
                             message=vr.message,
-                            details=json.dumps({
-                                "value": vr.value,
-                                "rule": vr.rule_name,
-                            }),
+                            details=json.dumps(
+                                {
+                                    "value": vr.value,
+                                    "rule": vr.rule_name,
+                                }
+                            ),
                         )
                         db.add(warning)
 
