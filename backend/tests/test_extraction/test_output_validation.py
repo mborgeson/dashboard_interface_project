@@ -47,14 +47,14 @@ class TestValidValues:
 
     def test_typical_phoenix_deal(self):
         extracted = {
-            "cap_rate": 5.5,
+            "cap_rate": 0.055,
             "purchase_price": 25_000_000,
             "total_units": 150,
             "year_built": 1985,
             "noi": 1_500_000,
             "avg_rent": 1_200,
             "price_per_unit": 166_667,
-            "occupancy": 93.5,
+            "occupancy": 0.935,
             "total_sf": 120_000,
         }
         summary = validate_extraction_output(extracted)
@@ -65,14 +65,14 @@ class TestValidValues:
 
     def test_each_field_valid_individually(self):
         cases = [
-            ("cap_rate", 6.0),
+            ("cap_rate", 0.06),
             ("purchase_price", 50_000_000),
             ("unit_count", 200),
             ("year_built", 2000),
             ("noi", 3_000_000),
             ("rent_per_unit", 1_100),
             ("price_per_unit", 150_000),
-            ("occupancy", 95.0),
+            ("occupancy", 0.95),
             ("sqft", 100_000),
         ]
         for field_name, value in cases:
@@ -94,8 +94,8 @@ class TestErrorValues:
     @pytest.mark.parametrize(
         "field_name, value",
         [
-            ("cap_rate", -1.0),
-            ("cap_rate", 25.0),
+            ("cap_rate", -0.01),
+            ("cap_rate", 0.30),
             ("purchase_price", 50),
             ("purchase_price", 1_000_000_000),
             ("unit_count", 0),
@@ -108,8 +108,8 @@ class TestErrorValues:
             ("rent_per_unit", 20_000),
             ("price_per_unit", 5_000),
             ("price_per_unit", 2_000_000),
-            ("occupancy", -5),
-            ("occupancy", 110),
+            ("occupancy", -0.05),
+            ("occupancy", 1.10),
             ("sqft", 10),
             ("sqft", 100_000_000),
         ],
@@ -133,8 +133,8 @@ class TestWarningValues:
     @pytest.mark.parametrize(
         "field_name, value",
         [
-            ("cap_rate", 1.0),  # below warning_min 2.0
-            ("cap_rate", 18.0),  # above warning_max 15.0
+            ("cap_rate", 0.01),  # below warning_min 0.02
+            ("cap_rate", 0.18),  # above warning_max 0.15
             ("purchase_price", 200_000),  # below warning_min 1M
             ("purchase_price", 300_000_000),  # above warning_max 200M
             ("unit_count", 5),  # below warning_min 10
@@ -146,7 +146,7 @@ class TestWarningValues:
             ("rent_per_unit", 7_000),  # above warning_max 5000
             ("price_per_unit", 15_000),  # below warning_min 30K
             ("price_per_unit", 700_000),  # above warning_max 500K
-            ("occupancy", 30),  # below warning_min 50
+            ("occupancy", 0.30),  # below warning_min 0.50
             ("sqft", 500),  # below warning_min 5000
             ("sqft", 8_000_000),  # above warning_max 5M
         ],
@@ -171,14 +171,14 @@ class TestBoundaryValues:
         """0% cap rate is at the hard min, so valid (>= min_value)."""
         summary = validate_extraction_output({"cap_rate": 0.0})
         result = _result_for(summary, "cap_rate")
-        # 0.0 >= min(0.0) but < warning_min(2.0) -> WARNING
+        # 0.0 >= min(0.0) but < warning_min(0.02) -> WARNING
         assert result.status == ValidationStatus.WARNING
 
-    def test_cap_rate_at_20_is_valid(self):
-        """20% cap rate is at the hard max, so not error (<=)."""
-        summary = validate_extraction_output({"cap_rate": 20.0})
+    def test_cap_rate_at_max_is_valid(self):
+        """25% cap rate is at the hard max, so not error (<=)."""
+        summary = validate_extraction_output({"cap_rate": 0.25})
         result = _result_for(summary, "cap_rate")
-        # 20.0 <= max(20.0) but > warning_max(15.0) -> WARNING
+        # 0.25 <= max(0.25) but > warning_max(0.15) -> WARNING
         assert result.status == ValidationStatus.WARNING
 
     def test_unit_count_at_one(self):
@@ -190,7 +190,7 @@ class TestBoundaryValues:
 
     def test_occupancy_at_100(self):
         """100% occupancy is at max and within warning range."""
-        summary = validate_extraction_output({"occupancy": 100.0})
+        summary = validate_extraction_output({"occupancy": 1.0})
         result = _result_for(summary, "occupancy")
         assert result.status == ValidationStatus.VALID
 
@@ -274,7 +274,7 @@ class TestMultipleErrors:
 
     def test_mixed_statuses(self):
         extracted = {
-            "cap_rate": 6.0,  # VALID
+            "cap_rate": 0.06,  # VALID (fraction scale)
             "purchase_price": 200,  # ERROR
             "unit_count": 5,  # WARNING
             "year_built": None,  # SKIPPED
@@ -311,7 +311,7 @@ class TestMetadataSkipped:
             "_extraction_timestamp": "2026-01-01T00:00:00",
             "_extraction_errors": [],
             "_extraction_metadata": {},
-            "cap_rate": 6.0,
+            "cap_rate": 0.06,
         }
         summary = validate_extraction_output(extracted)
         assert summary.total == 1
@@ -381,7 +381,8 @@ class TestStringConversion:
         assert result.status == ValidationStatus.VALID
 
     def test_percentage_string(self):
-        summary = validate_extraction_output({"cap_rate": "5.5%"})
+        # "0.055%" strips the % -> 0.055, which is valid on fraction scale
+        summary = validate_extraction_output({"cap_rate": "0.055%"})
         result = _result_for(summary, "cap_rate")
         assert result.status == ValidationStatus.VALID
 
