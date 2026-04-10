@@ -67,10 +67,13 @@ RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/cache/nginx && \
     # Create pid directory
     mkdir -p /var/run && \
-    chown -R nginx:nginx /var/run
+    chown -R nginx:nginx /var/run && \
+    # Create SSL certificate mount point
+    mkdir -p /etc/nginx/ssl && \
+    chown -R nginx:nginx /etc/nginx/ssl
 
-# Expose port
-EXPOSE 80
+# Expose HTTP and HTTPS ports
+EXPOSE 80 443
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
