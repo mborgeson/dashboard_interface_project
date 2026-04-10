@@ -44,8 +44,8 @@ function fmtPct(v: number | undefined | null): string {
 function fmtCompact(v: number | undefined | null): string {
   if (v == null) return 'N/A';
   if (Math.abs(v) >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
-  if (Math.abs(v) >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
-  if (Math.abs(v) >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  if (Math.abs(v) >= 1e6) return `$${(v / 1e6).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
+  if (Math.abs(v) >= 1e3) return `$${(v / 1e3).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
   return `$${v.toFixed(0)}`;
 }
 

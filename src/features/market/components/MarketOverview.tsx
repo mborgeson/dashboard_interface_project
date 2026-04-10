@@ -20,10 +20,10 @@ export function MarketOverview({ overview, regionLabel = 'Phoenix MSA', timefram
       return `${prefix}${(value / 1000000000).toFixed(1)}B`;
     }
     if (value >= 1000000) {
-      return `${prefix}${(value / 1000000).toFixed(1)}M`;
+      return `${prefix}${(value / 1000000).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
     }
     if (value >= 1000) {
-      return `${prefix}${(value / 1000).toFixed(1)}K`;
+      return `${prefix}${(value / 1000).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K`;
     }
     return `${prefix}${value.toLocaleString()}`;
   };

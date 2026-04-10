@@ -23,8 +23,8 @@ export function DealTimeline({ deals }: DealTimelineProps) {
   const formatDealValue = (value: number | undefined | null) => {
     if (value == null || value === 0) return '—';
     if (Math.abs(value) >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
-    if (Math.abs(value) >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
-    if (Math.abs(value) >= 1e3) return `$${(value / 1e3).toFixed(0)}K`;
+    if (Math.abs(value) >= 1e6) return `$${(value / 1e6).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
+    if (Math.abs(value) >= 1e3) return `$${(value / 1e3).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
     return `$${value.toFixed(0)}`;
   };
 

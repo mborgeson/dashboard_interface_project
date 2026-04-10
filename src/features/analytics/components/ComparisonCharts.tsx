@@ -65,10 +65,10 @@ function CapRateDscrTooltip({ active, payload }: CapRateDscrTooltipProps) {
           DSCR: <span className="font-medium">{data.dscr.toFixed(2)}x</span>
         </p>
         <p className="text-sm text-neutral-600">
-          NOI: <span className="font-medium">${(data.noi / 1000000).toFixed(2)}M</span>
+          NOI: <span className="font-medium">${(data.noi / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M</span>
         </p>
         <p className="text-sm text-neutral-600">
-          Value: <span className="font-medium">${(data.value / 1000000).toFixed(1)}M</span>
+          Value: <span className="font-medium">${(data.value / 1000000).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M</span>
         </p>
         <p className="text-sm text-neutral-600">
           Class: <span className="font-medium">{data.propertyClass}</span>

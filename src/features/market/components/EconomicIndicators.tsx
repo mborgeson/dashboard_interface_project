@@ -26,17 +26,17 @@ export function EconomicIndicators({ indicators, sparklineData, isSparklinePlace
     // Handle dollar amounts (like median income)
     if (unit === '$') {
       if (value >= 1000000) {
-        return `$${(value / 1000000).toFixed(2)}M`;
+        return `$${(value / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
       }
-      return `$${(value / 1000).toFixed(0)}K`;
+      return `$${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
     }
     // Handle large counts (Housing Starts, Building Permits) - shown in millions
     if (indicatorName.includes('Housing Starts') || indicatorName.includes('Building Permits')) {
       if (value >= 1000000) {
-        return `${(value / 1000000).toFixed(2)}M`;
+        return `${(value / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
       }
       if (value >= 1000) {
-        return `${(value / 1000).toFixed(2)}K`;
+        return `${(value / 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}K`;
       }
     }
     // Handle CPI and other index values (no decimal for whole numbers > 100)

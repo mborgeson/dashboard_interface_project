@@ -258,7 +258,7 @@ export function UnderwritingModal({ trigger }: UnderwritingModalProps) {
               />
               <QuickStatItem
                 label="Total Equity"
-                value={`$${(results.totalEquityRequired / 1000000).toFixed(2)}M`}
+                value={`$${(results.totalEquityRequired / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`}
               />
             </div>
           </div>

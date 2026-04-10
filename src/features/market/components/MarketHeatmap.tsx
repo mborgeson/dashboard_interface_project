@@ -101,7 +101,7 @@ export function MarketHeatmap({ submarkets }: MarketHeatmapProps) {
                   </div>
                   <div className="flex justify-between">
                     <span>Inventory:</span>
-                    <span className="font-medium">{(submarket.inventory / 1000).toFixed(1)}K</span>
+                    <span className="font-medium">{(submarket.inventory / 1000).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K</span>
                   </div>
                 </div>
               </div>

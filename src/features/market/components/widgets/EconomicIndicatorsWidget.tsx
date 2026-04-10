@@ -23,7 +23,7 @@ const sparklineData: Record<string, number[]> = {
 
 function formatValue(value: number, unit: string): string {
   if (unit === '$') {
-    return `$${(value / 1000).toFixed(0)}K`;
+    return `$${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
   }
   return `${value.toFixed(1)}${unit}`;
 }

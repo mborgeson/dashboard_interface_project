@@ -24,7 +24,7 @@ function formatNumber(value: number): string {
     return `$${(value / 1000000000).toFixed(1)}B`;
   }
   if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(2)}M`;
+    return `${(value / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
   }
   return value.toLocaleString();
 }

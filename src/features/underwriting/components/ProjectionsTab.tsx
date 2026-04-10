@@ -19,10 +19,10 @@ interface ProjectionsTabProps {
 
 function formatCurrency(value: number): string {
   if (value >= 1000000) {
-    return `$${(value / 1000000).toFixed(1)}M`;
+    return `$${(value / 1000000).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
   }
   if (value >= 1000) {
-    return `$${(value / 1000).toFixed(0)}K`;
+    return `$${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
   }
   return `$${value.toFixed(0)}`;
 }

@@ -53,7 +53,7 @@ function CustomPieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }:
 
 export function DistributionCharts({ valueByClass, noiBySubmarket }: DistributionChartsProps) {
   const formatCurrency = (value: number) => {
-    return `$${(value / 1000000).toFixed(1)}M`;
+    return `$${(value / 1000000).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
   };
 
   return (
