@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:all": "concurrently -n backend,frontend,browser -c blue,green,yellow \"cd backend && uvicorn app.main:app --reload --port 8000\" \"vite\" \"./scripts/open-browser.sh\"",
+    "dev:all": "concurrently -n backend,frontend,browser -c blue,green,yellow \"cd backend && uvicorn app.main:app --reload --port 8000\" \"vite\" \"node scripts/open-browser.mjs\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
