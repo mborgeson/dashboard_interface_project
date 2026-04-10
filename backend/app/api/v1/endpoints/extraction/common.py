@@ -216,7 +216,10 @@ async def download_sharepoint_file(
 
 
 def _extract_single_file(
-    extractor, file_path: str, deal_name: str, validate: bool = True,
+    extractor,
+    file_path: str,
+    deal_name: str,
+    validate: bool = True,
     base_mappings: dict | None = None,
 ) -> tuple[str, str, dict | None, str | None]:
     """Extract data from a single Excel file (CPU-bound, thread-safe).
