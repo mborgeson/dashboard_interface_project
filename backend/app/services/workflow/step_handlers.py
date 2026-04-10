@@ -595,7 +595,7 @@ async def http_request_action(
     _BLOCKED_HOSTS = {
         "localhost",
         "127.0.0.1",
-        "0.0.0.0",
+        "0.0.0.0",  # nosec B104 — blocklist entry, not a bind
         "::1",
         "metadata.google.internal",
     }
