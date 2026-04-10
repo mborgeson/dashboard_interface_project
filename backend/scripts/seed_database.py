@@ -53,7 +53,7 @@ CLOSED_DEALS = [
         "building_type": "Garden",
         "total_units": 120,
         "year_built": 1985,
-        "purchase_price": Decimal("12500000"),
+        "purchase_price": Decimal("93500000"),
         "latitude": Decimal("33.5131"),
         "longitude": Decimal("-112.2358"),
     },
@@ -69,7 +69,7 @@ CLOSED_DEALS = [
         "building_type": "Garden",
         "total_units": 200,
         "year_built": 1990,
-        "purchase_price": Decimal("28000000"),
+        "purchase_price": Decimal("134500000"),
         "latitude": Decimal("33.4255"),
         "longitude": Decimal("-111.9400"),
     },
@@ -592,9 +592,9 @@ def seed_deals(session, property_map: dict[str, int]):
             final_price=cd["purchase_price"],
             source="Off-Market",
             priority="high",
-            actual_close_date=date(2024, 6, 15)
+            actual_close_date=date(2022, 6, 14)
             if cd["name"] == "Cabana on 99th"
-            else date(2024, 9, 1),
+            else date(2022, 8, 31),
             deal_score=75,
         )
         session.add(deal)
@@ -664,9 +664,9 @@ def seed_transactions(session, property_map: dict[str, int]):
             type="acquisition",
             category="Purchase",
             amount=cd["purchase_price"],
-            date=date(2024, 6, 15)
+            date=date(2022, 6, 14)
             if cd["name"] == "Cabana on 99th"
-            else date(2024, 9, 1),
+            else date(2022, 8, 31),
             description=f"Acquisition of {full_name}",
         )
         session.add(tx)
