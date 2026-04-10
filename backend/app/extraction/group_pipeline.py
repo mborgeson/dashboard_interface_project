@@ -648,14 +648,22 @@ class GroupExtractionPipeline:
                 continue
 
             original_cell = cell_mappings[field_name].cell_address
+            original_sheet = cell_mappings[field_name].sheet_name
             # Update the cell_address in the CellMapping
             cell_mappings[field_name].cell_address = group_cell
+
+            # Optionally remap the sheet name
+            group_sheet = remap_info.get("group_sheet")
+            if group_sheet:
+                cell_mappings[field_name].sheet_name = group_sheet
 
             applied_remaps.append(
                 {
                     "field_name": field_name,
                     "original_cell": original_cell,
                     "remapped_cell": group_cell,
+                    "original_sheet": original_sheet,
+                    "remapped_sheet": group_sheet or original_sheet,
                     "offset": remap_info.get("offset", 0),
                     "type": remap_info.get("type", "unknown"),
                     "reason": remap_info.get("reason", ""),

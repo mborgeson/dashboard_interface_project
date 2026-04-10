@@ -1305,5 +1305,81 @@
     "unfilled_fields": [],
     "real_shift_fields": [],
     "cross_contamination_fields": []
+  },
+  "group_cabana_tempe": {
+    "file": "Older template variant (2022 acquisitions)",
+    "remaps": {
+      "VACANCY_LOSS_YEAR_1_RATE": {
+        "prod_cell": "D216",
+        "group_cell": "D45",
+        "offset": -171,
+        "type": "section_shift",
+        "reason": "Vacancy Loss label at row 45 instead of row 216"
+      },
+      "PURCHASE_PRICE": {
+        "prod_cell": "D478",
+        "group_cell": "D387",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Purchase Price at row 387"
+      },
+      "LOAN_AMOUNT": {
+        "prod_cell": "D359",
+        "group_cell": "D268",
+        "offset": -91,
+        "type": "section_shift",
+        "reason": "Loan Amount at row 268"
+      },
+      "CAP_RATE": {
+        "prod_cell": "Q30",
+        "group_cell": "D28",
+        "offset": -2,
+        "type": "column_and_row_shift",
+        "reason": "Q30 is empty in this template; going-in cap rate is at D28 (Market Cap Rate - Close)"
+      },
+      "NET_OPERATING_INCOME_YEAR_1": {
+        "prod_cell": "I43",
+        "group_cell": "I47",
+        "offset": 4,
+        "type": "section_shift",
+        "reason": "Row 43 = Admin/Legal expense in this template; NOI is at row 47"
+      },
+      "NET_OPERATING_INCOME_YEAR_2": {
+        "prod_cell": "J43",
+        "group_cell": "J47",
+        "offset": 4,
+        "type": "section_shift",
+        "reason": "Row 43 = Admin/Legal expense; NOI at row 47"
+      },
+      "NET_OPERATING_INCOME_YEAR_3": {
+        "prod_cell": "K43",
+        "group_cell": "K47",
+        "offset": 4,
+        "type": "section_shift",
+        "reason": "Row 43 = Admin/Legal expense; NOI at row 47"
+      },
+      "NET_OPERATING_INCOME_YEAR_4": {
+        "prod_cell": "L43",
+        "group_cell": "L47",
+        "offset": 4,
+        "type": "section_shift",
+        "reason": "Row 43 = Admin/Legal expense; NOI at row 47"
+      },
+      "NET_OPERATING_INCOME_YEAR_5": {
+        "prod_cell": "M43",
+        "group_cell": "M47",
+        "offset": 4,
+        "type": "section_shift",
+        "reason": "Row 43 = Admin/Legal expense; NOI at row 47"
+      },
+      "TOTAL_SF": {
+        "prod_cell": "J31",
+        "group_cell": "G8",
+        "group_sheet": "Assumptions (Summary)",
+        "offset": 0,
+        "type": "sheet_and_cell_shift",
+        "reason": "TOTAL_SF not on Property sheet; Total NRSF at G8 on Assumptions (Summary)"
+      }
+    }
   }
 }
