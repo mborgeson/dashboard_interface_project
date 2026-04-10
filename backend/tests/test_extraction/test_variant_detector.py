@@ -33,6 +33,7 @@ from app.extraction.variant_detector import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def _reset_cache():
     """Reset the module-level candidate rows cache between tests."""
@@ -141,6 +142,7 @@ def remaps_dir(tmp_path) -> Path:
 # Tests: _load_known_candidate_rows
 # ---------------------------------------------------------------------------
 
+
 class TestLoadKnownCandidateRows:
     def test_loads_from_remaps_json(self, remaps_dir):
         rows = _load_known_candidate_rows(remaps_dir)
@@ -184,6 +186,7 @@ class TestLoadKnownCandidateRows:
 # Tests: detect_variant (with mocked workbook I/O)
 # ---------------------------------------------------------------------------
 
+
 def _make_mock_xlsx_workbook(cell_values: dict[tuple[str, str, int], str | None]):
     """
     Create a fake openpyxl workbook backed by a cell_values dict.
@@ -196,7 +199,7 @@ def _make_mock_xlsx_workbook(cell_values: dict[tuple[str, str, int], str | None]
     import re as _re
 
     sheets_in_wb = set()
-    for (sn, _, _) in cell_values:
+    for sn, _, _ in cell_values:
         sheets_in_wb.add(sn)
 
     class FakeCell:
@@ -361,6 +364,7 @@ class TestDetectVariant:
 # Tests: apply_variant_remaps
 # ---------------------------------------------------------------------------
 
+
 class TestApplyVariantRemaps:
     def test_applies_remaps_to_mappings(self, sample_mappings):
         detection = VariantDetectionResult(
@@ -441,6 +445,7 @@ class TestApplyVariantRemaps:
 # Tests: VariantDetectionResult serialization
 # ---------------------------------------------------------------------------
 
+
 class TestVariantDetectionResult:
     def test_to_dict(self):
         result = VariantDetectionResult(
@@ -471,6 +476,7 @@ class TestVariantDetectionResult:
 # ---------------------------------------------------------------------------
 # Tests: integration with _extract_single_file
 # ---------------------------------------------------------------------------
+
 
 class TestExtractSingleFileIntegration:
     """Verify that _extract_single_file passes base_mappings for variant detection."""
@@ -525,11 +531,11 @@ class TestExtractSingleFileIntegration:
             ],
         )
 
-        with patch(self._DETECT_PATCH) as mock_detect, patch(
-            self._APPLY_PATCH
-        ) as mock_apply, patch(
-            "app.extraction.extractor.ExcelDataExtractor"
-        ) as mock_extractor_cls:
+        with (
+            patch(self._DETECT_PATCH) as mock_detect,
+            patch(self._APPLY_PATCH) as mock_apply,
+            patch("app.extraction.extractor.ExcelDataExtractor") as mock_extractor_cls,
+        ):
             mock_detect.return_value = variant_result
             mock_apply.return_value = (sample_mappings, [{"field_name": "test"}])
             mock_new_extractor = MagicMock()
