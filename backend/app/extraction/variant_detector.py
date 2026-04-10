@@ -256,9 +256,7 @@ def detect_variant(
 
         # Step 1: Check vacancy field first (shared across all variants)
         # If vacancy is at the production row, this is a production template.
-        vac_col, vac_prod_row, vac_label = _VARIANT_FIELDS[
-            "VACANCY_LOSS_YEAR_1_RATE"
-        ]
+        vac_col, vac_prod_row, vac_label = _VARIANT_FIELDS["VACANCY_LOSS_YEAR_1_RATE"]
 
         # Check column A for the label at the production row
         prod_label = read_cell(wb, _ASSUMPTIONS_SHEET, "A", vac_prod_row)
@@ -392,10 +390,12 @@ _UNIT_MATRIX_SHEET = "Assumptions (Unit Matrix)"
 
 # Fields on the Unit Matrix whose row varies per file because the number
 # of unit rows in the matrix depends on the property's unit count.
-# Maps field_name -> (data_column, prod_row).
-_UNIT_MATRIX_FIELDS: dict[str, tuple[str, int]] = {
-    "TOTAL_UNITS": ("E", 548),
-    "AVERAGE_UNIT_SF": ("G", 548),
+# Maps field_name -> (prod_column, prod_row, shifted_column).
+# Production layout: D=Unit Identifier, E=Bed Type, F=Bathrooms, G=Unit SF
+# Shifted layout:    D=Bed Type, E=Bathrooms, F=Unit SF (no Unit Identifier)
+_UNIT_MATRIX_FIELDS: dict[str, tuple[str, int, str]] = {
+    "TOTAL_UNITS": ("E", 548, "D"),
+    "AVERAGE_UNIT_SF": ("G", 548, "F"),
 }
 
 # The label that marks the Total/Count/Average row in column C.
@@ -407,66 +407,90 @@ _TOTAL_LABEL_SUBSTR = "total/count"
 # The production mapping (E548, G548) targets the 2nd (summary) total.
 _TARGET_TOTAL_OCCURRENCE = 2
 
+# Header row (1-based) in the Unit Matrix where column labels live.
+_UM_HEADER_ROW = 7
 
-def _find_unit_matrix_total_row_xlsb(
+
+def _find_unit_matrix_info_xlsb(
     workbook: Any,
-) -> int | None:
-    """Scan the Unit Matrix sheet in a pyxlsb workbook for the summary total row.
+) -> tuple[int | None, bool]:
+    """Scan the Unit Matrix sheet in a pyxlsb workbook.
 
-    Returns the 1-based row number of the 2nd 'Total/Count/Average' label
-    in column C, or None if the sheet is missing or the label is not found.
+    Returns:
+        Tuple of (summary_total_row_1based_or_None, has_unit_identifier_column).
     """
     if _UNIT_MATRIX_SHEET not in workbook.sheets:
-        return None
+        return None, True
+
+    total_row: int | None = None
+    has_unit_id = True  # assume production layout
 
     try:
         occurrence = 0
+        first_match_row: int | None = None
         with workbook.get_sheet(_UNIT_MATRIX_SHEET) as sheet:
             for ws_row in sheet.rows():
-                # Column C = index 2
-                c_cell = None
+                row_cells: dict[int, Any] = {}
                 for cell in ws_row:
-                    if cell.c == 2:
-                        c_cell = cell
-                        break
-                if c_cell is None or c_cell.v is None:
-                    continue
-                label = str(c_cell.v).strip().lower()
-                if _TOTAL_LABEL_SUBSTR in label:
-                    occurrence += 1
-                    if occurrence == _TARGET_TOTAL_OCCURRENCE:
-                        return c_cell.r + 1  # convert 0-based to 1-based
-        # If only one occurrence found, use it (some templates may differ)
-        if occurrence == 1:
-            # Re-scan to get the row of the single occurrence
-            with workbook.get_sheet(_UNIT_MATRIX_SHEET) as sheet:
-                for ws_row in sheet.rows():
-                    for cell in ws_row:
-                        if cell.c == 2:
-                            if cell.v is not None and _TOTAL_LABEL_SUBSTR in str(cell.v).strip().lower():
-                                return cell.r + 1
+                    row_cells[cell.c] = cell
+
+                # Check header row for column layout
+                c2 = row_cells.get(2)
+                if c2 is not None and c2.r == _UM_HEADER_ROW - 1:  # 0-based
+                    d_cell = row_cells.get(3)
+                    if d_cell is not None and d_cell.v is not None:
+                        d_label = str(d_cell.v).strip().lower()
+                        if "identifier" not in d_label:
+                            has_unit_id = False
+
+                # Search for Total/Count/Average label in column C
+                if c2 is not None and c2.v is not None:
+                    label = str(c2.v).strip().lower()
+                    if _TOTAL_LABEL_SUBSTR in label:
+                        occurrence += 1
+                        if first_match_row is None:
+                            first_match_row = c2.r + 1
+                        if occurrence == _TARGET_TOTAL_OCCURRENCE:
+                            total_row = c2.r + 1
                             break
+
+        # Fallback: if only one occurrence, use it
+        if total_row is None and first_match_row is not None:
+            total_row = first_match_row
+
     except Exception:
-        return None
+        return None, True
 
-    return None
+    return total_row, has_unit_id
 
 
-def _find_unit_matrix_total_row_xlsx(
+def _find_unit_matrix_info_xlsx(
     workbook: Any,
-) -> int | None:
-    """Scan the Unit Matrix sheet in an openpyxl workbook for the summary total row.
+) -> tuple[int | None, bool]:
+    """Scan the Unit Matrix sheet in an openpyxl workbook.
 
-    Returns the 1-based row number of the 2nd 'Total/Count/Average' label
-    in column C, or None if the sheet is missing or the label is not found.
+    Returns:
+        Tuple of (summary_total_row_1based_or_None, has_unit_identifier_column).
     """
     if _UNIT_MATRIX_SHEET not in workbook.sheetnames:
-        return None
+        return None, True
+
+    total_row: int | None = None
+    has_unit_id = True
 
     try:
         sheet = workbook[_UNIT_MATRIX_SHEET]
+
+        # Check header for column layout
+        d_cell = sheet[f"D{_UM_HEADER_ROW}"]
+        if d_cell.value is not None:
+            d_label = str(d_cell.value).strip().lower()
+            if "identifier" not in d_label:
+                has_unit_id = False
+
+        # Find Total/Count/Average rows
         occurrence = 0
-        last_match_row: int | None = None
+        first_match_row: int | None = None
         for row in sheet.iter_rows(min_col=3, max_col=3, values_only=False):
             cell = row[0]
             if cell.value is None:
@@ -474,16 +498,19 @@ def _find_unit_matrix_total_row_xlsx(
             label = str(cell.value).strip().lower()
             if _TOTAL_LABEL_SUBSTR in label:
                 occurrence += 1
-                last_match_row = cell.row
+                if first_match_row is None:
+                    first_match_row = cell.row
                 if occurrence == _TARGET_TOTAL_OCCURRENCE:
-                    return cell.row
-        # Fallback: if only one occurrence, use it
-        if occurrence == 1 and last_match_row is not None:
-            return last_match_row
-    except Exception:
-        return None
+                    total_row = cell.row
+                    break
 
-    return None
+        if total_row is None and first_match_row is not None:
+            total_row = first_match_row
+
+    except Exception:
+        return None, True
+
+    return total_row, has_unit_id
 
 
 def resolve_unit_matrix_totals(
@@ -498,17 +525,22 @@ def resolve_unit_matrix_totals(
     The production template has it at row 548 (530-unit capacity), but
     templates with fewer or more unit rows place it elsewhere.
 
-    This function opens the workbook, scans column C for the 2nd
-    "Total/Count/Average" label, and returns VariantRemap objects for any
-    fields whose row differs from the production row (548).
+    Additionally, some template variants omit the "Unit Identifier" column
+    (column D in production), shifting all data columns left by one:
+      Production: E=Bed Type, G=Unit SF  (has "Unit Identifier" in D)
+      Shifted:    D=Bed Type, F=Unit SF  (no "Unit Identifier" column)
+
+    This function opens the workbook, detects both the row and column
+    shifts, and returns VariantRemap objects for any fields whose cell
+    address differs from the production mapping.
 
     Args:
         file_path: Path to the Excel file.
         file_content: Optional file bytes (avoids disk read).
 
     Returns:
-        List of VariantRemap objects (empty if row 548 is correct or
-        the sheet is missing).
+        List of VariantRemap objects (empty if production mapping is
+        correct or the sheet is missing).
     """
     file_ext = Path(file_path).suffix.lower()
 
@@ -516,7 +548,7 @@ def resolve_unit_matrix_totals(
         if file_ext == ".xlsb":
             source = io.BytesIO(file_content) if file_content else file_path
             wb = pyxlsb.open_workbook(source)
-            find_row = _find_unit_matrix_total_row_xlsb
+            find_info = _find_unit_matrix_info_xlsb
         else:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -528,7 +560,7 @@ def resolve_unit_matrix_totals(
                     wb = openpyxl.load_workbook(
                         file_path, data_only=True, read_only=True
                     )
-            find_row = _find_unit_matrix_total_row_xlsx
+            find_info = _find_unit_matrix_info_xlsx
     except Exception as e:
         logger.debug(
             "unit_matrix_workbook_load_failed",
@@ -539,7 +571,7 @@ def resolve_unit_matrix_totals(
 
     remaps: list[VariantRemap] = []
     try:
-        total_row = find_row(wb)
+        total_row, has_unit_id = find_info(wb)
         if total_row is None:
             logger.debug(
                 "unit_matrix_total_row_not_found",
@@ -548,19 +580,32 @@ def resolve_unit_matrix_totals(
             return []
 
         prod_row = 548  # production template summary total row
-        if total_row == prod_row:
+        row_shifted = total_row != prod_row
+        col_shifted = not has_unit_id
+
+        if not row_shifted and not col_shifted:
             return []
 
-        for field_name, (col, _prod_row) in _UNIT_MATRIX_FIELDS.items():
-            remaps.append(
-                VariantRemap(
-                    field_name=field_name,
-                    prod_cell=f"{col}{prod_row}",
-                    variant_cell=f"{col}{total_row}",
-                    detected_row=total_row,
-                    label_found="Total/Count/Average",
+        for field_name, (
+            prod_col,
+            _prod_row,
+            shifted_col,
+        ) in _UNIT_MATRIX_FIELDS.items():
+            actual_col = shifted_col if col_shifted else prod_col
+            actual_row = total_row
+            variant_cell = f"{actual_col}{actual_row}"
+            prod_cell = f"{prod_col}{prod_row}"
+
+            if variant_cell != prod_cell:
+                remaps.append(
+                    VariantRemap(
+                        field_name=field_name,
+                        prod_cell=prod_cell,
+                        variant_cell=variant_cell,
+                        detected_row=actual_row,
+                        label_found="Total/Count/Average",
+                    )
                 )
-            )
 
         if remaps:
             logger.info(
@@ -568,6 +613,7 @@ def resolve_unit_matrix_totals(
                 file=Path(file_path).name,
                 prod_row=prod_row,
                 resolved_row=total_row,
+                col_shifted=col_shifted,
                 fields=[r.field_name for r in remaps],
             )
 

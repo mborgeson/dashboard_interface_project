@@ -666,6 +666,114 @@ class GroupExtractionPipeline:
 
         return cell_mappings, applied_remaps
 
+    @staticmethod
+    def _fixup_unit_matrix_values(
+        extraction_results: list[tuple[str, str, dict | None, str | None]],
+        cell_mappings: dict[str, "CellMapping"],
+        report: dict[str, Any],
+    ) -> list[tuple[str, str, dict | None, str | None]]:
+        """Re-read TOTAL_UNITS and AVERAGE_UNIT_SF from the correct row.
+
+        The Unit Matrix "Total/Count/Average" summary row varies per file
+        because the number of unit rows depends on the property's unit
+        count.  The group-level cell mappings point to the production row
+        (E548 / G548), which is wrong for templates with fewer or more
+        unit slots.
+
+        This method resolves the correct row per file and overwrites the
+        extracted values when the production row returned an implausible
+        result (0 or very small).
+        """
+        from app.extraction.variant_detector import resolve_unit_matrix_totals
+
+        um_fixup_count = 0
+
+        fixed_results = []
+        for file_path, deal_name, result, error_msg in extraction_results:
+            if error_msg is not None or result is None:
+                fixed_results.append((file_path, deal_name, result, error_msg))
+                continue
+
+            # Check if either field has an implausible value
+            total_units = result.get("TOTAL_UNITS")
+            avg_sf = result.get("AVERAGE_UNIT_SF")
+
+            needs_fixup = False
+            if total_units is not None:
+                try:
+                    if float(total_units) < 4:
+                        needs_fixup = True
+                except (ValueError, TypeError):
+                    pass
+            if avg_sf is not None and not needs_fixup:
+                try:
+                    if float(avg_sf) < 100:
+                        needs_fixup = True
+                except (ValueError, TypeError):
+                    pass
+
+            if not needs_fixup:
+                fixed_results.append((file_path, deal_name, result, error_msg))
+                continue
+
+            # Resolve correct row and re-extract
+            um_remaps = resolve_unit_matrix_totals(file_path)
+            if not um_remaps:
+                # No remap found; the value may be genuinely 0
+                fixed_results.append((file_path, deal_name, result, error_msg))
+                continue
+
+            # Read the corrected cells
+            from app.extraction.extractor import ExcelDataExtractor
+
+            corrected_mappings = copy.deepcopy(cell_mappings)
+            for remap in um_remaps:
+                if remap.field_name in corrected_mappings:
+                    corrected_mappings[
+                        remap.field_name
+                    ].cell_address = remap.variant_cell
+
+            try:
+                re_extractor = ExcelDataExtractor(
+                    {
+                        fn: corrected_mappings[fn]
+                        for fn in ("TOTAL_UNITS", "AVERAGE_UNIT_SF")
+                        if fn in corrected_mappings
+                    }
+                )
+                re_result = re_extractor.extract_from_file(file_path, validate=False)
+
+                for field in ("TOTAL_UNITS", "AVERAGE_UNIT_SF"):
+                    if field in re_result and not str(re_result[field]).startswith("_"):
+                        result[field] = re_result[field]
+
+                um_fixup_count += 1
+                logger.info(
+                    "unit_matrix_fixup_applied",
+                    file=Path(file_path).name,
+                    resolved_row=um_remaps[0].detected_row,
+                    total_units=result.get("TOTAL_UNITS"),
+                    avg_sf=result.get("AVERAGE_UNIT_SF"),
+                )
+            except Exception as e:
+                logger.warning(
+                    "unit_matrix_fixup_error",
+                    file=Path(file_path).name,
+                    error=str(e),
+                )
+
+            fixed_results.append((file_path, deal_name, result, error_msg))
+
+        if um_fixup_count > 0:
+            report["unit_matrix_fixups"] = um_fixup_count
+            logger.info(
+                "unit_matrix_fixups_completed",
+                fixup_count=um_fixup_count,
+                total_files=len(extraction_results),
+            )
+
+        return fixed_results
+
     def run_group_extraction(
         self,
         db: Session,
@@ -907,6 +1015,12 @@ class GroupExtractionPipeline:
                 extraction_results.append(
                     _extract_single_file(extractor, fp, dn, validate=False)
                 )
+
+        # Fixup Unit Matrix fields (TOTAL_UNITS, AVERAGE_UNIT_SF) whose
+        # total row varies per file based on the property's unit count.
+        extraction_results = self._fixup_unit_matrix_values(
+            extraction_results, cell_mappings, report
+        )
 
         # Process results
         for file_path, deal_name, result, error_msg in extraction_results:
