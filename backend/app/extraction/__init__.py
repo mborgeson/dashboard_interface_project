@@ -55,6 +55,13 @@ from .sharepoint import (
     get_sharepoint_client,
     is_file_locked,
 )
+from .variant_detector import (
+    VariantDetectionResult,
+    VariantRemap,
+    apply_variant_remaps,
+    detect_variant,
+    resolve_unit_matrix_totals,
+)
 
 __all__ = [
     # Error handling
@@ -105,4 +112,10 @@ __all__ = [
     "is_file_locked",
     "compute_content_hash",
     "compute_content_hash_bytes",
+    # Variant detection
+    "VariantDetectionResult",
+    "VariantRemap",
+    "apply_variant_remaps",
+    "detect_variant",
+    "resolve_unit_matrix_totals",
 ]

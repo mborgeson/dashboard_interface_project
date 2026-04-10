@@ -216,15 +216,63 @@ async def download_sharepoint_file(
 
 
 def _extract_single_file(
-    extractor, file_path: str, deal_name: str, validate: bool = True
+    extractor, file_path: str, deal_name: str, validate: bool = True,
+    base_mappings: dict | None = None,
 ) -> tuple[str, str, dict | None, str | None]:
     """Extract data from a single Excel file (CPU-bound, thread-safe).
+
+    If *base_mappings* is provided, the file is probed for template-variant
+    remaps before extraction.  When a variant is detected a per-file
+    extractor with corrected cell addresses is used instead of the shared
+    one.
+
+    Additionally, Unit Matrix total fields (TOTAL_UNITS, AVERAGE_UNIT_SF)
+    are resolved dynamically because the total row varies per file based
+    on the property's unit count.
 
     Returns:
         Tuple of (file_path, deal_name, extracted_data_or_None, error_message_or_None).
     """
     try:
-        result = extractor.extract_from_file(file_path, validate=validate)
+        active_extractor = extractor
+        needs_per_file_extractor = False
+        working_mappings = base_mappings
+
+        if base_mappings is not None:
+            from app.extraction.variant_detector import (
+                apply_variant_remaps,
+                detect_variant,
+                resolve_unit_matrix_totals,
+            )
+
+            detection = detect_variant(file_path)
+            if detection.is_variant:
+                working_mappings, _applied = apply_variant_remaps(
+                    base_mappings, detection
+                )
+                needs_per_file_extractor = True
+
+            # Resolve Unit Matrix total row (varies per file)
+            um_remaps = resolve_unit_matrix_totals(file_path)
+            if um_remaps:
+                from app.extraction.variant_detector import VariantDetectionResult
+
+                um_detection = VariantDetectionResult(
+                    is_variant=True,
+                    remaps=um_remaps,
+                    detection_method="unit_matrix_label_search",
+                )
+                working_mappings, _um_applied = apply_variant_remaps(
+                    working_mappings or base_mappings, um_detection
+                )
+                needs_per_file_extractor = True
+
+            if needs_per_file_extractor:
+                from app.extraction import ExcelDataExtractor
+
+                active_extractor = ExcelDataExtractor(working_mappings)
+
+        result = active_extractor.extract_from_file(file_path, validate=validate)
         return (file_path, deal_name, result, None)
     except Exception as e:
         return (file_path, deal_name, None, str(e))
@@ -309,6 +357,8 @@ def process_files(
                     extractor,
                     fi["file_path"],
                     fi.get("deal_name", ""),
+                    True,
+                    mappings,
                 ): fi["file_path"]
                 for fi in files_to_process
             }
@@ -319,7 +369,10 @@ def process_files(
         for fi in files_to_process:
             extraction_results.append(
                 _extract_single_file(
-                    extractor, fi["file_path"], fi.get("deal_name", "")
+                    extractor,
+                    fi["file_path"],
+                    fi.get("deal_name", ""),
+                    base_mappings=mappings,
                 )
             )
 
