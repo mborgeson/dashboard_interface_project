@@ -4,7 +4,7 @@
  * Validates raw JSON from /properties/dashboard and transforms
  * ISO date strings into Date objects. Replaces transformPropertyDates().
  *
- * All numeric fields use safeOptionalNum (coerces null/undefined/NaN → 0) so that
+ * All numeric fields use safeOptionalNum (coerces null/undefined/NaN → undefined) so that
  * a single missing or malformed value does not reject the entire property.
  * Nested sub-objects are nullable/optional with sensible defaults so that
  * partially-populated DB rows (e.g. backfilled properties) still parse.
