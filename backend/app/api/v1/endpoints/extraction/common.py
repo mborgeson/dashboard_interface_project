@@ -270,7 +270,7 @@ def _extract_single_file(
                 )
                 needs_per_file_extractor = True
 
-            if needs_per_file_extractor:
+            if needs_per_file_extractor and working_mappings is not None:
                 from app.extraction import ExcelDataExtractor
 
                 active_extractor = ExcelDataExtractor(working_mappings)
