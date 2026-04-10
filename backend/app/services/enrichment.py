@@ -18,6 +18,53 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Property
 
 # ---------------------------------------------------------------------------
+# Extraction field-name aliases.
+#
+# The extraction pipeline stores values under names that differ from what the
+# enrichment/hydration logic expects.  For example the pipeline writes
+# ``NET_OPERATING_INCOME`` while the hydration code looks up ``NOI``.
+#
+# This dict maps **extraction-side** names (keys) to the **canonical** names
+# used by ``update_property_columns`` / ``build_financial_data_json`` (values).
+# When fetching extracted values we query for BOTH the canonical name AND all
+# alias names, then normalise the result dict so downstream code only sees
+# canonical keys.
+# ---------------------------------------------------------------------------
+FIELD_ALIASES: dict[str, str] = {
+    # extraction stores -> enrichment expects
+    "NET_OPERATING_INCOME": "NOI",
+    "CAP_RATE": "GOING_IN_CAP_RATE",
+    "AVERAGE_RENT_PER_UNIT_INPLACE": "AVG_RENT_PER_UNIT",
+    "AVERAGE_RENT_PER_UNIT_MARKET": "AVG_RENT_PER_UNIT",
+    "AVERAGE_RENT_PER_SF_INPLACE": "AVG_RENT_PER_SF",
+    "AVERAGE_RENT_PER_SF_MARKET": "AVG_RENT_PER_SF",
+    "VACANCY_LOSS": "VACANCY_RATE",
+    "TOTAL_OPERATING_EXPENSES": "TOTAL_EXPENSES",
+}
+
+# The set of extraction-side alias names that should be included in SQL queries
+# so we fetch rows the enrichment layer can resolve to canonical names.
+_ALIAS_QUERY_NAMES: set[str] = set(FIELD_ALIASES.keys())
+
+
+def resolve_field_aliases(
+    field_values: dict[str, float | str | None],
+) -> dict[str, float | str | None]:
+    """Normalise extracted field names to canonical enrichment names.
+
+    For every key in *field_values* that appears in ``FIELD_ALIASES``, the
+    value is copied to the canonical key **only if** the canonical key is not
+    already present (i.e. a direct extraction match takes priority over an
+    alias).  The original alias key is left in place so callers that inspect
+    raw extraction names still work.
+    """
+    for alias, canonical in FIELD_ALIASES.items():
+        if alias in field_values and canonical not in field_values:
+            field_values[canonical] = field_values[alias]
+    return field_values
+
+
+# ---------------------------------------------------------------------------
 # Mapping from extracted_values field name prefixes (YEAR_N stripped) to the
 # operationsByYear JSON keys expected by the frontend.
 #
@@ -70,7 +117,9 @@ YEAR_FIELD_RE = re.compile(
     + r")_YEAR_(\d+)$"
 )
 
-# Must match extraction.py _FINANCIAL_DATA_FIELDS + _EXTRACTED_FIELD_MAP keys
+# Must match extraction.py _FINANCIAL_DATA_FIELDS + _EXTRACTED_FIELD_MAP keys.
+# The set also includes extraction-side alias names (from FIELD_ALIASES) so
+# that SQL ``IN`` clauses fetch rows that will be resolved to canonical names.
 ALL_HYDRATION_FIELDS: set[str] = {
     "PURCHASE_PRICE",
     "PRICE_PER_UNIT",
@@ -116,7 +165,7 @@ ALL_HYDRATION_FIELDS: set[str] = {
     "ADVERTISING_LEASING_AND_MARKETING",
     "UTILITIES",
     "OTHER_EXPENSES",
-}
+} | _ALIAS_QUERY_NAMES
 
 # Mapping from extracted_values base field names to frontend expense JSON keys
 BASE_EXPENSE_FIELD_MAP: dict[str, str] = {
@@ -184,76 +233,121 @@ def match_prop_name(prop_name_from_db: str, prop: Property) -> bool:
 # ---------------------------------------------------------------------------
 
 
+def _log_overwrite(prop: Property, column: str, old_val: Any, new_val: Any) -> None:
+    """Log when an existing property column value is being overwritten."""
+    logger.info(
+        "enrichment_overwrite",
+        property_id=prop.id,
+        property_name=prop.name,
+        column=column,
+        old_value=old_val,
+        new_value=new_val,
+    )
+
+
+def _set_column(
+    prop: Property,
+    column: str,
+    new_val: Any,
+) -> bool:
+    """Set a property column to *new_val*, logging overwrites.
+
+    Returns True if the value actually changed.
+    """
+    old_val = getattr(prop, column, None)
+    if new_val == old_val:
+        return False
+    if old_val is not None:
+        _log_overwrite(prop, column, old_val, new_val)
+    setattr(prop, column, new_val)
+    return True
+
+
 def update_property_columns(
     prop: Property,
     field_values: dict[str, float | str | None],
 ) -> bool:
     """Update a property's direct columns from extracted field values.
 
-    Only updates columns that are currently empty/falsy.
+    Always overwrites with the latest extraction data when a concrete
+    (non-None) value is available.  Only skips when the new extraction
+    does not provide the field at all, so existing data is never NULLed
+    out accidentally.
+
     Mutates ``prop`` in-place, returns True if any column was changed.
     """
     changed = False
 
     pp = safe_float(field_values.get("PURCHASE_PRICE"))
-    if pp is not None and not prop.purchase_price:
-        prop.purchase_price = to_decimal(pp, 2)
-        changed = True
+    if pp is not None:
+        changed |= _set_column(prop, "purchase_price", to_decimal(pp, 2))
 
     units_f = safe_float(field_values.get("TOTAL_UNITS"))
-    if units_f is not None and units_f > 0 and not prop.total_units:
-        prop.total_units = int(units_f)
-        changed = True
+    if units_f is not None and units_f > 0:
+        changed |= _set_column(prop, "total_units", int(units_f))
 
     yb = safe_float(field_values.get("YEAR_BUILT"))
-    if yb is not None and 1800 <= int(yb) <= 2100 and not prop.year_built:
-        prop.year_built = int(yb)
-        changed = True
+    if yb is not None and 1800 <= int(yb) <= 2100:
+        changed |= _set_column(prop, "year_built", int(yb))
 
     sf = safe_float(field_values.get("TOTAL_SF"))
-    if sf is not None and int(sf) > 0 and not prop.total_sf:
-        prop.total_sf = int(sf)
-        changed = True
+    if sf is not None and int(sf) > 0:
+        changed |= _set_column(prop, "total_sf", int(sf))
 
     cap = safe_float(field_values.get("GOING_IN_CAP_RATE"))
-    if cap is not None and 0 <= cap <= 100 and not prop.cap_rate:
-        prop.cap_rate = to_decimal(cap, 6)
-        changed = True
+    if cap is not None and 0 <= cap <= 100:
+        changed |= _set_column(prop, "cap_rate", to_decimal(cap, 6))
 
     addr = field_values.get("PROPERTY_ADDRESS")
-    if addr and (not prop.address or prop.address == "TBD"):
-        prop.address = str(addr)
-        changed = True
+    if addr:
+        changed |= _set_column(prop, "address", str(addr))
 
     noi_total = safe_float(field_values.get("NOI"))
     noi_per_unit = safe_float(field_values.get("NOI_PER_UNIT"))
-    if noi_per_unit and not prop.noi:
-        prop.noi = to_decimal(noi_per_unit, 2)
-        changed = True
-    elif noi_total and prop.total_units and not prop.noi:
-        prop.noi = to_decimal(noi_total / prop.total_units, 2)
-        changed = True
+    if noi_per_unit:
+        changed |= _set_column(prop, "noi", to_decimal(noi_per_unit, 2))
+    elif noi_total and prop.total_units and prop.total_units > 0:
+        changed |= _set_column(prop, "noi", to_decimal(noi_total / prop.total_units, 2))
 
     occ = safe_float(field_values.get("OCCUPANCY_PERCENT"))
-    if occ and not prop.occupancy_rate:
-        prop.occupancy_rate = to_decimal(occ, 4)
-        changed = True
+    if occ:
+        changed |= _set_column(prop, "occupancy_rate", to_decimal(occ, 4))
 
     avg_rent = safe_float(field_values.get("AVG_RENT_PER_UNIT"))
-    if avg_rent and not prop.avg_rent_per_unit:
-        prop.avg_rent_per_unit = to_decimal(avg_rent, 2)
-        changed = True
+    if avg_rent:
+        changed |= _set_column(prop, "avg_rent_per_unit", to_decimal(avg_rent, 2))
 
     avg_rent_sf = safe_float(field_values.get("AVG_RENT_PER_SF"))
-    if avg_rent_sf and not prop.avg_rent_per_sf:
-        prop.avg_rent_per_sf = to_decimal(avg_rent_sf, 4)
-        changed = True
+    if avg_rent_sf:
+        changed |= _set_column(prop, "avg_rent_per_sf", to_decimal(avg_rent_sf, 4))
 
     if not prop.current_value and prop.purchase_price:
         prop.current_value = prop.purchase_price
         changed = True
 
     return changed
+
+
+def _update_json_field(
+    section: dict[str, Any],
+    key: str,
+    new_val: Any,
+    *,
+    section_name: str = "",
+    prop_name: str | None = None,
+) -> None:
+    """Set *key* in a financial_data sub-dict, logging overwrites."""
+    old_val = section.get(key)
+    if old_val is not None and old_val != new_val:
+        logger.info(
+            "enrichment_json_overwrite",
+            property_name=prop_name,
+            section=section_name,
+            key=key,
+            old_value=old_val,
+            new_value=new_val,
+        )
+    section[key] = new_val
 
 
 def build_financial_data_json(
@@ -263,8 +357,13 @@ def build_financial_data_json(
 ) -> dict[str, Any]:
     """Build the financial_data JSON structure from extracted field values.
 
+    Always overwrites existing JSON keys with the latest extraction data
+    when a concrete (non-None) value is available.  Keys not present in
+    the current extraction are left untouched so existing data is never
+    lost.
+
     Returns the assembled dict with acquisition, financing, returns, and
-    operations sub-dicts. Does NOT include expenses or operationsByYear —
+    operations sub-dicts. Does NOT include expenses or operationsByYear --
     those are built separately via ``build_ops_by_year``.
     """
     fd = dict(existing_fd) if existing_fd else {}
@@ -272,6 +371,7 @@ def build_financial_data_json(
     fin = fd.get("financing", {})
     ret = fd.get("returns", {})
     ops = fd.get("operations", {})
+    pname = prop.name
 
     if not field_values:
         return {"acquisition": acq, "financing": fin, "returns": ret, "operations": ops}
@@ -282,77 +382,179 @@ def build_financial_data_json(
     avg_rent_sf = safe_float(field_values.get("AVG_RENT_PER_SF"))
 
     # Acquisition
-    if pp is not None and not acq.get("purchasePrice"):
-        acq["purchasePrice"] = round(pp, 2)
+    if pp is not None:
+        _update_json_field(
+            acq,
+            "purchasePrice",
+            round(pp, 2),
+            section_name="acquisition",
+            prop_name=pname,
+        )
     ppu = safe_float(field_values.get("PRICE_PER_UNIT"))
-    if ppu is not None and not acq.get("pricePerUnit"):
-        acq["pricePerUnit"] = round(ppu, 2)
+    if ppu is not None:
+        _update_json_field(
+            acq,
+            "pricePerUnit",
+            round(ppu, 2),
+            section_name="acquisition",
+            prop_name=pname,
+        )
     eq = safe_float(field_values.get("EQUITY"))
     if eq is not None:
-        acq["totalAcquisitionBudget"] = acq.get("totalAcquisitionBudget") or round(
-            pp or 0, 2
+        _update_json_field(
+            acq,
+            "totalAcquisitionBudget",
+            round(pp or 0, 2),
+            section_name="acquisition",
+            prop_name=pname,
         )
 
     # Financing
     la = safe_float(field_values.get("LOAN_AMOUNT"))
-    if la is not None and not fin.get("loanAmount"):
-        fin["loanAmount"] = round(la, 2)
+    if la is not None:
+        _update_json_field(
+            fin, "loanAmount", round(la, 2), section_name="financing", prop_name=pname
+        )
     ltv = safe_float(field_values.get("LOAN_TO_VALUE"))
-    if ltv is not None and not fin.get("ltv"):
-        fin["ltv"] = round(ltv, 4)
+    if ltv is not None:
+        _update_json_field(
+            fin, "ltv", round(ltv, 4), section_name="financing", prop_name=pname
+        )
     ir = safe_float(field_values.get("INTEREST_RATE"))
-    if ir is not None and not fin.get("interestRate"):
-        fin["interestRate"] = round(ir, 6)
+    if ir is not None:
+        _update_json_field(
+            fin, "interestRate", round(ir, 6), section_name="financing", prop_name=pname
+        )
     lt = safe_float(field_values.get("LOAN_TERM"))
-    if lt is not None and not fin.get("loanTermMonths"):
-        fin["loanTermMonths"] = int(lt * 12) if lt < 40 else int(lt)
+    if lt is not None:
+        term_months = int(lt * 12) if lt < 40 else int(lt)
+        _update_json_field(
+            fin,
+            "loanTermMonths",
+            term_months,
+            section_name="financing",
+            prop_name=pname,
+        )
     amort = safe_float(field_values.get("AMORTIZATION"))
-    if amort is not None and not fin.get("amortizationMonths"):
-        fin["amortizationMonths"] = int(amort * 12) if amort < 50 else int(amort)
+    if amort is not None:
+        amort_months = int(amort * 12) if amort < 50 else int(amort)
+        _update_json_field(
+            fin,
+            "amortizationMonths",
+            amort_months,
+            section_name="financing",
+            prop_name=pname,
+        )
     ds = safe_float(field_values.get("DEBT_SERVICE_ANNUAL"))
-    if ds is not None and not fin.get("annualDebtService"):
-        fin["annualDebtService"] = round(ds, 2)
+    if ds is not None:
+        _update_json_field(
+            fin,
+            "annualDebtService",
+            round(ds, 2),
+            section_name="financing",
+            prop_name=pname,
+        )
 
     # Returns
     lirr = safe_float(field_values.get("LEVERED_RETURNS_IRR"))
-    if lirr is not None and not ret.get("leveredIrr"):
-        ret["leveredIrr"] = round(lirr, 6)
-        ret["lpIrr"] = round(lirr, 6)
+    if lirr is not None:
+        _update_json_field(
+            ret, "leveredIrr", round(lirr, 6), section_name="returns", prop_name=pname
+        )
+        _update_json_field(
+            ret, "lpIrr", round(lirr, 6), section_name="returns", prop_name=pname
+        )
     lmoic = safe_float(field_values.get("LEVERED_RETURNS_MOIC"))
-    if lmoic is not None and not ret.get("leveredMoic"):
-        ret["leveredMoic"] = round(lmoic, 4)
-        ret["lpMoic"] = round(lmoic, 4)
+    if lmoic is not None:
+        _update_json_field(
+            ret, "leveredMoic", round(lmoic, 4), section_name="returns", prop_name=pname
+        )
+        _update_json_field(
+            ret, "lpMoic", round(lmoic, 4), section_name="returns", prop_name=pname
+        )
     uirr = safe_float(field_values.get("UNLEVERED_RETURNS_IRR"))
-    if uirr is not None and not ret.get("unleveredIrr"):
-        ret["unleveredIrr"] = round(uirr, 6)
+    if uirr is not None:
+        _update_json_field(
+            ret, "unleveredIrr", round(uirr, 6), section_name="returns", prop_name=pname
+        )
     umoic = safe_float(field_values.get("UNLEVERED_RETURNS_MOIC"))
-    if umoic is not None and not ret.get("unleveredMoic"):
-        ret["unleveredMoic"] = round(umoic, 4)
+    if umoic is not None:
+        _update_json_field(
+            ret,
+            "unleveredMoic",
+            round(umoic, 4),
+            section_name="returns",
+            prop_name=pname,
+        )
 
     # Operations
     egi = safe_float(field_values.get("EFFECTIVE_GROSS_INCOME"))
-    if egi is not None and not ops.get("totalRevenueYear1"):
-        ops["totalRevenueYear1"] = round(egi, 2)
+    if egi is not None:
+        _update_json_field(
+            ops,
+            "totalRevenueYear1",
+            round(egi, 2),
+            section_name="operations",
+            prop_name=pname,
+        )
     nri = safe_float(field_values.get("NET_RENTAL_INCOME"))
-    if nri is not None and not ops.get("netRentalIncomeYear1"):
-        ops["netRentalIncomeYear1"] = round(nri, 2)
+    if nri is not None:
+        _update_json_field(
+            ops,
+            "netRentalIncomeYear1",
+            round(nri, 2),
+            section_name="operations",
+            prop_name=pname,
+        )
     noi_val = safe_float(field_values.get("NOI"))
-    if noi_val is not None and not ops.get("noiYear1"):
-        ops["noiYear1"] = round(noi_val, 2)
+    if noi_val is not None:
+        _update_json_field(
+            ops,
+            "noiYear1",
+            round(noi_val, 2),
+            section_name="operations",
+            prop_name=pname,
+        )
     tex = safe_float(field_values.get("TOTAL_EXPENSES"))
-    if tex is not None and not ops.get("totalExpensesYear1"):
-        ops["totalExpensesYear1"] = round(tex, 2)
-    if occ is not None and not ops.get("occupancy"):
-        ops["occupancy"] = round(occ, 4)
-    if avg_rent is not None and not ops.get("avgRentPerUnit"):
-        ops["avgRentPerUnit"] = round(avg_rent, 2)
-    if avg_rent_sf is not None and not ops.get("avgRentPerSf"):
-        ops["avgRentPerSf"] = round(avg_rent_sf, 4)
+    if tex is not None:
+        _update_json_field(
+            ops,
+            "totalExpensesYear1",
+            round(tex, 2),
+            section_name="operations",
+            prop_name=pname,
+        )
+    if occ is not None:
+        _update_json_field(
+            ops, "occupancy", round(occ, 4), section_name="operations", prop_name=pname
+        )
+    if avg_rent is not None:
+        _update_json_field(
+            ops,
+            "avgRentPerUnit",
+            round(avg_rent, 2),
+            section_name="operations",
+            prop_name=pname,
+        )
+    if avg_rent_sf is not None:
+        _update_json_field(
+            ops,
+            "avgRentPerSf",
+            round(avg_rent_sf, 4),
+            section_name="operations",
+            prop_name=pname,
+        )
 
     # Total operating expenses (annual total, not per-unit)
     toe = safe_float(field_values.get("TOTAL_OPERATING_EXPENSES"))
-    if toe is not None and not ops.get("totalOperatingExpensesYear1"):
-        ops["totalOperatingExpensesYear1"] = round(toe, 2)
+    if toe is not None:
+        _update_json_field(
+            ops,
+            "totalOperatingExpensesYear1",
+            round(toe, 2),
+            section_name="operations",
+            prop_name=pname,
+        )
 
     result: dict[str, Any] = {}
     if acq:
@@ -445,8 +647,9 @@ def build_ops_by_year(
         yr_data["expenses"] = yr_expenses
         ops_by_year[str(year_num)] = yr_data
 
-        # Use the first year for top-level expenses
-        if not expenses:
+        # Use year-1 expenses for the top-level expenses dict (always
+        # overwrite so re-extractions can correct stale data).
+        if year_num == 1:
             expenses = dict(yr_expenses)
 
     logger.info(
@@ -527,6 +730,10 @@ async def fetch_base_field_values(
 
         if field_values:
             break  # Found data with this variant
+
+    # Resolve extraction-side names (e.g. NET_OPERATING_INCOME) to canonical
+    # enrichment names (e.g. NOI) so downstream hydration code finds the values.
+    resolve_field_aliases(field_values)
 
     return field_values
 

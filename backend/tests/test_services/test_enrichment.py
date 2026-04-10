@@ -10,14 +10,17 @@ from types import SimpleNamespace
 import pytest
 
 from app.services.enrichment import (
+    ALL_HYDRATION_FIELDS,
     BASE_EXPENSE_FIELD_MAP,
     CASHFLOW_FIELD_MAP,
+    FIELD_ALIASES,
     YEAR_FIELD_RE,
     build_base_expenses,
     build_financial_data_json,
     build_ops_by_year,
     get_property_name_variants,
     match_prop_name,
+    resolve_field_aliases,
     safe_float,
     to_decimal,
     update_property_columns,
@@ -31,6 +34,7 @@ from app.services.enrichment import (
 def _make_prop(**overrides):
     """Return a SimpleNamespace mimicking a Property with empty defaults."""
     defaults = dict(
+        id=1,
         name="Test Property",
         address=None,
         purchase_price=None,
@@ -224,11 +228,22 @@ class TestUpdatePropertyColumns:
         assert changed is True
         assert prop.purchase_price == Decimal("5000000.0")
 
-    def test_skips_existing_purchase_price(self):
+    def test_overwrites_existing_purchase_price(self):
+        """Re-extraction data should overwrite stale values."""
         prop = _make_prop(purchase_price=Decimal("1000000"))
         changed = update_property_columns(prop, {"PURCHASE_PRICE": 2_000_000})
-        # Should NOT overwrite
-        assert prop.purchase_price == Decimal("1000000")
+        assert changed is True
+        assert prop.purchase_price == Decimal("2000000.0")
+
+    def test_no_change_when_same_value(self):
+        """No-op when the extracted value matches the existing value."""
+        prop = _make_prop(
+            purchase_price=Decimal("5000000.0"),
+            current_value=Decimal("5000000.0"),
+        )
+        changed = update_property_columns(prop, {"PURCHASE_PRICE": 5_000_000})
+        assert changed is False
+        assert prop.purchase_price == Decimal("5000000.0")
 
     def test_sets_total_units(self):
         prop = _make_prop()
@@ -266,10 +281,12 @@ class TestUpdatePropertyColumns:
         update_property_columns(prop, {"PROPERTY_ADDRESS": "123 Main St"})
         assert prop.address == "123 Main St"
 
-    def test_skips_address_when_real_value(self):
+    def test_overwrites_address_when_real_value(self):
+        """Re-extraction should update address even if already populated."""
         prop = _make_prop(address="456 Oak Ave")
-        update_property_columns(prop, {"PROPERTY_ADDRESS": "123 Main St"})
-        assert prop.address == "456 Oak Ave"
+        changed = update_property_columns(prop, {"PROPERTY_ADDRESS": "123 Main St"})
+        assert changed is True
+        assert prop.address == "123 Main St"
 
     def test_noi_per_unit_preferred(self):
         prop = _make_prop()
@@ -433,14 +450,27 @@ class TestBuildFinancialDataJson:
         assert ops["avgRentPerSf"] == 1.5
         assert ops["totalOperatingExpensesYear1"] == 750_000.0
 
-    def test_preserves_existing_data(self):
-        """Should not overwrite existing values in the dict."""
+    def test_overwrites_existing_data_with_latest(self):
+        """Latest extraction data should overwrite stale JSON values."""
         prop = _make_prop()
         existing = {
             "acquisition": {"purchasePrice": 999},
             "financing": {"loanAmount": 500},
         }
         fv = {"PURCHASE_PRICE": 5_000_000, "LOAN_AMOUNT": 3_000_000}
+        result = build_financial_data_json(prop, fv, existing)
+        assert result["acquisition"]["purchasePrice"] == 5_000_000.0
+        assert result["financing"]["loanAmount"] == 3_000_000.0
+
+    def test_preserves_existing_when_field_absent(self):
+        """Fields not in the new extraction should not be wiped out."""
+        prop = _make_prop()
+        existing = {
+            "acquisition": {"purchasePrice": 999},
+            "financing": {"loanAmount": 500},
+        }
+        # No PURCHASE_PRICE or LOAN_AMOUNT in new extraction
+        fv = {"OCCUPANCY_PERCENT": 0.95}
         result = build_financial_data_json(prop, fv, existing)
         assert result["acquisition"]["purchasePrice"] == 999
         assert result["financing"]["loanAmount"] == 500
@@ -527,13 +557,23 @@ class TestBuildOpsByYear:
         # First year's expenses should populate top-level
         assert expenses["realEstateTaxes"] == 100_000.0
 
-    def test_existing_expenses_preserved_if_present(self):
+    def test_existing_expenses_overwritten_by_year1(self):
+        """Year-1 expenses from latest extraction should overwrite stale data."""
         rows = [
             ("REAL_ESTATE_TAXES_YEAR_1", 100_000.0),
         ]
         existing = {"realEstateTaxes": 50_000.0}
         _, expenses, _ = build_ops_by_year(rows, existing)
-        # existing is non-empty, so it should NOT be overwritten
+        assert expenses["realEstateTaxes"] == 100_000.0
+
+    def test_existing_expenses_preserved_when_no_year1(self):
+        """If the extraction only has year-2+ data, don't wipe year-1 expenses."""
+        rows = [
+            ("REAL_ESTATE_TAXES_YEAR_2", 110_000.0),
+        ]
+        existing = {"realEstateTaxes": 50_000.0}
+        _, expenses, _ = build_ops_by_year(rows, existing)
+        # No year-1 data, so existing expenses should be preserved
         assert expenses["realEstateTaxes"] == 50_000.0
 
     def test_defaults_filled_for_missing_keys(self):
@@ -627,3 +667,132 @@ class TestYearFieldRegex:
         m2 = YEAR_FIELD_RE.match("UTILITY_INCOME_YEAR_1")
         assert m2 is not None
         assert m2.group(1) == "UTILITY_INCOME"
+
+
+# ===================================================================
+# 10. FIELD_ALIASES and resolve_field_aliases
+# ===================================================================
+
+
+class TestFieldAliases:
+    """Verify that extraction-side field names are resolved to canonical names."""
+
+    def test_net_operating_income_resolves_to_noi(self):
+        fv: dict[str, float | str | None] = {"NET_OPERATING_INCOME": 1_000_000.0}
+        result = resolve_field_aliases(fv)
+        assert result["NOI"] == 1_000_000.0
+        # Original alias key is preserved
+        assert result["NET_OPERATING_INCOME"] == 1_000_000.0
+
+    def test_cap_rate_resolves_to_going_in_cap_rate(self):
+        fv: dict[str, float | str | None] = {"CAP_RATE": 0.048}
+        result = resolve_field_aliases(fv)
+        assert result["GOING_IN_CAP_RATE"] == 0.048
+
+    def test_average_rent_per_unit_inplace_resolves(self):
+        fv: dict[str, float | str | None] = {"AVERAGE_RENT_PER_UNIT_INPLACE": 1350.0}
+        result = resolve_field_aliases(fv)
+        assert result["AVG_RENT_PER_UNIT"] == 1350.0
+
+    def test_average_rent_per_sf_inplace_resolves(self):
+        fv: dict[str, float | str | None] = {"AVERAGE_RENT_PER_SF_INPLACE": 1.85}
+        result = resolve_field_aliases(fv)
+        assert result["AVG_RENT_PER_SF"] == 1.85
+
+    def test_vacancy_loss_resolves_to_vacancy_rate(self):
+        fv: dict[str, float | str | None] = {"VACANCY_LOSS": 0.05}
+        result = resolve_field_aliases(fv)
+        assert result["VACANCY_RATE"] == 0.05
+
+    def test_total_operating_expenses_resolves_to_total_expenses(self):
+        fv: dict[str, float | str | None] = {"TOTAL_OPERATING_EXPENSES": 500_000.0}
+        result = resolve_field_aliases(fv)
+        assert result["TOTAL_EXPENSES"] == 500_000.0
+
+    def test_canonical_name_takes_priority_over_alias(self):
+        """If both the canonical name and alias are present, canonical wins."""
+        fv: dict[str, float | str | None] = {
+            "NOI": 900_000.0,
+            "NET_OPERATING_INCOME": 1_000_000.0,
+        }
+        result = resolve_field_aliases(fv)
+        # Canonical was already present, so alias should NOT overwrite
+        assert result["NOI"] == 900_000.0
+
+    def test_empty_dict(self):
+        fv: dict[str, float | str | None] = {}
+        result = resolve_field_aliases(fv)
+        assert result == {}
+
+    def test_no_alias_keys_present(self):
+        fv: dict[str, float | str | None] = {
+            "PURCHASE_PRICE": 5_000_000.0,
+            "TOTAL_UNITS": 120.0,
+        }
+        result = resolve_field_aliases(fv)
+        assert result == fv
+
+    def test_all_alias_names_in_hydration_fields(self):
+        """Every extraction-side alias name must appear in ALL_HYDRATION_FIELDS
+        so the SQL IN clause fetches them from the database."""
+        for alias_name in FIELD_ALIASES:
+            assert alias_name in ALL_HYDRATION_FIELDS, (
+                f"Alias {alias_name!r} missing from ALL_HYDRATION_FIELDS — "
+                f"SQL queries won't fetch it"
+            )
+
+    def test_market_rent_fallback(self):
+        """AVERAGE_RENT_PER_UNIT_MARKET should resolve when INPLACE is absent."""
+        fv: dict[str, float | str | None] = {"AVERAGE_RENT_PER_UNIT_MARKET": 1400.0}
+        result = resolve_field_aliases(fv)
+        assert result["AVG_RENT_PER_UNIT"] == 1400.0
+
+    def test_inplace_rent_preferred_over_market(self):
+        """When both INPLACE and MARKET rent are present, first alias wins
+        because resolve_field_aliases only sets when canonical is absent."""
+        fv: dict[str, float | str | None] = {
+            "AVERAGE_RENT_PER_UNIT_INPLACE": 1350.0,
+            "AVERAGE_RENT_PER_UNIT_MARKET": 1400.0,
+        }
+        result = resolve_field_aliases(fv)
+        # The iteration order of FIELD_ALIASES determines which alias sets
+        # the canonical key first. Either value is acceptable — the key point
+        # is that AVG_RENT_PER_UNIT IS set (not missing).
+        assert result["AVG_RENT_PER_UNIT"] is not None
+
+
+class TestAliasIntegrationWithHydration:
+    """End-to-end: extraction-side names flow through to property columns."""
+
+    def test_net_operating_income_populates_noi_column(self):
+        """NET_OPERATING_INCOME from extraction should set prop.noi via alias."""
+        prop = _make_prop(total_units=100)
+        fv: dict[str, float | str | None] = {"NET_OPERATING_INCOME": 600_000.0}
+        resolve_field_aliases(fv)
+        update_property_columns(prop, fv)
+        # NOI is stored per-unit: 600_000 / 100 = 6000
+        assert prop.noi == Decimal("6000.0")
+
+    def test_cap_rate_populates_cap_rate_column(self):
+        """CAP_RATE from extraction should set prop.cap_rate via alias."""
+        prop = _make_prop()
+        fv: dict[str, float | str | None] = {"CAP_RATE": 0.0475}
+        resolve_field_aliases(fv)
+        update_property_columns(prop, fv)
+        assert prop.cap_rate == Decimal("0.0475")
+
+    def test_average_rent_populates_avg_rent_column(self):
+        """AVERAGE_RENT_PER_UNIT_INPLACE should set prop.avg_rent_per_unit."""
+        prop = _make_prop()
+        fv: dict[str, float | str | None] = {"AVERAGE_RENT_PER_UNIT_INPLACE": 1250.0}
+        resolve_field_aliases(fv)
+        update_property_columns(prop, fv)
+        assert prop.avg_rent_per_unit == Decimal("1250.0")
+
+    def test_noi_flows_into_financial_data_json(self):
+        """NET_OPERATING_INCOME should appear as noiYear1 in financial_data."""
+        prop = _make_prop()
+        fv: dict[str, float | str | None] = {"NET_OPERATING_INCOME": 1_000_000.0}
+        resolve_field_aliases(fv)
+        result = build_financial_data_json(prop, fv, None)
+        assert result["operations"]["noiYear1"] == 1_000_000.0

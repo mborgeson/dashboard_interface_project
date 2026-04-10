@@ -26,6 +26,7 @@ from app.services.enrichment import (
     fetch_year_field_rows,
     get_property_name_variants,
     match_prop_name,
+    resolve_field_aliases,
     update_property_columns,
 )
 
@@ -58,7 +59,11 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
         # -- Resolve base field values --
         if _prefetched_base is not None:
             field_values = dict(_prefetched_base)
+            # Resolve extraction-side aliases (e.g. NET_OPERATING_INCOME -> NOI)
+            # so downstream hydration code finds the values under canonical names.
+            resolve_field_aliases(field_values)
         else:
+            # fetch_base_field_values applies resolve_field_aliases internally
             field_values = await fetch_base_field_values(db, prop)
 
         changed = False

@@ -25,6 +25,7 @@ from app.extraction.error_handler import NullValue
 from app.models.deal import Deal, DealStage
 from app.models.extraction import ExtractedValue, ExtractionRun
 from app.models.property import Property
+from app.services.enrichment import FIELD_ALIASES, resolve_field_aliases
 
 # Extraction runs older than this are considered stale/crashed
 STALE_RUN_TIMEOUT_MINUTES = 30
@@ -688,7 +689,9 @@ _EXTRACTED_FIELD_MAP: dict[str, str] = {
     "PROPERTY_ADDRESS": "address",
 }
 
-# Fields that go into financial_data JSON
+# Fields that go into financial_data JSON.
+# Includes extraction-side alias names (from FIELD_ALIASES) so the SQL query
+# fetches rows that _apply_hydration can resolve to canonical names.
 _FINANCIAL_DATA_FIELDS: set[str] = {
     "PURCHASE_PRICE",
     "PRICE_PER_UNIT",
@@ -719,7 +722,7 @@ _FINANCIAL_DATA_FIELDS: set[str] = {
     "AVG_RENT_PER_UNIT",
     "AVG_RENT_PER_SF",
     "OCCUPANCY_PERCENT",
-}
+} | set(FIELD_ALIASES.keys())
 
 
 def _safe_float(val: Any) -> float | None:
@@ -746,6 +749,11 @@ def _apply_hydration(
 ) -> bool:
     """Apply extracted field values to a Property, updating columns and
     financial_data JSON. Returns True if any field was changed."""
+    # Resolve extraction-side aliases (e.g. NET_OPERATING_INCOME -> NOI) so
+    # the lookups below find values regardless of which name the extraction
+    # pipeline used.
+    resolve_field_aliases(field_values)
+
     changed = False
 
     # Update direct columns

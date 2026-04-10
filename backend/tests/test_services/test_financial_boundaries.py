@@ -194,12 +194,18 @@ class TestBuildFinancialDataJson:
         assert "acquisition" in result
         assert result["acquisition"]["purchasePrice"] == 10000000
 
-    def test_existing_fd_not_overwritten(self):
-        """Existing financial_data values are not overwritten."""
+    def test_existing_fd_overwritten_by_latest(self):
+        """Latest extraction overwrites stale financial_data values."""
         prop = self._mock_property()
         existing = {"acquisition": {"purchasePrice": 5000000}}
         result = build_financial_data_json(prop, {"PURCHASE_PRICE": 10000000}, existing)
-        # Existing value should be preserved
+        assert result["acquisition"]["purchasePrice"] == 10000000.0
+
+    def test_existing_fd_preserved_when_field_absent(self):
+        """Fields not in the new extraction are left untouched."""
+        prop = self._mock_property()
+        existing = {"acquisition": {"purchasePrice": 5000000}}
+        result = build_financial_data_json(prop, {"OCCUPANCY_PERCENT": 0.95}, existing)
         assert result["acquisition"]["purchasePrice"] == 5000000
 
     def test_zero_purchase_price(self):
