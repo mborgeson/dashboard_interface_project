@@ -26,8 +26,14 @@ from loguru import logger as _base_logger
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.extraction.fingerprint import fingerprint_file
 from app.extraction.output_validation import validate_extraction_output
 from app.extraction.reconciliation_checks import run_reconciliation_checks
+from app.extraction.schema_drift import (
+    SchemaDriftDetector,
+    load_baseline_fingerprint,
+    save_baseline_fingerprint,
+)
 from app.models.extraction_warning import ExtractionWarning
 
 logger = _base_logger.bind(component="GroupExtractionPipeline")
@@ -892,12 +898,6 @@ class GroupExtractionPipeline:
             db.commit()
 
         # Pre-extraction drift check (Story 4)
-        from app.extraction.fingerprint import fingerprint_file
-        from app.extraction.schema_drift import (
-            SchemaDriftDetector,
-            save_baseline_fingerprint,
-        )
-
         detector = SchemaDriftDetector(self.data_dir)
         drift_results: list[dict[str, Any]] = []
 
@@ -977,19 +977,19 @@ class GroupExtractionPipeline:
         report["drift_results"] = drift_results
 
         # Save baseline from first file if none exists
-        if approved_file_paths:
-            from app.extraction.schema_drift import load_baseline_fingerprint
-
-            if load_baseline_fingerprint(self.data_dir, group_name) is None:
-                try:
-                    first_fp = fingerprint_file(approved_file_paths[0])
-                    save_baseline_fingerprint(self.data_dir, group_name, first_fp)
-                except Exception as e:
-                    logger.warning(
-                        "baseline_save_error",
-                        group=group_name,
-                        error=str(e),
-                    )
+        if (
+            approved_file_paths
+            and load_baseline_fingerprint(self.data_dir, group_name) is None
+        ):
+            try:
+                first_fp = fingerprint_file(approved_file_paths[0])
+                save_baseline_fingerprint(self.data_dir, group_name, first_fp)
+            except Exception as e:
+                logger.warning(
+                    "baseline_save_error",
+                    group=group_name,
+                    error=str(e),
+                )
 
         # Extract files using ThreadPoolExecutor for parallel Excel parsing
         from app.api.v1.endpoints.extraction.common import _extract_single_file
