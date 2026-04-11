@@ -260,23 +260,57 @@ class ReportWorker:
         template_sections: list[str],
         db: AsyncSession,
     ) -> BytesIO:
-        """Generate a PDF report using the existing PDF service."""
-        from app.services.pdf_service import get_pdf_service
+        """Generate a PDF report using the template-specific renderers.
 
-        pdf_service = get_pdf_service()
+        Dispatches on the template category (and template name for financial
+        reports) to route to one of the five branded templates in
+        :mod:`app.services.report_templates`. Falls back to the portfolio
+        overview renderer for unknown categories, and to the legacy
+        PDFReportService if any renderer raises.
+        """
+        from app.services import report_data, report_templates
 
-        # For portfolio/executive templates, generate a portfolio report
-        if template_category in ("executive", "portfolio"):
+        name_lower = (template_name or "").lower()
+        category_lower = (template_category or "").lower()
+
+        try:
+            # Financial reports: branch on name contents
+            if category_lower == "financial":
+                if "investor" in name_lower or "distribution" in name_lower:
+                    data = await report_data.gather_investor_distribution_data(db)
+                    return report_templates.render_investor_distribution(data)
+                # Default financial -> property performance
+                prop_data = await report_data.gather_property_performance_data(db)
+                return report_templates.render_property_performance(prop_data)
+
+            if category_lower == "executive":
+                deal_data = await report_data.gather_deal_pipeline_data(db)
+                return report_templates.render_deal_pipeline(deal_data)
+
+            if category_lower == "market":
+                market_data = await report_data.gather_market_analysis_data(db)
+                return report_templates.render_market_analysis(market_data)
+
+            # portfolio / custom / fallback
+            portfolio_data = await report_data.gather_portfolio_overview_data(db)
+            return report_templates.render_portfolio_overview(portfolio_data)
+
+        except Exception:
+            # If template renderer fails, fall back to the legacy portfolio
+            # dump so the job doesn't die outright. The error is still logged
+            # by the renderer.
+            logger.exception(
+                "Template renderer failed, falling back to legacy portfolio report",
+                template_name=template_name,
+                template_category=template_category,
+            )
+            from app.services.pdf_service import get_pdf_service
+
+            pdf_service = get_pdf_service()
             metrics, analytics, properties, deals = await _gather_portfolio_data(db)
             return pdf_service.generate_portfolio_report(
                 metrics, analytics, properties, deals
             )
-
-        # For other templates, generate a summary report with available data
-        metrics, analytics, properties, deals = await _gather_portfolio_data(db)
-        return pdf_service.generate_portfolio_report(
-            metrics, analytics, properties, deals
-        )
 
     async def _generate_excel(
         self,
