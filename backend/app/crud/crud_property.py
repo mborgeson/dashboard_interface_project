@@ -30,6 +30,37 @@ from app.services.enrichment import (
     update_property_columns,
 )
 
+# Core fields that indicate a financial_data blob is "complete enough" to skip
+# enrichment. If any of these are missing or zero, we re-run enrichment.
+_REQUIRED_FD_FIELDS: list[tuple[str, str]] = [
+    ("acquisition", "purchasePrice"),
+    ("operations", "noi"),
+    ("operations", "capRate"),
+    ("operations", "occupancy"),
+]
+
+
+def _financial_data_needs_enrichment(financial_data: Any) -> bool:
+    """Return True if financial_data is missing or has empty core fields.
+
+    A blob is considered complete only when every field in
+    ``_REQUIRED_FD_FIELDS`` is present and non-zero. Properties whose blob
+    fails this check will be re-enriched on the next dashboard load so that
+    new extraction data and field aliases can backfill missing values.
+    """
+    if not financial_data:
+        return True
+    if not isinstance(financial_data, dict):
+        return True
+    for section, key in _REQUIRED_FD_FIELDS:
+        sub = financial_data.get(section)
+        if not isinstance(sub, dict):
+            return True
+        val = sub.get(key)
+        if val is None or val == 0:
+            return True
+    return False
+
 
 class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
     """
@@ -134,14 +165,18 @@ class CRUDProperty(CRUDBase[Property, PropertyCreate, PropertyUpdate]):
         fields + YEAR_N fields), partitions the results by property name,
         and then delegates to the existing per-property enrichment logic.
 
-        Properties that already have ``financial_data`` are skipped.
+        Properties whose ``financial_data`` is missing or incomplete are
+        enriched. A blob is considered complete only when key sections
+        (acquisition, operations, returns) have core fields populated.
 
         Returns the full list with enriched properties in their original positions.
         """
         from app.models.extraction import ExtractedValue
 
         # Identify properties needing enrichment
-        needs_enrichment = [p for p in properties if not p.financial_data]
+        needs_enrichment = [
+            p for p in properties if _financial_data_needs_enrichment(p.financial_data)
+        ]
         if not needs_enrichment:
             return properties
 

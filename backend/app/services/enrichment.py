@@ -34,6 +34,10 @@ FIELD_ALIASES: dict[str, str] = {
     # extraction stores -> enrichment expects
     "NET_OPERATING_INCOME": "NOI",
     "CAP_RATE": "GOING_IN_CAP_RATE",
+    # T12 Return on Purchase Price = T12 NOI / Purchase Price = effective
+    # going-in cap rate. CAP_RATE/Q30 is empty in 98% of templates, but
+    # T12_RETURN_ON_PP has 100% numeric coverage. Use as fallback.
+    "T12_RETURN_ON_PP": "GOING_IN_CAP_RATE",
     "AVERAGE_RENT_PER_UNIT_INPLACE": "AVG_RENT_PER_UNIT",
     "AVERAGE_RENT_PER_UNIT_MARKET": "AVG_RENT_PER_UNIT",
     "AVERAGE_RENT_PER_SF_INPLACE": "AVG_RENT_PER_SF",
@@ -57,10 +61,37 @@ def resolve_field_aliases(
     already present (i.e. a direct extraction match takes priority over an
     alias).  The original alias key is left in place so callers that inspect
     raw extraction names still work.
+
+    Also computes derived fields:
+    - OCCUPANCY_PERCENT = 1 - VACANCY_RATE (when VACANCY_RATE is set and
+      OCCUPANCY_PERCENT is not). The extraction pipeline does not currently
+      capture OCCUPANCY_PERCENT directly, but VACANCY_LOSS (aliased to
+      VACANCY_RATE) has 100% numeric coverage.
     """
     for alias, canonical in FIELD_ALIASES.items():
-        if alias in field_values and canonical not in field_values:
-            field_values[canonical] = field_values[alias]
+        alias_val = field_values.get(alias)
+        canonical_val = field_values.get(canonical)
+        # Copy alias to canonical when alias has a real value AND canonical
+        # is missing or None. Treat None as "not set" so multiple aliases
+        # mapping to the same canonical can chain (e.g. CAP_RATE=None falls
+        # through to T12_RETURN_ON_PP).
+        if alias_val is not None and canonical_val is None:
+            field_values[canonical] = alias_val
+
+    # Derive OCCUPANCY_PERCENT from VACANCY_RATE when missing
+    if (
+        "OCCUPANCY_PERCENT" not in field_values
+        or field_values.get("OCCUPANCY_PERCENT") is None
+    ):
+        vacancy = field_values.get("VACANCY_RATE")
+        if vacancy is not None:
+            try:
+                vacancy_float = float(vacancy)  # type: ignore[arg-type]
+                if 0 <= vacancy_float <= 1:
+                    field_values["OCCUPANCY_PERCENT"] = 1.0 - vacancy_float
+            except (TypeError, ValueError):
+                pass
+
     return field_values
 
 
@@ -725,11 +756,16 @@ async def fetch_base_field_values(
         ).all()
 
         for fname, vnumeric, vtext in rows:
-            if fname not in field_values:
-                field_values[fname] = vnumeric if vnumeric is not None else vtext
+            # Prefer non-None numeric values; only store if we don't have one yet
+            new_val: float | str | None = (
+                vnumeric if vnumeric is not None else vtext
+            )
+            existing = field_values.get(fname)
+            if existing is None and new_val is not None or fname not in field_values:
+                field_values[fname] = new_val
 
-        if field_values:
-            break  # Found data with this variant
+        if any(v is not None for v in field_values.values()):
+            break  # Found real data with this variant
 
     # Resolve extraction-side names (e.g. NET_OPERATING_INCOME) to canonical
     # enrichment names (e.g. NOI) so downstream hydration code finds the values.
