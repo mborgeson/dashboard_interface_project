@@ -2,7 +2,10 @@
 Reporting endpoints for report templates, queued reports, and distribution schedules.
 """
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -374,6 +377,73 @@ async def get_queued_report(
         error=report.error,
         created_at=report.created_at,
         updated_at=report.updated_at,
+    )
+
+
+@router.get(
+    "/downloads/{filename}",
+    summary="Download generated report file",
+    description="Download a generated report file by filename. "
+    "Authenticated users with viewer role or higher can download any report.",
+    responses={
+        404: {"description": "Report file not found"},
+        400: {"description": "Invalid filename"},
+    },
+)
+async def download_report(filename: str):
+    """Serve a generated report file from the reports output directory.
+
+    Security:
+    - Extracts only the basename to prevent path traversal (../)
+    - Verifies the resolved path is within the reports output directory
+    - Requires authentication via router-level dependency
+    """
+    from app.services.report_worker import REPORTS_OUTPUT_DIR
+
+    # Prevent path traversal by extracting only the basename
+    safe_name = Path(filename).name
+    if not safe_name or safe_name != filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid filename",
+        )
+
+    file_path = (REPORTS_OUTPUT_DIR / safe_name).resolve()
+    reports_dir = REPORTS_OUTPUT_DIR.resolve()
+
+    # Verify resolved path is inside the reports directory (belt-and-braces
+    # check in case basename extraction missed something)
+    try:
+        file_path.relative_to(reports_dir)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file path",
+        ) from e
+
+    if not file_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Report file not found: {safe_name}",
+        )
+
+    # Infer content type from extension
+    ext = file_path.suffix.lower()
+    media_types = {
+        ".pdf": "application/pdf",
+        ".xlsx": ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        ".xls": "application/vnd.ms-excel",
+        ".pptx": (
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        ),
+        ".csv": "text/csv",
+    }
+    media_type = media_types.get(ext, "application/octet-stream")
+
+    return FileResponse(
+        path=file_path,
+        media_type=media_type,
+        filename=safe_name,
     )
 
 

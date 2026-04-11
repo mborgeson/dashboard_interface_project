@@ -98,14 +98,39 @@ export function ReportQueue() {
     setLocalOverrides(prev => ({ ...prev, [reportId]: null }));
   };
 
-  const handleDownload = (report: QueuedReport) => {
-    if (report.downloadUrl) {
+  const handleDownload = async (report: QueuedReport) => {
+    if (!report.downloadUrl) return;
+
+    try {
+      // The backend returns a relative API path like /api/v1/reporting/downloads/...
+      // We need to prepend the origin for absolute URL resolution.
+      const url = report.downloadUrl.startsWith('http')
+        ? report.downloadUrl
+        : `${window.location.protocol}//${window.location.host}${report.downloadUrl}`;
+
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!response.ok) {
+        throw new Error(`Download failed: HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = report.downloadUrl;
+      link.href = objectUrl;
       link.download = `${report.name}.${report.format}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      console.error('Failed to download report:', err);
+      alert(
+        `Failed to download report: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      );
     }
   };
 

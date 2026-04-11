@@ -208,10 +208,14 @@ class ExcelExportService:
                 # Apply formatting
                 if fmt == "currency" and value:
                     cell.number_format = '"$"#,##0.00'
-                elif fmt == "percent" and value:
+                elif fmt == "percent" and isinstance(value, int | float) and value:
                     cell.number_format = "0.0%"
                     cell.value = value / 100 if value > 1 else value
-                elif fmt == "percent_decimal" and value:
+                elif (
+                    fmt == "percent_decimal"
+                    and isinstance(value, int | float)
+                    and value
+                ):
                     cell.number_format = "0.00%"
                     cell.value = value / 100 if value > 1 else value
 
