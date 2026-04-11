@@ -757,9 +757,7 @@ async def fetch_base_field_values(
 
         for fname, vnumeric, vtext in rows:
             # Prefer non-None numeric values; only store if we don't have one yet
-            new_val: float | str | None = (
-                vnumeric if vnumeric is not None else vtext
-            )
+            new_val: float | str | None = vnumeric if vnumeric is not None else vtext
             existing = field_values.get(fname)
             if existing is None and new_val is not None or fname not in field_values:
                 field_values[fname] = new_val
