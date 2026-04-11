@@ -33,11 +33,15 @@ from app.models import Property
 FIELD_ALIASES: dict[str, str] = {
     # extraction stores -> enrichment expects
     "NET_OPERATING_INCOME": "NOI",
+    # Going-in cap rate fallback chain. The alias resolver iterates this dict
+    # in order and copies the first non-None value to the canonical key. So
+    # the ordering is: direct CAP_RATE field (usually empty) -> T12 Return on
+    # Purchase Price (primary fallback, 100% numeric coverage) -> T3 Return
+    # on Purchase Price (secondary fallback, 100% numeric coverage).
+    # All three represent NOI / Purchase Price = effective going-in cap rate.
     "CAP_RATE": "GOING_IN_CAP_RATE",
-    # T12 Return on Purchase Price = T12 NOI / Purchase Price = effective
-    # going-in cap rate. CAP_RATE/Q30 is empty in 98% of templates, but
-    # T12_RETURN_ON_PP has 100% numeric coverage. Use as fallback.
     "T12_RETURN_ON_PP": "GOING_IN_CAP_RATE",
+    "T3_RETURN_ON_PP": "GOING_IN_CAP_RATE",
     "AVERAGE_RENT_PER_UNIT_INPLACE": "AVG_RENT_PER_UNIT",
     "AVERAGE_RENT_PER_UNIT_MARKET": "AVG_RENT_PER_UNIT",
     "AVERAGE_RENT_PER_SF_INPLACE": "AVG_RENT_PER_SF",
