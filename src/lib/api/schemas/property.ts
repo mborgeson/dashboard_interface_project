@@ -258,3 +258,62 @@ export const propertySummaryStatsSchema = z.object({
   portfolioCashOnCash: safeOptionalNum,
   portfolioIRR: safeOptionalNum,
 });
+
+// ---------- Flat PropertyResponse wire schema ----------
+// Matches backend/app/schemas/property.py PropertyResponse one-to-one.
+// Distinct from propertySchema above, which validates the deeper nested
+// shape that /properties/dashboard returns. Use this for plain CRUD
+// endpoints (POST/GET/PUT /properties, GET /properties/{id}, list views).
+
+export const backendPropertySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  property_type: z.string(),
+  address: z.string(),
+  city: z.string(),
+  state: z.string(),
+  zip_code: z.string(),
+  county: z.string().nullable().optional(),
+  market: z.string().nullable().optional(),
+  submarket: z.string().nullable().optional(),
+  year_built: z.number().nullable().optional(),
+  year_renovated: z.number().nullable().optional(),
+  total_units: z.number().nullable().optional(),
+  total_sf: z.number().nullable().optional(),
+  lot_size_acres: z.union([z.string(), z.number()]).nullable().optional(),
+  stories: z.number().nullable().optional(),
+  parking_spaces: z.number().nullable().optional(),
+  purchase_price: z.union([z.string(), z.number()]).nullable().optional(),
+  current_value: z.union([z.string(), z.number()]).nullable().optional(),
+  acquisition_date: z.string().nullable().optional(),
+  occupancy_rate: z.union([z.string(), z.number()]).nullable().optional(),
+  avg_rent_per_unit: z.union([z.string(), z.number()]).nullable().optional(),
+  avg_rent_per_sf: z.union([z.string(), z.number()]).nullable().optional(),
+  noi: z.union([z.string(), z.number()]).nullable().optional(),
+  cap_rate: z.union([z.string(), z.number()]).nullable().optional(),
+  description: z.string().nullable().optional(),
+  amenities: z.record(z.string(), z.unknown()).nullable().optional(),
+  unit_mix: z.record(z.string(), z.unknown()).nullable().optional(),
+  images: z.array(z.string()).nullable().optional(),
+  external_id: z.string().nullable().optional(),
+  data_source: z.string().nullable().optional(),
+  price_per_unit: z.union([z.string(), z.number()]).nullable().optional(),
+  price_per_sf: z.union([z.string(), z.number()]).nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const backendPropertyListResponseSchema = z.object({
+  items: z.array(backendPropertySchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+});
+
+export const backendPropertyCursorPaginatedResponseSchema = z.object({
+  items: z.array(backendPropertySchema),
+  next_cursor: z.string().nullable().optional(),
+  prev_cursor: z.string().nullable().optional(),
+  has_more: z.boolean(),
+  total: z.number().nullable().optional(),
+});
