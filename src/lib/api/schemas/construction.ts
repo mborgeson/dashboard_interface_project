@@ -227,4 +227,32 @@ export const constructionImportStatusSchema = z
 export const triggerConstructionImportResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
+  rows_imported: z.number().optional(),
+  rows_updated: z.number().optional(),
+});
+
+export const permitVelocityPointSchema = z
+  .object({
+    source: z.string(),
+    period: z.string(),
+    count: z.number(),
+    total_value: z.number(),
+  })
+  .transform((r) => ({
+    source: r.source,
+    period: r.period,
+    count: r.count,
+    totalValue: r.total_value,
+  }));
+
+export const fetchAllResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  results: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const backfillResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  rows_updated: z.number().optional(),
 });
