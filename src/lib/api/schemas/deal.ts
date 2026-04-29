@@ -202,4 +202,128 @@ export const backendDealSchema = z
 export const dealsListResponseSchema = z.object({
   items: z.array(backendDealSchema),
   total: z.number(),
+  page: z.number().optional(),
+  page_size: z.number().optional(),
+});
+
+export const dealCursorPaginatedResponseSchema = z.object({
+  items: z.array(backendDealSchema),
+  next_cursor: z.string().nullable().optional(),
+  prev_cursor: z.string().nullable().optional(),
+  has_more: z.boolean(),
+  total: z.number().nullable().optional(),
+});
+
+// ---------- Proforma Returns ----------
+
+export const proformaFieldValueSchema = z
+  .object({
+    field_name: z.string(),
+    value_numeric: z.number().nullable().optional(),
+    value_text: z.string().nullable().optional(),
+  })
+  .transform((p) => ({
+    fieldName: p.field_name,
+    valueNumeric: p.value_numeric ?? undefined,
+    valueText: p.value_text ?? undefined,
+  }));
+
+export const proformaFieldGroupSchema = z.object({
+  category: z.string(),
+  fields: z.array(proformaFieldValueSchema),
+});
+
+export const proformaReturnsResponseSchema = z
+  .object({
+    deal_id: z.number(),
+    deal_name: z.string(),
+    groups: z.array(proformaFieldGroupSchema),
+    total: z.number(),
+  })
+  .transform((p) => ({
+    dealId: p.deal_id,
+    dealName: p.deal_name,
+    groups: p.groups,
+    total: p.total,
+  }));
+
+// ---------- Watchlist ----------
+
+export const watchlistStatusResponseSchema = z
+  .object({
+    deal_id: z.number(),
+    is_watched: z.boolean(),
+  })
+  .transform((w) => ({
+    dealId: w.deal_id,
+    isWatched: w.is_watched,
+  }));
+
+// ---------- Stage Change Audit ----------
+
+export const stageChangeLogResponseSchema = z
+  .object({
+    id: z.number(),
+    deal_id: z.number(),
+    old_stage: z.string().nullable().optional(),
+    new_stage: z.string(),
+    source: z.string(),
+    changed_by_user_id: z.number().nullable().optional(),
+    reason: z.string().nullable().optional(),
+    created_at: z.string(),
+  })
+  .transform((s) => ({
+    id: s.id,
+    dealId: s.deal_id,
+    oldStage: s.old_stage ?? undefined,
+    newStage: s.new_stage,
+    source: s.source,
+    changedByUserId: s.changed_by_user_id ?? undefined,
+    reason: s.reason ?? undefined,
+    createdAt: s.created_at,
+  }));
+
+export const stageHistoryResponseSchema = z
+  .object({
+    deal_id: z.number(),
+    history: z.array(stageChangeLogResponseSchema),
+    total: z.number(),
+  })
+  .transform((s) => ({
+    dealId: s.deal_id,
+    history: s.history,
+    total: s.total,
+  }));
+
+// ---------- Kanban Board ----------
+
+export const kanbanBoardResponseSchema = z
+  .object({
+    stages: z.record(z.string(), z.array(backendDealSchema)),
+    total_deals: z.number(),
+    stage_counts: z.record(z.string(), z.number()),
+  })
+  .transform((k) => ({
+    stages: k.stages,
+    totalDeals: k.total_deals,
+    stageCounts: k.stage_counts,
+  }));
+
+// ---------- Stage Mapping (reference data) ----------
+
+export const stageMappingResponseSchema = z
+  .object({
+    stages: z.array(z.string()),
+    folder_to_stage: z.record(z.string(), z.string()),
+  })
+  .transform((m) => ({
+    stages: m.stages,
+    folderToStage: m.folder_to_stage,
+  }));
+
+// ---------- Manual Stage Override (request) ----------
+
+export const manualStageOverrideSchema = z.object({
+  stage: z.string(),
+  reason: z.string().nullable().optional(),
 });
