@@ -30,7 +30,10 @@ jobs:
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Bumped from 30m after the suite hit the limit on multiple PRs (#2/#3/#4)
+    # without any test failures — the runner was killed mid-execution. 60m gives
+    # the suite a 2x buffer over observed runtime.
+    timeout-minutes: 60
 
     # PostgreSQL service container for the backend
     services:
