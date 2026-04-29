@@ -47,6 +47,7 @@ docker-compose up -d
 
 - [Deployment Guide](docs/DEPLOYMENT.md) - Complete setup and deployment instructions
 - [API Documentation](http://localhost:8000/docs) - Interactive API docs (when running)
+- [Claude Code Setup](docs/claude-code-setup.md) - Per-developer wrapper scripts for MCP servers
 
 ## Development
 
