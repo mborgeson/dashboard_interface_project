@@ -148,6 +148,29 @@
                                          "env":  {
                                                      "FIRECRAWL_API_KEY":  "fc-137b8b559e9a46d8a184feb85e3a6355"
                                                  }
-                                     }
+                                     },
+                       "postgres":  {
+                                        "type":  "stdio",
+                                        "command":  "bash",
+                                        "args":  [
+                                                     ".claude/scripts/postgres-mcp.sh"
+                                                 ]
+                                    },
+                       "github":  {
+                                      "type":  "stdio",
+                                      "command":  "bash",
+                                      "args":  [
+                                                   ".claude/scripts/github-mcp.sh"
+                                               ]
+                                  },
+                       "redis":  {
+                                     "type":  "stdio",
+                                     "command":  "npx",
+                                     "args":  [
+                                                  "-y",
+                                                  "@modelcontextprotocol/server-redis",
+                                                  "redis://localhost:6379"
+                                              ]
+                                 }
                    }
 }
