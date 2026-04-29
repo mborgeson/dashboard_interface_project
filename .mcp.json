@@ -140,14 +140,10 @@
                                   },
                        "firecrawl":  {
                                          "type":  "stdio",
-                                         "command":  "npx",
+                                         "command":  "bash",
                                          "args":  [
-                                                      "-y",
-                                                      "firecrawl-mcp"
-                                                  ],
-                                         "env":  {
-                                                     "FIRECRAWL_API_KEY":  "fc-137b8b559e9a46d8a184feb85e3a6355"
-                                                 }
+                                                      ".claude/scripts/firecrawl-mcp.sh"
+                                                  ]
                                      },
                        "postgres":  {
                                         "type":  "stdio",
