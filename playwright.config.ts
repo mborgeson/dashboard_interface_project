@@ -7,12 +7,21 @@ const isCI = !!process.env.CI;
  * B&R Capital Real Estate Analytics Dashboard
  *
  * Projects:
- *   - "chromium" (default): Local development — all browsers, no retries, HTML reporter
- *   - "ci": CI pipeline — chromium only, 1 retry, 30s timeout, JSON + HTML reporters
+ *   - "smoke": One-shot infrastructure check — dev server up, app renders,
+ *     routing works. Runs FIRST. If it fails, downstream projects are skipped
+ *     and the suite exits in <2 min instead of ~40 min of redundant red.
+ *   - "setup": Authenticates a browser context and saves storage state to
+ *     e2e/.auth/admin.json so subsequent UI tests don't bounce to /login.
+ *     Runs after smoke so a broken dev server fails before we waste time
+ *     trying to log in.
+ *   - "chromium" (default): Local development — depends on smoke + setup.
+ *   - "ci": CI pipeline — chromium only, depends on smoke + setup, 1 retry,
+ *     30s timeout, JSON + HTML reporters.
  *
  * Usage:
  *   Local:  npx playwright test
  *   CI:     npx playwright test --project=ci
+ *   Smoke:  npx playwright test --project=smoke
  */
 export default defineConfig({
   testDir: './e2e',
@@ -34,11 +43,24 @@ export default defineConfig({
   },
 
   projects: [
-    /* Setup project — runs once before browser tests to authenticate and
-     * persist storage state to e2e/.auth/admin.json. */
+    /* Smoke fail-fast project — runs FIRST. If dev server / build / routing
+     * is broken, downstream projects are skipped and the suite exits fast.
+     * Standalone: no auth, no storageState, no backend dependency beyond
+     * the login page being reachable. */
+    {
+      name: 'smoke',
+      testMatch: /smoke\.spec\.ts/,
+      retries: 0,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    /* Setup project — runs after smoke. Authenticates a browser context
+     * and persists storage state to e2e/.auth/admin.json so subsequent UI
+     * tests don't bounce to /login. */
     {
       name: 'setup',
       testMatch: /global\.setup\.ts/,
+      dependencies: ['smoke'],
     },
 
     /* Local development project — runs by default when no --project is specified */
@@ -48,7 +70,8 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/admin.json',
       },
-      dependencies: ['setup'],
+      testIgnore: /(smoke|global\.setup)\.spec\.ts/,
+      dependencies: ['smoke', 'setup'],
     },
 
     /* CI project — single browser, stricter timeouts, retries on failure */
@@ -60,7 +83,8 @@ export default defineConfig({
         /* CI-specific: capture video on first retry for debugging */
         video: 'on-first-retry',
       },
-      dependencies: ['setup'],
+      testIgnore: /(smoke|global\.setup)\.spec\.ts/,
+      dependencies: ['smoke', 'setup'],
       retries: 1,
       timeout: 30_000,
     },
