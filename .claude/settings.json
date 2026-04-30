@@ -29,6 +29,10 @@
           },
           {
             "type": "command",
+            "command": "bash .claude/hooks/validate-workflow.sh"
+          },
+          {
+            "type": "command",
             "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | tr -d '\\r' | tr '\\\\' '/' 2>/dev/null | { read -r f; case \"$f\" in */backend/*.py) ( cd backend && venv/Scripts/python.exe -m pytest -n auto --tb=short -q ) || exit 2 ;; */src/*.ts|*/src/*.tsx) npm run test:run || exit 2 ;; esac; }",
             "asyncRewake": true,
             "statusMessage": "Running tests in background..."
