@@ -36,7 +36,7 @@ DASHBOARD_THRESHOLD_S = 0.500  # 500 ms
 DEALS_THRESHOLD_S = 0.500  # 500 ms
 # Login threshold is higher because bcrypt password hashing is intentionally
 # slow (~200-400ms per verify) as a brute-force defense mechanism.
-# First call also incurs passlib backend initialization overhead.
+# First call also incurs bcrypt backend initialization overhead.
 LOGIN_THRESHOLD_S = 0.750  # 750 ms (bcrypt-dominated)
 PROPERTIES_LIST_THRESHOLD_S = 0.500  # 500 ms
 ANALYTICS_THRESHOLD_S = 0.500  # 500 ms

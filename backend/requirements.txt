@@ -46,12 +46,7 @@ apscheduler>=3.10.0,<4.0.0
 
 # Authentication & Security
 PyJWT[crypto]>=2.12.0,<3.0.0
-passlib[bcrypt]>=1.7.4,<2.0.0
-# bcrypt pinned to <4 because passlib 1.7.4 reads bcrypt.__about__ which was
-# removed in bcrypt 4.0 (AttributeError: module 'bcrypt' has no attribute '__about__').
-# passlib has no 1.7.5 release, so the dependency stays pinned until either passlib
-# ships a fix or this codebase migrates off passlib.
-bcrypt<4.0
+bcrypt>=4.0,<5.0
 httpx>=0.26.0,<1.0.0
 
 # Utilities
