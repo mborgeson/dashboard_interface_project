@@ -173,21 +173,24 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Protected Routes (Frontend)', () => {
-    // These tests verify the frontend is accessible
-    // Auth protection on the frontend will be implemented later
+    // These tests run unauthenticated to verify RequireAuth redirects users
+    // to /login. Override the global storageState fixture with empty state
+    // so we start without any tokens.
+    test.use({ storageState: { cookies: [], origins: [] } });
 
-    test('dashboard loads without auth (dev mode)', async ({ page }) => {
+    test('dashboard redirects to /login when unauthenticated', async ({ page }) => {
       await page.goto('/');
 
-      // Dashboard should load (no auth gate in current implementation)
-      await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
+      // RequireAuth should bounce the user to /login
+      await page.waitForURL('**/login', { timeout: 10_000 });
+      await expect(page).toHaveURL(/\/login$/);
     });
 
-    test('investments page loads without auth (dev mode)', async ({ page }) => {
+    test('investments redirects to /login when unauthenticated', async ({ page }) => {
       await page.goto('/investments');
 
-      // Page should load
-      await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
+      await page.waitForURL('**/login', { timeout: 10_000 });
+      await expect(page).toHaveURL(/\/login$/);
     });
   });
 });
