@@ -79,6 +79,8 @@ chrome_profile_notebooklm/
 # Playwright / test artifacts
 test-results/
 playwright-report/
+# Playwright auth storage state (contains real JWTs)
+e2e/.auth/
 
 # Coverage HTML reports
 coverage/

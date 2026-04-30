@@ -34,10 +34,21 @@ export default defineConfig({
   },
 
   projects: [
+    /* Setup project — runs once before browser tests to authenticate and
+     * persist storage state to e2e/.auth/admin.json. */
+    {
+      name: 'setup',
+      testMatch: /global\.setup\.ts/,
+    },
+
     /* Local development project — runs by default when no --project is specified */
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/admin.json',
+      },
+      dependencies: ['setup'],
     },
 
     /* CI project — single browser, stricter timeouts, retries on failure */
@@ -45,9 +56,11 @@ export default defineConfig({
       name: 'ci',
       use: {
         ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/admin.json',
         /* CI-specific: capture video on first retry for debugging */
         video: 'on-first-retry',
       },
+      dependencies: ['setup'],
       retries: 1,
       timeout: 30_000,
     },
