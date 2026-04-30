@@ -107,9 +107,11 @@ jobs:
       # ── Seed demo users ──────────────────────────────────────────────
       # E2E auth fixtures expect demo users (matt@bandrcapital.com, demo@bandrcapital.com).
       # Uses the existing seed module at app.database.seed which creates users, properties, and deals.
+      # Fail the job if seeding fails — without demo users every auth-gated test
+      # downstream fails and the run wastes 30+ minutes producing meaningless red.
       - name: Seed database with demo data
         working-directory: backend
-        run: python -m app.database.seed || echo "::warning::Database seeding failed — auth E2E tests may fail"
+        run: python -m app.database.seed
 
       # ── Start backend ────────────────────────────────────────────────
       - name: Start backend server
