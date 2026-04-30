@@ -20,7 +20,9 @@ export default defineConfig({
   forbidOnly: isCI,
   /* Default retries/workers — overridden per-project */
   retries: 0,
-  workers: isCI ? 1 : undefined,
+  /* CI: 4 workers on a 4-core ubuntu-latest runner. Was 1 — caused 403 tests to
+   * exhaust the 60m job timeout on every run. Drop to 2 if memory pressure surfaces. */
+  workers: isCI ? 4 : undefined,
   reporter: isCI
     ? [['json', { outputFile: 'playwright-report/results.json' }], ['html', { open: 'never' }]]
     : 'html',
